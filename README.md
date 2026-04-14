@@ -22,7 +22,6 @@ The parser generator constructs an LR(1) parser from a context free grammar. Ple
 
 These frontends are currently supported:
 
-- [Bison](docs/parsergen-frontend-bison.md)
 - [JSON](docs/parsergen-frontend-json.md)
 - [YAML](docs/parsergen-frontend-yaml.md)
 
@@ -44,8 +43,6 @@ These backends are currently supported:
 
 - [JSON](docs/parsergen-backend-json.md)
 - [YAML](docs/parsergen-backend-yaml.md)
-- [Bison Report](docs/parsergen-backend-bison-report.md)
-- [DOT](docs/parsergen-backend-dot.md)
 - [NULL](docs/parsergen-backend-null.md)
 
 Are you missing a backend for your use case? Use the JSON backend of GoLR to output the parser as JSON and implement
