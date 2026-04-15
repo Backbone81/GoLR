@@ -19,65 +19,67 @@ func LoadBisonXMLReportFromFile(filePath string) (BisonXMLReport, error) {
 }
 
 type BisonXMLReport struct {
-	Version   string
-	BugReport string
-	URL       string
-	Filename  string
+	XMLName   xml.Name  `xml:"bison-xml-report"`
+	Version   string    `xml:"version,attr"`
+	BugReport string    `xml:"bug-report,attr"`
+	URL       string    `xml:"url,attr"`
+	Filename  string    `xml:"filename"`
+	Grammar   Grammar   `xml:"grammar"`
+	Automaton Automaton `xml:"automaton"`
 }
 
 type Grammar struct {
-	Rules        []Rule
-	Terminals    []Terminal
-	Nonterminals []Nonterminal
-	Automaton    Automaton
+	Rules        []Rule        `xml:"rules>rule"`
+	Terminals    []Terminal    `xml:"terminals>terminal"`
+	Nonterminals []Nonterminal `xml:"nonterminals>nonterminal"`
 }
 
 type Rule struct {
-	Number     int
-	Usefulness string
-	Lhs        string
-	Rhs        []string
+	Number     int      `xml:"number,attr"`
+	Usefulness string   `xml:"usefulness,attr"`
+	Lhs        string   `xml:"lhs"`
+	Rhs        []string `xml:"rhs>symbol"`
 }
 
 type Terminal struct {
-	SymbolNumber int
-	TokenNumber  int
-	Name         string
-	Type         string
-	Usefulness   string
+	SymbolNumber int    `xml:"symbol-number,attr"`
+	TokenNumber  int    `xml:"token-number,attr"`
+	Name         string `xml:"name,attr"`
+	Type         string `xml:"type,attr"`
+	Usefulness   string `xml:"usefulness,attr"`
 }
 
 type Nonterminal struct {
-	SymbolNumber int
-	Name         string
-	Type         string
-	Usefulness   string
+	SymbolNumber int    `xml:"symbol-number,attr"`
+	Name         string `xml:"name,attr"`
+	Type         string `xml:"type,attr"`
+	Usefulness   string `xml:"usefulness,attr"`
 }
 
 type Automaton struct {
-	States []State
+	States []State `xml:"state"`
 }
 
 type State struct {
-	Number      int
-	ItemSet     []Item
-	Transitions []Transition
-	Reductions  []Reduction
+	Number      int          `xml:"number,attr"`
+	ItemSet     []Item       `xml:"itemset>item"`
+	Transitions []Transition `xml:"actions>transitions>transition"`
+	Reductions  []Reduction  `xml:"actions>reductions>reduction"`
 }
 
 type Item struct {
-	RuleNumber int
-	Dot        int
+	RuleNumber int `xml:"rule-number,attr"`
+	Dot        int `xml:"dot,attr"`
 }
 
 type Transition struct {
-	Type   string
-	Symbol string
-	State  int
+	Type   string `xml:"type,attr"`
+	Symbol string `xml:"symbol,attr"`
+	State  int    `xml:"state,attr"`
 }
 
 type Reduction struct {
-	Symbol  string
-	Rule    int
-	Enabled bool
+	Symbol  string `xml:"symbol,attr"`
+	Rule    string `xml:"rule,attr"`
+	Enabled bool   `xml:"enabled,attr"`
 }

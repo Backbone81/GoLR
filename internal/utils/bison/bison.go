@@ -41,7 +41,7 @@ func Version() (BisonVersion, error) {
 
 	version := words[len(words)-1]
 	versionParts := strings.Split(version, ".")
-	if len(versionParts) != 3 {
+	if len(versionParts) < 2 {
 		return BisonVersion{}, ErrVersionParseError
 	}
 	major, err := strconv.Atoi(versionParts[0])
@@ -52,9 +52,12 @@ func Version() (BisonVersion, error) {
 	if err != nil {
 		return BisonVersion{}, ErrVersionParseError
 	}
-	patch, err := strconv.Atoi(versionParts[2])
-	if err != nil {
-		return BisonVersion{}, ErrVersionParseError
+	var patch int
+	if len(versionParts) == 3 {
+		patch, err = strconv.Atoi(versionParts[2])
+		if err != nil {
+			return BisonVersion{}, ErrVersionParseError
+		}
 	}
 	return BisonVersion{
 		Major: major,
@@ -76,15 +79,26 @@ func BuildLR1(grammarFilePath string, automatonFilePath string) error {
 }
 
 func build(grammarFilePath string, automatonFilePath string, parserType string) error {
-	if _, _, err := execute(
+	version, err := Version()
+	if err != nil {
+		return err
+	}
+	if version.Major != 3 {
+		return errors.New("expected bison version 3")
+	}
+
+	args := []string{
 		"--warnings=no-other",
-		"--header=/dev/null",
 		"--output=/dev/null",
 		"--report-file=/dev/null",
-		"--xml="+automatonFilePath,
-		"--define=lr.type="+parserType,
-		grammarFilePath,
-	); err != nil {
+		"--xml=" + automatonFilePath,
+		"--define=lr.type=" + parserType,
+	}
+	if version.Minor > 7 {
+		args = append(args, "--header=/dev/null")
+	}
+	args = append(args, grammarFilePath)
+	if _, _, err := execute(args...); err != nil {
 		return err
 	}
 	return nil
