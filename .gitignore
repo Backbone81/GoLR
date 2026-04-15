@@ -30,6 +30,8 @@ go.work.sum
 # Editor/IDE
 .idea/
 .vscode/
+tmp/
+bin/
 
 # ignore the golr binary
 /golr

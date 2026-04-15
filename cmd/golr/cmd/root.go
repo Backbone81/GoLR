@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"golr/internal/utils/bison"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -18,6 +19,21 @@ var rootCmd = &cobra.Command{
 	Long:         `GoLR is a parser generator for LR(1) grammars.`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := bison.BuildLALR1("tmp/bison-3.8.2.y", "tmp/output-lalr1.xml"); err != nil {
+			return err
+		}
+		if err := bison.BuildIELR1("tmp/bison-3.8.2.y", "tmp/output-ielr1.xml"); err != nil {
+			return err
+		}
+		if err := bison.BuildLR1("tmp/bison-3.8.2.y", "tmp/output-lr1.xml"); err != nil {
+			return err
+		}
+
+		report, err := bison.LoadBisonXMLReportFromFile("tmp/output-ielr1.xml")
+		if err != nil {
+			return err
+		}
+		_ = report
 		return nil
 	},
 }
@@ -44,7 +60,7 @@ func init() {
 	)
 	rootCmd.PersistentFlags().StringVar(
 		&backend,
-		"core",
+		"backend",
 		"yaml",
 		"The backend to use for writing the parser.",
 	)
