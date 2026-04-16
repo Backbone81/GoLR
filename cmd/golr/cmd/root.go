@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"golr/internal/parsergen/backend/yaml"
+	"golr/internal/parsergen/backend/golang"
 	"golr/internal/parsergen/core/ielr1"
 	frontend2 "golr/internal/parsergen/frontend"
 	"os"
@@ -40,7 +40,10 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if err := yaml.ParserToFile("tmp/parser.yaml", parser); err != nil {
+		//if err := yaml.ParserToFile("tmp/parser.yaml", parser); err != nil {
+		//	return err
+		//}
+		if err := golang.ParserToFile("tmp/parser.go", parser, golang.Config{PackageName: "parser"}); err != nil {
 			return err
 		}
 		return nil
