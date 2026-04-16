@@ -1,7 +1,9 @@
 package cmd
 
 import (
-	"golr/internal/utils/bison"
+	"golr/internal/parsergen/backend/yaml"
+	"golr/internal/parsergen/core/ielr1"
+	frontend2 "golr/internal/parsergen/frontend"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -19,21 +21,28 @@ var rootCmd = &cobra.Command{
 	Long:         `GoLR is a parser generator for LR(1) grammars.`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := bison.BuildLALR1("tmp/bison-3.8.2.y", "tmp/output-lalr1.xml"); err != nil {
-			return err
-		}
-		if err := bison.BuildIELR1("tmp/bison-3.8.2.y", "tmp/output-ielr1.xml"); err != nil {
-			return err
-		}
-		if err := bison.BuildLR1("tmp/bison-3.8.2.y", "tmp/output-lr1.xml"); err != nil {
-			return err
-		}
+		//if err := bison.BuildLALR1("tmp/bison-3.8.2.y", "tmp/output-lalr1.xml"); err != nil {
+		//	return err
+		//}
+		//if err := bison.BuildIELR1("tmp/bison-3.8.2.y", "tmp/output-ielr1.xml"); err != nil {
+		//	return err
+		//}
+		//if err := bison.BuildLR1("tmp/bison-3.8.2.y", "tmp/output-lr1.xml"); err != nil {
+		//	return err
+		//}
 
-		report, err := bison.LoadBisonXMLReportFromFile("tmp/output-ielr1.xml")
+		//report, err := bison.LoadBisonXMLReportFromFile("tmp/output-ielr1.xml")
+		//if err != nil {
+		//	return err
+		//}
+
+		parser, err := ielr1.GrammarToParser(frontend2.Grammar{})
 		if err != nil {
 			return err
 		}
-		_ = report
+		if err := yaml.ParserToFile("tmp/parser.yaml", parser); err != nil {
+			return err
+		}
 		return nil
 	},
 }
