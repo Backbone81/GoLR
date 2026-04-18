@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"go/format"
 	"golr/internal/parsergen/backend"
+	"golr/internal/parsergen/frontend"
 	"io"
 	"os"
 	"runtime/trace"
@@ -18,7 +19,10 @@ import (
 //go:embed parser.go.template
 var parserTemplate string
 
-var parsedTemplate = template.Must(template.New("parser.go.template").Parse(parserTemplate))
+var parsedTemplate = template.Must(template.New("parser.go.template").Funcs(template.FuncMap{
+	"stateActions":         buildStateActions,
+	"gotoAfterNonterminal": buildGotoAfterNonterminal,
+}).Parse(parserTemplate))
 
 type Config struct {
 	PackageName string
@@ -77,4 +81,66 @@ func ParserToString(parser backend.Parser, config Config) (string, error) {
 		return "", err
 	}
 	return builder.String(), nil
+}
+
+type StateAction struct {
+	LookaheadTerminal []int
+	IsReduce          bool
+
+	// Reduce action: number of symbols to pop from stack.
+	PopSymbolCount int
+
+	// Reduce action: symbol to push onto stack.
+	PushSymbol int
+
+	// Shift action: state to push onto stack.
+	PushState int
+}
+
+func buildStateActions(grammar frontend.Grammar, state backend.State) ([]StateAction, error) {
+	var result []StateAction
+	for _, reduceAction := range state.ReduceActions.All() {
+		var action StateAction
+		for symbol := range reduceAction.LookaheadSet.All() {
+			action.LookaheadTerminal = append(action.LookaheadTerminal, symbol)
+		}
+		action.IsReduce = true
+
+		production := grammar.Productions[reduceAction.ProductionIdx]
+		action.PopSymbolCount = len(production.SymbolRefs)
+		action.PushSymbol = production.NonterminalIdx
+		result = append(result, action)
+	}
+	for _, transitionAction := range state.TransitionActions.All() {
+		if transitionAction.SymbolRef().IsNonterminal() {
+			continue
+		}
+		var action StateAction
+		action.LookaheadTerminal = append(action.LookaheadTerminal, transitionAction.SymbolRef().Idx())
+		action.PushState = transitionAction.StateIdx()
+		result = append(result, action)
+	}
+	return result, nil
+}
+
+type Goto struct {
+	SourceStateIdx      int
+	DestinationStateIdx int
+}
+
+func buildGotoAfterNonterminal(parser backend.Parser, nonterminalIdx int) []Goto {
+	var result []Goto
+	nonterminalRef := frontend.NewNonterminalRef(nonterminalIdx)
+	for stateIdx, state := range parser.States {
+		for _, transitionAction := range state.TransitionActions.All() {
+			if transitionAction.SymbolRef() == nonterminalRef {
+				result = append(result, Goto{
+					SourceStateIdx:      stateIdx,
+					DestinationStateIdx: transitionAction.StateIdx(),
+				})
+				break
+			}
+		}
+	}
+	return result
 }
