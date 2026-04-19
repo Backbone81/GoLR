@@ -18,7 +18,7 @@ func ToGrammar(reader io.Reader) (frontend.Grammar, error) {
 
 	var result frontend.Grammar
 	if err := json.NewDecoder(reader).Decode(&result); err != nil {
-		return frontend.Grammar{}, err
+		return frontend.Grammar{}, fmt.Errorf("decoding JSON to grammar: %w", err)
 	}
 	return result, nil
 }
@@ -28,8 +28,8 @@ func ToGrammar(reader io.Reader) (frontend.Grammar, error) {
 func FromGrammar(writer io.Writer, grammar frontend.Grammar) error {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Frontends: JSON: FromGrammar").End()
 
-	if err := json.NewEncoder(writer).Encode(&grammar); err != nil {
-		return err
+	if err := json.NewEncoder(writer).Encode(grammar); err != nil {
+		return fmt.Errorf("encoding grammar to JSON: %w", err)
 	}
 	return nil
 }
