@@ -103,14 +103,14 @@ func (i *IELR1) buildStateList(report bison.BisonXMLReport, parser *backend.Pars
 		}
 
 		for _, reduction := range state.Reductions {
-			if reduction.Rule == "accept" {
-				// TODO: We probably need to mark the accept state somehow
-				continue
-			}
-
 			productionIdx, err := strconv.Atoi(reduction.Rule)
 			if err != nil {
-				return err
+				if reduction.Rule == "accept" {
+					// The accept rule is always the first production
+					productionIdx = 0
+				} else {
+					return err
+				}
 			}
 
 			var lookaheadSet backend.LookaheadSet

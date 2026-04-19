@@ -22,6 +22,7 @@ var parserTemplate string
 var parsedTemplate = template.Must(template.New("parser.go.template").Funcs(template.FuncMap{
 	"stateActions":         buildStateActions,
 	"gotoAfterNonterminal": buildGotoAfterNonterminal,
+	"displayProduction":    displayProduction,
 }).Parse(parserTemplate))
 
 type Config struct {
@@ -84,8 +85,9 @@ func ParserToString(parser backend.Parser, config Config) (string, error) {
 }
 
 type StateAction struct {
-	LookaheadTerminal []int
-	IsReduce          bool
+	LookaheadTerminalIdxs []int
+	LookaheadSymbols      []frontend.Symbol
+	IsReduce              bool
 
 	// Reduce action: number of symbols to pop from stack.
 	PopSymbolCount int
@@ -95,6 +97,9 @@ type StateAction struct {
 
 	// Shift action: state to push onto stack.
 	PushState int
+
+	// Reduce action: the production which is reduced
+	ProductionIdx int
 }
 
 func buildStateActions(grammar frontend.Grammar, state backend.State) ([]StateAction, error) {
@@ -102,11 +107,13 @@ func buildStateActions(grammar frontend.Grammar, state backend.State) ([]StateAc
 	for _, reduceAction := range state.ReduceActions.All() {
 		var action StateAction
 		for symbol := range reduceAction.LookaheadSet.All() {
-			action.LookaheadTerminal = append(action.LookaheadTerminal, symbol)
+			action.LookaheadTerminalIdxs = append(action.LookaheadTerminalIdxs, symbol)
+			action.LookaheadSymbols = append(action.LookaheadSymbols, grammar.Terminals[symbol])
 		}
 		action.IsReduce = true
 
 		production := grammar.Productions[reduceAction.ProductionIdx]
+		action.ProductionIdx = reduceAction.ProductionIdx
 		action.PopSymbolCount = len(production.SymbolRefs)
 		action.PushSymbol = production.NonterminalIdx
 		result = append(result, action)
@@ -116,7 +123,8 @@ func buildStateActions(grammar frontend.Grammar, state backend.State) ([]StateAc
 			continue
 		}
 		var action StateAction
-		action.LookaheadTerminal = append(action.LookaheadTerminal, transitionAction.SymbolRef().Idx())
+		action.LookaheadTerminalIdxs = append(action.LookaheadTerminalIdxs, transitionAction.SymbolRef().Idx())
+		action.LookaheadSymbols = append(action.LookaheadSymbols, grammar.Terminals[transitionAction.SymbolRef().Idx()])
 		action.PushState = transitionAction.StateIdx()
 		result = append(result, action)
 	}
@@ -143,4 +151,27 @@ func buildGotoAfterNonterminal(parser backend.Parser, nonterminalIdx int) []Goto
 		}
 	}
 	return result
+}
+
+func displayProduction(grammar frontend.Grammar, productionIdx int) string {
+	var builder strings.Builder
+	production := grammar.Productions[productionIdx]
+
+	lhs := grammar.Nonterminals[production.NonterminalIdx]
+	builder.WriteString(lhs.String())
+	builder.WriteString(" -> ")
+	for idx, symbolRef := range production.SymbolRefs {
+		if idx > 0 {
+			builder.WriteString(" ")
+		}
+		if symbolRef.IsNonterminal() {
+			builder.WriteString(grammar.Nonterminals[symbolRef.Idx()].String())
+		} else {
+			builder.WriteString(grammar.Terminals[symbolRef.Idx()].String())
+		}
+	}
+	if len(production.SymbolRefs) == 0 {
+		builder.WriteString("%empty")
+	}
+	return builder.String()
 }
