@@ -1,0 +1,571 @@
+package nfa_test
+
+import (
+	thompsonsnfa "golr/internal/scannergen/core/subset/nfa"
+	"golr/internal/scannergen/frontend"
+	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+)
+
+var _ = Describe("NFA", func() {
+	It("should build the correct NFA for regex 'a'", func() {
+		expression := frontend.NewNodeLiteral("a")
+		expressionNFA := thompsonsnfa.FromRegex(expression, 0)
+
+		wantNfa := []thompsonsnfa.State{
+			{ // state 0
+				Transitions: []thompsonsnfa.Transition{
+					{
+						CharRange: frontend.CharRange{
+							Low:  'a',
+							High: 'a',
+						},
+						NextStateIdx: 1,
+					},
+				},
+			},
+			{ // state 1
+				Accept: true,
+			},
+		}
+
+		Expect(expressionNFA).To(Equal(wantNfa))
+	})
+
+	It("should build the correct NFA for regex 'b'", func() {
+		expression := frontend.NewNodeLiteral("b")
+		expressionNFA := thompsonsnfa.FromRegex(expression, 0)
+
+		wantNfa := []thompsonsnfa.State{
+			{ // state 0
+				Transitions: []thompsonsnfa.Transition{
+					{
+						CharRange: frontend.CharRange{
+							Low:  'b',
+							High: 'b',
+						},
+						NextStateIdx: 1,
+					},
+				},
+			},
+			{ // state 1
+				Accept: true,
+			},
+		}
+
+		Expect(expressionNFA).To(Equal(wantNfa))
+	})
+
+	It("should build the correct NFA for regex 'ab'", func() {
+		expression := frontend.NewNodeConcat(
+			frontend.NewNodeLiteral("a"),
+			frontend.NewNodeLiteral("b"),
+		)
+		expressionNFA := thompsonsnfa.FromRegex(expression, 0)
+
+		wantNfa := []thompsonsnfa.State{
+			{ // state 0
+				Transitions: []thompsonsnfa.Transition{
+					{
+						CharRange: frontend.CharRange{
+							Low:  'a',
+							High: 'a',
+						},
+						NextStateIdx: 1,
+					},
+				},
+			},
+			{ // state 1
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 2,
+					},
+				},
+			},
+			{ // state 2
+				Transitions: []thompsonsnfa.Transition{
+					{
+						CharRange: frontend.CharRange{
+							Low:  'b',
+							High: 'b',
+						},
+						NextStateIdx: 3,
+					},
+				},
+			},
+			{ // state 3
+				Accept: true,
+			},
+		}
+
+		Expect(expressionNFA).To(Equal(wantNfa))
+	})
+
+	It("should build the correct NFA for regex 'a|b'", func() {
+		expression := frontend.NewNodeOr(
+			frontend.NewNodeLiteral("a"),
+			frontend.NewNodeLiteral("b"),
+		)
+		expressionNFA := thompsonsnfa.FromRegex(expression, 0)
+
+		wantNfa := []thompsonsnfa.State{
+			{ // state 0
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 1,
+					},
+					{
+						Empty:        true,
+						NextStateIdx: 3,
+					},
+				},
+			},
+			{ // state 1
+				Transitions: []thompsonsnfa.Transition{
+					{
+						CharRange: frontend.CharRange{
+							Low:  'a',
+							High: 'a',
+						},
+						NextStateIdx: 2,
+					},
+				},
+			},
+			{ // state 2
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 5,
+					},
+				},
+			},
+			{ // state 3
+				Transitions: []thompsonsnfa.Transition{
+					{
+						CharRange: frontend.CharRange{
+							Low:  'b',
+							High: 'b',
+						},
+						NextStateIdx: 4,
+					},
+				},
+			},
+			{ // state 4
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 5,
+					},
+				},
+			},
+			{ // state 5
+				Accept: true,
+			},
+		}
+
+		Expect(expressionNFA).To(Equal(wantNfa))
+	})
+
+	It("should build the correct NFA for regex 'a*'", func() {
+		expression := frontend.NewNodeZeroOrMore(
+			frontend.NewNodeLiteral("a"),
+		)
+		expressionNFA := thompsonsnfa.FromRegex(expression, 0)
+
+		wantNfa := []thompsonsnfa.State{
+			{ // state 0
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 1,
+					},
+					{
+						Empty:        true,
+						NextStateIdx: 3,
+					},
+				},
+			},
+			{ // state 1
+				Transitions: []thompsonsnfa.Transition{
+					{
+						CharRange: frontend.CharRange{
+							Low:  'a',
+							High: 'a',
+						},
+						NextStateIdx: 2,
+					},
+				},
+			},
+			{ // state 2
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 1,
+					},
+					{
+						Empty:        true,
+						NextStateIdx: 3,
+					},
+				},
+			},
+			{ // state 3
+				Accept: true,
+			},
+		}
+
+		Expect(expressionNFA).To(Equal(wantNfa))
+	})
+
+	It("should build the correct NFA for regex '(b|c)*'", func() {
+		expression := frontend.NewNodeZeroOrMore(
+			frontend.NewNodeOr(
+				frontend.NewNodeLiteral("b"),
+				frontend.NewNodeLiteral("c"),
+			),
+		)
+		expressionNFA := thompsonsnfa.FromRegex(expression, 0)
+
+		wantNfa := []thompsonsnfa.State{
+			{ // state 0
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 1,
+					},
+					{
+						Empty:        true,
+						NextStateIdx: 7,
+					},
+				},
+			},
+			{ // state 1
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 2,
+					},
+					{
+						Empty:        true,
+						NextStateIdx: 4,
+					},
+				},
+			},
+			{ // state 2
+				Transitions: []thompsonsnfa.Transition{
+					{
+						CharRange: frontend.CharRange{
+							Low:  'b',
+							High: 'b',
+						},
+						NextStateIdx: 3,
+					},
+				},
+			},
+			{ // state 3
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 6,
+					},
+				},
+			},
+			{ // state 4
+				Transitions: []thompsonsnfa.Transition{
+					{
+						CharRange: frontend.CharRange{
+							Low:  'c',
+							High: 'c',
+						},
+						NextStateIdx: 5,
+					},
+				},
+			},
+			{ // state 5
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 6,
+					},
+				},
+			},
+			{ // state 6
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 1,
+					},
+					{
+						Empty:        true,
+						NextStateIdx: 7,
+					},
+				},
+			},
+			{ // state 7
+				Accept: true,
+			},
+		}
+
+		Expect(expressionNFA).To(Equal(wantNfa))
+	})
+
+	It("should build the correct NFA for regex 'a(b|c)*'", func() {
+		expression := frontend.NewNodeConcat(
+			frontend.NewNodeLiteral("a"),
+			frontend.NewNodeZeroOrMore(
+				frontend.NewNodeOr(
+					frontend.NewNodeLiteral("b"),
+					frontend.NewNodeLiteral("c"),
+				),
+			),
+		)
+		expressionNFA := thompsonsnfa.FromRegex(expression, 0)
+
+		wantNfa := []thompsonsnfa.State{
+			{ // state 0
+				Transitions: []thompsonsnfa.Transition{
+					{
+						CharRange: frontend.CharRange{
+							Low:  'a',
+							High: 'a',
+						},
+						NextStateIdx: 1,
+					},
+				},
+			},
+			{ // state 1
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 2,
+					},
+				},
+			},
+			{ // state 2
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 3,
+					},
+					{
+						Empty:        true,
+						NextStateIdx: 9,
+					},
+				},
+			},
+			{ // state 3
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 4,
+					},
+					{
+						Empty:        true,
+						NextStateIdx: 6,
+					},
+				},
+			},
+			{ // state 4
+				Transitions: []thompsonsnfa.Transition{
+					{
+						CharRange: frontend.CharRange{
+							Low:  'b',
+							High: 'b',
+						},
+						NextStateIdx: 5,
+					},
+				},
+			},
+			{ // state 5
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 8,
+					},
+				},
+			},
+			{ // state 6
+				Transitions: []thompsonsnfa.Transition{
+					{
+						CharRange: frontend.CharRange{
+							Low:  'c',
+							High: 'c',
+						},
+						NextStateIdx: 7,
+					},
+				},
+			},
+			{ // state 7
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 8,
+					},
+				},
+			},
+			{ // state 8
+				Transitions: []thompsonsnfa.Transition{
+					{
+						Empty:        true,
+						NextStateIdx: 3,
+					},
+					{
+						Empty:        true,
+						NextStateIdx: 9,
+					},
+				},
+			},
+			{ // state 9
+				Accept: true,
+			},
+		}
+		Expect(expressionNFA).To(Equal(wantNfa))
+	})
+})
+
+//nolint:funlen,gocognit,cyclop
+func BenchmarkFromRegex(b *testing.B) {
+	b.Run("[a-zA-Z_][a-zA-Z0-9_]*", func(b *testing.B) {
+		expression := frontend.NewNodeConcat(
+			frontend.NewNodeCharClass(frontend.CharClass{
+				Ranges: []frontend.CharRange{
+					{
+						Low:  'a',
+						High: 'z',
+					},
+					{
+						Low:  'A',
+						High: 'Z',
+					},
+					{
+						Low:  '_',
+						High: '_',
+					},
+				},
+			}),
+			frontend.NewNodeZeroOrMore(
+				frontend.NewNodeCharClass(frontend.CharClass{
+					Ranges: []frontend.CharRange{
+						{
+							Low:  'a',
+							High: 'z',
+						},
+						{
+							Low:  'A',
+							High: 'Z',
+						},
+						{
+							Low:  '0',
+							High: '9',
+						},
+						{
+							Low:  '_',
+							High: '_',
+						},
+					},
+				}),
+			),
+		)
+		for range b.N {
+			_ = thompsonsnfa.FromRegex(expression, 0)
+		}
+	})
+
+	b.Run("[-+]?[0-9]+", func(b *testing.B) {
+		expression := frontend.NewNodeConcat(
+			frontend.NewNodeOptional(
+				frontend.NewNodeCharClass(frontend.CharClass{
+					Ranges: []frontend.CharRange{
+						{
+							Low:  '-',
+							High: '-',
+						},
+						{
+							Low:  '+',
+							High: '+',
+						},
+					},
+				}),
+			),
+			frontend.NewNodeOneOrMore(
+				frontend.NewNodeCharClass(frontend.CharClass{
+					Ranges: []frontend.CharRange{
+						{
+							Low:  '0',
+							High: '9',
+						},
+					},
+				}),
+			),
+		)
+		for range b.N {
+			_ = thompsonsnfa.FromRegex(expression, 0)
+		}
+	})
+
+	b.Run("a", func(b *testing.B) {
+		expression := frontend.NewNodeLiteral("a")
+		for range b.N {
+			_ = thompsonsnfa.FromRegex(expression, 0)
+		}
+	})
+
+	b.Run("ab", func(b *testing.B) {
+		expression := frontend.NewNodeConcat(
+			frontend.NewNodeLiteral("a"),
+			frontend.NewNodeLiteral("b"),
+		)
+		for range b.N {
+			_ = thompsonsnfa.FromRegex(expression, 0)
+		}
+	})
+
+	b.Run("a|b", func(b *testing.B) {
+		expression := frontend.NewNodeOr(
+			frontend.NewNodeLiteral("a"),
+			frontend.NewNodeLiteral("b"),
+		)
+		for range b.N {
+			_ = thompsonsnfa.FromRegex(expression, 0)
+		}
+	})
+
+	b.Run("a*", func(b *testing.B) {
+		expression := frontend.NewNodeZeroOrMore(
+			frontend.NewNodeLiteral("a"),
+		)
+		for range b.N {
+			_ = thompsonsnfa.FromRegex(expression, 0)
+		}
+	})
+
+	b.Run("(b|c)*", func(b *testing.B) {
+		expression := frontend.NewNodeZeroOrMore(
+			frontend.NewNodeOr(
+				frontend.NewNodeLiteral("b"),
+				frontend.NewNodeLiteral("c"),
+			),
+		)
+		for range b.N {
+			_ = thompsonsnfa.FromRegex(expression, 0)
+		}
+	})
+
+	b.Run("a(b|c)*", func(b *testing.B) {
+		expression := frontend.NewNodeConcat(
+			frontend.NewNodeLiteral("a"),
+			frontend.NewNodeZeroOrMore(
+				frontend.NewNodeOr(
+					frontend.NewNodeLiteral("b"),
+					frontend.NewNodeLiteral("c"),
+				),
+			),
+		)
+		for range b.N {
+			_ = thompsonsnfa.FromRegex(expression, 0)
+		}
+	})
+}
