@@ -10,8 +10,8 @@ type CharClass struct {
 	// Negate reports if the character class should be negated/inverted. A negated character class matches all
 	// characters not specified in the character ranges. The characters must still be in the range of valid Unicode
 	// characters from 0x00 to [unicode.MaxRune].
-	Negate bool
-	Ranges []CharRange
+	Negate bool        `json:"negate" yaml:"negate"`
+	Ranges []CharRange `json:"ranges" yaml:"ranges"`
 }
 
 // String returns a string representation of this regular expression.
@@ -50,4 +50,12 @@ func (c *CharClass) Validate() error {
 		}
 	}
 	return nil
+}
+
+// NewNodeCharClass returns a new node for the given char class.
+func NewNodeCharClass(charClass CharClass) *Node {
+	return &Node{
+		Kind:      KindCharClass,
+		CharClass: charClass,
+	}
 }

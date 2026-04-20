@@ -11,9 +11,9 @@ import (
 // Minimum must always be smaller or equal to Maximum.
 // Set Minimum and Maximum to the same value to have an exact number of repetitions.
 type Repetition struct {
-	Minimum int
-	Maximum int
-	Child   *Node
+	Minimum int   `json:"minimum" yaml:"minimum"`
+	Maximum int   `json:"maximum" yaml:"maximum"`
+	Child   *Node `json:"child" yaml:"child"`
 }
 
 // String returns a string representation of this regular expression.
@@ -63,4 +63,16 @@ func (r *Repetition) Validate() error {
 		return errors.New("minimum and maximum must not be both zero")
 	}
 	return r.Child.Validate()
+}
+
+// NewNodeRepetition returns a new repetition node.
+func NewNodeRepetition(minimum int, maximum int, child *Node) *Node {
+	return &Node{
+		Kind: KindRepetition,
+		Repetition: Repetition{
+			Minimum: minimum,
+			Maximum: maximum,
+			Child:   child,
+		},
+	}
 }

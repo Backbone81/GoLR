@@ -8,7 +8,7 @@ import (
 // ZeroOrMore is a regular expression matching zero or more instances of its child.
 // The child needs to implement the [Node] interface.
 type ZeroOrMore struct {
-	Child *Node
+	Child *Node `json:"child" yaml:"child"`
 }
 
 // String returns a string representation of this regular expression.
@@ -42,4 +42,14 @@ func (z *ZeroOrMore) Validate() error {
 		return errors.New("the regular expression requires a child")
 	}
 	return z.Child.Validate()
+}
+
+// NewNodeZeroOrMore returns a new node for zero or more.
+func NewNodeZeroOrMore(child *Node) *Node {
+	return &Node{
+		Kind: KindZeroOrMore,
+		ZeroOrMore: ZeroOrMore{
+			Child: child,
+		},
+	}
 }

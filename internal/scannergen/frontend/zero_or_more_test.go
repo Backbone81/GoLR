@@ -10,39 +10,35 @@ import (
 var _ = Describe("ZeroOrMore", func() {
 	It("should convert to string with Any", func() {
 		expression := frontend.ZeroOrMore{
-			Child: &frontend.Any{},
+			Child: frontend.NewNodeAny(),
 		}
 		Expect(expression.String()).To(Equal(".*"))
 	})
 
 	It("should convert to string with single character Literal", func() {
 		expression := frontend.ZeroOrMore{
-			Child: &frontend.Literal{
-				Text: "a",
-			},
+			Child: frontend.NewNodeLiteral("a"),
 		}
 		Expect(expression.String()).To(Equal("a*"))
 	})
 
 	It("should convert to string with multi character Literal", func() {
 		expression := frontend.ZeroOrMore{
-			Child: &frontend.Literal{
-				Text: "foo",
-			},
+			Child: frontend.NewNodeLiteral("foo"),
 		}
 		Expect(expression.String()).To(Equal("(foo)*"))
 	})
 
 	It("should convert to string with CharClass", func() {
 		expression := frontend.ZeroOrMore{
-			Child: &frontend.CharClass{
+			Child: frontend.NewNodeCharClass(frontend.CharClass{
 				Ranges: []frontend.CharRange{
 					{
 						Low:  'a',
 						High: 'z',
 					},
 				},
-			},
+			}),
 		}
 		Expect(expression.String()).To(Equal("[a-z]*"))
 	})
@@ -59,14 +55,14 @@ var _ = Describe("ZeroOrMore", func() {
 
 	It("should fail validation with an invalid child", func() {
 		expression := frontend.ZeroOrMore{
-			Child: &frontend.Literal{},
+			Child: frontend.NewNodeLiteral(""),
 		}
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
 
 	It("should successfully validate", func() {
 		expression := frontend.ZeroOrMore{
-			Child: &frontend.Literal{Text: "a"},
+			Child: frontend.NewNodeLiteral("a"),
 		}
 		Expect(expression.Validate()).To(Succeed())
 	})

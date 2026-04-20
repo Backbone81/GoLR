@@ -12,8 +12,8 @@ import (
 // Low must always be smaller or equal to High.
 // Set Low and High to the same character to have a single character.
 type CharRange struct {
-	Low  rune
-	High rune
+	Low  rune `json:"low" yaml:"low"`
+	High rune `json:"high" yaml:"high"`
 }
 
 // CharRange implements the [fmt.Stringer] interface.

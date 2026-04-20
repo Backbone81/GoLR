@@ -8,7 +8,7 @@ import (
 // Concat is a regular expression matching all its children in sequence.
 // The children need to implement the [Node] interface.
 type Concat struct {
-	Children []*Node
+	Children []*Node `json:"children" yaml:"children"`
 }
 
 // String returns a string representation of this regular expression.
@@ -45,4 +45,13 @@ func (c *Concat) Validate() error {
 		}
 	}
 	return nil
+}
+
+func NewNodeConcat(nodes ...*Node) *Node {
+	return &Node{
+		Kind: KindConcat,
+		Concat: Concat{
+			Children: nodes,
+		},
+	}
 }

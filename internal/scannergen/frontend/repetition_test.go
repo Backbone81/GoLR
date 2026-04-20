@@ -12,7 +12,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 3,
-			Child:   &frontend.Any{},
+			Child:   frontend.NewNodeAny(),
 		}
 		Expect(expression.String()).To(Equal(".{3}"))
 	})
@@ -21,7 +21,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 5,
-			Child:   &frontend.Any{},
+			Child:   frontend.NewNodeAny(),
 		}
 		Expect(expression.String()).To(Equal(".{3,5}"))
 	})
@@ -30,9 +30,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 3,
-			Child: &frontend.Literal{
-				Text: "a",
-			},
+			Child:   frontend.NewNodeLiteral("a"),
 		}
 		Expect(expression.String()).To(Equal("a{3}"))
 	})
@@ -41,9 +39,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 5,
-			Child: &frontend.Literal{
-				Text: "a",
-			},
+			Child:   frontend.NewNodeLiteral("a"),
 		}
 		Expect(expression.String()).To(Equal("a{3,5}"))
 	})
@@ -52,9 +48,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 3,
-			Child: &frontend.Literal{
-				Text: "foo",
-			},
+			Child:   frontend.NewNodeLiteral("foo"),
 		}
 		Expect(expression.String()).To(Equal("(foo){3}"))
 	})
@@ -63,9 +57,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 5,
-			Child: &frontend.Literal{
-				Text: "foo",
-			},
+			Child:   frontend.NewNodeLiteral("foo"),
 		}
 		Expect(expression.String()).To(Equal("(foo){3,5}"))
 	})
@@ -74,14 +66,14 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 3,
-			Child: &frontend.CharClass{
+			Child: frontend.NewNodeCharClass(frontend.CharClass{
 				Ranges: []frontend.CharRange{
 					{
 						Low:  'a',
 						High: 'z',
 					},
 				},
-			},
+			}),
 		}
 		Expect(expression.String()).To(Equal("[a-z]{3}"))
 	})
@@ -90,14 +82,14 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 5,
-			Child: &frontend.CharClass{
+			Child: frontend.NewNodeCharClass(frontend.CharClass{
 				Ranges: []frontend.CharRange{
 					{
 						Low:  'a',
 						High: 'z',
 					},
 				},
-			},
+			}),
 		}
 		Expect(expression.String()).To(Equal("[a-z]{3,5}"))
 	})
@@ -116,7 +108,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: -1,
 			Maximum: 3,
-			Child:   &frontend.Literal{Text: "a"},
+			Child:   frontend.NewNodeLiteral("a"),
 		}
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
@@ -125,7 +117,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 0,
 			Maximum: -1,
-			Child:   &frontend.Literal{Text: "a"},
+			Child:   frontend.NewNodeLiteral("a"),
 		}
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
@@ -134,7 +126,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 5,
 			Maximum: 3,
-			Child:   &frontend.Literal{Text: "a"},
+			Child:   frontend.NewNodeLiteral("a"),
 		}
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
@@ -143,7 +135,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 0,
 			Maximum: 0,
-			Child:   &frontend.Literal{Text: "a"},
+			Child:   frontend.NewNodeLiteral("a"),
 		}
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
@@ -152,14 +144,14 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 1,
 			Maximum: 3,
-			Child:   &frontend.Literal{Text: "a"},
+			Child:   frontend.NewNodeLiteral("a"),
 		}
 		Expect(expression.Validate()).To(Succeed())
 
 		expression = frontend.Repetition{
 			Minimum: 3,
 			Maximum: 3,
-			Child:   &frontend.Literal{Text: "a"},
+			Child:   frontend.NewNodeLiteral("a"),
 		}
 		Expect(expression.Validate()).To(Succeed())
 	})

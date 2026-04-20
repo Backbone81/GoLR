@@ -8,7 +8,7 @@ import (
 // Or is a regular expression matching one of its children.
 // The children need to implement the [Node] interface.
 type Or struct {
-	Children []*Node
+	Children []*Node `json:"children" yaml:"children"`
 }
 
 // String returns a string representation of this regular expression.
@@ -45,4 +45,14 @@ func (o *Or) Validate() error {
 		}
 	}
 	return nil
+}
+
+// NewNodeOr returns a new node for or.
+func NewNodeOr(children ...*Node) *Node {
+	return &Node{
+		Kind: KindOr,
+		Or: Or{
+			Children: children,
+		},
+	}
 }

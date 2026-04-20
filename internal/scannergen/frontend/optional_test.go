@@ -10,39 +10,37 @@ import (
 var _ = Describe("Optional", func() {
 	It("should convert to string with Any", func() {
 		expression := frontend.Optional{
-			Child: &frontend.Any{},
+			Child: &frontend.Node{
+				Kind: frontend.KindAny,
+			},
 		}
 		Expect(expression.String()).To(Equal(".?"))
 	})
 
 	It("should convert to string with single character Literal", func() {
 		expression := frontend.Optional{
-			Child: &frontend.Literal{
-				Text: "a",
-			},
+			Child: frontend.NewNodeLiteral("a"),
 		}
 		Expect(expression.String()).To(Equal("a?"))
 	})
 
 	It("should convert to string with multi character Literal", func() {
 		expression := frontend.Optional{
-			Child: &frontend.Literal{
-				Text: "foo",
-			},
+			Child: frontend.NewNodeLiteral("foo"),
 		}
 		Expect(expression.String()).To(Equal("(foo)?"))
 	})
 
 	It("should convert to string with CharClass", func() {
 		expression := frontend.Optional{
-			Child: &frontend.CharClass{
+			Child: frontend.NewNodeCharClass(frontend.CharClass{
 				Ranges: []frontend.CharRange{
 					{
 						Low:  'a',
 						High: 'z',
 					},
 				},
-			},
+			}),
 		}
 		Expect(expression.String()).To(Equal("[a-z]?"))
 	})
@@ -59,14 +57,14 @@ var _ = Describe("Optional", func() {
 
 	It("should fail validation for an invalid child", func() {
 		expression := frontend.Optional{
-			Child: &frontend.Literal{},
+			Child: frontend.NewNodeLiteral(""),
 		}
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
 
 	It("should successfully validate", func() {
 		expression := frontend.Optional{
-			Child: &frontend.Literal{Text: "a"},
+			Child: frontend.NewNodeLiteral("a"),
 		}
 		Expect(expression.Validate()).To(Succeed())
 	})

@@ -8,7 +8,7 @@ import (
 // OneOrMore is a regular expression matching one or more instances of its child.
 // The child needs to implement the [Node] interface.
 type OneOrMore struct {
-	Child *Node
+	Child *Node `json:"child" yaml:"child"`
 }
 
 // String returns a string representation of this regular expression.
@@ -42,4 +42,14 @@ func (o *OneOrMore) Validate() error {
 		return errors.New("the regular expression requires a child")
 	}
 	return o.Child.Validate()
+}
+
+// NewNodeOneOrMore creates a new node for one or more
+func NewNodeOneOrMore(child *Node) *Node {
+	return &Node{
+		Kind: KindOneOrMore,
+		OneOrMore: OneOrMore{
+			Child: child,
+		},
+	}
 }

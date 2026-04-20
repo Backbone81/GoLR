@@ -10,13 +10,9 @@ import (
 var _ = Describe("Concat", func() {
 	It("should convert to string", func() {
 		expression := frontend.Concat{
-			Children: []frontend.Node{
-				&frontend.Literal{
-					Text: "a",
-				},
-				&frontend.Literal{
-					Text: "b",
-				},
+			Children: []*frontend.Node{
+				frontend.NewNodeLiteral("a"),
+				frontend.NewNodeLiteral("b"),
 			},
 		}
 		Expect(expression.String()).To(Equal("ab"))
@@ -27,16 +23,16 @@ var _ = Describe("Concat", func() {
 		Expect(expression.IsSingleNode()).To(BeFalse())
 
 		expression = frontend.Concat{
-			Children: []frontend.Node{
-				&frontend.Literal{Text: "a"},
+			Children: []*frontend.Node{
+				frontend.NewNodeLiteral("a"),
 			},
 		}
 		Expect(expression.IsSingleNode()).To(BeTrue())
 
 		expression = frontend.Concat{
-			Children: []frontend.Node{
-				&frontend.Literal{Text: "a"},
-				&frontend.Literal{Text: "b"},
+			Children: []*frontend.Node{
+				frontend.NewNodeLiteral("a"),
+				frontend.NewNodeLiteral("b"),
 			},
 		}
 		Expect(expression.IsSingleNode()).To(BeFalse())
@@ -49,9 +45,9 @@ var _ = Describe("Concat", func() {
 
 	It("should fail validation with invalid child", func() {
 		expression := frontend.Concat{
-			Children: []frontend.Node{
-				&frontend.Literal{Text: "a"},
-				&frontend.Literal{},
+			Children: []*frontend.Node{
+				frontend.NewNodeLiteral("a"),
+				frontend.NewNodeLiteral(""),
 			},
 		}
 		Expect(expression.Validate()).ToNot(Succeed())
@@ -59,8 +55,8 @@ var _ = Describe("Concat", func() {
 
 	It("should fail validation with only one child", func() {
 		expression := frontend.Concat{
-			Children: []frontend.Node{
-				&frontend.Literal{Text: "a"},
+			Children: []*frontend.Node{
+				frontend.NewNodeLiteral("a"),
 			},
 		}
 		Expect(expression.Validate()).ToNot(Succeed())
@@ -68,9 +64,9 @@ var _ = Describe("Concat", func() {
 
 	It("should successfully validate", func() {
 		expression := frontend.Concat{
-			Children: []frontend.Node{
-				&frontend.Literal{Text: "a"},
-				&frontend.Literal{Text: "b"},
+			Children: []*frontend.Node{
+				frontend.NewNodeLiteral("a"),
+				frontend.NewNodeLiteral("b"),
 			},
 		}
 		Expect(expression.Validate()).To(Succeed())

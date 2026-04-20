@@ -8,7 +8,7 @@ import (
 // Optional is a regular expression matching zero or one instances of its child.
 // The child needs to implement the [Node] interface.
 type Optional struct {
-	Child *Node
+	Child *Node `json:"child" yaml:"child"`
 }
 
 // String returns a string representation of this regular expression.
@@ -42,4 +42,14 @@ func (o *Optional) Validate() error {
 		return errors.New("the regular expression requires a child")
 	}
 	return o.Child.Validate()
+}
+
+// NewNodeOptional returns a new optional node.
+func NewNodeOptional(child *Node) *Node {
+	return &Node{
+		Kind: KindOptional,
+		Optional: Optional{
+			Child: child,
+		},
+	}
 }

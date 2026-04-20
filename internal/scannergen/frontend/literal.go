@@ -4,7 +4,7 @@ import "errors"
 
 // Literal is a regular expression matching its text as a literal.
 type Literal struct {
-	Text string
+	Text string `json:"text" yaml:"text"`
 }
 
 // String returns a string representation of this regular expression.
@@ -29,4 +29,14 @@ func (l *Literal) Validate() error {
 		return errors.New("literal must have at least one character")
 	}
 	return nil
+}
+
+// NewNodeLiteral creates a new node for a literal.
+func NewNodeLiteral(text string) *Node {
+	return &Node{
+		Kind: KindLiteral,
+		Literal: Literal{
+			Text: text,
+		},
+	}
 }
