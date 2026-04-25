@@ -51,11 +51,3 @@ func (c *CharClass) Validate() error {
 	}
 	return nil
 }
-
-// NewNodeCharClass returns a new node for the given char class.
-func NewNodeCharClass(charClass CharClass) *Node {
-	return &Node{
-		Kind:      KindCharClass,
-		CharClass: charClass,
-	}
-}

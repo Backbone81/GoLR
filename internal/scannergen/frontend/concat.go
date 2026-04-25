@@ -46,12 +46,3 @@ func (c *Concat) Validate() error {
 	}
 	return nil
 }
-
-func NewNodeConcat(nodes ...*Node) *Node {
-	return &Node{
-		Kind: KindConcat,
-		Concat: Concat{
-			Children: nodes,
-		},
-	}
-}

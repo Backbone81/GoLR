@@ -3,6 +3,7 @@ package nfa_test
 import (
 	thompsonsnfa "golr/internal/scannergen/core/subset/nfa"
 	"golr/internal/scannergen/frontend"
+	"golr/internal/scannergen/frontend/dsl"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -10,7 +11,7 @@ import (
 
 var _ = Describe("Literal", func() {
 	It("should create the correct NFA with a single character string", func() {
-		expression := frontend.NewNodeLiteral("a")
+		expression := dsl.Literal("a")
 		gotNfa := thompsonsnfa.FromRegex(expression, 0)
 
 		wantNfa := []thompsonsnfa.State{
@@ -33,7 +34,7 @@ var _ = Describe("Literal", func() {
 	})
 
 	It("should create the correct NFA with a multi character string", func() {
-		expression := frontend.NewNodeLiteral("bar")
+		expression := dsl.Literal("bar")
 		gotNfa := thompsonsnfa.FromRegex(expression, 0)
 
 		wantNfa := []thompsonsnfa.State{

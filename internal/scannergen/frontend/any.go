@@ -24,10 +24,3 @@ func (a *Any) IsSingleNode() bool {
 func (a *Any) Validate() error {
 	return nil
 }
-
-// NewNodeAny returns a node for any character.
-func NewNodeAny() *Node {
-	return &Node{
-		Kind: KindAny,
-	}
-}

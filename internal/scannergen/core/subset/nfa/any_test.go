@@ -3,6 +3,7 @@ package nfa_test
 import (
 	thompsonsnfa "golr/internal/scannergen/core/subset/nfa"
 	"golr/internal/scannergen/frontend"
+	"golr/internal/scannergen/frontend/dsl"
 	"unicode"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -11,7 +12,7 @@ import (
 
 var _ = Describe("Any", func() {
 	It("should create the correct NFA", func() {
-		expression := frontend.NewNodeAny()
+		expression := dsl.Any()
 		gotNfa := thompsonsnfa.FromRegex(expression, 0)
 
 		wantNfa := []thompsonsnfa.State{

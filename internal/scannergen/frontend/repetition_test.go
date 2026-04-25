@@ -2,6 +2,7 @@ package frontend_test
 
 import (
 	"golr/internal/scannergen/frontend"
+	"golr/internal/scannergen/frontend/dsl"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -12,7 +13,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 3,
-			Child:   frontend.NewNodeAny(),
+			Child:   dsl.Any(),
 		}
 		Expect(expression.String()).To(Equal(".{3}"))
 	})
@@ -21,7 +22,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 5,
-			Child:   frontend.NewNodeAny(),
+			Child:   dsl.Any(),
 		}
 		Expect(expression.String()).To(Equal(".{3,5}"))
 	})
@@ -30,7 +31,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 3,
-			Child:   frontend.NewNodeLiteral("a"),
+			Child:   dsl.Literal("a"),
 		}
 		Expect(expression.String()).To(Equal("a{3}"))
 	})
@@ -39,7 +40,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 5,
-			Child:   frontend.NewNodeLiteral("a"),
+			Child:   dsl.Literal("a"),
 		}
 		Expect(expression.String()).To(Equal("a{3,5}"))
 	})
@@ -48,7 +49,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 3,
-			Child:   frontend.NewNodeLiteral("foo"),
+			Child:   dsl.Literal("foo"),
 		}
 		Expect(expression.String()).To(Equal("(foo){3}"))
 	})
@@ -57,7 +58,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 5,
-			Child:   frontend.NewNodeLiteral("foo"),
+			Child:   dsl.Literal("foo"),
 		}
 		Expect(expression.String()).To(Equal("(foo){3,5}"))
 	})
@@ -66,14 +67,9 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 3,
-			Child: frontend.NewNodeCharClass(frontend.CharClass{
-				Ranges: []frontend.CharRange{
-					{
-						Low:  'a',
-						High: 'z',
-					},
-				},
-			}),
+			Child: dsl.CharClass(
+				dsl.CharRange('a', 'z'),
+			),
 		}
 		Expect(expression.String()).To(Equal("[a-z]{3}"))
 	})
@@ -82,14 +78,9 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 3,
 			Maximum: 5,
-			Child: frontend.NewNodeCharClass(frontend.CharClass{
-				Ranges: []frontend.CharRange{
-					{
-						Low:  'a',
-						High: 'z',
-					},
-				},
-			}),
+			Child: dsl.CharClass(
+				dsl.CharRange('a', 'z'),
+			),
 		}
 		Expect(expression.String()).To(Equal("[a-z]{3,5}"))
 	})
@@ -108,7 +99,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: -1,
 			Maximum: 3,
-			Child:   frontend.NewNodeLiteral("a"),
+			Child:   dsl.Literal("a"),
 		}
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
@@ -117,7 +108,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 0,
 			Maximum: -1,
-			Child:   frontend.NewNodeLiteral("a"),
+			Child:   dsl.Literal("a"),
 		}
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
@@ -126,7 +117,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 5,
 			Maximum: 3,
-			Child:   frontend.NewNodeLiteral("a"),
+			Child:   dsl.Literal("a"),
 		}
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
@@ -135,7 +126,7 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 0,
 			Maximum: 0,
-			Child:   frontend.NewNodeLiteral("a"),
+			Child:   dsl.Literal("a"),
 		}
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
@@ -144,14 +135,14 @@ var _ = Describe("Repetition", func() {
 		expression := frontend.Repetition{
 			Minimum: 1,
 			Maximum: 3,
-			Child:   frontend.NewNodeLiteral("a"),
+			Child:   dsl.Literal("a"),
 		}
 		Expect(expression.Validate()).To(Succeed())
 
 		expression = frontend.Repetition{
 			Minimum: 3,
 			Maximum: 3,
-			Child:   frontend.NewNodeLiteral("a"),
+			Child:   dsl.Literal("a"),
 		}
 		Expect(expression.Validate()).To(Succeed())
 	})

@@ -3,6 +3,7 @@ package nfa_test
 import (
 	thompsonsnfa "golr/internal/scannergen/core/subset/nfa"
 	"golr/internal/scannergen/frontend"
+	"golr/internal/scannergen/frontend/dsl"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -10,11 +11,7 @@ import (
 
 var _ = Describe("Repetition", func() {
 	It("should create the correct NFA with one repetitions", func() {
-		expression := frontend.NewNodeRepetition(
-			1,
-			1,
-			frontend.NewNodeLiteral("a"),
-		)
+		expression := dsl.Repetition(dsl.Literal("a"), 1, 1)
 		gotNfa := thompsonsnfa.FromRegex(expression, 0)
 
 		wantNfa := []thompsonsnfa.State{
@@ -53,11 +50,7 @@ var _ = Describe("Repetition", func() {
 	})
 
 	It("should create the correct NFA with two repetitions", func() {
-		expression := frontend.NewNodeRepetition(
-			2,
-			2,
-			frontend.NewNodeLiteral("a"),
-		)
+		expression := dsl.Repetition(dsl.Literal("a"), 2, 2)
 		gotNfa := thompsonsnfa.FromRegex(expression, 0)
 
 		wantNfa := []thompsonsnfa.State{
@@ -115,11 +108,7 @@ var _ = Describe("Repetition", func() {
 	})
 
 	It("should create the correct NFA with one to two repetitions", func() {
-		expression := frontend.NewNodeRepetition(
-			1,
-			2,
-			frontend.NewNodeLiteral("a"),
-		)
+		expression := dsl.Repetition(dsl.Literal("a"), 1, 2)
 		gotNfa := thompsonsnfa.FromRegex(expression, 0)
 
 		wantNfa := []thompsonsnfa.State{

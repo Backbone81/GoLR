@@ -3,6 +3,7 @@ package nfa_test
 import (
 	thompsonsnfa "golr/internal/scannergen/core/subset/nfa"
 	"golr/internal/scannergen/frontend"
+	"golr/internal/scannergen/frontend/dsl"
 	"unicode"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -11,14 +12,9 @@ import (
 
 var _ = Describe("CharClass", func() {
 	It("should create the correct NFA with a single character range", func() {
-		expression := frontend.NewNodeCharClass(frontend.CharClass{
-			Ranges: []frontend.CharRange{
-				{
-					Low:  'a',
-					High: 'f',
-				},
-			},
-		})
+		expression := dsl.CharClass(
+			dsl.CharRange('a', 'f'),
+		)
 		gotNfa := thompsonsnfa.FromRegex(expression, 0)
 
 		wantNfa := []thompsonsnfa.State{
@@ -41,18 +37,10 @@ var _ = Describe("CharClass", func() {
 	})
 
 	It("should create the correct NFA with two character ranges", func() {
-		expression := frontend.NewNodeCharClass(frontend.CharClass{
-			Ranges: []frontend.CharRange{
-				{
-					Low:  'a',
-					High: 'f',
-				},
-				{
-					Low:  'x',
-					High: 'z',
-				},
-			},
-		})
+		expression := dsl.CharClass(
+			dsl.CharRange('a', 'f'),
+			dsl.CharRange('x', 'z'),
+		)
 		gotNfa := thompsonsnfa.FromRegex(expression, 0)
 
 		wantNfa := []thompsonsnfa.State{
@@ -82,15 +70,9 @@ var _ = Describe("CharClass", func() {
 	})
 
 	It("should create the correct NFA with a single character range negated", func() {
-		expression := frontend.NewNodeCharClass(frontend.CharClass{
-			Negate: true,
-			Ranges: []frontend.CharRange{
-				{
-					Low:  'u',
-					High: 'w',
-				},
-			},
-		})
+		expression := dsl.NegCharClass(
+			dsl.CharRange('u', 'w'),
+		)
 		gotNfa := thompsonsnfa.FromRegex(expression, 0)
 
 		wantNfa := []thompsonsnfa.State{
@@ -120,19 +102,10 @@ var _ = Describe("CharClass", func() {
 	})
 
 	It("should create the correct NFA with two character ranges negated", func() {
-		expression := frontend.NewNodeCharClass(frontend.CharClass{
-			Negate: true,
-			Ranges: []frontend.CharRange{
-				{
-					Low:  'b',
-					High: 'f',
-				},
-				{
-					Low:  'x',
-					High: 'y',
-				},
-			},
-		})
+		expression := dsl.NegCharClass(
+			dsl.CharRange('b', 'f'),
+			dsl.CharRange('x', 'y'),
+		)
 		gotNfa := thompsonsnfa.FromRegex(expression, 0)
 
 		wantNfa := []thompsonsnfa.State{

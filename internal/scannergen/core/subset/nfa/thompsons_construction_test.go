@@ -2,7 +2,7 @@ package nfa_test
 
 import (
 	thompsonsnfa "golr/internal/scannergen/core/subset/nfa"
-	"golr/internal/scannergen/frontend"
+	"golr/internal/scannergen/frontend/dsl"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -11,14 +11,9 @@ import (
 var _ = Describe("ThompsonsConstruction", func() {
 	It("should panic when given an invalid regex node", func() {
 		Expect(func() {
-			thompsonsnfa.NewThompsonsConstruction().Build(frontend.NewNodeCharClass(frontend.CharClass{
-				Ranges: []frontend.CharRange{
-					{
-						Low:  'z',
-						High: 'a',
-					},
-				},
-			}), 0)
+			thompsonsnfa.NewThompsonsConstruction().Build(dsl.CharClass(
+				dsl.CharRange('z', 'a'),
+			), 0)
 		}).To(Panic())
 	})
 

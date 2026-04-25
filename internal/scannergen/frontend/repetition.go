@@ -64,15 +64,3 @@ func (r *Repetition) Validate() error {
 	}
 	return r.Child.Validate()
 }
-
-// NewNodeRepetition returns a new repetition node.
-func NewNodeRepetition(minimum int, maximum int, child *Node) *Node {
-	return &Node{
-		Kind: KindRepetition,
-		Repetition: Repetition{
-			Minimum: minimum,
-			Maximum: maximum,
-			Child:   child,
-		},
-	}
-}

@@ -43,13 +43,3 @@ func (o *OneOrMore) Validate() error {
 	}
 	return o.Child.Validate()
 }
-
-// NewNodeOneOrMore creates a new node for one or more
-func NewNodeOneOrMore(child *Node) *Node {
-	return &Node{
-		Kind: KindOneOrMore,
-		OneOrMore: OneOrMore{
-			Child: child,
-		},
-	}
-}

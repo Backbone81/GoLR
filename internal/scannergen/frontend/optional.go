@@ -43,13 +43,3 @@ func (o *Optional) Validate() error {
 	}
 	return o.Child.Validate()
 }
-
-// NewNodeOptional returns a new optional node.
-func NewNodeOptional(child *Node) *Node {
-	return &Node{
-		Kind: KindOptional,
-		Optional: Optional{
-			Child: child,
-		},
-	}
-}

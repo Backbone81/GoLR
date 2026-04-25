@@ -3,6 +3,7 @@ package nfa_test
 import (
 	thompsonsnfa "golr/internal/scannergen/core/subset/nfa"
 	"golr/internal/scannergen/frontend"
+	"golr/internal/scannergen/frontend/dsl"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -10,9 +11,9 @@ import (
 
 var _ = Describe("Concat", func() {
 	It("should create the correct NFA with two children", func() {
-		expression := frontend.NewNodeConcat(
-			frontend.NewNodeLiteral("a"),
-			frontend.NewNodeLiteral("b"),
+		expression := dsl.Concat(
+			dsl.Literal("a"),
+			dsl.Literal("b"),
 		)
 		gotNfa := thompsonsnfa.FromRegex(expression, 0)
 

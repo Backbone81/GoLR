@@ -3,6 +3,7 @@ package nfa_test
 import (
 	thompsonsnfa "golr/internal/scannergen/core/subset/nfa"
 	"golr/internal/scannergen/frontend"
+	"golr/internal/scannergen/frontend/dsl"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -10,7 +11,7 @@ import (
 
 var _ = Describe("OneOrMore", func() {
 	It("should create the correct NFA with a single character literal", func() {
-		expression := frontend.NewNodeOneOrMore(frontend.NewNodeLiteral("a"))
+		expression := dsl.OneOrMore(dsl.Literal("a"))
 		gotNfa := thompsonsnfa.FromRegex(expression, 0)
 
 		wantNfa := []thompsonsnfa.State{

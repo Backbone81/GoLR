@@ -46,13 +46,3 @@ func (o *Or) Validate() error {
 	}
 	return nil
 }
-
-// NewNodeOr returns a new node for or.
-func NewNodeOr(children ...*Node) *Node {
-	return &Node{
-		Kind: KindOr,
-		Or: Or{
-			Children: children,
-		},
-	}
-}

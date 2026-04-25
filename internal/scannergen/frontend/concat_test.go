@@ -2,6 +2,7 @@ package frontend_test
 
 import (
 	"golr/internal/scannergen/frontend"
+	"golr/internal/scannergen/frontend/dsl"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -11,8 +12,8 @@ var _ = Describe("Concat", func() {
 	It("should convert to string", func() {
 		expression := frontend.Concat{
 			Children: []*frontend.Node{
-				frontend.NewNodeLiteral("a"),
-				frontend.NewNodeLiteral("b"),
+				dsl.Literal("a"),
+				dsl.Literal("b"),
 			},
 		}
 		Expect(expression.String()).To(Equal("ab"))
@@ -24,15 +25,15 @@ var _ = Describe("Concat", func() {
 
 		expression = frontend.Concat{
 			Children: []*frontend.Node{
-				frontend.NewNodeLiteral("a"),
+				dsl.Literal("a"),
 			},
 		}
 		Expect(expression.IsSingleNode()).To(BeTrue())
 
 		expression = frontend.Concat{
 			Children: []*frontend.Node{
-				frontend.NewNodeLiteral("a"),
-				frontend.NewNodeLiteral("b"),
+				dsl.Literal("a"),
+				dsl.Literal("b"),
 			},
 		}
 		Expect(expression.IsSingleNode()).To(BeFalse())
@@ -46,8 +47,8 @@ var _ = Describe("Concat", func() {
 	It("should fail validation with invalid child", func() {
 		expression := frontend.Concat{
 			Children: []*frontend.Node{
-				frontend.NewNodeLiteral("a"),
-				frontend.NewNodeLiteral(""),
+				dsl.Literal("a"),
+				dsl.Literal(""),
 			},
 		}
 		Expect(expression.Validate()).ToNot(Succeed())
@@ -56,7 +57,7 @@ var _ = Describe("Concat", func() {
 	It("should fail validation with only one child", func() {
 		expression := frontend.Concat{
 			Children: []*frontend.Node{
-				frontend.NewNodeLiteral("a"),
+				dsl.Literal("a"),
 			},
 		}
 		Expect(expression.Validate()).ToNot(Succeed())
@@ -65,8 +66,8 @@ var _ = Describe("Concat", func() {
 	It("should successfully validate", func() {
 		expression := frontend.Concat{
 			Children: []*frontend.Node{
-				frontend.NewNodeLiteral("a"),
-				frontend.NewNodeLiteral("b"),
+				dsl.Literal("a"),
+				dsl.Literal("b"),
 			},
 		}
 		Expect(expression.Validate()).To(Succeed())

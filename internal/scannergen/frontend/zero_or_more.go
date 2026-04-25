@@ -43,13 +43,3 @@ func (z *ZeroOrMore) Validate() error {
 	}
 	return z.Child.Validate()
 }
-
-// NewNodeZeroOrMore returns a new node for zero or more.
-func NewNodeZeroOrMore(child *Node) *Node {
-	return &Node{
-		Kind: KindZeroOrMore,
-		ZeroOrMore: ZeroOrMore{
-			Child: child,
-		},
-	}
-}

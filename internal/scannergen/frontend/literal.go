@@ -30,13 +30,3 @@ func (l *Literal) Validate() error {
 	}
 	return nil
 }
-
-// NewNodeLiteral creates a new node for a literal.
-func NewNodeLiteral(text string) *Node {
-	return &Node{
-		Kind: KindLiteral,
-		Literal: Literal{
-			Text: text,
-		},
-	}
-}

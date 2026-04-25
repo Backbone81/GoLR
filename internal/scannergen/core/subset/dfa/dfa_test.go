@@ -5,6 +5,7 @@ import (
 	"golr/internal/scannergen/core/subset/dfa"
 	"golr/internal/scannergen/core/subset/nfa"
 	"golr/internal/scannergen/frontend"
+	"golr/internal/scannergen/frontend/dsl"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -130,44 +131,19 @@ var _ = Describe("DFA", func() {
 //nolint:funlen
 func BenchmarkFromNFA(b *testing.B) {
 	b.Run("[a-zA-Z_][a-zA-Z0-9_]*", func(b *testing.B) {
-		expression := frontend.NewNodeConcat(
-			frontend.NewNodeCharClass(frontend.CharClass{
-				Ranges: []frontend.CharRange{
-					{
-						Low:  'a',
-						High: 'z',
-					},
-					{
-						Low:  'A',
-						High: 'Z',
-					},
-					{
-						Low:  '_',
-						High: '_',
-					},
-				},
-			}),
-			frontend.NewNodeZeroOrMore(
-				frontend.NewNodeCharClass(frontend.CharClass{
-					Ranges: []frontend.CharRange{
-						{
-							Low:  'a',
-							High: 'z',
-						},
-						{
-							Low:  'A',
-							High: 'Z',
-						},
-						{
-							Low:  '0',
-							High: '9',
-						},
-						{
-							Low:  '_',
-							High: '_',
-						},
-					},
-				}),
+		expression := dsl.Concat(
+			dsl.CharClass(
+				dsl.CharRange('a', 'z'),
+				dsl.CharRange('A', 'Z'),
+				dsl.CharRange('_', '_'),
+			),
+			dsl.ZeroOrMore(
+				dsl.CharClass(
+					dsl.CharRange('a', 'z'),
+					dsl.CharRange('A', 'Z'),
+					dsl.CharRange('0', '9'),
+					dsl.CharRange('_', '_'),
+				),
 			),
 		)
 		expressionNfa := nfa.FromRegex(expression, 0)
@@ -178,30 +154,17 @@ func BenchmarkFromNFA(b *testing.B) {
 	})
 
 	b.Run("[-+]?[0-9]+", func(b *testing.B) {
-		expression := frontend.NewNodeConcat(
-			frontend.NewNodeOptional(
-				frontend.NewNodeCharClass(frontend.CharClass{
-					Ranges: []frontend.CharRange{
-						{
-							Low:  '-',
-							High: '-',
-						},
-						{
-							Low:  '+',
-							High: '+',
-						},
-					},
-				}),
+		expression := dsl.Concat(
+			dsl.Optional(
+				dsl.CharClass(
+					dsl.CharRange('-', '-'),
+					dsl.CharRange('+', '+'),
+				),
 			),
-			frontend.NewNodeOneOrMore(
-				frontend.NewNodeCharClass(frontend.CharClass{
-					Ranges: []frontend.CharRange{
-						{
-							Low:  '0',
-							High: '9',
-						},
-					},
-				}),
+			dsl.OneOrMore(
+				dsl.CharClass(
+					dsl.CharRange('0', '9'),
+				),
 			),
 		)
 		expressionNfa := nfa.FromRegex(expression, 0)
@@ -212,7 +175,7 @@ func BenchmarkFromNFA(b *testing.B) {
 	})
 
 	b.Run("a", func(b *testing.B) {
-		expression := frontend.NewNodeLiteral("a")
+		expression := dsl.Literal("a")
 		expressionNfa := nfa.FromRegex(expression, 0)
 		b.ResetTimer()
 		for range b.N {
@@ -221,9 +184,9 @@ func BenchmarkFromNFA(b *testing.B) {
 	})
 
 	b.Run("ab", func(b *testing.B) {
-		expression := frontend.NewNodeConcat(
-			frontend.NewNodeLiteral("a"),
-			frontend.NewNodeLiteral("b"),
+		expression := dsl.Concat(
+			dsl.Literal("a"),
+			dsl.Literal("b"),
 		)
 		expressionNfa := nfa.FromRegex(expression, 0)
 		b.ResetTimer()
@@ -233,9 +196,9 @@ func BenchmarkFromNFA(b *testing.B) {
 	})
 
 	b.Run("a|b", func(b *testing.B) {
-		expression := frontend.NewNodeOr(
-			frontend.NewNodeLiteral("a"),
-			frontend.NewNodeLiteral("b"),
+		expression := dsl.Or(
+			dsl.Literal("a"),
+			dsl.Literal("b"),
 		)
 		expressionNfa := nfa.FromRegex(expression, 0)
 		b.ResetTimer()
@@ -245,8 +208,8 @@ func BenchmarkFromNFA(b *testing.B) {
 	})
 
 	b.Run("a*", func(b *testing.B) {
-		expression := frontend.NewNodeZeroOrMore(
-			frontend.NewNodeLiteral("a"),
+		expression := dsl.ZeroOrMore(
+			dsl.Literal("a"),
 		)
 		expressionNfa := nfa.FromRegex(expression, 0)
 		b.ResetTimer()
@@ -256,10 +219,10 @@ func BenchmarkFromNFA(b *testing.B) {
 	})
 
 	b.Run("(b|c)*", func(b *testing.B) {
-		expression := frontend.NewNodeZeroOrMore(
-			frontend.NewNodeOr(
-				frontend.NewNodeLiteral("b"),
-				frontend.NewNodeLiteral("c"),
+		expression := dsl.ZeroOrMore(
+			dsl.Or(
+				dsl.Literal("b"),
+				dsl.Literal("c"),
 			),
 		)
 		expressionNfa := nfa.FromRegex(expression, 0)
@@ -270,12 +233,12 @@ func BenchmarkFromNFA(b *testing.B) {
 	})
 
 	b.Run("a(b|c)*", func(b *testing.B) {
-		expression := frontend.NewNodeConcat(
-			frontend.NewNodeLiteral("a"),
-			frontend.NewNodeZeroOrMore(
-				frontend.NewNodeOr(
-					frontend.NewNodeLiteral("b"),
-					frontend.NewNodeLiteral("c"),
+		expression := dsl.Concat(
+			dsl.Literal("a"),
+			dsl.ZeroOrMore(
+				dsl.Or(
+					dsl.Literal("b"),
+					dsl.Literal("c"),
 				),
 			),
 		)
