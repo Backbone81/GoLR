@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"golr/internal/scannergen/backend"
+	"golr/internal/utils"
 	"runtime/trace"
 	"slices"
 )
@@ -37,7 +38,7 @@ func NewHopcroftsAlgorithm() *HopcroftsAlgorithm {
 // Partition is a set of DFA states which should behave identical.
 type Partition struct {
 	// StateIdxs holds all DFA states which make up the partition.
-	StateIdxs []int
+	StateIdxs utils.OrderedSet[int]
 
 	// FinalStateIdx is a helper attribute which holds the final DFA state during DFA construction.
 	FinalStateIdx int
@@ -56,7 +57,7 @@ func (b *HopcroftsAlgorithm) Build(inputDFA []backend.State) []backend.State {
 	// We sort the partitions by their first states. This results in a more intuitive ordering of states as if it was
 	// a breath first search.
 	slices.SortFunc(partitions, func(a, b *Partition) int {
-		return cmp.Compare(a.StateIdxs[0], b.StateIdxs[0])
+		return cmp.Compare(a.StateIdxs.GetByIndex(0), b.StateIdxs.GetByIndex(0))
 	})
 
 	return b.buildDFAFromPartitions(partitions)
@@ -67,30 +68,26 @@ func (b *HopcroftsAlgorithm) Build(inputDFA []backend.State) []backend.State {
 // on the name of the DFA states, as we need to retain dedicated accepting states for all our tokens. If we were to
 // combine accepting states of different tokens, the scanner would later return the wrong tokens.
 func (b *HopcroftsAlgorithm) buildInitialPartitions() []*Partition {
-	acceptingPartition := &Partition{
-		StateIdxs: make([]int, 0, 32),
-	}
-	otherPartition := &Partition{
-		StateIdxs: make([]int, 0, 128),
-	}
+	var acceptingPartition Partition
+	var otherPartition Partition
 	for idx, state := range b.inputDFA {
 		if state.Accept {
-			acceptingPartition.StateIdxs = append(acceptingPartition.StateIdxs, idx)
-			b.partitionForStateIdx[idx] = acceptingPartition
+			acceptingPartition.StateIdxs.Add(idx)
+			b.partitionForStateIdx[idx] = &acceptingPartition
 		} else {
-			otherPartition.StateIdxs = append(otherPartition.StateIdxs, idx)
-			b.partitionForStateIdx[idx] = otherPartition
+			otherPartition.StateIdxs.Add(idx)
+			b.partitionForStateIdx[idx] = &otherPartition
 		}
 	}
 
-	acceptingPartitions := b.splitAllPartitionsByName([]*Partition{acceptingPartition})
+	acceptingPartitions := b.splitAllPartitionsByName([]*Partition{&acceptingPartition})
 
 	var result []*Partition
-	if len(otherPartition.StateIdxs) > 0 {
+	if !otherPartition.StateIdxs.IsEmpty() {
 		// There are situations where the partition might be empty, because the DFA consists of accepting states only.
 		// We only want to add that partition if we have states in that partition to prevent errors when we use the
 		// first state as a reference state during refinement.
-		result = append(result, otherPartition)
+		result = append(result, &otherPartition)
 	}
 	return append(result, acceptingPartitions...)
 }
@@ -100,18 +97,19 @@ func (b *HopcroftsAlgorithm) buildInitialPartitions() []*Partition {
 func (b *HopcroftsAlgorithm) buildDFAFromPartitions(partitions []*Partition) []backend.State {
 	// create one state for each partition, copy over the name of the reference state
 	states := make([]backend.State, len(partitions))
-	for i := range partitions {
-		partitions[i].FinalStateIdx = i
-		states[i].RuleIdx = b.inputDFA[partitions[i].StateIdxs[0]].RuleIdx
-		states[i].Accept = b.inputDFA[partitions[i].StateIdxs[0]].Accept
+	for partitionIdx, partition := range partitions {
+		partitions[partitionIdx].FinalStateIdx = partitionIdx
+		state := b.inputDFA[partition.StateIdxs.GetByIndex(0)]
+		states[partitionIdx].RuleIdx = state.RuleIdx
+		states[partitionIdx].Accept = state.Accept
 	}
 
 	// copy over all transitions from the reference state to the new state
-	for i := range partitions {
-		currPartition := partitions[i]
-		currState := &states[i]
-		for _, transition := range b.inputDFA[currPartition.StateIdxs[0]].Transitions {
-			currState.Transitions = append(currState.Transitions, backend.Transition{
+	for partitionIdx, partition := range partitions {
+		inputState := b.inputDFA[partition.StateIdxs.GetByIndex(0)]
+		outputState := &states[partitionIdx]
+		for _, transition := range inputState.Transitions {
+			outputState.Transitions = append(outputState.Transitions, backend.Transition{
 				CharRange: transition.CharRange,
 				StateIdx:  b.partitionForStateIdx[transition.StateIdx].FinalStateIdx,
 			})
@@ -146,12 +144,10 @@ func (b *HopcroftsAlgorithm) splitAllPartitionsOnBehavior(partitions []*Partitio
 // to the new partition. If all states of the partition behave identical to the reference state, nil is returned
 // as a result to signal that splitting the partition was not necessary.
 func (b *HopcroftsAlgorithm) splitPartitionOnBehavior(partition *Partition) *Partition {
-	newPartition := &Partition{
-		StateIdxs: make([]int, 0, 64),
-	}
-	referenceState := partition.StateIdxs[0]
+	var newPartition Partition
+	referenceState := partition.StateIdxs.GetByIndex(0)
 
-	for i, stateIdx := range partition.StateIdxs {
+	for i, stateIdx := range partition.StateIdxs.All() {
 		if i == 0 {
 			// the first state is the reference state and always stays with the original partition
 			continue
@@ -159,22 +155,22 @@ func (b *HopcroftsAlgorithm) splitPartitionOnBehavior(partition *Partition) *Par
 		if b.statesAreEquivalent(&b.inputDFA[stateIdx], &b.inputDFA[referenceState]) {
 			continue
 		}
-		if slices.Contains(newPartition.StateIdxs, stateIdx) {
+		if newPartition.StateIdxs.Contains(stateIdx) {
 			continue
 		}
-		newPartition.StateIdxs = append(newPartition.StateIdxs, stateIdx)
-		b.partitionForStateIdx[stateIdx] = newPartition
+		newPartition.StateIdxs.Add(stateIdx)
+		b.partitionForStateIdx[stateIdx] = &newPartition
 	}
 
-	if len(newPartition.StateIdxs) == 0 {
+	if newPartition.StateIdxs.IsEmpty() {
 		return nil
 	}
 
 	// Now we need to remove the states we moved over to the new partition from the old partition.
-	partition.StateIdxs = slices.DeleteFunc(partition.StateIdxs, func(stateIdx int) bool {
-		return slices.Contains(newPartition.StateIdxs, stateIdx)
-	})
-	return newPartition
+	for _, stateIdx := range newPartition.StateIdxs.All() {
+		partition.StateIdxs.Remove(stateIdx)
+	}
+	return &newPartition
 }
 
 // statesAreEquivalent checks if two states are equivalent in regard to their behavior. It checks that the transitions
@@ -223,28 +219,26 @@ func (b *HopcroftsAlgorithm) splitAllPartitionsByName(partitions []*Partition) [
 // to the new partition. If all states of the partition have the same rule as the reference state, nil is returned
 // as a result to signal that splitting the partition was not necessary.
 func (b *HopcroftsAlgorithm) splitPartitionByRuleIdx(partition *Partition) *Partition {
-	newPartition := &Partition{
-		StateIdxs: make([]int, 0, 128),
-	}
-	referenceStateIdx := partition.StateIdxs[0]
-	for _, stateIdx := range partition.StateIdxs {
+	var newPartition Partition
+	referenceStateIdx := partition.StateIdxs.GetByIndex(0)
+	for _, stateIdx := range partition.StateIdxs.All() {
 		if b.inputDFA[referenceStateIdx].RuleIdx == b.inputDFA[stateIdx].RuleIdx {
 			continue
 		}
-		if slices.Contains(newPartition.StateIdxs, stateIdx) {
+		if newPartition.StateIdxs.Contains(stateIdx) {
 			continue
 		}
-		newPartition.StateIdxs = append(newPartition.StateIdxs, stateIdx)
-		b.partitionForStateIdx[stateIdx] = newPartition
+		newPartition.StateIdxs.Add(stateIdx)
+		b.partitionForStateIdx[stateIdx] = &newPartition
 	}
 
-	if len(newPartition.StateIdxs) == 0 {
+	if newPartition.StateIdxs.IsEmpty() {
 		return nil
 	}
 
 	// Now we need to remove the states we moved over to the new partition from the old partition.
-	partition.StateIdxs = slices.DeleteFunc(partition.StateIdxs, func(stateIdx int) bool {
-		return slices.Contains(newPartition.StateIdxs, stateIdx)
-	})
-	return newPartition
+	for _, stateIdx := range newPartition.StateIdxs.All() {
+		partition.StateIdxs.Remove(stateIdx)
+	}
+	return &newPartition
 }

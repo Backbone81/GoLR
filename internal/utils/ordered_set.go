@@ -53,6 +53,17 @@ func (s *OrderedSet[T]) Add(value T) bool {
 	return true
 }
 
+// Remove removes a value from the ordered set. If the value is not present in the ordered set, the set is not changed.
+// The return value reports if the value was removed.
+func (s *OrderedSet[T]) Remove(value T) bool {
+	index, found := slices.BinarySearch(s.data, value)
+	if !found {
+		return false
+	}
+	s.data = slices.Delete(s.data, index, index+1)
+	return true
+}
+
 // Merge adds all values of the other ordered set.
 func (s *OrderedSet[T]) Merge(other *OrderedSet[T]) {
 	for _, value := range other.All() {
