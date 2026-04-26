@@ -31,6 +31,8 @@ type Scanner struct {
 
 // NewScanner creates a new instance of the scanner with the given rune reader.
 func NewScanner(runeReader runtime.UTF8RuneReader) Scanner {
+	// consume the first rune here, as the start state does not call Next() on its own
+	_ = runeReader.Next()
 	return Scanner{
 		runeReader: runeReader,
 		tokenStart: runeReader,
@@ -78,14 +80,15 @@ func (s *Scanner) Next() bool {
 	s.runeReader = s.tokenEnd
 	s.state = 0
 
-	for s.dispatchState() == nil {
+	for s.err == nil {
+		s.err = s.dispatchState()
 	}
 
 	if s.tokenStart.ByteOffset() != s.tokenEnd.ByteOffset() {
+		s.err = nil
 		return true
 	}
 	s.token = InvalidToken
-	s.err = s.runeReader.Err()
 	return false
 }
 
@@ -553,7 +556,6 @@ func (s *Scanner) dispatchState() error {
 }
 
 func (s *Scanner) state0Ws() error {
-	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
 		return s.runeReader.Err()
