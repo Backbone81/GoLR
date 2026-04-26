@@ -13,8 +13,12 @@ lint:
 		golangci/golangci-lint:v2.11.4 \
 		golangci-lint run $(PACKAGE)
 
+.PHONY: generate
+generate:
+	go run ./examples/golang/spec/export/
+
 .PHONY: prepare
-prepare:
+prepare: generate
 	go mod tidy
 	go fmt $(PACKAGE)
 	go vet $(PACKAGE)

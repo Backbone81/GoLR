@@ -1,6 +1,9 @@
 package frontend
 
-import "errors"
+import (
+	"encoding/json"
+	"errors"
+)
 
 // Literal is a regular expression matching its text as a literal.
 type Literal struct {
@@ -29,4 +32,15 @@ func (l *Literal) Validate() error {
 		return errors.New("literal must have at least one character")
 	}
 	return nil
+}
+
+// MarshalYAML encodes the Literal as YAML. It uses a JSON-encoded (double-quoted) scalar for the Text field to
+// avoid block scalar notation, which goccy/go-yaml uses for strings containing newlines or other special characters.
+// Block scalars inside sequence items cause parsing errors in goccy/go-yaml when the value contains newlines.
+func (l Literal) MarshalYAML() ([]byte, error) {
+	textJSON, err := json.Marshal(l.Text)
+	if err != nil {
+		return nil, err
+	}
+	return []byte("text: " + string(textJSON) + "\n"), nil
 }

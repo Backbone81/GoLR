@@ -22,6 +22,101 @@ const (
 	KindZeroOrMore
 )
 
+func (k Kind) String() string {
+	switch k {
+	case KindAny:
+		return "Any"
+	case KindCharClass:
+		return "CharClass"
+	case KindConcat:
+		return "Concat"
+	case KindLiteral:
+		return "Literal"
+	case KindOneOrMore:
+		return "OneOrMore"
+	case KindOptional:
+		return "Optional"
+	case KindOr:
+		return "Or"
+	case KindRepetition:
+		return "Repetition"
+	case KindZeroOrMore:
+		return "ZeroOrMore"
+	default:
+		return "unknown"
+	}
+}
+
+func (k Kind) MarshalJSON() ([]byte, error) {
+	return json.Marshal(k.String())
+}
+
+func (k *Kind) UnmarshalJSON(data []byte) error {
+	var value string
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+
+	switch value {
+	case "Any":
+		*k = KindAny
+	case "CharClass":
+		*k = KindCharClass
+	case "Concat":
+		*k = KindConcat
+	case "Literal":
+		*k = KindLiteral
+	case "OneOrMore":
+		*k = KindOneOrMore
+	case "Optional":
+		*k = KindOptional
+	case "Or":
+		*k = KindOr
+	case "Repetition":
+		*k = KindRepetition
+	case "ZeroOrMore":
+		*k = KindZeroOrMore
+	default:
+		return errors.New("unknown kind")
+	}
+	return nil
+}
+
+func (k Kind) MarshalYAML() ([]byte, error) {
+	return yaml.Marshal(k.String())
+}
+
+func (k *Kind) UnmarshalYAML(data []byte) error {
+	var value string
+	if err := yaml.Unmarshal(data, &value); err != nil {
+		return err
+	}
+
+	switch value {
+	case "Any":
+		*k = KindAny
+	case "CharClass":
+		*k = KindCharClass
+	case "Concat":
+		*k = KindConcat
+	case "Literal":
+		*k = KindLiteral
+	case "OneOrMore":
+		*k = KindOneOrMore
+	case "Optional":
+		*k = KindOptional
+	case "Or":
+		*k = KindOr
+	case "Repetition":
+		*k = KindRepetition
+	case "ZeroOrMore":
+		*k = KindZeroOrMore
+	default:
+		return errors.New("unknown kind")
+	}
+	return nil
+}
+
 // Node is a single node of a regular expression.
 type Node struct {
 	Kind Kind `json:"kind" yaml:"kind"`

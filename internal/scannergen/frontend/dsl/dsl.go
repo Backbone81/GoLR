@@ -5,6 +5,14 @@ import (
 	"unicode"
 )
 
+// Rule constructs a rule for a regular expression with a name.
+func Rule(name string, node *frontend.Node) frontend.Rule {
+	return frontend.Rule{
+		Name:  name,
+		Regex: *node,
+	}
+}
+
 // Any constructs a regular expression matching any character.
 func Any() *frontend.Node {
 	return &frontend.Node{

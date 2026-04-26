@@ -4,6 +4,9 @@ import (
 	intdsl "golr/internal/scannergen/frontend/dsl"
 )
 
+// Rule constructs a rule for a regular expression with a name.
+var Rule = intdsl.Rule
+
 // Any constructs a regular expression matching any character.
 // The character must be in the range of valid Unicode characters from 0x00 to [unicode.MaxRune].
 var Any = intdsl.Any
