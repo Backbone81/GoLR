@@ -37,6 +37,13 @@ var _ = Describe("Golang Parser", func() {
 	})
 })
 
+func BenchmarkGolangScannerSubset(b *testing.B) {
+	rules := spec.GetScannerRules()
+	for b.Loop() {
+		_ = subset.RulesToDFA(rules)
+	}
+}
+
 func BenchmarkGolangScanner(b *testing.B) {
 	rules := spec.GetScannerRules()
 	dfa := subset.RulesToDFA(rules)
