@@ -16,6 +16,7 @@ lint:
 .PHONY: generate
 generate:
 	go run ./examples/golang/spec/export/
+	go run ./examples/golang/parser/export/
 
 .PHONY: prepare
 prepare: generate

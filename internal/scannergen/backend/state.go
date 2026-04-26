@@ -11,10 +11,10 @@ type State struct {
 	RuleIdx int `json:"ruleIdx" yaml:"ruleIdx"`
 
 	// Accept reports if this state is an accepting state for the rule given with RuleIdx.
-	Accept bool `json:"accept" yaml:"accept"`
+	Accept bool `json:"accept,omitempty" yaml:"accept,omitempty"`
 
 	// Transitions are the transitions to other DFA states.
-	Transitions []Transition `json:"transitions" yaml:"transitions"`
+	Transitions []Transition `json:"transitions,omitempty" yaml:"transitions,omitempty"`
 }
 
 func (s *State) GetTransition(charRange frontend.CharRange) *Transition {
