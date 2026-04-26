@@ -2,6 +2,7 @@ package frontend_test
 
 import (
 	"golr/internal/scannergen/frontend"
+	"golr/internal/scannergen/frontend/dsl"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -9,21 +10,15 @@ import (
 
 var _ = Describe("Literal", func() {
 	It("should convert to string", func() {
-		expression := frontend.Literal{
-			Text: "foo",
-		}
+		expression := dsl.Literal("foo")
 		Expect(expression.String()).To(Equal("foo"))
 	})
 
 	It("should provide the correct value for IsSingleNode", func() {
-		expression := frontend.Literal{
-			Text: "a",
-		}
+		expression := dsl.Literal("a")
 		Expect(expression.IsSingleNode()).To(BeTrue())
 
-		expression = frontend.Literal{
-			Text: "ab",
-		}
+		expression = dsl.Literal("ab")
 		Expect(expression.IsSingleNode()).To(BeFalse())
 	})
 
@@ -33,12 +28,12 @@ var _ = Describe("Literal", func() {
 	})
 
 	It("should fail validation with the empty string", func() {
-		expression := frontend.Literal{Text: ""}
+		expression := dsl.Literal("")
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
 
 	It("should successfully validate", func() {
-		expression := frontend.Literal{Text: "a"}
+		expression := dsl.Literal("a")
 		Expect(expression.Validate()).To(Succeed())
 	})
 })

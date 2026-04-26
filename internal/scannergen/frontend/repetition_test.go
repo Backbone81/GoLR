@@ -1,7 +1,6 @@
 package frontend_test
 
 import (
-	"golr/internal/scannergen/frontend"
 	"golr/internal/scannergen/frontend/dsl"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -10,140 +9,140 @@ import (
 
 var _ = Describe("Repetition", func() {
 	It("should convert to string with Any and a fixed repetition", func() {
-		expression := frontend.Repetition{
-			Minimum: 3,
-			Maximum: 3,
-			Child:   dsl.Any(),
-		}
+		expression := dsl.Repetition(
+			dsl.Any(),
+			3,
+			3,
+		)
 		Expect(expression.String()).To(Equal(".{3}"))
 	})
 
 	It("should convert to string with Any and a repetition range", func() {
-		expression := frontend.Repetition{
-			Minimum: 3,
-			Maximum: 5,
-			Child:   dsl.Any(),
-		}
+		expression := dsl.Repetition(
+			dsl.Any(),
+			3,
+			5,
+		)
 		Expect(expression.String()).To(Equal(".{3,5}"))
 	})
 
 	It("should convert to string with single character Literal and a fixed repetition", func() {
-		expression := frontend.Repetition{
-			Minimum: 3,
-			Maximum: 3,
-			Child:   dsl.Literal("a"),
-		}
+		expression := dsl.Repetition(
+			dsl.Literal("a"),
+			3,
+			3,
+		)
 		Expect(expression.String()).To(Equal("a{3}"))
 	})
 
 	It("should convert to string with single character Literal and a repetition range", func() {
-		expression := frontend.Repetition{
-			Minimum: 3,
-			Maximum: 5,
-			Child:   dsl.Literal("a"),
-		}
+		expression := dsl.Repetition(
+			dsl.Literal("a"),
+			3,
+			5,
+		)
 		Expect(expression.String()).To(Equal("a{3,5}"))
 	})
 
 	It("should convert to string with multi character Literal and a fixed repetition", func() {
-		expression := frontend.Repetition{
-			Minimum: 3,
-			Maximum: 3,
-			Child:   dsl.Literal("foo"),
-		}
+		expression := dsl.Repetition(
+			dsl.Literal("foo"),
+			3,
+			3,
+		)
 		Expect(expression.String()).To(Equal("(foo){3}"))
 	})
 
 	It("should convert to string with multi character Literal and a repetition range", func() {
-		expression := frontend.Repetition{
-			Minimum: 3,
-			Maximum: 5,
-			Child:   dsl.Literal("foo"),
-		}
+		expression := dsl.Repetition(
+			dsl.Literal("foo"),
+			3,
+			5,
+		)
 		Expect(expression.String()).To(Equal("(foo){3,5}"))
 	})
 
 	It("should convert to string with CharClass and a fixed repetition", func() {
-		expression := frontend.Repetition{
-			Minimum: 3,
-			Maximum: 3,
-			Child: dsl.CharClass(
+		expression := dsl.Repetition(
+			dsl.CharClass(
 				dsl.CharRange('a', 'z'),
 			),
-		}
+			3,
+			3,
+		)
 		Expect(expression.String()).To(Equal("[a-z]{3}"))
 	})
 
 	It("should convert to string with CharClass and a repetition range", func() {
-		expression := frontend.Repetition{
-			Minimum: 3,
-			Maximum: 5,
-			Child: dsl.CharClass(
+		expression := dsl.Repetition(
+			dsl.CharClass(
 				dsl.CharRange('a', 'z'),
 			),
-		}
+			3,
+			5,
+		)
 		Expect(expression.String()).To(Equal("[a-z]{3,5}"))
 	})
 
 	It("should provide the correct value for IsSingleNode", func() {
-		expression := frontend.Repetition{}
+		expression := dsl.Repetition(nil, 0, 0)
 		Expect(expression.IsSingleNode()).To(BeFalse())
 	})
 
 	It("should fail validation with the zero value", func() {
-		expression := frontend.Repetition{}
+		expression := dsl.Repetition(nil, 0, 0)
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
 
 	It("should fail validation with a negative minimum", func() {
-		expression := frontend.Repetition{
-			Minimum: -1,
-			Maximum: 3,
-			Child:   dsl.Literal("a"),
-		}
+		expression := dsl.Repetition(
+			dsl.Literal("a"),
+			-1,
+			3,
+		)
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
 
 	It("should fail validation with a negative maximum", func() {
-		expression := frontend.Repetition{
-			Minimum: 0,
-			Maximum: -1,
-			Child:   dsl.Literal("a"),
-		}
+		expression := dsl.Repetition(
+			dsl.Literal("a"),
+			0,
+			-1,
+		)
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
 
 	It("should fail validation with a maximum below the minimum", func() {
-		expression := frontend.Repetition{
-			Minimum: 5,
-			Maximum: 3,
-			Child:   dsl.Literal("a"),
-		}
+		expression := dsl.Repetition(
+			dsl.Literal("a"),
+			5,
+			3,
+		)
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
 
 	It("should fail validation with a maximum and minimum to zero", func() {
-		expression := frontend.Repetition{
-			Minimum: 0,
-			Maximum: 0,
-			Child:   dsl.Literal("a"),
-		}
+		expression := dsl.Repetition(
+			dsl.Literal("a"),
+			0,
+			0,
+		)
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
 
 	It("should successfully validate", func() {
-		expression := frontend.Repetition{
-			Minimum: 1,
-			Maximum: 3,
-			Child:   dsl.Literal("a"),
-		}
+		expression := dsl.Repetition(
+			dsl.Literal("a"),
+			1,
+			3,
+		)
 		Expect(expression.Validate()).To(Succeed())
 
-		expression = frontend.Repetition{
-			Minimum: 3,
-			Maximum: 3,
-			Child:   dsl.Literal("a"),
-		}
+		expression = dsl.Repetition(
+			dsl.Literal("a"),
+			3,
+			3,
+		)
 		Expect(expression.Validate()).To(Succeed())
 	})
 })

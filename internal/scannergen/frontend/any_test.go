@@ -1,7 +1,7 @@
 package frontend_test
 
 import (
-	"golr/internal/scannergen/frontend"
+	"golr/internal/scannergen/frontend/dsl"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -9,17 +9,17 @@ import (
 
 var _ = Describe("Any", func() {
 	It("should convert to string", func() {
-		expression := frontend.Any{}
+		expression := dsl.Any()
 		Expect(expression.String()).To(Equal("."))
 	})
 
 	It("should provide the correct value for IsSingleNode", func() {
-		expression := frontend.Any{}
+		expression := dsl.Any()
 		Expect(expression.IsSingleNode()).To(BeTrue())
 	})
 
 	It("should correctly validate", func() {
-		expression := frontend.Any{}
+		expression := dsl.Any()
 		Expect(expression.Validate()).To(BeNil())
 	})
 })
