@@ -1,4 +1,4 @@
-package spec_test
+package parser_test
 
 import (
 	"golr/examples/golang/spec"

@@ -1,4 +1,4 @@
-package parser_test
+package runtime_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestRegex(t *testing.T) {
+func TestRuntime(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Examples: Golang: Parser Suite")
+	RunSpecs(t, "Runtime Suite")
 }

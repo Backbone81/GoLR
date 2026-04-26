@@ -4,6 +4,7 @@ package main
 
 import (
 	"golr/examples/golang/spec"
+	"golr/internal/scannergen/backend/golang"
 	"golr/pkg/scannergen/backend/json"
 	"golr/pkg/scannergen/backend/yaml"
 	"golr/pkg/scannergen/core/subset"
@@ -16,6 +17,9 @@ func main() {
 		panic(err)
 	}
 	if err := yaml.DFAToFile("examples/golang/parser/scanner.yaml", dfa); err != nil {
+		panic(err)
+	}
+	if err := golang.DFAToFile("examples/golang/parser/scanner.go", dfa, golang.Config{PackageName: "parser"}); err != nil {
 		panic(err)
 	}
 }
