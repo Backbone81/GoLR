@@ -43,7 +43,7 @@ var rootCmd = &cobra.Command{
 		//if err := yaml.ParserToFile("tmp/parser.yaml", parser); err != nil {
 		//	return err
 		//}
-		if err := golang.ParserToFile("tmp/parser.go", parser, golang.Config{PackageName: "parser"}); err != nil {
+		if err := golang.ParserToFile("examples/bison/parser/parser.go", parser, golang.Config{PackageName: "parser"}); err != nil {
 			return err
 		}
 		return nil

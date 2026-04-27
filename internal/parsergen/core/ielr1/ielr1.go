@@ -34,7 +34,11 @@ func (i *IELR1) BuildParser() (backend.Parser, error) {
 
 	// TODO: Run bison against generated grammar file and produce XML report.
 
-	report, err := bison.LoadBisonXMLReportFromFile("tmp/output-ielr1.xml")
+	if err := bison.BuildIELR1("examples/bison/spec/bison-3.8.2.y", "tmp/bison-3.8.2.xml"); err != nil {
+		return backend.Parser{}, err
+	}
+
+	report, err := bison.LoadBisonXMLReportFromFile("tmp/bison-3.8.2.xml")
 	if err != nil {
 		return backend.Parser{}, err
 	}
