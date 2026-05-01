@@ -20,9 +20,9 @@ import (
 var scannerTemplate string
 
 var parsedTemplate = template.Must(template.New("scanner.go.template").Funcs(template.FuncMap{
-	"printRune":    printRune,
-	"terminalName": terminalName,
-	"stateName":    stateName,
+	"printRune": printRune,
+	"tokenName": tokenName,
+	"stateName": stateName,
 }).Parse(scannerTemplate))
 
 type Config struct {
@@ -104,7 +104,7 @@ func stateName(stateIdx int, rule frontend.Rule) string {
 	return fmt.Sprintf("state%d%s", stateIdx, name)
 }
 
-func terminalName(ruleIdx int, rule frontend.Rule) string {
+func tokenName(ruleIdx int, rule frontend.Rule) string {
 	name := utils.GoIdentifier(rule.Name)
-	return fmt.Sprintf("Terminal%s", name)
+	return fmt.Sprintf("Token%s", name)
 }

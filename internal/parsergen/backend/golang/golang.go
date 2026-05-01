@@ -181,7 +181,7 @@ func displayProduction(grammar frontend.Grammar, productionIdx int) string {
 
 func terminalName(symbol frontend.Symbol) string {
 	name := utils.GoIdentifier(symbol.Name)
-	return fmt.Sprintf("Terminal%s", name)
+	return fmt.Sprintf("Token%s", name)
 }
 
 func nonterminalName(symbol frontend.Symbol) string {

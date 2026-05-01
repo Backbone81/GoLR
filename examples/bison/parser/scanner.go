@@ -12,10 +12,212 @@ var (
 	ErrInvalidRune = errors.New("invalid rune")
 )
 
+// Token is the data type representing all terminal symbols.
+type Token int
+
 const (
+	TokenWs                            Token = 0
+	TokenComment                       Token = 1
+	TokenString                        Token = 2
+	TokenTstring                       Token = 3
+	TokenPercentToken                  Token = 4
+	TokenPercentNterm                  Token = 5
+	TokenPercentType                   Token = 6
+	TokenPercentDestructor             Token = 7
+	TokenPercentPrinter                Token = 8
+	TokenPercentLeft                   Token = 9
+	TokenPercentRight                  Token = 10
+	TokenPercentNonassoc               Token = 11
+	TokenPercentPrecedence             Token = 12
+	TokenPercentPrec                   Token = 13
+	TokenPercentDprec                  Token = 14
+	TokenPercentMerge                  Token = 15
+	TokenPercentCode                   Token = 16
+	TokenPercentDefaultPrec            Token = 17
+	TokenPercentDefine                 Token = 18
+	TokenPercentErrorVerbose           Token = 19
+	TokenPercentExpect                 Token = 20
+	TokenPercentExpectRr               Token = 21
+	TokenPercentFilePrefix             Token = 22
+	TokenPercentFlag                   Token = 23
+	TokenPercentGlrParser              Token = 24
+	TokenPercentHeader                 Token = 25
+	TokenPercentInitialAction          Token = 26
+	TokenPercentLanguage               Token = 27
+	TokenPercentNamePrefix             Token = 28
+	TokenPercentNoDefaultPrec          Token = 29
+	TokenPercentNoLines                Token = 30
+	TokenPercentNondeterministicParser Token = 31
+	TokenPercentOutput                 Token = 32
+	TokenPercentPureParser             Token = 33
+	TokenPercentRequire                Token = 34
+	TokenPercentSkeleton               Token = 35
+	TokenPercentStart                  Token = 36
+	TokenPercentTokenTable             Token = 37
+	TokenPercentVerbose                Token = 38
+	TokenPercentYacc                   Token = 39
+	TokenBracedCode                    Token = 40
+	TokenBracedPredicate               Token = 41
+	TokenBracketedId                   Token = 42
+	TokenCharLiteral                   Token = 43
+	TokenColon                         Token = 44
+	TokenEpilogue                      Token = 45
+	TokenEqual                         Token = 46
+	TokenId                            Token = 47
+	TokenIdColon                       Token = 48
+	TokenPercentPercent                Token = 49
+	TokenPipe                          Token = 50
+	TokenPrologue                      Token = 51
+	TokenSemicolon                     Token = 52
+	TokenTag                           Token = 53
+	TokenTagAny                        Token = 54
+	TokenTagNone                       Token = 55
+	TokenIntLiteral                    Token = 56
+	TokenPercentParam                  Token = 57
+	TokenPercentUnion                  Token = 58
+	TokenPercentEmpty                  Token = 59
 	// InvalidToken is a terminal which does not exist. It is used for situations where no token was found yet.
-	InvalidToken Terminal = ^Terminal(0)
+	InvalidToken Token = ^Token(0)
+	Token_end    Token = InvalidToken - 1
+	TokenError   Token = InvalidToken - 2
 )
+
+// Token implements fmt.Stringer.
+var _ fmt.Stringer = (*Token)(nil)
+
+// String returns a string representation of the terminal.
+func (t Token) String() string {
+	switch t {
+	case TokenWs:
+		return `WS`
+	case TokenComment:
+		return `COMMENT`
+	case TokenString:
+		return `STRING`
+	case TokenTstring:
+		return `TSTRING`
+	case TokenPercentToken:
+		return `PERCENT_TOKEN`
+	case TokenPercentNterm:
+		return `PERCENT_NTERM`
+	case TokenPercentType:
+		return `PERCENT_TYPE`
+	case TokenPercentDestructor:
+		return `PERCENT_DESTRUCTOR`
+	case TokenPercentPrinter:
+		return `PERCENT_PRINTER`
+	case TokenPercentLeft:
+		return `PERCENT_LEFT`
+	case TokenPercentRight:
+		return `PERCENT_RIGHT`
+	case TokenPercentNonassoc:
+		return `PERCENT_NONASSOC`
+	case TokenPercentPrecedence:
+		return `PERCENT_PRECEDENCE`
+	case TokenPercentPrec:
+		return `PERCENT_PREC`
+	case TokenPercentDprec:
+		return `PERCENT_DPREC`
+	case TokenPercentMerge:
+		return `PERCENT_MERGE`
+	case TokenPercentCode:
+		return `PERCENT_CODE`
+	case TokenPercentDefaultPrec:
+		return `PERCENT_DEFAULT_PREC`
+	case TokenPercentDefine:
+		return `PERCENT_DEFINE`
+	case TokenPercentErrorVerbose:
+		return `PERCENT_ERROR_VERBOSE`
+	case TokenPercentExpect:
+		return `PERCENT_EXPECT`
+	case TokenPercentExpectRr:
+		return `PERCENT_EXPECT_RR`
+	case TokenPercentFilePrefix:
+		return `PERCENT_FILE_PREFIX`
+	case TokenPercentFlag:
+		return `PERCENT_FLAG`
+	case TokenPercentGlrParser:
+		return `PERCENT_GLR_PARSER`
+	case TokenPercentHeader:
+		return `PERCENT_HEADER`
+	case TokenPercentInitialAction:
+		return `PERCENT_INITIAL_ACTION`
+	case TokenPercentLanguage:
+		return `PERCENT_LANGUAGE`
+	case TokenPercentNamePrefix:
+		return `PERCENT_NAME_PREFIX`
+	case TokenPercentNoDefaultPrec:
+		return `PERCENT_NO_DEFAULT_PREC`
+	case TokenPercentNoLines:
+		return `PERCENT_NO_LINES`
+	case TokenPercentNondeterministicParser:
+		return `PERCENT_NONDETERMINISTIC_PARSER`
+	case TokenPercentOutput:
+		return `PERCENT_OUTPUT`
+	case TokenPercentPureParser:
+		return `PERCENT_PURE_PARSER`
+	case TokenPercentRequire:
+		return `PERCENT_REQUIRE`
+	case TokenPercentSkeleton:
+		return `PERCENT_SKELETON`
+	case TokenPercentStart:
+		return `PERCENT_START`
+	case TokenPercentTokenTable:
+		return `PERCENT_TOKEN_TABLE`
+	case TokenPercentVerbose:
+		return `PERCENT_VERBOSE`
+	case TokenPercentYacc:
+		return `PERCENT_YACC`
+	case TokenBracedCode:
+		return `BRACED_CODE`
+	case TokenBracedPredicate:
+		return `BRACED_PREDICATE`
+	case TokenBracketedId:
+		return `BRACKETED_ID`
+	case TokenCharLiteral:
+		return `CHAR_LITERAL`
+	case TokenColon:
+		return `COLON`
+	case TokenEpilogue:
+		return `EPILOGUE`
+	case TokenEqual:
+		return `EQUAL`
+	case TokenId:
+		return `ID`
+	case TokenIdColon:
+		return `ID_COLON`
+	case TokenPercentPercent:
+		return `PERCENT_PERCENT`
+	case TokenPipe:
+		return `PIPE`
+	case TokenPrologue:
+		return `PROLOGUE`
+	case TokenSemicolon:
+		return `SEMICOLON`
+	case TokenTag:
+		return `TAG`
+	case TokenTagAny:
+		return `TAG_ANY`
+	case TokenTagNone:
+		return `TAG_NONE`
+	case TokenIntLiteral:
+		return `INT_LITERAL`
+	case TokenPercentParam:
+		return `PERCENT_PARAM`
+	case TokenPercentUnion:
+		return `PERCENT_UNION`
+	case TokenPercentEmpty:
+		return `PERCENT_EMPTY`
+	case InvalidToken:
+		return "invalid token"
+	case Token_end:
+		return "end token"
+	case TokenError:
+		return "token error"
+	default:
+		return "unknown"
+	}
+}
 
 // Scanner implements the scanner and returns tokens.
 type Scanner struct {
@@ -24,7 +226,7 @@ type Scanner struct {
 	tokenEnd   runtime.UTF8RuneReader
 
 	state int
-	token Terminal
+	token Token
 
 	err error
 }
@@ -48,7 +250,7 @@ func (s *Scanner) Err() error {
 }
 
 // Token returns the current token.
-func (s *Scanner) Token() Terminal {
+func (s *Scanner) Token() Token {
 	return s.token
 }
 
@@ -778,7 +980,7 @@ func (s *Scanner) state1Ws() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalWs
+	s.token = TokenWs
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -962,7 +1164,7 @@ func (s *Scanner) state7Colon() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalColon
+	s.token = TokenColon
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -975,7 +1177,7 @@ func (s *Scanner) state8Equal() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalEqual
+	s.token = TokenEqual
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -988,7 +1190,7 @@ func (s *Scanner) state9Pipe() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPipe
+	s.token = TokenPipe
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1001,7 +1203,7 @@ func (s *Scanner) state10Semicolon() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalSemicolon
+	s.token = TokenSemicolon
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1014,7 +1216,7 @@ func (s *Scanner) state11IntLiteral() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIntLiteral
+	s.token = TokenIntLiteral
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1056,7 +1258,7 @@ func (s *Scanner) state13Comment() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalComment
+	s.token = TokenComment
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1107,7 +1309,7 @@ func (s *Scanner) state15String() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalString
+	s.token = TokenString
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1473,7 +1675,7 @@ func (s *Scanner) state36PercentPercent() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentPercent
+	s.token = TokenPercentPercent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1524,7 +1726,7 @@ func (s *Scanner) state39String() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalString
+	s.token = TokenString
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2089,7 +2291,7 @@ func (s *Scanner) state72Comment() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalComment
+	s.token = TokenComment
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2733,7 +2935,7 @@ func (s *Scanner) state110Tstring() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalTstring
+	s.token = TokenTstring
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2778,7 +2980,7 @@ func (s *Scanner) state113PercentType() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentType
+	s.token = TokenPercentType
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2967,7 +3169,7 @@ func (s *Scanner) state125PercentPrec() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentPrec
+	s.token = TokenPercentPrec
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3019,7 +3221,7 @@ func (s *Scanner) state128PercentLeft() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentLeft
+	s.token = TokenPercentLeft
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3096,7 +3298,7 @@ func (s *Scanner) state133PercentCode() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentCode
+	s.token = TokenPercentCode
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3301,7 +3503,7 @@ func (s *Scanner) state146PercentYacc() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentYacc
+	s.token = TokenPercentYacc
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3330,7 +3532,7 @@ func (s *Scanner) state148Tstring() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalTstring
+	s.token = TokenTstring
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3378,7 +3580,7 @@ func (s *Scanner) state150PercentToken() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentToken
+	s.token = TokenPercentToken
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3398,7 +3600,7 @@ func (s *Scanner) state151PercentNterm() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentNterm
+	s.token = TokenPercentNterm
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3539,7 +3741,7 @@ func (s *Scanner) state160PercentDprec() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentDprec
+	s.token = TokenPercentDprec
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3600,7 +3802,7 @@ func (s *Scanner) state164PercentParam() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentParam
+	s.token = TokenPercentParam
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3629,7 +3831,7 @@ func (s *Scanner) state166PercentRight() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentRight
+	s.token = TokenPercentRight
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3658,7 +3860,7 @@ func (s *Scanner) state168PercentMerge() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentMerge
+	s.token = TokenPercentMerge
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3703,7 +3905,7 @@ func (s *Scanner) state171PercentEmpty() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentEmpty
+	s.token = TokenPercentEmpty
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3828,7 +4030,7 @@ func (s *Scanner) state179PercentStart() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentStart
+	s.token = TokenPercentStart
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3857,7 +4059,7 @@ func (s *Scanner) state181PercentUnion() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentUnion
+	s.token = TokenPercentUnion
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4014,7 +4216,7 @@ func (s *Scanner) state191PercentDefine() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentDefine
+	s.token = TokenPercentDefine
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4123,7 +4325,7 @@ func (s *Scanner) state198PercentExpect() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentExpect
+	s.token = TokenPercentExpect
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4159,7 +4361,7 @@ func (s *Scanner) state200PercentFlag() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentFlag
+	s.token = TokenPercentFlag
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4188,7 +4390,7 @@ func (s *Scanner) state202PercentHeader() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentHeader
+	s.token = TokenPercentHeader
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4217,7 +4419,7 @@ func (s *Scanner) state204PercentOutput() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentOutput
+	s.token = TokenPercentOutput
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4406,7 +4608,7 @@ func (s *Scanner) state216PercentPrinter() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentPrinter
+	s.token = TokenPercentPrinter
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4467,7 +4669,7 @@ func (s *Scanner) state220PercentRequire() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentRequire
+	s.token = TokenPercentRequire
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4576,7 +4778,7 @@ func (s *Scanner) state227PercentVerbose() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentVerbose
+	s.token = TokenPercentVerbose
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4621,7 +4823,7 @@ func (s *Scanner) state230PercentNonassoc() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentNonassoc
+	s.token = TokenPercentNonassoc
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4666,7 +4868,7 @@ func (s *Scanner) state233PercentNoLines() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentNoLines
+	s.token = TokenPercentNoLines
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4759,7 +4961,7 @@ func (s *Scanner) state239PercentLanguage() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentLanguage
+	s.token = TokenPercentLanguage
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4852,7 +5054,7 @@ func (s *Scanner) state245PercentSkeleton() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentSkeleton
+	s.token = TokenPercentSkeleton
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5025,7 +5227,7 @@ func (s *Scanner) state256PercentExpectRr() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentExpectRr
+	s.token = TokenPercentExpectRr
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5166,7 +5368,7 @@ func (s *Scanner) state265PercentDestructor() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentDestructor
+	s.token = TokenPercentDestructor
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5195,7 +5397,7 @@ func (s *Scanner) state267PercentPrecedence() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentPrecedence
+	s.token = TokenPercentPrecedence
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5256,7 +5458,7 @@ func (s *Scanner) state271PercentGlrParser() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentGlrParser
+	s.token = TokenPercentGlrParser
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5301,7 +5503,7 @@ func (s *Scanner) state274PercentTokenTable() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentTokenTable
+	s.token = TokenPercentTokenTable
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5346,7 +5548,7 @@ func (s *Scanner) state277PercentNamePrefix() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentNamePrefix
+	s.token = TokenPercentNamePrefix
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5375,7 +5577,7 @@ func (s *Scanner) state279PercentPureParser() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentPureParser
+	s.token = TokenPercentPureParser
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5404,7 +5606,7 @@ func (s *Scanner) state281PercentFilePrefix() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentFilePrefix
+	s.token = TokenPercentFilePrefix
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5481,7 +5683,7 @@ func (s *Scanner) state286PercentDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentDefaultPrec
+	s.token = TokenPercentDefaultPrec
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5574,7 +5776,7 @@ func (s *Scanner) state292PercentErrorVerbose() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentErrorVerbose
+	s.token = TokenPercentErrorVerbose
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5651,7 +5853,7 @@ func (s *Scanner) state297PercentInitialAction() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentInitialAction
+	s.token = TokenPercentInitialAction
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5696,7 +5898,7 @@ func (s *Scanner) state300PercentNoDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentNoDefaultPrec
+	s.token = TokenPercentNoDefaultPrec
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5773,7 +5975,7 @@ func (s *Scanner) state305BracedCode() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalBracedCode
+	s.token = TokenBracedCode
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5866,7 +6068,7 @@ func (s *Scanner) state311PercentNondeterministicParser() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPercentNondeterministicParser
+	s.token = TokenPercentNondeterministicParser
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {

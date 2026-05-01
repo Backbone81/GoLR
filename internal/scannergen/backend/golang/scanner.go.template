@@ -12,10 +12,35 @@ var (
     ErrInvalidRune = errors.New("invalid rune")
 )
 
+// Token is the data type representing all terminal symbols.
+type Token int
+
 const (
+{{- range $i, $rule := .DFA.Rules }}
+    {{ tokenName $i $rule }} Token = {{ $i }}
+{{- end }}
     // InvalidToken is a terminal which does not exist. It is used for situations where no token was found yet.
-	InvalidToken Terminal = ^Terminal(0)
+	InvalidToken Token = ^Token(0)
+	Token_end Token = InvalidToken-1
+	TokenError Token = InvalidToken-2
 )
+
+// Token implements fmt.Stringer.
+var _ fmt.Stringer = (*Token)(nil)
+
+// String returns a string representation of the terminal.
+func (t Token) String() string {
+    switch t {
+{{- range $i, $rule := .DFA.Rules }}
+    case {{ tokenName $i $rule }}: return `{{ $rule.Name }}`
+{{- end }}
+    case InvalidToken: return "invalid token"
+    case Token_end: return "end token"
+    case TokenError: return "token error"
+    default:
+        return "unknown"
+    }
+}
 
 // Scanner implements the scanner and returns tokens.
 type Scanner struct {
@@ -24,7 +49,7 @@ type Scanner struct {
 	tokenEnd   runtime.UTF8RuneReader
 
     state int
-	token Terminal
+	token Token
 
 	err error
 }
@@ -48,7 +73,7 @@ func (s *Scanner) Err() error {
 }
 
 // Token returns the current token.
-func (s *Scanner) Token() Terminal {
+func (s *Scanner) Token() Token {
 	return s.token
 }
 
@@ -110,7 +135,7 @@ func (s *Scanner) {{ stateName $i (index $.DFA.Rules $state.RuleIdx) }}() error 
 
     {{ if $state.Accept }}
     // We have an accepting state, update our bookkeeping.
-    s.token = {{ terminalName $state.RuleIdx (index $.DFA.Rules $state.RuleIdx) }}
+    s.token = {{ tokenName $state.RuleIdx (index $.DFA.Rules $state.RuleIdx) }}
     s.tokenEnd = s.runeReader
     {{ end }}
 

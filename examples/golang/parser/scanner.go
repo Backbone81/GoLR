@@ -12,10 +12,275 @@ var (
 	ErrInvalidRune = errors.New("invalid rune")
 )
 
+// Token is the data type representing all terminal symbols.
+type Token int
+
 const (
+	TokenWs           Token = 0
+	TokenComment      Token = 1
+	TokenBreak        Token = 2
+	TokenCase         Token = 3
+	TokenChan         Token = 4
+	TokenConst        Token = 5
+	TokenContinue     Token = 6
+	TokenDefault      Token = 7
+	TokenDefer        Token = 8
+	TokenElse         Token = 9
+	TokenFallthrough  Token = 10
+	TokenFor          Token = 11
+	TokenFunc         Token = 12
+	TokenGo           Token = 13
+	TokenGoto         Token = 14
+	TokenIf           Token = 15
+	TokenImport       Token = 16
+	TokenInterface    Token = 17
+	TokenMap          Token = 18
+	TokenPackage      Token = 19
+	TokenRange        Token = 20
+	TokenReturn       Token = 21
+	TokenSelect       Token = 22
+	TokenStruct       Token = 23
+	TokenSwitch       Token = 24
+	TokenType         Token = 25
+	TokenVar          Token = 26
+	TokenIdent        Token = 27
+	TokenAdd          Token = 28
+	TokenSub          Token = 29
+	TokenMul          Token = 30
+	TokenQuo          Token = 31
+	TokenRem          Token = 32
+	TokenAnd          Token = 33
+	TokenOr           Token = 34
+	TokenXor          Token = 35
+	TokenShl          Token = 36
+	TokenShr          Token = 37
+	TokenAndNot       Token = 38
+	TokenAddAssign    Token = 39
+	TokenSubAssign    Token = 40
+	TokenMulAssign    Token = 41
+	TokenQuoAssign    Token = 42
+	TokenRemAssign    Token = 43
+	TokenAndAssign    Token = 44
+	TokenOrAssign     Token = 45
+	TokenXorAssign    Token = 46
+	TokenShlAssign    Token = 47
+	TokenShrAssign    Token = 48
+	TokenAndNotAssign Token = 49
+	TokenLand         Token = 50
+	TokenLor          Token = 51
+	TokenArrow        Token = 52
+	TokenInc          Token = 53
+	TokenDec          Token = 54
+	TokenEql          Token = 55
+	TokenLss          Token = 56
+	TokenGtr          Token = 57
+	TokenAssign       Token = 58
+	TokenNot          Token = 59
+	TokenTilde        Token = 60
+	TokenNeq          Token = 61
+	TokenLeq          Token = 62
+	TokenGeq          Token = 63
+	TokenDefine       Token = 64
+	TokenEllipsis     Token = 65
+	TokenLparen       Token = 66
+	TokenLbrack       Token = 67
+	TokenLbrace       Token = 68
+	TokenComma        Token = 69
+	TokenPeriod       Token = 70
+	TokenRparen       Token = 71
+	TokenRbrack       Token = 72
+	TokenRbrace       Token = 73
+	TokenSemicolon    Token = 74
+	TokenColon        Token = 75
+	TokenInt          Token = 76
+	TokenFloat        Token = 77
+	TokenImag         Token = 78
+	TokenChar         Token = 79
+	TokenString       Token = 80
 	// InvalidToken is a terminal which does not exist. It is used for situations where no token was found yet.
-	InvalidToken Terminal = ^Terminal(0)
+	InvalidToken Token = ^Token(0)
+	Token_end    Token = InvalidToken - 1
+	TokenError   Token = InvalidToken - 2
 )
+
+// Token implements fmt.Stringer.
+var _ fmt.Stringer = (*Token)(nil)
+
+// String returns a string representation of the terminal.
+func (t Token) String() string {
+	switch t {
+	case TokenWs:
+		return `WS`
+	case TokenComment:
+		return `COMMENT`
+	case TokenBreak:
+		return `BREAK`
+	case TokenCase:
+		return `CASE`
+	case TokenChan:
+		return `CHAN`
+	case TokenConst:
+		return `CONST`
+	case TokenContinue:
+		return `CONTINUE`
+	case TokenDefault:
+		return `DEFAULT`
+	case TokenDefer:
+		return `DEFER`
+	case TokenElse:
+		return `ELSE`
+	case TokenFallthrough:
+		return `FALLTHROUGH`
+	case TokenFor:
+		return `FOR`
+	case TokenFunc:
+		return `FUNC`
+	case TokenGo:
+		return `GO`
+	case TokenGoto:
+		return `GOTO`
+	case TokenIf:
+		return `IF`
+	case TokenImport:
+		return `IMPORT`
+	case TokenInterface:
+		return `INTERFACE`
+	case TokenMap:
+		return `MAP`
+	case TokenPackage:
+		return `PACKAGE`
+	case TokenRange:
+		return `RANGE`
+	case TokenReturn:
+		return `RETURN`
+	case TokenSelect:
+		return `SELECT`
+	case TokenStruct:
+		return `STRUCT`
+	case TokenSwitch:
+		return `SWITCH`
+	case TokenType:
+		return `TYPE`
+	case TokenVar:
+		return `VAR`
+	case TokenIdent:
+		return `IDENT`
+	case TokenAdd:
+		return `ADD`
+	case TokenSub:
+		return `SUB`
+	case TokenMul:
+		return `MUL`
+	case TokenQuo:
+		return `QUO`
+	case TokenRem:
+		return `REM`
+	case TokenAnd:
+		return `AND`
+	case TokenOr:
+		return `OR`
+	case TokenXor:
+		return `XOR`
+	case TokenShl:
+		return `SHL`
+	case TokenShr:
+		return `SHR`
+	case TokenAndNot:
+		return `AND_NOT`
+	case TokenAddAssign:
+		return `ADD_ASSIGN`
+	case TokenSubAssign:
+		return `SUB_ASSIGN`
+	case TokenMulAssign:
+		return `MUL_ASSIGN`
+	case TokenQuoAssign:
+		return `QUO_ASSIGN`
+	case TokenRemAssign:
+		return `REM_ASSIGN`
+	case TokenAndAssign:
+		return `AND_ASSIGN`
+	case TokenOrAssign:
+		return `OR_ASSIGN`
+	case TokenXorAssign:
+		return `XOR_ASSIGN`
+	case TokenShlAssign:
+		return `SHL_ASSIGN`
+	case TokenShrAssign:
+		return `SHR_ASSIGN`
+	case TokenAndNotAssign:
+		return `AND_NOT_ASSIGN`
+	case TokenLand:
+		return `LAND`
+	case TokenLor:
+		return `LOR`
+	case TokenArrow:
+		return `ARROW`
+	case TokenInc:
+		return `INC`
+	case TokenDec:
+		return `DEC`
+	case TokenEql:
+		return `EQL`
+	case TokenLss:
+		return `LSS`
+	case TokenGtr:
+		return `GTR`
+	case TokenAssign:
+		return `ASSIGN`
+	case TokenNot:
+		return `NOT`
+	case TokenTilde:
+		return `TILDE`
+	case TokenNeq:
+		return `NEQ`
+	case TokenLeq:
+		return `LEQ`
+	case TokenGeq:
+		return `GEQ`
+	case TokenDefine:
+		return `DEFINE`
+	case TokenEllipsis:
+		return `ELLIPSIS`
+	case TokenLparen:
+		return `LPAREN`
+	case TokenLbrack:
+		return `LBRACK`
+	case TokenLbrace:
+		return `LBRACE`
+	case TokenComma:
+		return `COMMA`
+	case TokenPeriod:
+		return `PERIOD`
+	case TokenRparen:
+		return `RPAREN`
+	case TokenRbrack:
+		return `RBRACK`
+	case TokenRbrace:
+		return `RBRACE`
+	case TokenSemicolon:
+		return `SEMICOLON`
+	case TokenColon:
+		return `COLON`
+	case TokenInt:
+		return `INT`
+	case TokenFloat:
+		return `FLOAT`
+	case TokenImag:
+		return `IMAG`
+	case TokenChar:
+		return `CHAR`
+	case TokenString:
+		return `STRING`
+	case InvalidToken:
+		return "invalid token"
+	case Token_end:
+		return "end token"
+	case TokenError:
+		return "token error"
+	default:
+		return "unknown"
+	}
+}
 
 // Scanner implements the scanner and returns tokens.
 type Scanner struct {
@@ -24,7 +289,7 @@ type Scanner struct {
 	tokenEnd   runtime.UTF8RuneReader
 
 	state int
-	token Terminal
+	token Token
 
 	err error
 }
@@ -48,7 +313,7 @@ func (s *Scanner) Err() error {
 }
 
 // Token returns the current token.
-func (s *Scanner) Token() Terminal {
+func (s *Scanner) Token() Token {
 	return s.token
 }
 
@@ -733,7 +998,7 @@ func (s *Scanner) state1Ws() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalWs
+	s.token = TokenWs
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -778,7 +1043,7 @@ func (s *Scanner) state3Quo() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalQuo
+	s.token = TokenQuo
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -804,7 +1069,7 @@ func (s *Scanner) state4Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -839,7 +1104,7 @@ func (s *Scanner) state5Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -883,7 +1148,7 @@ func (s *Scanner) state6Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -918,7 +1183,7 @@ func (s *Scanner) state7Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -953,7 +1218,7 @@ func (s *Scanner) state8Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -997,7 +1262,7 @@ func (s *Scanner) state9Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1032,7 +1297,7 @@ func (s *Scanner) state10Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1076,7 +1341,7 @@ func (s *Scanner) state11Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1108,7 +1373,7 @@ func (s *Scanner) state12Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1140,7 +1405,7 @@ func (s *Scanner) state13Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1178,7 +1443,7 @@ func (s *Scanner) state14Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1225,7 +1490,7 @@ func (s *Scanner) state15Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1260,7 +1525,7 @@ func (s *Scanner) state16Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1292,7 +1557,7 @@ func (s *Scanner) state17Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1321,7 +1586,7 @@ func (s *Scanner) state18Add() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalAdd
+	s.token = TokenAdd
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1344,7 +1609,7 @@ func (s *Scanner) state19Sub() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalSub
+	s.token = TokenSub
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1367,7 +1632,7 @@ func (s *Scanner) state20Mul() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalMul
+	s.token = TokenMul
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1387,7 +1652,7 @@ func (s *Scanner) state21Rem() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalRem
+	s.token = TokenRem
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1407,7 +1672,7 @@ func (s *Scanner) state22And() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalAnd
+	s.token = TokenAnd
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1433,7 +1698,7 @@ func (s *Scanner) state23Or() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalOr
+	s.token = TokenOr
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1456,7 +1721,7 @@ func (s *Scanner) state24Xor() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalXor
+	s.token = TokenXor
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1476,7 +1741,7 @@ func (s *Scanner) state25Lss() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalLss
+	s.token = TokenLss
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1502,7 +1767,7 @@ func (s *Scanner) state26Gtr() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalGtr
+	s.token = TokenGtr
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1525,7 +1790,7 @@ func (s *Scanner) state27Assign() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalAssign
+	s.token = TokenAssign
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1545,7 +1810,7 @@ func (s *Scanner) state28Not() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalNot
+	s.token = TokenNot
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1565,7 +1830,7 @@ func (s *Scanner) state29Tilde() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalTilde
+	s.token = TokenTilde
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1578,7 +1843,7 @@ func (s *Scanner) state30Colon() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalColon
+	s.token = TokenColon
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1598,7 +1863,7 @@ func (s *Scanner) state31Period() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPeriod
+	s.token = TokenPeriod
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1621,7 +1886,7 @@ func (s *Scanner) state32Lparen() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalLparen
+	s.token = TokenLparen
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1634,7 +1899,7 @@ func (s *Scanner) state33Lbrack() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalLbrack
+	s.token = TokenLbrack
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1647,7 +1912,7 @@ func (s *Scanner) state34Lbrace() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalLbrace
+	s.token = TokenLbrace
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1660,7 +1925,7 @@ func (s *Scanner) state35Comma() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalComma
+	s.token = TokenComma
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1673,7 +1938,7 @@ func (s *Scanner) state36Rparen() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalRparen
+	s.token = TokenRparen
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1686,7 +1951,7 @@ func (s *Scanner) state37Rbrack() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalRbrack
+	s.token = TokenRbrack
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1699,7 +1964,7 @@ func (s *Scanner) state38Rbrace() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalRbrace
+	s.token = TokenRbrace
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1712,7 +1977,7 @@ func (s *Scanner) state39Semicolon() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalSemicolon
+	s.token = TokenSemicolon
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1725,7 +1990,7 @@ func (s *Scanner) state40Int() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalInt
+	s.token = TokenInt
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1778,7 +2043,7 @@ func (s *Scanner) state41Int() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalInt
+	s.token = TokenInt
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1903,7 +2168,7 @@ func (s *Scanner) state45Comment() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalComment
+	s.token = TokenComment
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1960,7 +2225,7 @@ func (s *Scanner) state47QuoAssign() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalQuoAssign
+	s.token = TokenQuoAssign
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -1973,7 +2238,7 @@ func (s *Scanner) state48Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2008,7 +2273,7 @@ func (s *Scanner) state49Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2043,7 +2308,7 @@ func (s *Scanner) state50Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2075,7 +2340,7 @@ func (s *Scanner) state51Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2110,7 +2375,7 @@ func (s *Scanner) state52Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2145,7 +2410,7 @@ func (s *Scanner) state53Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2180,7 +2445,7 @@ func (s *Scanner) state54Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2215,7 +2480,7 @@ func (s *Scanner) state55Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2250,7 +2515,7 @@ func (s *Scanner) state56Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2285,7 +2550,7 @@ func (s *Scanner) state57Go() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalGo
+	s.token = TokenGo
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2320,7 +2585,7 @@ func (s *Scanner) state58If() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIf
+	s.token = TokenIf
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2349,7 +2614,7 @@ func (s *Scanner) state59Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2384,7 +2649,7 @@ func (s *Scanner) state60Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2419,7 +2684,7 @@ func (s *Scanner) state61Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2454,7 +2719,7 @@ func (s *Scanner) state62Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2489,7 +2754,7 @@ func (s *Scanner) state63Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2524,7 +2789,7 @@ func (s *Scanner) state64Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2559,7 +2824,7 @@ func (s *Scanner) state65Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2594,7 +2859,7 @@ func (s *Scanner) state66Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2629,7 +2894,7 @@ func (s *Scanner) state67Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2664,7 +2929,7 @@ func (s *Scanner) state68Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2699,7 +2964,7 @@ func (s *Scanner) state69Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2734,7 +2999,7 @@ func (s *Scanner) state70AddAssign() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalAddAssign
+	s.token = TokenAddAssign
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2747,7 +3012,7 @@ func (s *Scanner) state71Inc() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalInc
+	s.token = TokenInc
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2760,7 +3025,7 @@ func (s *Scanner) state72SubAssign() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalSubAssign
+	s.token = TokenSubAssign
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2773,7 +3038,7 @@ func (s *Scanner) state73Dec() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalDec
+	s.token = TokenDec
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2786,7 +3051,7 @@ func (s *Scanner) state74MulAssign() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalMulAssign
+	s.token = TokenMulAssign
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2799,7 +3064,7 @@ func (s *Scanner) state75RemAssign() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalRemAssign
+	s.token = TokenRemAssign
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2812,7 +3077,7 @@ func (s *Scanner) state76AndNot() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalAndNot
+	s.token = TokenAndNot
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2832,7 +3097,7 @@ func (s *Scanner) state77AndAssign() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalAndAssign
+	s.token = TokenAndAssign
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2845,7 +3110,7 @@ func (s *Scanner) state78Land() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalLand
+	s.token = TokenLand
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2858,7 +3123,7 @@ func (s *Scanner) state79OrAssign() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalOrAssign
+	s.token = TokenOrAssign
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2871,7 +3136,7 @@ func (s *Scanner) state80Lor() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalLor
+	s.token = TokenLor
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2884,7 +3149,7 @@ func (s *Scanner) state81XorAssign() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalXorAssign
+	s.token = TokenXorAssign
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2897,7 +3162,7 @@ func (s *Scanner) state82Shl() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalShl
+	s.token = TokenShl
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2917,7 +3182,7 @@ func (s *Scanner) state83Arrow() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalArrow
+	s.token = TokenArrow
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2930,7 +3195,7 @@ func (s *Scanner) state84Leq() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalLeq
+	s.token = TokenLeq
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2943,7 +3208,7 @@ func (s *Scanner) state85Shr() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalShr
+	s.token = TokenShr
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2963,7 +3228,7 @@ func (s *Scanner) state86Geq() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalGeq
+	s.token = TokenGeq
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2976,7 +3241,7 @@ func (s *Scanner) state87Eql() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalEql
+	s.token = TokenEql
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -2989,7 +3254,7 @@ func (s *Scanner) state88Neq() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalNeq
+	s.token = TokenNeq
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3002,7 +3267,7 @@ func (s *Scanner) state89Define() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalDefine
+	s.token = TokenDefine
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3031,7 +3296,7 @@ func (s *Scanner) state91Float() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalFloat
+	s.token = TokenFloat
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3176,7 +3441,7 @@ func (s *Scanner) state97Float() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalFloat
+	s.token = TokenFloat
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3227,7 +3492,7 @@ func (s *Scanner) state99Imag() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalImag
+	s.token = TokenImag
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3327,7 +3592,7 @@ func (s *Scanner) state103String() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalString
+	s.token = TokenString
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3456,7 +3721,7 @@ func (s *Scanner) state106Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3488,7 +3753,7 @@ func (s *Scanner) state107Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3523,7 +3788,7 @@ func (s *Scanner) state108Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3558,7 +3823,7 @@ func (s *Scanner) state109Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3596,7 +3861,7 @@ func (s *Scanner) state110Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3634,7 +3899,7 @@ func (s *Scanner) state111Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3669,7 +3934,7 @@ func (s *Scanner) state112Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3704,7 +3969,7 @@ func (s *Scanner) state113For() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalFor
+	s.token = TokenFor
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3733,7 +3998,7 @@ func (s *Scanner) state114Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3768,7 +4033,7 @@ func (s *Scanner) state115Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3803,7 +4068,7 @@ func (s *Scanner) state116Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3838,7 +4103,7 @@ func (s *Scanner) state117Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3873,7 +4138,7 @@ func (s *Scanner) state118Map() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalMap
+	s.token = TokenMap
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3902,7 +4167,7 @@ func (s *Scanner) state119Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3937,7 +4202,7 @@ func (s *Scanner) state120Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -3972,7 +4237,7 @@ func (s *Scanner) state121Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4007,7 +4272,7 @@ func (s *Scanner) state122Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4042,7 +4307,7 @@ func (s *Scanner) state123Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4077,7 +4342,7 @@ func (s *Scanner) state124Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4112,7 +4377,7 @@ func (s *Scanner) state125Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4147,7 +4412,7 @@ func (s *Scanner) state126Var() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalVar
+	s.token = TokenVar
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4176,7 +4441,7 @@ func (s *Scanner) state127AndNotAssign() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalAndNotAssign
+	s.token = TokenAndNotAssign
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4189,7 +4454,7 @@ func (s *Scanner) state128ShlAssign() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalShlAssign
+	s.token = TokenShlAssign
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4202,7 +4467,7 @@ func (s *Scanner) state129ShrAssign() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalShrAssign
+	s.token = TokenShrAssign
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4215,7 +4480,7 @@ func (s *Scanner) state130Ellipsis() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalEllipsis
+	s.token = TokenEllipsis
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4260,7 +4525,7 @@ func (s *Scanner) state133Int() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalInt
+	s.token = TokenInt
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4302,7 +4567,7 @@ func (s *Scanner) state135Int() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalInt
+	s.token = TokenInt
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4350,7 +4615,7 @@ func (s *Scanner) state137Int() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalInt
+	s.token = TokenInt
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4429,7 +4694,7 @@ func (s *Scanner) state140Float() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalFloat
+	s.token = TokenFloat
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4455,7 +4720,7 @@ func (s *Scanner) state141Char() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalChar
+	s.token = TokenChar
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4512,7 +4777,7 @@ func (s *Scanner) state144Char() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalChar
+	s.token = TokenChar
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4754,7 +5019,7 @@ func (s *Scanner) state151String() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalString
+	s.token = TokenString
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4789,7 +5054,7 @@ func (s *Scanner) state152Comment() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalComment
+	s.token = TokenComment
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4802,7 +5067,7 @@ func (s *Scanner) state153Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4837,7 +5102,7 @@ func (s *Scanner) state154Case() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalCase
+	s.token = TokenCase
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4866,7 +5131,7 @@ func (s *Scanner) state155Chan() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalChan
+	s.token = TokenChan
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4895,7 +5160,7 @@ func (s *Scanner) state156Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4930,7 +5195,7 @@ func (s *Scanner) state157Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -4965,7 +5230,7 @@ func (s *Scanner) state158Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5000,7 +5265,7 @@ func (s *Scanner) state159Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5035,7 +5300,7 @@ func (s *Scanner) state160Else() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalElse
+	s.token = TokenElse
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5064,7 +5329,7 @@ func (s *Scanner) state161Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5099,7 +5364,7 @@ func (s *Scanner) state162Func() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalFunc
+	s.token = TokenFunc
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5128,7 +5393,7 @@ func (s *Scanner) state163Goto() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalGoto
+	s.token = TokenGoto
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5157,7 +5422,7 @@ func (s *Scanner) state164Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5192,7 +5457,7 @@ func (s *Scanner) state165Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5227,7 +5492,7 @@ func (s *Scanner) state166Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5259,7 +5524,7 @@ func (s *Scanner) state167Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5294,7 +5559,7 @@ func (s *Scanner) state168Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5329,7 +5594,7 @@ func (s *Scanner) state169Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5364,7 +5629,7 @@ func (s *Scanner) state170Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5399,7 +5664,7 @@ func (s *Scanner) state171Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5434,7 +5699,7 @@ func (s *Scanner) state172Type() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalType
+	s.token = TokenType
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5810,7 +6075,7 @@ func (s *Scanner) state184Break() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalBreak
+	s.token = TokenBreak
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5839,7 +6104,7 @@ func (s *Scanner) state185Const() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalConst
+	s.token = TokenConst
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5868,7 +6133,7 @@ func (s *Scanner) state186Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5903,7 +6168,7 @@ func (s *Scanner) state187Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5938,7 +6203,7 @@ func (s *Scanner) state188Defer() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalDefer
+	s.token = TokenDefer
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5967,7 +6232,7 @@ func (s *Scanner) state189Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6002,7 +6267,7 @@ func (s *Scanner) state190Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6037,7 +6302,7 @@ func (s *Scanner) state191Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6072,7 +6337,7 @@ func (s *Scanner) state192Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6107,7 +6372,7 @@ func (s *Scanner) state193Range() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalRange
+	s.token = TokenRange
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6136,7 +6401,7 @@ func (s *Scanner) state194Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6171,7 +6436,7 @@ func (s *Scanner) state195Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6206,7 +6471,7 @@ func (s *Scanner) state196Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6241,7 +6506,7 @@ func (s *Scanner) state197Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6391,7 +6656,7 @@ func (s *Scanner) state202Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6426,7 +6691,7 @@ func (s *Scanner) state203Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6461,7 +6726,7 @@ func (s *Scanner) state204Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6496,7 +6761,7 @@ func (s *Scanner) state205Import() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalImport
+	s.token = TokenImport
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6525,7 +6790,7 @@ func (s *Scanner) state206Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6557,7 +6822,7 @@ func (s *Scanner) state207Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6592,7 +6857,7 @@ func (s *Scanner) state208Return() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalReturn
+	s.token = TokenReturn
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6621,7 +6886,7 @@ func (s *Scanner) state209Select() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalSelect
+	s.token = TokenSelect
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6650,7 +6915,7 @@ func (s *Scanner) state210Struct() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalStruct
+	s.token = TokenStruct
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6679,7 +6944,7 @@ func (s *Scanner) state211Switch() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalSwitch
+	s.token = TokenSwitch
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6779,7 +7044,7 @@ func (s *Scanner) state214Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6814,7 +7079,7 @@ func (s *Scanner) state215Default() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalDefault
+	s.token = TokenDefault
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6843,7 +7108,7 @@ func (s *Scanner) state216Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6878,7 +7143,7 @@ func (s *Scanner) state217Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6913,7 +7178,7 @@ func (s *Scanner) state218Package() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalPackage
+	s.token = TokenPackage
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6964,7 +7229,7 @@ func (s *Scanner) state220Continue() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalContinue
+	s.token = TokenContinue
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -6993,7 +7258,7 @@ func (s *Scanner) state221Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -7028,7 +7293,7 @@ func (s *Scanner) state222Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -7085,7 +7350,7 @@ func (s *Scanner) state224Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -7120,7 +7385,7 @@ func (s *Scanner) state225Interface() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalInterface
+	s.token = TokenInterface
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -7149,7 +7414,7 @@ func (s *Scanner) state226Ident() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalIdent
+	s.token = TokenIdent
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -7184,7 +7449,7 @@ func (s *Scanner) state227Fallthrough() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TerminalFallthrough
+	s.token = TokenFallthrough
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {

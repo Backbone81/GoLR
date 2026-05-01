@@ -25,10 +25,7 @@
  */
 
 %token
-  WS
-  COMMENT
-
-  STRING              
+  STRING
   TSTRING             
 
   PERCENT_TOKEN       

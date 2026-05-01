@@ -6,29 +6,6 @@ import (
     "fmt"
 )
 
-// Terminal is the data type representing all terminal symbols.
-type Terminal int
-
-const (
-{{- range $i, $terminal := .Parser.Grammar.Terminals }}
-    {{ terminalName $terminal }} Terminal = {{ $i }} // {{ $terminal.Name }}{{ if ne $terminal.Alias "" }} ({{ $terminal.Alias }}){{ end }}
-{{- end }}
-)
-
-// Terminal implements fmt.Stringer.
-var _ fmt.Stringer = (*Terminal)(nil)
-
-// String returns a string representation of the terminal.
-func (t Terminal) String() string {
-    switch t {
-{{- range $i, $terminal := .Parser.Grammar.Terminals }}
-    case {{ terminalName $terminal }}: return `{{ $terminal.Name }}`
-{{- end }}
-    default:
-        return "unknown"
-    }
-}
-
 // Nonterminal is the data type representing all nonterminal symbols.
 type Nonterminal int
 
@@ -65,7 +42,7 @@ const (
 )
 
 // NewTerminal creates a new Symbol for a terminal.
-func NewTerminal(terminal Terminal) Symbol {
+func NewTerminal(terminal Token) Symbol {
 	return Symbol(terminal)
 }
 
@@ -75,8 +52,8 @@ func NewNonterminal(nonterminal Nonterminal) Symbol {
 }
 
 // Terminal returns the terminal value of the Symbol. The boolean reports if the value is in fact a terminal.
-func (s Symbol) Terminal() (Terminal, bool) {
-	return Terminal(s & symbolMask), s&symbolNonterminalBit == 0
+func (s Symbol) Terminal() (Token, bool) {
+	return Token(s & symbolMask), s&symbolNonterminalBit == 0
 }
 
 // Nonterminal returns the nonterminal value of the Symbol. The boolean reports if the value is in fact a nonterminal.
@@ -93,7 +70,7 @@ func (s Symbol) String() string {
 	if ok {
 		return fmt.Sprintf("nonterminal %d", nonterminal)
 	}
-	return fmt.Sprintf("terminal %d", Terminal(nonterminal))
+	return fmt.Sprintf("terminal %d", Token(nonterminal))
 }
 
 // Node is a single node of the abstract syntax tree.
@@ -106,7 +83,7 @@ type Node struct {
 // ParserScanner is the interface the scanner for the parser needs to implement.
 type ParserScanner interface {
     Err() error
-    Token() Terminal
+    Token() Token
     ByteOffset() int
     Line() int
     Column() int
@@ -122,7 +99,7 @@ var (
 
 // Error represents a single parse error.
 type Error struct {
-    Token Terminal
+    Token Token
     ByteOffset int
     Line int
     Column int

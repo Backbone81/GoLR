@@ -6,209 +6,6 @@ import (
 	"fmt"
 )
 
-// Terminal is the data type representing all terminal symbols.
-type Terminal int
-
-const (
-	Terminal_end                          Terminal = 0  // $end
-	TerminalError                         Terminal = 1  // error
-	TerminalWs                            Terminal = 2  // WS
-	TerminalComment                       Terminal = 3  // COMMENT
-	TerminalString                        Terminal = 4  // STRING
-	TerminalTstring                       Terminal = 5  // TSTRING
-	TerminalPercentToken                  Terminal = 6  // PERCENT_TOKEN
-	TerminalPercentNterm                  Terminal = 7  // PERCENT_NTERM
-	TerminalPercentType                   Terminal = 8  // PERCENT_TYPE
-	TerminalPercentDestructor             Terminal = 9  // PERCENT_DESTRUCTOR
-	TerminalPercentPrinter                Terminal = 10 // PERCENT_PRINTER
-	TerminalPercentLeft                   Terminal = 11 // PERCENT_LEFT
-	TerminalPercentRight                  Terminal = 12 // PERCENT_RIGHT
-	TerminalPercentNonassoc               Terminal = 13 // PERCENT_NONASSOC
-	TerminalPercentPrecedence             Terminal = 14 // PERCENT_PRECEDENCE
-	TerminalPercentPrec                   Terminal = 15 // PERCENT_PREC
-	TerminalPercentDprec                  Terminal = 16 // PERCENT_DPREC
-	TerminalPercentMerge                  Terminal = 17 // PERCENT_MERGE
-	TerminalPercentCode                   Terminal = 18 // PERCENT_CODE
-	TerminalPercentDefaultPrec            Terminal = 19 // PERCENT_DEFAULT_PREC
-	TerminalPercentDefine                 Terminal = 20 // PERCENT_DEFINE
-	TerminalPercentErrorVerbose           Terminal = 21 // PERCENT_ERROR_VERBOSE
-	TerminalPercentExpect                 Terminal = 22 // PERCENT_EXPECT
-	TerminalPercentExpectRr               Terminal = 23 // PERCENT_EXPECT_RR
-	TerminalPercentFilePrefix             Terminal = 24 // PERCENT_FILE_PREFIX
-	TerminalPercentFlag                   Terminal = 25 // PERCENT_FLAG
-	TerminalPercentGlrParser              Terminal = 26 // PERCENT_GLR_PARSER
-	TerminalPercentHeader                 Terminal = 27 // PERCENT_HEADER
-	TerminalPercentInitialAction          Terminal = 28 // PERCENT_INITIAL_ACTION
-	TerminalPercentLanguage               Terminal = 29 // PERCENT_LANGUAGE
-	TerminalPercentNamePrefix             Terminal = 30 // PERCENT_NAME_PREFIX
-	TerminalPercentNoDefaultPrec          Terminal = 31 // PERCENT_NO_DEFAULT_PREC
-	TerminalPercentNoLines                Terminal = 32 // PERCENT_NO_LINES
-	TerminalPercentNondeterministicParser Terminal = 33 // PERCENT_NONDETERMINISTIC_PARSER
-	TerminalPercentOutput                 Terminal = 34 // PERCENT_OUTPUT
-	TerminalPercentPureParser             Terminal = 35 // PERCENT_PURE_PARSER
-	TerminalPercentRequire                Terminal = 36 // PERCENT_REQUIRE
-	TerminalPercentSkeleton               Terminal = 37 // PERCENT_SKELETON
-	TerminalPercentStart                  Terminal = 38 // PERCENT_START
-	TerminalPercentTokenTable             Terminal = 39 // PERCENT_TOKEN_TABLE
-	TerminalPercentVerbose                Terminal = 40 // PERCENT_VERBOSE
-	TerminalPercentYacc                   Terminal = 41 // PERCENT_YACC
-	TerminalBracedCode                    Terminal = 42 // BRACED_CODE
-	TerminalBracedPredicate               Terminal = 43 // BRACED_PREDICATE
-	TerminalBracketedId                   Terminal = 44 // BRACKETED_ID
-	TerminalCharLiteral                   Terminal = 45 // CHAR_LITERAL
-	TerminalColon                         Terminal = 46 // COLON
-	TerminalEpilogue                      Terminal = 47 // EPILOGUE
-	TerminalEqual                         Terminal = 48 // EQUAL
-	TerminalId                            Terminal = 49 // ID
-	TerminalIdColon                       Terminal = 50 // ID_COLON
-	TerminalPercentPercent                Terminal = 51 // PERCENT_PERCENT
-	TerminalPipe                          Terminal = 52 // PIPE
-	TerminalPrologue                      Terminal = 53 // PROLOGUE
-	TerminalSemicolon                     Terminal = 54 // SEMICOLON
-	TerminalTag                           Terminal = 55 // TAG
-	TerminalTagAny                        Terminal = 56 // TAG_ANY
-	TerminalTagNone                       Terminal = 57 // TAG_NONE
-	TerminalIntLiteral                    Terminal = 58 // INT_LITERAL
-	TerminalPercentParam                  Terminal = 59 // PERCENT_PARAM
-	TerminalPercentUnion                  Terminal = 60 // PERCENT_UNION
-	TerminalPercentEmpty                  Terminal = 61 // PERCENT_EMPTY
-)
-
-// Terminal implements fmt.Stringer.
-var _ fmt.Stringer = (*Terminal)(nil)
-
-// String returns a string representation of the terminal.
-func (t Terminal) String() string {
-	switch t {
-	case Terminal_end:
-		return `$end`
-	case TerminalError:
-		return `error`
-	case TerminalWs:
-		return `WS`
-	case TerminalComment:
-		return `COMMENT`
-	case TerminalString:
-		return `STRING`
-	case TerminalTstring:
-		return `TSTRING`
-	case TerminalPercentToken:
-		return `PERCENT_TOKEN`
-	case TerminalPercentNterm:
-		return `PERCENT_NTERM`
-	case TerminalPercentType:
-		return `PERCENT_TYPE`
-	case TerminalPercentDestructor:
-		return `PERCENT_DESTRUCTOR`
-	case TerminalPercentPrinter:
-		return `PERCENT_PRINTER`
-	case TerminalPercentLeft:
-		return `PERCENT_LEFT`
-	case TerminalPercentRight:
-		return `PERCENT_RIGHT`
-	case TerminalPercentNonassoc:
-		return `PERCENT_NONASSOC`
-	case TerminalPercentPrecedence:
-		return `PERCENT_PRECEDENCE`
-	case TerminalPercentPrec:
-		return `PERCENT_PREC`
-	case TerminalPercentDprec:
-		return `PERCENT_DPREC`
-	case TerminalPercentMerge:
-		return `PERCENT_MERGE`
-	case TerminalPercentCode:
-		return `PERCENT_CODE`
-	case TerminalPercentDefaultPrec:
-		return `PERCENT_DEFAULT_PREC`
-	case TerminalPercentDefine:
-		return `PERCENT_DEFINE`
-	case TerminalPercentErrorVerbose:
-		return `PERCENT_ERROR_VERBOSE`
-	case TerminalPercentExpect:
-		return `PERCENT_EXPECT`
-	case TerminalPercentExpectRr:
-		return `PERCENT_EXPECT_RR`
-	case TerminalPercentFilePrefix:
-		return `PERCENT_FILE_PREFIX`
-	case TerminalPercentFlag:
-		return `PERCENT_FLAG`
-	case TerminalPercentGlrParser:
-		return `PERCENT_GLR_PARSER`
-	case TerminalPercentHeader:
-		return `PERCENT_HEADER`
-	case TerminalPercentInitialAction:
-		return `PERCENT_INITIAL_ACTION`
-	case TerminalPercentLanguage:
-		return `PERCENT_LANGUAGE`
-	case TerminalPercentNamePrefix:
-		return `PERCENT_NAME_PREFIX`
-	case TerminalPercentNoDefaultPrec:
-		return `PERCENT_NO_DEFAULT_PREC`
-	case TerminalPercentNoLines:
-		return `PERCENT_NO_LINES`
-	case TerminalPercentNondeterministicParser:
-		return `PERCENT_NONDETERMINISTIC_PARSER`
-	case TerminalPercentOutput:
-		return `PERCENT_OUTPUT`
-	case TerminalPercentPureParser:
-		return `PERCENT_PURE_PARSER`
-	case TerminalPercentRequire:
-		return `PERCENT_REQUIRE`
-	case TerminalPercentSkeleton:
-		return `PERCENT_SKELETON`
-	case TerminalPercentStart:
-		return `PERCENT_START`
-	case TerminalPercentTokenTable:
-		return `PERCENT_TOKEN_TABLE`
-	case TerminalPercentVerbose:
-		return `PERCENT_VERBOSE`
-	case TerminalPercentYacc:
-		return `PERCENT_YACC`
-	case TerminalBracedCode:
-		return `BRACED_CODE`
-	case TerminalBracedPredicate:
-		return `BRACED_PREDICATE`
-	case TerminalBracketedId:
-		return `BRACKETED_ID`
-	case TerminalCharLiteral:
-		return `CHAR_LITERAL`
-	case TerminalColon:
-		return `COLON`
-	case TerminalEpilogue:
-		return `EPILOGUE`
-	case TerminalEqual:
-		return `EQUAL`
-	case TerminalId:
-		return `ID`
-	case TerminalIdColon:
-		return `ID_COLON`
-	case TerminalPercentPercent:
-		return `PERCENT_PERCENT`
-	case TerminalPipe:
-		return `PIPE`
-	case TerminalPrologue:
-		return `PROLOGUE`
-	case TerminalSemicolon:
-		return `SEMICOLON`
-	case TerminalTag:
-		return `TAG`
-	case TerminalTagAny:
-		return `TAG_ANY`
-	case TerminalTagNone:
-		return `TAG_NONE`
-	case TerminalIntLiteral:
-		return `INT_LITERAL`
-	case TerminalPercentParam:
-		return `PERCENT_PARAM`
-	case TerminalPercentUnion:
-		return `PERCENT_UNION`
-	case TerminalPercentEmpty:
-		return `PERCENT_EMPTY`
-	default:
-		return "unknown"
-	}
-}
-
 // Nonterminal is the data type representing all nonterminal symbols.
 type Nonterminal int
 
@@ -356,7 +153,7 @@ const (
 )
 
 // NewTerminal creates a new Symbol for a terminal.
-func NewTerminal(terminal Terminal) Symbol {
+func NewTerminal(terminal Token) Symbol {
 	return Symbol(terminal)
 }
 
@@ -366,8 +163,8 @@ func NewNonterminal(nonterminal Nonterminal) Symbol {
 }
 
 // Terminal returns the terminal value of the Symbol. The boolean reports if the value is in fact a terminal.
-func (s Symbol) Terminal() (Terminal, bool) {
-	return Terminal(s & symbolMask), s&symbolNonterminalBit == 0
+func (s Symbol) Terminal() (Token, bool) {
+	return Token(s & symbolMask), s&symbolNonterminalBit == 0
 }
 
 // Nonterminal returns the nonterminal value of the Symbol. The boolean reports if the value is in fact a nonterminal.
@@ -384,7 +181,7 @@ func (s Symbol) String() string {
 	if ok {
 		return fmt.Sprintf("nonterminal %d", nonterminal)
 	}
-	return fmt.Sprintf("terminal %d", Terminal(nonterminal))
+	return fmt.Sprintf("terminal %d", Token(nonterminal))
 }
 
 // Node is a single node of the abstract syntax tree.
@@ -397,7 +194,7 @@ type Node struct {
 // ParserScanner is the interface the scanner for the parser needs to implement.
 type ParserScanner interface {
 	Err() error
-	Token() Terminal
+	Token() Token
 	ByteOffset() int
 	Line() int
 	Column() int
@@ -413,7 +210,7 @@ var (
 
 // Error represents a single parse error.
 type Error struct {
-	Token      Terminal
+	Token      Token
 	ByteOffset int
 	Line       int
 	Column     int
@@ -831,7 +628,7 @@ func (p *Parser) state0() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declarations -> %empty
 		nextState, err := p.gotoAfterNonterminal2(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -852,7 +649,7 @@ func (p *Parser) state1() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Shift action
 		p.stateStack = append(p.stateStack, 3)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -870,7 +667,7 @@ func (p *Parser) state2() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// error
-	case TerminalError:
+	case TokenError:
 		// Shift action
 		p.stateStack = append(p.stateStack, 4)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -880,7 +677,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_TOKEN
-	case TerminalPercentToken:
+	case TokenPercentToken:
 		// Shift action
 		p.stateStack = append(p.stateStack, 5)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -890,7 +687,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_NTERM
-	case TerminalPercentNterm:
+	case TokenPercentNterm:
 		// Shift action
 		p.stateStack = append(p.stateStack, 6)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -900,7 +697,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_TYPE
-	case TerminalPercentType:
+	case TokenPercentType:
 		// Shift action
 		p.stateStack = append(p.stateStack, 7)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -910,7 +707,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_DESTRUCTOR
-	case TerminalPercentDestructor:
+	case TokenPercentDestructor:
 		// Shift action
 		p.stateStack = append(p.stateStack, 8)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -920,7 +717,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_PRINTER
-	case TerminalPercentPrinter:
+	case TokenPercentPrinter:
 		// Shift action
 		p.stateStack = append(p.stateStack, 9)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -930,7 +727,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_LEFT
-	case TerminalPercentLeft:
+	case TokenPercentLeft:
 		// Shift action
 		p.stateStack = append(p.stateStack, 10)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -940,7 +737,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_RIGHT
-	case TerminalPercentRight:
+	case TokenPercentRight:
 		// Shift action
 		p.stateStack = append(p.stateStack, 11)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -950,7 +747,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_NONASSOC
-	case TerminalPercentNonassoc:
+	case TokenPercentNonassoc:
 		// Shift action
 		p.stateStack = append(p.stateStack, 12)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -960,7 +757,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_PRECEDENCE
-	case TerminalPercentPrecedence:
+	case TokenPercentPrecedence:
 		// Shift action
 		p.stateStack = append(p.stateStack, 13)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -970,7 +767,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_CODE
-	case TerminalPercentCode:
+	case TokenPercentCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 14)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -980,7 +777,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_DEFAULT_PREC
-	case TerminalPercentDefaultPrec:
+	case TokenPercentDefaultPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 15)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -990,7 +787,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_DEFINE
-	case TerminalPercentDefine:
+	case TokenPercentDefine:
 		// Shift action
 		p.stateStack = append(p.stateStack, 16)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1000,7 +797,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_ERROR_VERBOSE
-	case TerminalPercentErrorVerbose:
+	case TokenPercentErrorVerbose:
 		// Shift action
 		p.stateStack = append(p.stateStack, 17)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1010,7 +807,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_EXPECT
-	case TerminalPercentExpect:
+	case TokenPercentExpect:
 		// Shift action
 		p.stateStack = append(p.stateStack, 18)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1020,7 +817,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_EXPECT_RR
-	case TerminalPercentExpectRr:
+	case TokenPercentExpectRr:
 		// Shift action
 		p.stateStack = append(p.stateStack, 19)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1030,7 +827,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_FILE_PREFIX
-	case TerminalPercentFilePrefix:
+	case TokenPercentFilePrefix:
 		// Shift action
 		p.stateStack = append(p.stateStack, 20)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1040,7 +837,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_FLAG
-	case TerminalPercentFlag:
+	case TokenPercentFlag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 21)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1050,7 +847,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_GLR_PARSER
-	case TerminalPercentGlrParser:
+	case TokenPercentGlrParser:
 		// Shift action
 		p.stateStack = append(p.stateStack, 22)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1060,7 +857,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_HEADER
-	case TerminalPercentHeader:
+	case TokenPercentHeader:
 		// Shift action
 		p.stateStack = append(p.stateStack, 23)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1070,7 +867,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_INITIAL_ACTION
-	case TerminalPercentInitialAction:
+	case TokenPercentInitialAction:
 		// Shift action
 		p.stateStack = append(p.stateStack, 24)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1080,7 +877,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_LANGUAGE
-	case TerminalPercentLanguage:
+	case TokenPercentLanguage:
 		// Shift action
 		p.stateStack = append(p.stateStack, 25)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1090,7 +887,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_NAME_PREFIX
-	case TerminalPercentNamePrefix:
+	case TokenPercentNamePrefix:
 		// Shift action
 		p.stateStack = append(p.stateStack, 26)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1100,7 +897,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_NO_DEFAULT_PREC
-	case TerminalPercentNoDefaultPrec:
+	case TokenPercentNoDefaultPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 27)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1110,7 +907,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_NO_LINES
-	case TerminalPercentNoLines:
+	case TokenPercentNoLines:
 		// Shift action
 		p.stateStack = append(p.stateStack, 28)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1120,7 +917,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_NONDETERMINISTIC_PARSER
-	case TerminalPercentNondeterministicParser:
+	case TokenPercentNondeterministicParser:
 		// Shift action
 		p.stateStack = append(p.stateStack, 29)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1130,7 +927,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_OUTPUT
-	case TerminalPercentOutput:
+	case TokenPercentOutput:
 		// Shift action
 		p.stateStack = append(p.stateStack, 30)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1140,7 +937,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_PURE_PARSER
-	case TerminalPercentPureParser:
+	case TokenPercentPureParser:
 		// Shift action
 		p.stateStack = append(p.stateStack, 31)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1150,7 +947,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_REQUIRE
-	case TerminalPercentRequire:
+	case TokenPercentRequire:
 		// Shift action
 		p.stateStack = append(p.stateStack, 32)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1160,7 +957,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_SKELETON
-	case TerminalPercentSkeleton:
+	case TokenPercentSkeleton:
 		// Shift action
 		p.stateStack = append(p.stateStack, 33)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1170,7 +967,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_START
-	case TerminalPercentStart:
+	case TokenPercentStart:
 		// Shift action
 		p.stateStack = append(p.stateStack, 34)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1180,7 +977,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_TOKEN_TABLE
-	case TerminalPercentTokenTable:
+	case TokenPercentTokenTable:
 		// Shift action
 		p.stateStack = append(p.stateStack, 35)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1190,7 +987,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_VERBOSE
-	case TerminalPercentVerbose:
+	case TokenPercentVerbose:
 		// Shift action
 		p.stateStack = append(p.stateStack, 36)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1200,7 +997,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_YACC
-	case TerminalPercentYacc:
+	case TokenPercentYacc:
 		// Shift action
 		p.stateStack = append(p.stateStack, 37)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1210,7 +1007,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_PERCENT
-	case TerminalPercentPercent:
+	case TokenPercentPercent:
 		// Shift action
 		p.stateStack = append(p.stateStack, 38)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1220,7 +1017,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PROLOGUE
-	case TerminalPrologue:
+	case TokenPrologue:
 		// Shift action
 		p.stateStack = append(p.stateStack, 39)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1230,7 +1027,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// SEMICOLON
-	case TerminalSemicolon:
+	case TokenSemicolon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 40)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1240,7 +1037,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_PARAM
-	case TerminalPercentParam:
+	case TokenPercentParam:
 		// Shift action
 		p.stateStack = append(p.stateStack, 41)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1250,7 +1047,7 @@ func (p *Parser) state2() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_UNION
-	case TerminalPercentUnion:
+	case TokenPercentUnion:
 		// Shift action
 		p.stateStack = append(p.stateStack, 42)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1268,7 +1065,7 @@ func (p *Parser) state3() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: $accept -> input $end
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal0(p.stateStack[len(p.stateStack)-1])
@@ -1294,7 +1091,7 @@ func (p *Parser) state4() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// SEMICOLON
-	case TerminalSemicolon:
+	case TokenSemicolon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 48)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1312,7 +1109,7 @@ func (p *Parser) state5() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1322,7 +1119,7 @@ func (p *Parser) state5() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1332,7 +1129,7 @@ func (p *Parser) state5() error {
 		p.scanner.Next()
 		return nil
 	// TAG
-	case TerminalTag:
+	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 51)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1350,7 +1147,7 @@ func (p *Parser) state6() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1360,7 +1157,7 @@ func (p *Parser) state6() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1370,7 +1167,7 @@ func (p *Parser) state6() error {
 		p.scanner.Next()
 		return nil
 	// TAG
-	case TerminalTag:
+	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 51)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1388,7 +1185,7 @@ func (p *Parser) state7() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1398,7 +1195,7 @@ func (p *Parser) state7() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1408,7 +1205,7 @@ func (p *Parser) state7() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1418,7 +1215,7 @@ func (p *Parser) state7() error {
 		p.scanner.Next()
 		return nil
 	// TAG
-	case TerminalTag:
+	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 59)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1436,7 +1233,7 @@ func (p *Parser) state8() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: code_props_type -> PERCENT_DESTRUCTOR
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal6(p.stateStack[len(p.stateStack)-1])
@@ -1461,7 +1258,7 @@ func (p *Parser) state9() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: code_props_type -> PERCENT_PRINTER
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal6(p.stateStack[len(p.stateStack)-1])
@@ -1486,7 +1283,7 @@ func (p *Parser) state10() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: precedence_declarator -> PERCENT_LEFT
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal9(p.stateStack[len(p.stateStack)-1])
@@ -1511,7 +1308,7 @@ func (p *Parser) state11() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: precedence_declarator -> PERCENT_RIGHT
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal9(p.stateStack[len(p.stateStack)-1])
@@ -1536,7 +1333,7 @@ func (p *Parser) state12() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: precedence_declarator -> PERCENT_NONASSOC
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal9(p.stateStack[len(p.stateStack)-1])
@@ -1561,7 +1358,7 @@ func (p *Parser) state13() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: precedence_declarator -> PERCENT_PRECEDENCE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal9(p.stateStack[len(p.stateStack)-1])
@@ -1586,7 +1383,7 @@ func (p *Parser) state14() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// BRACED_CODE
-	case TerminalBracedCode:
+	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 65)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1596,7 +1393,7 @@ func (p *Parser) state14() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 66)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1614,7 +1411,7 @@ func (p *Parser) state15() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: grammar_declaration -> PERCENT_DEFAULT_PREC
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
@@ -1639,7 +1436,7 @@ func (p *Parser) state16() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 67)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1657,7 +1454,7 @@ func (p *Parser) state17() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_ERROR_VERBOSE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -1682,7 +1479,7 @@ func (p *Parser) state18() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// INT_LITERAL
-	case TerminalIntLiteral:
+	case TokenIntLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 69)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1700,7 +1497,7 @@ func (p *Parser) state19() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// INT_LITERAL
-	case TerminalIntLiteral:
+	case TokenIntLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 70)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1718,7 +1515,7 @@ func (p *Parser) state20() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 71)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1736,7 +1533,7 @@ func (p *Parser) state21() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_FLAG
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -1761,7 +1558,7 @@ func (p *Parser) state22() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_GLR_PARSER
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -1786,7 +1583,7 @@ func (p *Parser) state23() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: string.opt -> %empty
 		nextState, err := p.gotoAfterNonterminal10(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -1799,7 +1596,7 @@ func (p *Parser) state23() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 72)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1817,7 +1614,7 @@ func (p *Parser) state24() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// BRACED_CODE
-	case TerminalBracedCode:
+	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 74)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1835,7 +1632,7 @@ func (p *Parser) state25() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 75)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1853,7 +1650,7 @@ func (p *Parser) state26() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 76)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1871,7 +1668,7 @@ func (p *Parser) state27() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: grammar_declaration -> PERCENT_NO_DEFAULT_PREC
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
@@ -1896,7 +1693,7 @@ func (p *Parser) state28() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_NO_LINES
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -1921,7 +1718,7 @@ func (p *Parser) state29() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_NONDETERMINISTIC_PARSER
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -1946,7 +1743,7 @@ func (p *Parser) state30() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 77)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1964,7 +1761,7 @@ func (p *Parser) state31() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_PURE_PARSER
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -1989,7 +1786,7 @@ func (p *Parser) state32() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 78)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2007,7 +1804,7 @@ func (p *Parser) state33() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 79)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2025,7 +1822,7 @@ func (p *Parser) state34() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2035,7 +1832,7 @@ func (p *Parser) state34() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2045,7 +1842,7 @@ func (p *Parser) state34() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2063,7 +1860,7 @@ func (p *Parser) state35() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_TOKEN_TABLE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -2088,7 +1885,7 @@ func (p *Parser) state36() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_VERBOSE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -2113,7 +1910,7 @@ func (p *Parser) state37() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_YACC
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -2138,7 +1935,7 @@ func (p *Parser) state38() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// error
-	case TerminalError:
+	case TokenError:
 		// Shift action
 		p.stateStack = append(p.stateStack, 81)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2148,7 +1945,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_TOKEN
-	case TerminalPercentToken:
+	case TokenPercentToken:
 		// Shift action
 		p.stateStack = append(p.stateStack, 5)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2158,7 +1955,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_NTERM
-	case TerminalPercentNterm:
+	case TokenPercentNterm:
 		// Shift action
 		p.stateStack = append(p.stateStack, 6)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2168,7 +1965,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_TYPE
-	case TerminalPercentType:
+	case TokenPercentType:
 		// Shift action
 		p.stateStack = append(p.stateStack, 7)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2178,7 +1975,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_DESTRUCTOR
-	case TerminalPercentDestructor:
+	case TokenPercentDestructor:
 		// Shift action
 		p.stateStack = append(p.stateStack, 8)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2188,7 +1985,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_PRINTER
-	case TerminalPercentPrinter:
+	case TokenPercentPrinter:
 		// Shift action
 		p.stateStack = append(p.stateStack, 9)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2198,7 +1995,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_LEFT
-	case TerminalPercentLeft:
+	case TokenPercentLeft:
 		// Shift action
 		p.stateStack = append(p.stateStack, 10)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2208,7 +2005,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_RIGHT
-	case TerminalPercentRight:
+	case TokenPercentRight:
 		// Shift action
 		p.stateStack = append(p.stateStack, 11)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2218,7 +2015,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_NONASSOC
-	case TerminalPercentNonassoc:
+	case TokenPercentNonassoc:
 		// Shift action
 		p.stateStack = append(p.stateStack, 12)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2228,7 +2025,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_PRECEDENCE
-	case TerminalPercentPrecedence:
+	case TokenPercentPrecedence:
 		// Shift action
 		p.stateStack = append(p.stateStack, 13)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2238,7 +2035,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_CODE
-	case TerminalPercentCode:
+	case TokenPercentCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 14)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2248,7 +2045,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_DEFAULT_PREC
-	case TerminalPercentDefaultPrec:
+	case TokenPercentDefaultPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 15)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2258,7 +2055,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_NO_DEFAULT_PREC
-	case TerminalPercentNoDefaultPrec:
+	case TokenPercentNoDefaultPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 27)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2268,7 +2065,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_START
-	case TerminalPercentStart:
+	case TokenPercentStart:
 		// Shift action
 		p.stateStack = append(p.stateStack, 34)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2278,7 +2075,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// ID_COLON
-	case TerminalIdColon:
+	case TokenIdColon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 82)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2288,7 +2085,7 @@ func (p *Parser) state38() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_UNION
-	case TerminalPercentUnion:
+	case TokenPercentUnion:
 		// Shift action
 		p.stateStack = append(p.stateStack, 42)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2306,7 +2103,7 @@ func (p *Parser) state39() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PROLOGUE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -2331,7 +2128,7 @@ func (p *Parser) state40() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> SEMICOLON
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -2356,7 +2153,7 @@ func (p *Parser) state41() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// BRACED_CODE
-	case TerminalBracedCode:
+	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 88)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2374,7 +2171,7 @@ func (p *Parser) state42() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: union_name -> %empty
 		nextState, err := p.gotoAfterNonterminal7(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -2387,7 +2184,7 @@ func (p *Parser) state42() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 90)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2405,7 +2202,7 @@ func (p *Parser) state43() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declarations -> prologue_declarations prologue_declaration
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal2(p.stateStack[len(p.stateStack)-1])
@@ -2430,7 +2227,7 @@ func (p *Parser) state44() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> grammar_declaration
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -2455,7 +2252,7 @@ func (p *Parser) state45() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// BRACED_CODE
-	case TerminalBracedCode:
+	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 92)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2473,7 +2270,7 @@ func (p *Parser) state46() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: grammar_declaration -> symbol_declaration
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
@@ -2498,7 +2295,7 @@ func (p *Parser) state47() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2508,7 +2305,7 @@ func (p *Parser) state47() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2518,7 +2315,7 @@ func (p *Parser) state47() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2528,7 +2325,7 @@ func (p *Parser) state47() error {
 		p.scanner.Next()
 		return nil
 	// TAG
-	case TerminalTag:
+	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 93)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2546,7 +2343,7 @@ func (p *Parser) state48() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> error SEMICOLON
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -2571,7 +2368,7 @@ func (p *Parser) state49() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: id -> CHAR_LITERAL
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal34(p.stateStack[len(p.stateStack)-1])
@@ -2596,7 +2393,7 @@ func (p *Parser) state50() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: id -> ID
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal34(p.stateStack[len(p.stateStack)-1])
@@ -2621,7 +2418,7 @@ func (p *Parser) state51() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2631,7 +2428,7 @@ func (p *Parser) state51() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2649,7 +2446,7 @@ func (p *Parser) state52() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: symbol_declaration -> PERCENT_TOKEN token_decls
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal8(p.stateStack[len(p.stateStack)-1])
@@ -2666,7 +2463,7 @@ func (p *Parser) state52() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// TAG
-	case TerminalTag:
+	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 100)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2684,7 +2481,7 @@ func (p *Parser) state53() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: token_decls -> token_decl.1
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal16(p.stateStack[len(p.stateStack)-1])
@@ -2701,7 +2498,7 @@ func (p *Parser) state53() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2711,7 +2508,7 @@ func (p *Parser) state53() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2729,7 +2526,7 @@ func (p *Parser) state54() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: token_decl.1 -> token_decl
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal17(p.stateStack[len(p.stateStack)-1])
@@ -2754,7 +2551,7 @@ func (p *Parser) state55() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: int.opt -> %empty
 		nextState, err := p.gotoAfterNonterminal19(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -2767,7 +2564,7 @@ func (p *Parser) state55() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// INT_LITERAL
-	case TerminalIntLiteral:
+	case TokenIntLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 102)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2785,7 +2582,7 @@ func (p *Parser) state56() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: symbol_declaration -> PERCENT_NTERM nterm_decls
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal8(p.stateStack[len(p.stateStack)-1])
@@ -2810,7 +2607,7 @@ func (p *Parser) state57() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: nterm_decls -> token_decls
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal15(p.stateStack[len(p.stateStack)-1])
@@ -2827,7 +2624,7 @@ func (p *Parser) state57() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// TAG
-	case TerminalTag:
+	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 100)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2845,7 +2642,7 @@ func (p *Parser) state58() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: string_as_id -> STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal37(p.stateStack[len(p.stateStack)-1])
@@ -2870,7 +2667,7 @@ func (p *Parser) state59() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2880,7 +2677,7 @@ func (p *Parser) state59() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2890,7 +2687,7 @@ func (p *Parser) state59() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2908,7 +2705,7 @@ func (p *Parser) state60() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: symbol_declaration -> PERCENT_TYPE symbol_decls
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal8(p.stateStack[len(p.stateStack)-1])
@@ -2925,7 +2722,7 @@ func (p *Parser) state60() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// TAG
-	case TerminalTag:
+	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 105)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2943,7 +2740,7 @@ func (p *Parser) state61() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: symbol_decls -> symbols.1
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal24(p.stateStack[len(p.stateStack)-1])
@@ -2960,7 +2757,7 @@ func (p *Parser) state61() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2970,7 +2767,7 @@ func (p *Parser) state61() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2980,7 +2777,7 @@ func (p *Parser) state61() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -2998,7 +2795,7 @@ func (p *Parser) state62() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: symbol -> id
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal36(p.stateStack[len(p.stateStack)-1])
@@ -3023,7 +2820,7 @@ func (p *Parser) state63() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: symbols.1 -> symbol
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal25(p.stateStack[len(p.stateStack)-1])
@@ -3048,7 +2845,7 @@ func (p *Parser) state64() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: symbol -> string_as_id
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal36(p.stateStack[len(p.stateStack)-1])
@@ -3073,7 +2870,7 @@ func (p *Parser) state65() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: grammar_declaration -> PERCENT_CODE BRACED_CODE
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
@@ -3098,7 +2895,7 @@ func (p *Parser) state66() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// BRACED_CODE
-	case TerminalBracedCode:
+	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 107)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3116,7 +2913,7 @@ func (p *Parser) state67() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: variable -> ID
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal32(p.stateStack[len(p.stateStack)-1])
@@ -3141,7 +2938,7 @@ func (p *Parser) state68() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: value -> %empty
 		nextState, err := p.gotoAfterNonterminal33(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -3154,7 +2951,7 @@ func (p *Parser) state68() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 108)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3164,7 +2961,7 @@ func (p *Parser) state68() error {
 		p.scanner.Next()
 		return nil
 	// BRACED_CODE
-	case TerminalBracedCode:
+	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 109)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3174,7 +2971,7 @@ func (p *Parser) state68() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 110)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3192,7 +2989,7 @@ func (p *Parser) state69() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_EXPECT INT_LITERAL
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -3217,7 +3014,7 @@ func (p *Parser) state70() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_EXPECT_RR INT_LITERAL
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -3242,7 +3039,7 @@ func (p *Parser) state71() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_FILE_PREFIX STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -3267,7 +3064,7 @@ func (p *Parser) state72() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: string.opt -> STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal10(p.stateStack[len(p.stateStack)-1])
@@ -3292,7 +3089,7 @@ func (p *Parser) state73() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_HEADER string.opt
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -3317,7 +3114,7 @@ func (p *Parser) state74() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_INITIAL_ACTION BRACED_CODE
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -3342,7 +3139,7 @@ func (p *Parser) state75() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_LANGUAGE STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -3367,7 +3164,7 @@ func (p *Parser) state76() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_NAME_PREFIX STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -3392,7 +3189,7 @@ func (p *Parser) state77() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_OUTPUT STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -3417,7 +3214,7 @@ func (p *Parser) state78() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_REQUIRE STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -3442,7 +3239,7 @@ func (p *Parser) state79() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_SKELETON STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -3467,7 +3264,7 @@ func (p *Parser) state80() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: grammar_declaration -> PERCENT_START symbols.1
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
@@ -3484,7 +3281,7 @@ func (p *Parser) state80() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3494,7 +3291,7 @@ func (p *Parser) state80() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3504,7 +3301,7 @@ func (p *Parser) state80() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3522,7 +3319,7 @@ func (p *Parser) state81() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// SEMICOLON
-	case TerminalSemicolon:
+	case TokenSemicolon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 112)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3540,7 +3337,7 @@ func (p *Parser) state82() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: id_colon -> ID_COLON
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal35(p.stateStack[len(p.stateStack)-1])
@@ -3565,7 +3362,7 @@ func (p *Parser) state83() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// SEMICOLON
-	case TerminalSemicolon:
+	case TokenSemicolon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 113)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3583,7 +3380,7 @@ func (p *Parser) state84() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: epilogue.opt -> %empty
 		nextState, err := p.gotoAfterNonterminal38(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -3596,7 +3393,7 @@ func (p *Parser) state84() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// error
-	case TerminalError:
+	case TokenError:
 		// Shift action
 		p.stateStack = append(p.stateStack, 81)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3606,7 +3403,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_TOKEN
-	case TerminalPercentToken:
+	case TokenPercentToken:
 		// Shift action
 		p.stateStack = append(p.stateStack, 5)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3616,7 +3413,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_NTERM
-	case TerminalPercentNterm:
+	case TokenPercentNterm:
 		// Shift action
 		p.stateStack = append(p.stateStack, 6)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3626,7 +3423,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_TYPE
-	case TerminalPercentType:
+	case TokenPercentType:
 		// Shift action
 		p.stateStack = append(p.stateStack, 7)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3636,7 +3433,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_DESTRUCTOR
-	case TerminalPercentDestructor:
+	case TokenPercentDestructor:
 		// Shift action
 		p.stateStack = append(p.stateStack, 8)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3646,7 +3443,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_PRINTER
-	case TerminalPercentPrinter:
+	case TokenPercentPrinter:
 		// Shift action
 		p.stateStack = append(p.stateStack, 9)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3656,7 +3453,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_LEFT
-	case TerminalPercentLeft:
+	case TokenPercentLeft:
 		// Shift action
 		p.stateStack = append(p.stateStack, 10)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3666,7 +3463,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_RIGHT
-	case TerminalPercentRight:
+	case TokenPercentRight:
 		// Shift action
 		p.stateStack = append(p.stateStack, 11)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3676,7 +3473,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_NONASSOC
-	case TerminalPercentNonassoc:
+	case TokenPercentNonassoc:
 		// Shift action
 		p.stateStack = append(p.stateStack, 12)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3686,7 +3483,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_PRECEDENCE
-	case TerminalPercentPrecedence:
+	case TokenPercentPrecedence:
 		// Shift action
 		p.stateStack = append(p.stateStack, 13)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3696,7 +3493,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_CODE
-	case TerminalPercentCode:
+	case TokenPercentCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 14)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3706,7 +3503,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_DEFAULT_PREC
-	case TerminalPercentDefaultPrec:
+	case TokenPercentDefaultPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 15)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3716,7 +3513,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_NO_DEFAULT_PREC
-	case TerminalPercentNoDefaultPrec:
+	case TokenPercentNoDefaultPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 27)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3726,7 +3523,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_START
-	case TerminalPercentStart:
+	case TokenPercentStart:
 		// Shift action
 		p.stateStack = append(p.stateStack, 34)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3736,7 +3533,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// ID_COLON
-	case TerminalIdColon:
+	case TokenIdColon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 82)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3746,7 +3543,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_PERCENT
-	case TerminalPercentPercent:
+	case TokenPercentPercent:
 		// Shift action
 		p.stateStack = append(p.stateStack, 114)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3756,7 +3553,7 @@ func (p *Parser) state84() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_UNION
-	case TerminalPercentUnion:
+	case TokenPercentUnion:
 		// Shift action
 		p.stateStack = append(p.stateStack, 42)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3774,7 +3571,7 @@ func (p *Parser) state85() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: grammar -> rules_or_grammar_declaration
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal26(p.stateStack[len(p.stateStack)-1])
@@ -3799,7 +3596,7 @@ func (p *Parser) state86() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rules_or_grammar_declaration -> rules
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal27(p.stateStack[len(p.stateStack)-1])
@@ -3824,7 +3621,7 @@ func (p *Parser) state87() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: named_ref.opt -> %empty
 		nextState, err := p.gotoAfterNonterminal31(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -3837,7 +3634,7 @@ func (p *Parser) state87() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// BRACKETED_ID
-	case TerminalBracketedId:
+	case TokenBracketedId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 117)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3855,7 +3652,7 @@ func (p *Parser) state88() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: params -> BRACED_CODE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal4(p.stateStack[len(p.stateStack)-1])
@@ -3880,7 +3677,7 @@ func (p *Parser) state89() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_PARAM params
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -3897,7 +3694,7 @@ func (p *Parser) state89() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// BRACED_CODE
-	case TerminalBracedCode:
+	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 119)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3915,7 +3712,7 @@ func (p *Parser) state90() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: union_name -> ID
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal7(p.stateStack[len(p.stateStack)-1])
@@ -3940,7 +3737,7 @@ func (p *Parser) state91() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// BRACED_CODE
-	case TerminalBracedCode:
+	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 120)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3958,7 +3755,7 @@ func (p *Parser) state92() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3968,7 +3765,7 @@ func (p *Parser) state92() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3978,7 +3775,7 @@ func (p *Parser) state92() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3988,7 +3785,7 @@ func (p *Parser) state92() error {
 		p.scanner.Next()
 		return nil
 	// TAG
-	case TerminalTag:
+	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 121)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -3998,7 +3795,7 @@ func (p *Parser) state92() error {
 		p.scanner.Next()
 		return nil
 	// TAG_ANY
-	case TerminalTagAny:
+	case TokenTagAny:
 		// Shift action
 		p.stateStack = append(p.stateStack, 122)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4008,7 +3805,7 @@ func (p *Parser) state92() error {
 		p.scanner.Next()
 		return nil
 	// TAG_NONE
-	case TerminalTagNone:
+	case TokenTagNone:
 		// Shift action
 		p.stateStack = append(p.stateStack, 123)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4026,7 +3823,7 @@ func (p *Parser) state93() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4036,7 +3833,7 @@ func (p *Parser) state93() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4046,7 +3843,7 @@ func (p *Parser) state93() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4064,7 +3861,7 @@ func (p *Parser) state94() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: symbol_declaration -> precedence_declarator token_decls_for_prec
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal8(p.stateStack[len(p.stateStack)-1])
@@ -4081,7 +3878,7 @@ func (p *Parser) state94() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// TAG
-	case TerminalTag:
+	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 129)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4099,7 +3896,7 @@ func (p *Parser) state95() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: token_decls_for_prec -> token_decl_for_prec.1
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal21(p.stateStack[len(p.stateStack)-1])
@@ -4116,7 +3913,7 @@ func (p *Parser) state95() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4126,7 +3923,7 @@ func (p *Parser) state95() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4136,7 +3933,7 @@ func (p *Parser) state95() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4154,7 +3951,7 @@ func (p *Parser) state96() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: token_decl_for_prec.1 -> token_decl_for_prec
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal22(p.stateStack[len(p.stateStack)-1])
@@ -4179,7 +3976,7 @@ func (p *Parser) state97() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: int.opt -> %empty
 		nextState, err := p.gotoAfterNonterminal19(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -4192,7 +3989,7 @@ func (p *Parser) state97() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// INT_LITERAL
-	case TerminalIntLiteral:
+	case TokenIntLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 102)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4210,7 +4007,7 @@ func (p *Parser) state98() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: token_decl_for_prec -> string_as_id
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal23(p.stateStack[len(p.stateStack)-1])
@@ -4235,7 +4032,7 @@ func (p *Parser) state99() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: token_decls -> TAG token_decl.1
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal16(p.stateStack[len(p.stateStack)-1])
@@ -4252,7 +4049,7 @@ func (p *Parser) state99() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4262,7 +4059,7 @@ func (p *Parser) state99() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4280,7 +4077,7 @@ func (p *Parser) state100() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4290,7 +4087,7 @@ func (p *Parser) state100() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4308,7 +4105,7 @@ func (p *Parser) state101() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: token_decl.1 -> token_decl.1 token_decl
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal17(p.stateStack[len(p.stateStack)-1])
@@ -4333,7 +4130,7 @@ func (p *Parser) state102() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: int.opt -> INT_LITERAL
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal19(p.stateStack[len(p.stateStack)-1])
@@ -4358,7 +4155,7 @@ func (p *Parser) state103() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: alias -> %empty
 		nextState, err := p.gotoAfterNonterminal20(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -4371,7 +4168,7 @@ func (p *Parser) state103() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4381,7 +4178,7 @@ func (p *Parser) state103() error {
 		p.scanner.Next()
 		return nil
 	// TSTRING
-	case TerminalTstring:
+	case TokenTstring:
 		// Shift action
 		p.stateStack = append(p.stateStack, 133)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4399,7 +4196,7 @@ func (p *Parser) state104() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: symbol_decls -> TAG symbols.1
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal24(p.stateStack[len(p.stateStack)-1])
@@ -4416,7 +4213,7 @@ func (p *Parser) state104() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4426,7 +4223,7 @@ func (p *Parser) state104() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4436,7 +4233,7 @@ func (p *Parser) state104() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4454,7 +4251,7 @@ func (p *Parser) state105() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4464,7 +4261,7 @@ func (p *Parser) state105() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4474,7 +4271,7 @@ func (p *Parser) state105() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4492,7 +4289,7 @@ func (p *Parser) state106() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: symbols.1 -> symbols.1 symbol
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal25(p.stateStack[len(p.stateStack)-1])
@@ -4517,7 +4314,7 @@ func (p *Parser) state107() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: grammar_declaration -> PERCENT_CODE ID BRACED_CODE
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
@@ -4542,7 +4339,7 @@ func (p *Parser) state108() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: value -> STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal33(p.stateStack[len(p.stateStack)-1])
@@ -4567,7 +4364,7 @@ func (p *Parser) state109() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: value -> BRACED_CODE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal33(p.stateStack[len(p.stateStack)-1])
@@ -4592,7 +4389,7 @@ func (p *Parser) state110() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: value -> ID
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal33(p.stateStack[len(p.stateStack)-1])
@@ -4617,7 +4414,7 @@ func (p *Parser) state111() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: prologue_declaration -> PERCENT_DEFINE variable value
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
@@ -4642,7 +4439,7 @@ func (p *Parser) state112() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rules_or_grammar_declaration -> error SEMICOLON
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal27(p.stateStack[len(p.stateStack)-1])
@@ -4667,7 +4464,7 @@ func (p *Parser) state113() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rules_or_grammar_declaration -> grammar_declaration SEMICOLON
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal27(p.stateStack[len(p.stateStack)-1])
@@ -4692,7 +4489,7 @@ func (p *Parser) state114() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// EPILOGUE
-	case TerminalEpilogue:
+	case TokenEpilogue:
 		// Shift action
 		p.stateStack = append(p.stateStack, 137)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4710,7 +4507,7 @@ func (p *Parser) state115() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: grammar -> grammar rules_or_grammar_declaration
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal26(p.stateStack[len(p.stateStack)-1])
@@ -4735,7 +4532,7 @@ func (p *Parser) state116() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: input -> prologue_declarations PERCENT_PERCENT grammar epilogue.opt
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminal1(p.stateStack[len(p.stateStack)-1])
@@ -4760,7 +4557,7 @@ func (p *Parser) state117() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: named_ref.opt -> BRACKETED_ID
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal31(p.stateStack[len(p.stateStack)-1])
@@ -4785,7 +4582,7 @@ func (p *Parser) state118() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// COLON
-	case TerminalColon:
+	case TokenColon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 138)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4803,7 +4600,7 @@ func (p *Parser) state119() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: params -> params BRACED_CODE
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal4(p.stateStack[len(p.stateStack)-1])
@@ -4828,7 +4625,7 @@ func (p *Parser) state120() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: grammar_declaration -> PERCENT_UNION union_name BRACED_CODE
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
@@ -4853,7 +4650,7 @@ func (p *Parser) state121() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: tag -> TAG
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal14(p.stateStack[len(p.stateStack)-1])
@@ -4878,7 +4675,7 @@ func (p *Parser) state122() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: tag -> TAG_ANY
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal14(p.stateStack[len(p.stateStack)-1])
@@ -4903,7 +4700,7 @@ func (p *Parser) state123() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: tag -> TAG_NONE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal14(p.stateStack[len(p.stateStack)-1])
@@ -4928,7 +4725,7 @@ func (p *Parser) state124() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: grammar_declaration -> code_props_type BRACED_CODE generic_symlist
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
@@ -4945,7 +4742,7 @@ func (p *Parser) state124() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4955,7 +4752,7 @@ func (p *Parser) state124() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4965,7 +4762,7 @@ func (p *Parser) state124() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4975,7 +4772,7 @@ func (p *Parser) state124() error {
 		p.scanner.Next()
 		return nil
 	// TAG
-	case TerminalTag:
+	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 121)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4985,7 +4782,7 @@ func (p *Parser) state124() error {
 		p.scanner.Next()
 		return nil
 	// TAG_ANY
-	case TerminalTagAny:
+	case TokenTagAny:
 		// Shift action
 		p.stateStack = append(p.stateStack, 122)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -4995,7 +4792,7 @@ func (p *Parser) state124() error {
 		p.scanner.Next()
 		return nil
 	// TAG_NONE
-	case TerminalTagNone:
+	case TokenTagNone:
 		// Shift action
 		p.stateStack = append(p.stateStack, 123)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5013,7 +4810,7 @@ func (p *Parser) state125() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: generic_symlist -> generic_symlist_item
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal12(p.stateStack[len(p.stateStack)-1])
@@ -5038,7 +4835,7 @@ func (p *Parser) state126() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: generic_symlist_item -> tag
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal13(p.stateStack[len(p.stateStack)-1])
@@ -5063,7 +4860,7 @@ func (p *Parser) state127() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: generic_symlist_item -> symbol
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal13(p.stateStack[len(p.stateStack)-1])
@@ -5088,7 +4885,7 @@ func (p *Parser) state128() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: token_decls_for_prec -> TAG token_decl_for_prec.1
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal21(p.stateStack[len(p.stateStack)-1])
@@ -5105,7 +4902,7 @@ func (p *Parser) state128() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5115,7 +4912,7 @@ func (p *Parser) state128() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5125,7 +4922,7 @@ func (p *Parser) state128() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5143,7 +4940,7 @@ func (p *Parser) state129() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5153,7 +4950,7 @@ func (p *Parser) state129() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5163,7 +4960,7 @@ func (p *Parser) state129() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5181,7 +4978,7 @@ func (p *Parser) state130() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: token_decl_for_prec.1 -> token_decl_for_prec.1 token_decl_for_prec
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal22(p.stateStack[len(p.stateStack)-1])
@@ -5206,7 +5003,7 @@ func (p *Parser) state131() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: token_decl_for_prec -> id int.opt
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal23(p.stateStack[len(p.stateStack)-1])
@@ -5231,7 +5028,7 @@ func (p *Parser) state132() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: token_decls -> token_decls TAG token_decl.1
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal16(p.stateStack[len(p.stateStack)-1])
@@ -5248,7 +5045,7 @@ func (p *Parser) state132() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5258,7 +5055,7 @@ func (p *Parser) state132() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5276,7 +5073,7 @@ func (p *Parser) state133() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: alias -> TSTRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal20(p.stateStack[len(p.stateStack)-1])
@@ -5301,7 +5098,7 @@ func (p *Parser) state134() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: token_decl -> id int.opt alias
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal18(p.stateStack[len(p.stateStack)-1])
@@ -5326,7 +5123,7 @@ func (p *Parser) state135() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: alias -> string_as_id
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal20(p.stateStack[len(p.stateStack)-1])
@@ -5351,7 +5148,7 @@ func (p *Parser) state136() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: symbol_decls -> symbol_decls TAG symbols.1
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal24(p.stateStack[len(p.stateStack)-1])
@@ -5368,7 +5165,7 @@ func (p *Parser) state136() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5378,7 +5175,7 @@ func (p *Parser) state136() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5388,7 +5185,7 @@ func (p *Parser) state136() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5406,7 +5203,7 @@ func (p *Parser) state137() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: epilogue.opt -> PERCENT_PERCENT EPILOGUE
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal38(p.stateStack[len(p.stateStack)-1])
@@ -5431,7 +5228,7 @@ func (p *Parser) state138() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rhs -> %empty
 		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -5452,7 +5249,7 @@ func (p *Parser) state139() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: generic_symlist -> generic_symlist generic_symlist_item
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal12(p.stateStack[len(p.stateStack)-1])
@@ -5477,7 +5274,7 @@ func (p *Parser) state140() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: token_decls_for_prec -> token_decls_for_prec TAG token_decl_for_prec.1
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal21(p.stateStack[len(p.stateStack)-1])
@@ -5494,7 +5291,7 @@ func (p *Parser) state140() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5504,7 +5301,7 @@ func (p *Parser) state140() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5514,7 +5311,7 @@ func (p *Parser) state140() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5532,7 +5329,7 @@ func (p *Parser) state141() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rules -> id_colon named_ref.opt COLON rhses.1
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminal28(p.stateStack[len(p.stateStack)-1])
@@ -5549,7 +5346,7 @@ func (p *Parser) state141() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// PIPE
-	case TerminalPipe:
+	case TokenPipe:
 		// Shift action
 		p.stateStack = append(p.stateStack, 143)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5559,7 +5356,7 @@ func (p *Parser) state141() error {
 		p.scanner.Next()
 		return nil
 	// SEMICOLON
-	case TerminalSemicolon:
+	case TokenSemicolon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 144)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5577,7 +5374,7 @@ func (p *Parser) state142() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// BRACED_CODE
-	case TerminalBracedCode:
+	case TokenBracedCode:
 		// Reduce: tag.opt -> %empty
 		nextState, err := p.gotoAfterNonterminal11(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -5590,7 +5387,7 @@ func (p *Parser) state142() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rhses.1 -> rhs
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal29(p.stateStack[len(p.stateStack)-1])
@@ -5607,7 +5404,7 @@ func (p *Parser) state142() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5617,7 +5414,7 @@ func (p *Parser) state142() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_PREC
-	case TerminalPercentPrec:
+	case TokenPercentPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 145)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5627,7 +5424,7 @@ func (p *Parser) state142() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_DPREC
-	case TerminalPercentDprec:
+	case TokenPercentDprec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 146)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5637,7 +5434,7 @@ func (p *Parser) state142() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_MERGE
-	case TerminalPercentMerge:
+	case TokenPercentMerge:
 		// Shift action
 		p.stateStack = append(p.stateStack, 147)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5647,7 +5444,7 @@ func (p *Parser) state142() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_EXPECT
-	case TerminalPercentExpect:
+	case TokenPercentExpect:
 		// Shift action
 		p.stateStack = append(p.stateStack, 148)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5657,7 +5454,7 @@ func (p *Parser) state142() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_EXPECT_RR
-	case TerminalPercentExpectRr:
+	case TokenPercentExpectRr:
 		// Shift action
 		p.stateStack = append(p.stateStack, 149)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5667,7 +5464,7 @@ func (p *Parser) state142() error {
 		p.scanner.Next()
 		return nil
 	// BRACED_PREDICATE
-	case TerminalBracedPredicate:
+	case TokenBracedPredicate:
 		// Shift action
 		p.stateStack = append(p.stateStack, 150)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5677,7 +5474,7 @@ func (p *Parser) state142() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5687,7 +5484,7 @@ func (p *Parser) state142() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5697,7 +5494,7 @@ func (p *Parser) state142() error {
 		p.scanner.Next()
 		return nil
 	// TAG
-	case TerminalTag:
+	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 151)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5707,7 +5504,7 @@ func (p *Parser) state142() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_EMPTY
-	case TerminalPercentEmpty:
+	case TokenPercentEmpty:
 		// Shift action
 		p.stateStack = append(p.stateStack, 152)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5725,7 +5522,7 @@ func (p *Parser) state143() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rhs -> %empty
 		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -5746,7 +5543,7 @@ func (p *Parser) state144() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rhses.1 -> rhses.1 SEMICOLON
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal29(p.stateStack[len(p.stateStack)-1])
@@ -5771,7 +5568,7 @@ func (p *Parser) state145() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5781,7 +5578,7 @@ func (p *Parser) state145() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5791,7 +5588,7 @@ func (p *Parser) state145() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5809,7 +5606,7 @@ func (p *Parser) state146() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// INT_LITERAL
-	case TerminalIntLiteral:
+	case TokenIntLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 157)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5827,7 +5624,7 @@ func (p *Parser) state147() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// TAG
-	case TerminalTag:
+	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 158)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5845,7 +5642,7 @@ func (p *Parser) state148() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// INT_LITERAL
-	case TerminalIntLiteral:
+	case TokenIntLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 159)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5863,7 +5660,7 @@ func (p *Parser) state149() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// INT_LITERAL
-	case TerminalIntLiteral:
+	case TokenIntLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 160)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5881,7 +5678,7 @@ func (p *Parser) state150() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rhs -> rhs BRACED_PREDICATE
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
@@ -5906,7 +5703,7 @@ func (p *Parser) state151() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: tag.opt -> TAG
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminal11(p.stateStack[len(p.stateStack)-1])
@@ -5931,7 +5728,7 @@ func (p *Parser) state152() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rhs -> rhs PERCENT_EMPTY
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
@@ -5956,7 +5753,7 @@ func (p *Parser) state153() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// BRACED_CODE
-	case TerminalBracedCode:
+	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 161)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -5974,7 +5771,7 @@ func (p *Parser) state154() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: named_ref.opt -> %empty
 		nextState, err := p.gotoAfterNonterminal31(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -5987,7 +5784,7 @@ func (p *Parser) state154() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// BRACKETED_ID
-	case TerminalBracketedId:
+	case TokenBracketedId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 117)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -6005,7 +5802,7 @@ func (p *Parser) state155() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// BRACED_CODE
-	case TerminalBracedCode:
+	case TokenBracedCode:
 		// Reduce: tag.opt -> %empty
 		nextState, err := p.gotoAfterNonterminal11(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -6018,7 +5815,7 @@ func (p *Parser) state155() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rhses.1 -> rhses.1 PIPE rhs
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal29(p.stateStack[len(p.stateStack)-1])
@@ -6035,7 +5832,7 @@ func (p *Parser) state155() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
-	case TerminalString:
+	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -6045,7 +5842,7 @@ func (p *Parser) state155() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_PREC
-	case TerminalPercentPrec:
+	case TokenPercentPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 145)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -6055,7 +5852,7 @@ func (p *Parser) state155() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_DPREC
-	case TerminalPercentDprec:
+	case TokenPercentDprec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 146)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -6065,7 +5862,7 @@ func (p *Parser) state155() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_MERGE
-	case TerminalPercentMerge:
+	case TokenPercentMerge:
 		// Shift action
 		p.stateStack = append(p.stateStack, 147)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -6075,7 +5872,7 @@ func (p *Parser) state155() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_EXPECT
-	case TerminalPercentExpect:
+	case TokenPercentExpect:
 		// Shift action
 		p.stateStack = append(p.stateStack, 148)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -6085,7 +5882,7 @@ func (p *Parser) state155() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_EXPECT_RR
-	case TerminalPercentExpectRr:
+	case TokenPercentExpectRr:
 		// Shift action
 		p.stateStack = append(p.stateStack, 149)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -6095,7 +5892,7 @@ func (p *Parser) state155() error {
 		p.scanner.Next()
 		return nil
 	// BRACED_PREDICATE
-	case TerminalBracedPredicate:
+	case TokenBracedPredicate:
 		// Shift action
 		p.stateStack = append(p.stateStack, 150)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -6105,7 +5902,7 @@ func (p *Parser) state155() error {
 		p.scanner.Next()
 		return nil
 	// CHAR_LITERAL
-	case TerminalCharLiteral:
+	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -6115,7 +5912,7 @@ func (p *Parser) state155() error {
 		p.scanner.Next()
 		return nil
 	// ID
-	case TerminalId:
+	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -6125,7 +5922,7 @@ func (p *Parser) state155() error {
 		p.scanner.Next()
 		return nil
 	// TAG
-	case TerminalTag:
+	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 151)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -6135,7 +5932,7 @@ func (p *Parser) state155() error {
 		p.scanner.Next()
 		return nil
 	// PERCENT_EMPTY
-	case TerminalPercentEmpty:
+	case TokenPercentEmpty:
 		// Shift action
 		p.stateStack = append(p.stateStack, 152)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -6153,7 +5950,7 @@ func (p *Parser) state156() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rhs -> rhs PERCENT_PREC symbol
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
@@ -6178,7 +5975,7 @@ func (p *Parser) state157() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rhs -> rhs PERCENT_DPREC INT_LITERAL
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
@@ -6203,7 +6000,7 @@ func (p *Parser) state158() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rhs -> rhs PERCENT_MERGE TAG
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
@@ -6228,7 +6025,7 @@ func (p *Parser) state159() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rhs -> rhs PERCENT_EXPECT INT_LITERAL
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
@@ -6253,7 +6050,7 @@ func (p *Parser) state160() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rhs -> rhs PERCENT_EXPECT_RR INT_LITERAL
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
@@ -6278,7 +6075,7 @@ func (p *Parser) state161() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: named_ref.opt -> %empty
 		nextState, err := p.gotoAfterNonterminal31(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -6291,7 +6088,7 @@ func (p *Parser) state161() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// BRACKETED_ID
-	case TerminalBracketedId:
+	case TokenBracketedId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 117)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -6309,7 +6106,7 @@ func (p *Parser) state162() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rhs -> rhs symbol named_ref.opt
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
@@ -6334,7 +6131,7 @@ func (p *Parser) state163() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Terminal_end:
+	case Token_end:
 		// Reduce: rhs -> rhs tag.opt BRACED_CODE named_ref.opt
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
