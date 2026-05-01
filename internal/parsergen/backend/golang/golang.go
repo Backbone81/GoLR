@@ -9,6 +9,7 @@ import (
 	"go/format"
 	"golr/internal/parsergen/backend"
 	"golr/internal/parsergen/frontend"
+	"golr/internal/utils"
 	"io"
 	"os"
 	"runtime/trace"
@@ -23,6 +24,8 @@ var parsedTemplate = template.Must(template.New("parser.go.template").Funcs(temp
 	"stateActions":         buildStateActions,
 	"gotoAfterNonterminal": buildGotoAfterNonterminal,
 	"displayProduction":    displayProduction,
+	"terminalName":         terminalName,
+	"nonterminalName":      nonterminalName,
 }).Parse(parserTemplate))
 
 type Config struct {
@@ -174,4 +177,14 @@ func displayProduction(grammar frontend.Grammar, productionIdx int) string {
 		builder.WriteString("%empty")
 	}
 	return builder.String()
+}
+
+func terminalName(symbol frontend.Symbol) string {
+	name := utils.GoIdentifier(symbol.Name)
+	return fmt.Sprintf("Terminal%s", name)
+}
+
+func nonterminalName(symbol frontend.Symbol) string {
+	name := utils.GoIdentifier(symbol.Name)
+	return fmt.Sprintf("Nonterminal%s", name)
 }

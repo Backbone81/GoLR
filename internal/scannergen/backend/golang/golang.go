@@ -9,12 +9,11 @@ import (
 	"go/format"
 	"golr/internal/scannergen/backend"
 	"golr/internal/scannergen/frontend"
+	"golr/internal/utils"
 	"io"
 	"os"
 	"runtime/trace"
-	"strings"
 	"text/template"
-	"unicode"
 )
 
 //go:embed scanner.go.template
@@ -101,53 +100,11 @@ func printRune(r rune) string {
 }
 
 func stateName(stateIdx int, rule frontend.Rule) string {
-	name := goName(rule.Name)
+	name := utils.GoIdentifier(rule.Name)
 	return fmt.Sprintf("state%d%s", stateIdx, name)
 }
 
 func terminalName(ruleIdx int, rule frontend.Rule) string {
-	name := goName(rule.Name)
+	name := utils.GoIdentifier(rule.Name)
 	return fmt.Sprintf("Terminal%s", name)
-}
-
-func goName(text string) string {
-	words := strings.FieldsFunc(text, func(r rune) bool {
-		return r == '_' || r == ' ' || r == '\t'
-	})
-
-	var builder strings.Builder
-	for _, word := range words {
-		if len(word) == 0 {
-			continue
-		}
-
-		cleaned := replaceSpecialCharacters(word)
-		capitalized := capitalizeFirstChar(cleaned)
-		builder.WriteString(capitalized)
-	}
-	return builder.String()
-}
-
-func replaceSpecialCharacters(text string) string {
-	var builder strings.Builder
-	for _, r := range text {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
-			builder.WriteRune(r)
-		} else {
-			builder.WriteByte('_')
-		}
-	}
-	return builder.String()
-}
-
-func capitalizeFirstChar(text string) string {
-	var builder strings.Builder
-	for i, r := range text {
-		if i == 0 {
-			builder.WriteRune(unicode.ToUpper(r))
-		} else {
-			builder.WriteRune(unicode.ToLower(r))
-		}
-	}
-	return builder.String()
 }

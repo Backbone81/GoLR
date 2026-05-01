@@ -11,7 +11,7 @@ type Terminal int
 
 const (
 {{- range $i, $terminal := .Parser.Grammar.Terminals }}
-    Terminal{{ $i }} Terminal = {{ $i }} // {{ $terminal.Name }}{{ if ne $terminal.Alias "" }} ({{ $terminal.Alias }}){{ end }}
+    {{ terminalName $terminal }} Terminal = {{ $i }} // {{ $terminal.Name }}{{ if ne $terminal.Alias "" }} ({{ $terminal.Alias }}){{ end }}
 {{- end }}
 )
 
@@ -22,7 +22,7 @@ var _ fmt.Stringer = (*Terminal)(nil)
 func (t Terminal) String() string {
     switch t {
 {{- range $i, $terminal := .Parser.Grammar.Terminals }}
-    case Terminal{{ $i }}: return `{{ $terminal.Name }}`
+    case {{ terminalName $terminal }}: return `{{ $terminal.Name }}`
 {{- end }}
     default:
         return "unknown"
@@ -34,7 +34,7 @@ type Nonterminal int
 
 const (
 {{- range $i, $nonterminal := .Parser.Grammar.Nonterminals }}
-    Nonterminal{{ $i }} Nonterminal = {{ $i }} // {{ $nonterminal.Name }}{{ if ne $nonterminal.Alias "" }} ({{ $nonterminal.Alias }}){{ end }}
+    {{ nonterminalName $nonterminal }} Nonterminal = {{ $i }} // {{ $nonterminal.Name }}{{ if ne $nonterminal.Alias "" }} ({{ $nonterminal.Alias }}){{ end }}
 {{- end }}
 )
 
@@ -45,7 +45,7 @@ var _ fmt.Stringer = (*Nonterminal)(nil)
 func (n Nonterminal) String() string {
     switch n {
 {{- range $i, $nonterminal := .Parser.Grammar.Nonterminals }}
-    case Nonterminal{{ $i }}: return `{{ $nonterminal.Name }}`
+    case {{ nonterminalName $nonterminal}}: return `{{ $nonterminal.Name }}`
 {{- end }}
     default:
         return "unknown"
@@ -218,7 +218,7 @@ func (p *Parser) state{{ $i }}() error {
     switch terminal {
 {{- range $stateAction := stateActions $.Parser.Grammar $state }}
     // {{ range $j, $symbol := $stateAction.LookaheadSymbols }}{{ if gt $j 0 }}, {{ end }}{{ $symbol.Name }}{{ end }}
-    case {{ range $j, $terminal := $stateAction.LookaheadTerminalIdxs }}{{ if gt $j 0 }}, {{ end }}Terminal{{ $terminal }}{{ end }}:
+    case {{ range $j, $terminal := $stateAction.LookaheadSymbols }}{{ if gt $j 0 }}, {{ end }}{{ terminalName $terminal }}{{ end }}:
     {{- if $stateAction.IsReduce }}
         // Reduce: {{ displayProduction $.Parser.Grammar $stateAction.ProductionIdx }}
         {{- if ne $stateAction.PopSymbolCount 0 }}
@@ -230,7 +230,7 @@ func (p *Parser) state{{ $i }}() error {
         }
         p.stateStack = append(p.stateStack, nextState)
         newNode := Node {
-            Symbol: NewNonterminal(Nonterminal{{ $stateAction.PushSymbol }}),
+            Symbol: NewNonterminal({{ nonterminalName (index $.Parser.Grammar.Nonterminals $stateAction.PushSymbol) }}),
             {{- if ne $stateAction.PopSymbolCount 0 }}
             Children: make([]*Node, {{ $stateAction.PopSymbolCount }}),
             {{- end }}

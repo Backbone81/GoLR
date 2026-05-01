@@ -15,6 +15,7 @@ lint:
 
 .PHONY: generate
 generate:
+	go run ./examples/bison/spec/export/
 	go run ./examples/golang/spec/export/
 	go run ./examples/golang/parser/export/
 
