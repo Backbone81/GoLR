@@ -25,6 +25,9 @@
  */
 
 %token
+  WS
+  COMMENT
+
   STRING              
   TSTRING             
 

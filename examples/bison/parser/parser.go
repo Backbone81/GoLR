@@ -12,64 +12,66 @@ type Terminal int
 const (
 	Terminal_end                          Terminal = 0  // $end
 	TerminalError                         Terminal = 1  // error
-	TerminalString                        Terminal = 2  // STRING
-	TerminalTstring                       Terminal = 3  // TSTRING
-	TerminalPercentToken                  Terminal = 4  // PERCENT_TOKEN
-	TerminalPercentNterm                  Terminal = 5  // PERCENT_NTERM
-	TerminalPercentType                   Terminal = 6  // PERCENT_TYPE
-	TerminalPercentDestructor             Terminal = 7  // PERCENT_DESTRUCTOR
-	TerminalPercentPrinter                Terminal = 8  // PERCENT_PRINTER
-	TerminalPercentLeft                   Terminal = 9  // PERCENT_LEFT
-	TerminalPercentRight                  Terminal = 10 // PERCENT_RIGHT
-	TerminalPercentNonassoc               Terminal = 11 // PERCENT_NONASSOC
-	TerminalPercentPrecedence             Terminal = 12 // PERCENT_PRECEDENCE
-	TerminalPercentPrec                   Terminal = 13 // PERCENT_PREC
-	TerminalPercentDprec                  Terminal = 14 // PERCENT_DPREC
-	TerminalPercentMerge                  Terminal = 15 // PERCENT_MERGE
-	TerminalPercentCode                   Terminal = 16 // PERCENT_CODE
-	TerminalPercentDefaultPrec            Terminal = 17 // PERCENT_DEFAULT_PREC
-	TerminalPercentDefine                 Terminal = 18 // PERCENT_DEFINE
-	TerminalPercentErrorVerbose           Terminal = 19 // PERCENT_ERROR_VERBOSE
-	TerminalPercentExpect                 Terminal = 20 // PERCENT_EXPECT
-	TerminalPercentExpectRr               Terminal = 21 // PERCENT_EXPECT_RR
-	TerminalPercentFilePrefix             Terminal = 22 // PERCENT_FILE_PREFIX
-	TerminalPercentFlag                   Terminal = 23 // PERCENT_FLAG
-	TerminalPercentGlrParser              Terminal = 24 // PERCENT_GLR_PARSER
-	TerminalPercentHeader                 Terminal = 25 // PERCENT_HEADER
-	TerminalPercentInitialAction          Terminal = 26 // PERCENT_INITIAL_ACTION
-	TerminalPercentLanguage               Terminal = 27 // PERCENT_LANGUAGE
-	TerminalPercentNamePrefix             Terminal = 28 // PERCENT_NAME_PREFIX
-	TerminalPercentNoDefaultPrec          Terminal = 29 // PERCENT_NO_DEFAULT_PREC
-	TerminalPercentNoLines                Terminal = 30 // PERCENT_NO_LINES
-	TerminalPercentNondeterministicParser Terminal = 31 // PERCENT_NONDETERMINISTIC_PARSER
-	TerminalPercentOutput                 Terminal = 32 // PERCENT_OUTPUT
-	TerminalPercentPureParser             Terminal = 33 // PERCENT_PURE_PARSER
-	TerminalPercentRequire                Terminal = 34 // PERCENT_REQUIRE
-	TerminalPercentSkeleton               Terminal = 35 // PERCENT_SKELETON
-	TerminalPercentStart                  Terminal = 36 // PERCENT_START
-	TerminalPercentTokenTable             Terminal = 37 // PERCENT_TOKEN_TABLE
-	TerminalPercentVerbose                Terminal = 38 // PERCENT_VERBOSE
-	TerminalPercentYacc                   Terminal = 39 // PERCENT_YACC
-	TerminalBracedCode                    Terminal = 40 // BRACED_CODE
-	TerminalBracedPredicate               Terminal = 41 // BRACED_PREDICATE
-	TerminalBracketedId                   Terminal = 42 // BRACKETED_ID
-	TerminalCharLiteral                   Terminal = 43 // CHAR_LITERAL
-	TerminalColon                         Terminal = 44 // COLON
-	TerminalEpilogue                      Terminal = 45 // EPILOGUE
-	TerminalEqual                         Terminal = 46 // EQUAL
-	TerminalId                            Terminal = 47 // ID
-	TerminalIdColon                       Terminal = 48 // ID_COLON
-	TerminalPercentPercent                Terminal = 49 // PERCENT_PERCENT
-	TerminalPipe                          Terminal = 50 // PIPE
-	TerminalPrologue                      Terminal = 51 // PROLOGUE
-	TerminalSemicolon                     Terminal = 52 // SEMICOLON
-	TerminalTag                           Terminal = 53 // TAG
-	TerminalTagAny                        Terminal = 54 // TAG_ANY
-	TerminalTagNone                       Terminal = 55 // TAG_NONE
-	TerminalIntLiteral                    Terminal = 56 // INT_LITERAL
-	TerminalPercentParam                  Terminal = 57 // PERCENT_PARAM
-	TerminalPercentUnion                  Terminal = 58 // PERCENT_UNION
-	TerminalPercentEmpty                  Terminal = 59 // PERCENT_EMPTY
+	TerminalWs                            Terminal = 2  // WS
+	TerminalComment                       Terminal = 3  // COMMENT
+	TerminalString                        Terminal = 4  // STRING
+	TerminalTstring                       Terminal = 5  // TSTRING
+	TerminalPercentToken                  Terminal = 6  // PERCENT_TOKEN
+	TerminalPercentNterm                  Terminal = 7  // PERCENT_NTERM
+	TerminalPercentType                   Terminal = 8  // PERCENT_TYPE
+	TerminalPercentDestructor             Terminal = 9  // PERCENT_DESTRUCTOR
+	TerminalPercentPrinter                Terminal = 10 // PERCENT_PRINTER
+	TerminalPercentLeft                   Terminal = 11 // PERCENT_LEFT
+	TerminalPercentRight                  Terminal = 12 // PERCENT_RIGHT
+	TerminalPercentNonassoc               Terminal = 13 // PERCENT_NONASSOC
+	TerminalPercentPrecedence             Terminal = 14 // PERCENT_PRECEDENCE
+	TerminalPercentPrec                   Terminal = 15 // PERCENT_PREC
+	TerminalPercentDprec                  Terminal = 16 // PERCENT_DPREC
+	TerminalPercentMerge                  Terminal = 17 // PERCENT_MERGE
+	TerminalPercentCode                   Terminal = 18 // PERCENT_CODE
+	TerminalPercentDefaultPrec            Terminal = 19 // PERCENT_DEFAULT_PREC
+	TerminalPercentDefine                 Terminal = 20 // PERCENT_DEFINE
+	TerminalPercentErrorVerbose           Terminal = 21 // PERCENT_ERROR_VERBOSE
+	TerminalPercentExpect                 Terminal = 22 // PERCENT_EXPECT
+	TerminalPercentExpectRr               Terminal = 23 // PERCENT_EXPECT_RR
+	TerminalPercentFilePrefix             Terminal = 24 // PERCENT_FILE_PREFIX
+	TerminalPercentFlag                   Terminal = 25 // PERCENT_FLAG
+	TerminalPercentGlrParser              Terminal = 26 // PERCENT_GLR_PARSER
+	TerminalPercentHeader                 Terminal = 27 // PERCENT_HEADER
+	TerminalPercentInitialAction          Terminal = 28 // PERCENT_INITIAL_ACTION
+	TerminalPercentLanguage               Terminal = 29 // PERCENT_LANGUAGE
+	TerminalPercentNamePrefix             Terminal = 30 // PERCENT_NAME_PREFIX
+	TerminalPercentNoDefaultPrec          Terminal = 31 // PERCENT_NO_DEFAULT_PREC
+	TerminalPercentNoLines                Terminal = 32 // PERCENT_NO_LINES
+	TerminalPercentNondeterministicParser Terminal = 33 // PERCENT_NONDETERMINISTIC_PARSER
+	TerminalPercentOutput                 Terminal = 34 // PERCENT_OUTPUT
+	TerminalPercentPureParser             Terminal = 35 // PERCENT_PURE_PARSER
+	TerminalPercentRequire                Terminal = 36 // PERCENT_REQUIRE
+	TerminalPercentSkeleton               Terminal = 37 // PERCENT_SKELETON
+	TerminalPercentStart                  Terminal = 38 // PERCENT_START
+	TerminalPercentTokenTable             Terminal = 39 // PERCENT_TOKEN_TABLE
+	TerminalPercentVerbose                Terminal = 40 // PERCENT_VERBOSE
+	TerminalPercentYacc                   Terminal = 41 // PERCENT_YACC
+	TerminalBracedCode                    Terminal = 42 // BRACED_CODE
+	TerminalBracedPredicate               Terminal = 43 // BRACED_PREDICATE
+	TerminalBracketedId                   Terminal = 44 // BRACKETED_ID
+	TerminalCharLiteral                   Terminal = 45 // CHAR_LITERAL
+	TerminalColon                         Terminal = 46 // COLON
+	TerminalEpilogue                      Terminal = 47 // EPILOGUE
+	TerminalEqual                         Terminal = 48 // EQUAL
+	TerminalId                            Terminal = 49 // ID
+	TerminalIdColon                       Terminal = 50 // ID_COLON
+	TerminalPercentPercent                Terminal = 51 // PERCENT_PERCENT
+	TerminalPipe                          Terminal = 52 // PIPE
+	TerminalPrologue                      Terminal = 53 // PROLOGUE
+	TerminalSemicolon                     Terminal = 54 // SEMICOLON
+	TerminalTag                           Terminal = 55 // TAG
+	TerminalTagAny                        Terminal = 56 // TAG_ANY
+	TerminalTagNone                       Terminal = 57 // TAG_NONE
+	TerminalIntLiteral                    Terminal = 58 // INT_LITERAL
+	TerminalPercentParam                  Terminal = 59 // PERCENT_PARAM
+	TerminalPercentUnion                  Terminal = 60 // PERCENT_UNION
+	TerminalPercentEmpty                  Terminal = 61 // PERCENT_EMPTY
 )
 
 // Terminal implements fmt.Stringer.
@@ -82,6 +84,10 @@ func (t Terminal) String() string {
 		return `$end`
 	case TerminalError:
 		return `error`
+	case TerminalWs:
+		return `WS`
+	case TerminalComment:
+		return `COMMENT`
 	case TerminalString:
 		return `STRING`
 	case TerminalTstring:

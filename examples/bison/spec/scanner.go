@@ -1,0 +1,134 @@
+package spec
+
+import (
+	"golr/pkg/scannergen"
+	. "golr/pkg/scannergen/frontend/dsl"
+)
+
+// GetScannerRules returns the rules for generating a scanner for parsing GNU Bison grammar files. The details can be found
+// at https://github.com/akimd/bison/blob/master/src/scan-gram.l, https://github.com/akimd/bison/blob/master/src/scan-code.l,
+// and https://github.com/akimd/bison/blob/master/src/scan-skel.l and https://github.com/akimd/bison/blob/master/src/parse-gram.y.
+func GetScannerRules() []scannergen.Rule {
+	var rules []scannergen.Rule
+
+	newline := Or(
+		Literal("\n"),
+		Literal("\r\n"),
+	)
+	horizontalWhitespace := Or(
+		Literal(" "),
+		Literal("\t"),
+	)
+	whitespaces := OneOrMore(
+		Or(
+			newline,
+			horizontalWhitespace,
+		))
+	rules = append(rules, Rule("WS", whitespaces))
+
+	multilineComment := Concat(
+		Literal("/*"),
+		ZeroOrMore(
+			Or(
+				NegCharClass(CharRange('*', '*')),
+				Concat(
+					Literal("*"),
+					NegCharClass(CharRange('/', '/')),
+				),
+			),
+		),
+		Literal("*/"),
+	)
+	lineComment := Concat(
+		Literal("//"),
+		ZeroOrMore(NegCharClass(CharRange('\n', '\n'))),
+	)
+	comment := Or(multilineComment, lineComment)
+	rules = append(rules, Rule("COMMENT", comment))
+
+	standardString := Concat(
+		Literal(`"`),
+		ZeroOrMore(Or(
+			NegCharClass(CharRange('"', '"')),
+			Literal(`\"`),
+		)),
+		Literal(`"`),
+	)
+	rules = append(rules, Rule("STRING", standardString))
+
+	translatableString := Concat(
+		Literal(`_("`),
+		ZeroOrMore(Or(
+			NegCharClass(CharRange('"', '"')),
+			Literal(`\"`),
+		)),
+		Literal(`")`),
+	)
+	rules = append(rules, Rule("TSTRING", translatableString))
+
+	rules = append(rules, Rule("PERCENT_TOKEN", Literal("%token")))
+	rules = append(rules, Rule("PERCENT_NTERM", Literal("%nterm")))
+
+	rules = append(rules, Rule("PERCENT_TYPE", Literal("%type")))
+	rules = append(rules, Rule("PERCENT_DESTRUCTOR", Literal("%destructor")))
+	rules = append(rules, Rule("PERCENT_PRINTER", Literal("%printer")))
+
+	rules = append(rules, Rule("PERCENT_LEFT", Literal("%left")))
+	rules = append(rules, Rule("PERCENT_RIGHT", Literal("%right")))
+	rules = append(rules, Rule("PERCENT_NONASSOC", Literal("%nonassoc")))
+	rules = append(rules, Rule("PERCENT_PRECEDENCE", Literal("%precedence")))
+
+	rules = append(rules, Rule("PERCENT_PREC", Literal("%prec")))
+	rules = append(rules, Rule("PERCENT_DPREC", Literal("%dprec")))
+	rules = append(rules, Rule("PERCENT_MERGE", Literal("%merge")))
+
+	rules = append(rules, Rule("PERCENT_CODE", Literal("%code")))
+	rules = append(rules, Rule("PERCENT_DEFAULT_PREC", Literal("%default-prec")))
+	rules = append(rules, Rule("PERCENT_DEFINE", Literal("%define")))
+	rules = append(rules, Rule("PERCENT_ERROR_VERBOSE", Literal("%error-verbose")))
+	rules = append(rules, Rule("PERCENT_EXPECT", Literal("%expect")))
+	rules = append(rules, Rule("PERCENT_EXPECT_RR", Literal("%expect-rr")))
+	rules = append(rules, Rule("PERCENT_FILE_PREFIX", Literal("%file-prefix")))
+	rules = append(rules, Rule("PERCENT_FLAG", Literal("%<flag>")))
+	rules = append(rules, Rule("PERCENT_GLR_PARSER", Literal("%glr-parser")))
+	rules = append(rules, Rule("PERCENT_HEADER", Literal("%header")))
+	rules = append(rules, Rule("PERCENT_INITIAL_ACTION", Literal("%initial-action")))
+	rules = append(rules, Rule("PERCENT_LANGUAGE", Literal("%language")))
+	rules = append(rules, Rule("PERCENT_NAME_PREFIX", Literal("%name-prefix")))
+	rules = append(rules, Rule("PERCENT_NO_DEFAULT_PREC", Literal("%no-default-prec")))
+	rules = append(rules, Rule("PERCENT_NO_LINES", Literal("%no-lines")))
+	rules = append(rules, Rule("PERCENT_NONDETERMINISTIC_PARSER", Literal("%nondeterministic-parser")))
+	rules = append(rules, Rule("PERCENT_OUTPUT", Literal("%output")))
+	rules = append(rules, Rule("PERCENT_PURE_PARSER", Literal("%pure-parser")))
+	rules = append(rules, Rule("PERCENT_REQUIRE", Literal("%require")))
+	rules = append(rules, Rule("PERCENT_SKELETON", Literal("%skeleton")))
+	rules = append(rules, Rule("PERCENT_START", Literal("%start")))
+	rules = append(rules, Rule("PERCENT_TOKEN_TABLE", Literal("%token-table")))
+	rules = append(rules, Rule("PERCENT_VERBOSE", Literal("%verbose")))
+	rules = append(rules, Rule("PERCENT_YACC", Literal("%yacc")))
+
+	rules = append(rules, Rule("BRACED_CODE", Literal("__not_implemented__")))
+	rules = append(rules, Rule("BRACED_PREDICATE", Literal("__not_implemented__")))
+	rules = append(rules, Rule("BRACKETED_ID", Literal("__not_implemented__")))
+	rules = append(rules, Rule("CHAR_LITERAL", Literal("__not_implemented__")))
+	rules = append(rules, Rule("COLON", Literal(":")))
+	rules = append(rules, Rule("EPILOGUE", Literal("__not_implemented__")))
+	rules = append(rules, Rule("EQUAL", Literal("=")))
+	rules = append(rules, Rule("ID", Literal("__not_implemented__")))
+	rules = append(rules, Rule("ID_COLON", Literal("__not_implemented__")))
+	rules = append(rules, Rule("PERCENT_PERCENT", Literal("%%")))
+	rules = append(rules, Rule("PIPE", Literal("|")))
+	rules = append(rules, Rule("PROLOGUE", Literal("__not_implemented__")))
+	rules = append(rules, Rule("SEMICOLON", Literal(";")))
+	rules = append(rules, Rule("TAG", Literal("__not_implemented__")))
+	rules = append(rules, Rule("TAG_ANY", Literal("__not_implemented__")))
+	rules = append(rules, Rule("TAG_NONE", Literal("__not_implemented__")))
+
+	integerLiteral := OneOrMore(CharClass(CharRange('0', '9')))
+	rules = append(rules, Rule("INT_LITERAL", integerLiteral))
+
+	rules = append(rules, Rule("PERCENT_PARAM", Literal("%param")))
+	rules = append(rules, Rule("PERCENT_UNION", Literal("%union")))
+	rules = append(rules, Rule("PERCENT_EMPTY", Literal("%empty")))
+	return rules
+}
