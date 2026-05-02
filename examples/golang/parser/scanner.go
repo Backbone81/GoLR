@@ -291,18 +291,21 @@ type Scanner struct {
 	state int
 	token Token
 
-	err error
+	err      error
+	filePath string
 }
 
-// NewScanner creates a new instance of the scanner with the given rune reader.
-func NewScanner(runeReader runtime.UTF8RuneReader) Scanner {
+// NewScanner creates a new instance of the scanner with the given rune reader. The filePath parameter is used to
+// return information about which file has an error. You can provide any string you want if you don't have a file.
+func NewScanner(runeReader runtime.UTF8RuneReader, filePath string) *Scanner {
 	// consume the first rune here, as the start state does not call Next() on its own
 	_ = runeReader.Next()
-	return Scanner{
+	return &Scanner{
 		runeReader: runeReader,
 		tokenStart: runeReader,
 		tokenEnd:   runeReader,
 		token:      InvalidToken,
+		filePath:   filePath,
 	}
 }
 
@@ -336,6 +339,11 @@ func (s *Scanner) Column() int {
 // Lexeme returns the bytes which make up the token.
 func (s *Scanner) Lexeme() []byte {
 	return s.tokenStart.Lexeme(s.tokenStart.ByteOffset(), s.tokenEnd.ByteOffset())
+}
+
+// FilePath returns the file path of the file being parsed. This information can be useful in error messages.
+func (s *Scanner) FilePath() string {
+	return s.filePath
 }
 
 // Next consumes characters until it found the next token.

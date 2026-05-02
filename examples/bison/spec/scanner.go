@@ -114,7 +114,25 @@ func GetScannerRules() []scannergen.Rule {
 	rules = append(rules, Rule("COLON", Literal(":")))
 	rules = append(rules, Rule("EPILOGUE", Literal("__not_implemented__")))
 	rules = append(rules, Rule("EQUAL", Literal("=")))
-	rules = append(rules, Rule("ID", Literal("__not_implemented__")))
+
+	id := Concat(
+		CharClass(
+			CharRange('a', 'z'),
+			CharRange('A', 'Z'),
+		),
+		ZeroOrMore(
+			CharClass(
+				CharRange('a', 'z'),
+				CharRange('A', 'Z'),
+				CharRange('0', '9'),
+				CharRange('_', '_'),
+				CharRange('.', '.'),
+				CharRange('[', '['),
+				CharRange(']', ']'),
+			),
+		),
+	)
+	rules = append(rules, Rule("ID", id))
 	rules = append(rules, Rule("ID_COLON", Literal("__not_implemented__")))
 	rules = append(rules, Rule("PERCENT_PERCENT", Literal("%%")))
 	rules = append(rules, Rule("PIPE", Literal("|")))
