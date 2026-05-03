@@ -2,6 +2,7 @@ package ielr1
 
 import (
 	"context"
+	"fmt"
 	"golr/internal/parsergen/backend"
 	"golr/internal/parsergen/frontend"
 	"golr/internal/utils/bison"
@@ -100,8 +101,10 @@ func (i *IELR1) buildStateList(report bison.BisonXMLReport, parser *backend.Pars
 			var symbolRef frontend.SymbolRef
 			if idx, ok := i.terminalIdxByName[transition.Symbol]; ok {
 				symbolRef = frontend.NewTerminalRef(idx)
+			} else if idx, ok := i.nonterminalIdxByName[transition.Symbol]; ok {
+				symbolRef = frontend.NewNonterminalRef(idx)
 			} else {
-				symbolRef = frontend.NewNonterminalRef(i.nonterminalIdxByName[transition.Symbol])
+				return fmt.Errorf("unknown transition on %q", transition.Symbol)
 			}
 			newState.TransitionActions.Add(backend.NewTransitionAction(symbolRef, transition.State))
 		}
@@ -118,7 +121,17 @@ func (i *IELR1) buildStateList(report bison.BisonXMLReport, parser *backend.Pars
 			}
 
 			var lookaheadSet backend.LookaheadSet
-			lookaheadSet.Add(i.terminalIdxByName[reduction.Symbol])
+			if reduction.Symbol == "$default" {
+				newState.DefaultReduceProductionIdx = &productionIdx
+				// The default reduce action should not show up as a standard reduce. Therefore skip to the next.
+				continue
+			} else {
+				terminalIdx, ok := i.terminalIdxByName[reduction.Symbol]
+				if !ok {
+					return fmt.Errorf("unknown terminal %q", reduction.Symbol)
+				}
+				lookaheadSet.Add(terminalIdx)
+			}
 
 			newState.ReduceActions.Add(backend.NewReduceAction(lookaheadSet, productionIdx))
 		}

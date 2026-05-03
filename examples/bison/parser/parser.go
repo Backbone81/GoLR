@@ -627,10 +627,9 @@ func (p *Parser) raiseError(cause error) error {
 func (p *Parser) state0() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declarations -> %empty
-		nextState, err := p.gotoAfterNonterminal2(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclarations(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -640,8 +639,6 @@ func (p *Parser) state0() error {
 		}
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -649,7 +646,7 @@ func (p *Parser) state1() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Token_end:
+	case EndToken:
 		// Shift action
 		p.stateStack = append(p.stateStack, 3)
 		p.nodeStack = append(p.nodeStack, &Node{
@@ -1064,11 +1061,10 @@ func (p *Parser) state2() error {
 func (p *Parser) state3() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: $accept -> input $end
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal0(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminal_accept(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1082,8 +1078,6 @@ func (p *Parser) state3() error {
 		p.nodeStack = append(p.nodeStack, &newNode)
 		// The parse is successfully finished.
 		return errAccept
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -1232,11 +1226,10 @@ func (p *Parser) state7() error {
 func (p *Parser) state8() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: code_props_type -> PERCENT_DESTRUCTOR
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal6(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalCodePropsType(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1249,19 +1242,16 @@ func (p *Parser) state8() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state9() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: code_props_type -> PERCENT_PRINTER
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal6(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalCodePropsType(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1274,19 +1264,16 @@ func (p *Parser) state9() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state10() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: precedence_declarator -> PERCENT_LEFT
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal9(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrecedenceDeclarator(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1299,19 +1286,16 @@ func (p *Parser) state10() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state11() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: precedence_declarator -> PERCENT_RIGHT
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal9(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrecedenceDeclarator(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1324,19 +1308,16 @@ func (p *Parser) state11() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state12() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: precedence_declarator -> PERCENT_NONASSOC
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal9(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrecedenceDeclarator(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1349,19 +1330,16 @@ func (p *Parser) state12() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state13() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: precedence_declarator -> PERCENT_PRECEDENCE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal9(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrecedenceDeclarator(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1374,8 +1352,6 @@ func (p *Parser) state13() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -1410,11 +1386,10 @@ func (p *Parser) state14() error {
 func (p *Parser) state15() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: grammar_declaration -> PERCENT_DEFAULT_PREC
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalGrammarDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1427,8 +1402,6 @@ func (p *Parser) state15() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -1453,11 +1426,10 @@ func (p *Parser) state16() error {
 func (p *Parser) state17() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_ERROR_VERBOSE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1470,8 +1442,6 @@ func (p *Parser) state17() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -1532,11 +1502,10 @@ func (p *Parser) state20() error {
 func (p *Parser) state21() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_FLAG
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1549,19 +1518,16 @@ func (p *Parser) state21() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state22() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_GLR_PARSER
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1574,27 +1540,12 @@ func (p *Parser) state22() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state23() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: string.opt -> %empty
-		nextState, err := p.gotoAfterNonterminal10(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol: NewNonterminal(NonterminalString_opt),
-		}
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// STRING
 	case TokenString:
 		// Shift action
@@ -1606,7 +1557,17 @@ func (p *Parser) state23() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: string.opt -> %empty
+		nextState, err := p.gotoAfterNonterminalString_opt(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol: NewNonterminal(NonterminalString_opt),
+		}
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
@@ -1667,11 +1628,10 @@ func (p *Parser) state26() error {
 func (p *Parser) state27() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: grammar_declaration -> PERCENT_NO_DEFAULT_PREC
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalGrammarDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1684,19 +1644,16 @@ func (p *Parser) state27() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state28() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_NO_LINES
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1709,19 +1666,16 @@ func (p *Parser) state28() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state29() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_NONDETERMINISTIC_PARSER
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1734,8 +1688,6 @@ func (p *Parser) state29() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -1760,11 +1712,10 @@ func (p *Parser) state30() error {
 func (p *Parser) state31() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_PURE_PARSER
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1777,8 +1728,6 @@ func (p *Parser) state31() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -1859,11 +1808,10 @@ func (p *Parser) state34() error {
 func (p *Parser) state35() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_TOKEN_TABLE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1876,19 +1824,16 @@ func (p *Parser) state35() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state36() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_VERBOSE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1901,19 +1846,16 @@ func (p *Parser) state36() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state37() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_YACC
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -1926,8 +1868,6 @@ func (p *Parser) state37() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -2102,11 +2042,10 @@ func (p *Parser) state38() error {
 func (p *Parser) state39() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PROLOGUE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2119,19 +2058,16 @@ func (p *Parser) state39() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state40() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> SEMICOLON
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2144,8 +2080,6 @@ func (p *Parser) state40() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -2170,19 +2104,6 @@ func (p *Parser) state41() error {
 func (p *Parser) state42() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: union_name -> %empty
-		nextState, err := p.gotoAfterNonterminal7(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol: NewNonterminal(NonterminalUnionName),
-		}
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// ID
 	case TokenId:
 		// Shift action
@@ -2194,18 +2115,27 @@ func (p *Parser) state42() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: union_name -> %empty
+		nextState, err := p.gotoAfterNonterminalUnionName(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol: NewNonterminal(NonterminalUnionName),
+		}
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
 func (p *Parser) state43() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declarations -> prologue_declarations prologue_declaration
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal2(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclarations(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2218,19 +2148,16 @@ func (p *Parser) state43() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state44() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> grammar_declaration
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2243,8 +2170,6 @@ func (p *Parser) state44() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -2269,11 +2194,10 @@ func (p *Parser) state45() error {
 func (p *Parser) state46() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: grammar_declaration -> symbol_declaration
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalGrammarDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2286,8 +2210,6 @@ func (p *Parser) state46() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -2342,11 +2264,10 @@ func (p *Parser) state47() error {
 func (p *Parser) state48() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> error SEMICOLON
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2359,19 +2280,16 @@ func (p *Parser) state48() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state49() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: id -> CHAR_LITERAL
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal34(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalId(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2384,19 +2302,16 @@ func (p *Parser) state49() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state50() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: id -> ID
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal34(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalId(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2409,8 +2324,6 @@ func (p *Parser) state50() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -2445,11 +2358,20 @@ func (p *Parser) state51() error {
 func (p *Parser) state52() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	// TAG
+	case TokenTag:
+		// Shift action
+		p.stateStack = append(p.stateStack, 100)
+		p.nodeStack = append(p.nodeStack, &Node{
+			Symbol: NewTerminal(terminal),
+			Lexeme: p.scanner.Lexeme(),
+		})
+		p.scanner.Next()
+		return nil
+	default:
 		// Reduce: symbol_declaration -> PERCENT_TOKEN token_decls
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal8(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalSymbolDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2462,41 +2384,12 @@ func (p *Parser) state52() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	// TAG
-	case TokenTag:
-		// Shift action
-		p.stateStack = append(p.stateStack, 100)
-		p.nodeStack = append(p.nodeStack, &Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state53() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: token_decls -> token_decl.1
-		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal16(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalTokenDecls),
-			Children: make([]*Node, 1),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// CHAR_LITERAL
 	case TokenCharLiteral:
 		// Shift action
@@ -2518,18 +2411,31 @@ func (p *Parser) state53() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: token_decls -> token_decl.1
+		p.stateStack = p.stateStack[:len(p.stateStack)-1]
+		nextState, err := p.gotoAfterNonterminalTokenDecls(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol:   NewNonterminal(NonterminalTokenDecls),
+			Children: make([]*Node, 1),
+		}
+		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
+		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
 func (p *Parser) state54() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: token_decl.1 -> token_decl
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal17(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalTokenDecl_1(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2542,27 +2448,12 @@ func (p *Parser) state54() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state55() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: int.opt -> %empty
-		nextState, err := p.gotoAfterNonterminal19(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol: NewNonterminal(NonterminalInt_opt),
-		}
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// INT_LITERAL
 	case TokenIntLiteral:
 		// Shift action
@@ -2574,18 +2465,27 @@ func (p *Parser) state55() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: int.opt -> %empty
+		nextState, err := p.gotoAfterNonterminalInt_opt(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol: NewNonterminal(NonterminalInt_opt),
+		}
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
 func (p *Parser) state56() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: symbol_declaration -> PERCENT_NTERM nterm_decls
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal8(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalSymbolDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2598,19 +2498,26 @@ func (p *Parser) state56() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state57() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	// TAG
+	case TokenTag:
+		// Shift action
+		p.stateStack = append(p.stateStack, 100)
+		p.nodeStack = append(p.nodeStack, &Node{
+			Symbol: NewTerminal(terminal),
+			Lexeme: p.scanner.Lexeme(),
+		})
+		p.scanner.Next()
+		return nil
+	default:
 		// Reduce: nterm_decls -> token_decls
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal15(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalNtermDecls(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2623,29 +2530,16 @@ func (p *Parser) state57() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	// TAG
-	case TokenTag:
-		// Shift action
-		p.stateStack = append(p.stateStack, 100)
-		p.nodeStack = append(p.nodeStack, &Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state58() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: string_as_id -> STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal37(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalStringAsId(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2658,8 +2552,6 @@ func (p *Parser) state58() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -2704,11 +2596,20 @@ func (p *Parser) state59() error {
 func (p *Parser) state60() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	// TAG
+	case TokenTag:
+		// Shift action
+		p.stateStack = append(p.stateStack, 105)
+		p.nodeStack = append(p.nodeStack, &Node{
+			Symbol: NewTerminal(terminal),
+			Lexeme: p.scanner.Lexeme(),
+		})
+		p.scanner.Next()
+		return nil
+	default:
 		// Reduce: symbol_declaration -> PERCENT_TYPE symbol_decls
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal8(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalSymbolDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2721,41 +2622,12 @@ func (p *Parser) state60() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	// TAG
-	case TokenTag:
-		// Shift action
-		p.stateStack = append(p.stateStack, 105)
-		p.nodeStack = append(p.nodeStack, &Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state61() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: symbol_decls -> symbols.1
-		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal24(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalSymbolDecls),
-			Children: make([]*Node, 1),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// STRING
 	case TokenString:
 		// Shift action
@@ -2787,18 +2659,31 @@ func (p *Parser) state61() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: symbol_decls -> symbols.1
+		p.stateStack = p.stateStack[:len(p.stateStack)-1]
+		nextState, err := p.gotoAfterNonterminalSymbolDecls(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol:   NewNonterminal(NonterminalSymbolDecls),
+			Children: make([]*Node, 1),
+		}
+		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
+		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
 func (p *Parser) state62() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: symbol -> id
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal36(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalSymbol(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2811,19 +2696,16 @@ func (p *Parser) state62() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state63() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: symbols.1 -> symbol
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal25(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalSymbols_1(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2836,19 +2718,16 @@ func (p *Parser) state63() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state64() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: symbol -> string_as_id
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal36(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalSymbol(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2861,19 +2740,16 @@ func (p *Parser) state64() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state65() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: grammar_declaration -> PERCENT_CODE BRACED_CODE
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalGrammarDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2886,8 +2762,6 @@ func (p *Parser) state65() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -2912,11 +2786,10 @@ func (p *Parser) state66() error {
 func (p *Parser) state67() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: variable -> ID
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal32(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalVariable(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -2929,27 +2802,12 @@ func (p *Parser) state67() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state68() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: value -> %empty
-		nextState, err := p.gotoAfterNonterminal33(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol: NewNonterminal(NonterminalValue),
-		}
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// STRING
 	case TokenString:
 		// Shift action
@@ -2981,18 +2839,27 @@ func (p *Parser) state68() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: value -> %empty
+		nextState, err := p.gotoAfterNonterminalValue(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol: NewNonterminal(NonterminalValue),
+		}
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
 func (p *Parser) state69() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_EXPECT INT_LITERAL
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3005,19 +2872,16 @@ func (p *Parser) state69() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state70() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_EXPECT_RR INT_LITERAL
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3030,19 +2894,16 @@ func (p *Parser) state70() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state71() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_FILE_PREFIX STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3055,19 +2916,16 @@ func (p *Parser) state71() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state72() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: string.opt -> STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal10(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalString_opt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3080,19 +2938,16 @@ func (p *Parser) state72() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state73() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_HEADER string.opt
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3105,19 +2960,16 @@ func (p *Parser) state73() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state74() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_INITIAL_ACTION BRACED_CODE
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3130,19 +2982,16 @@ func (p *Parser) state74() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state75() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_LANGUAGE STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3155,19 +3004,16 @@ func (p *Parser) state75() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state76() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_NAME_PREFIX STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3180,19 +3026,16 @@ func (p *Parser) state76() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state77() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_OUTPUT STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3205,19 +3048,16 @@ func (p *Parser) state77() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state78() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_REQUIRE STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3230,19 +3070,16 @@ func (p *Parser) state78() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state79() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_SKELETON STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3255,31 +3092,12 @@ func (p *Parser) state79() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state80() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: grammar_declaration -> PERCENT_START symbols.1
-		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalGrammarDeclaration),
-			Children: make([]*Node, 2),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// STRING
 	case TokenString:
 		// Shift action
@@ -3311,7 +3129,21 @@ func (p *Parser) state80() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: grammar_declaration -> PERCENT_START symbols.1
+		p.stateStack = p.stateStack[:len(p.stateStack)-2]
+		nextState, err := p.gotoAfterNonterminalGrammarDeclaration(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol:   NewNonterminal(NonterminalGrammarDeclaration),
+			Children: make([]*Node, 2),
+		}
+		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
+		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
@@ -3336,11 +3168,10 @@ func (p *Parser) state81() error {
 func (p *Parser) state82() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: id_colon -> ID_COLON
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal35(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalIdColon(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3353,8 +3184,6 @@ func (p *Parser) state82() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -3380,9 +3209,9 @@ func (p *Parser) state84() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	// $end
-	case Token_end:
+	case EndToken:
 		// Reduce: epilogue.opt -> %empty
-		nextState, err := p.gotoAfterNonterminal38(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalEpilogue_opt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3570,11 +3399,10 @@ func (p *Parser) state84() error {
 func (p *Parser) state85() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: grammar -> rules_or_grammar_declaration
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal26(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalGrammar(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3587,19 +3415,16 @@ func (p *Parser) state85() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state86() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rules_or_grammar_declaration -> rules
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal27(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRulesOrGrammarDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3612,27 +3437,12 @@ func (p *Parser) state86() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state87() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: named_ref.opt -> %empty
-		nextState, err := p.gotoAfterNonterminal31(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol: NewNonterminal(NonterminalNamedRef_opt),
-		}
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// BRACKETED_ID
 	case TokenBracketedId:
 		// Shift action
@@ -3644,18 +3454,27 @@ func (p *Parser) state87() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: named_ref.opt -> %empty
+		nextState, err := p.gotoAfterNonterminalNamedRef_opt(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol: NewNonterminal(NonterminalNamedRef_opt),
+		}
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
 func (p *Parser) state88() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: params -> BRACED_CODE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal4(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalParams(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3668,19 +3487,26 @@ func (p *Parser) state88() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state89() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	// BRACED_CODE
+	case TokenBracedCode:
+		// Shift action
+		p.stateStack = append(p.stateStack, 119)
+		p.nodeStack = append(p.nodeStack, &Node{
+			Symbol: NewTerminal(terminal),
+			Lexeme: p.scanner.Lexeme(),
+		})
+		p.scanner.Next()
+		return nil
+	default:
 		// Reduce: prologue_declaration -> PERCENT_PARAM params
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3693,29 +3519,16 @@ func (p *Parser) state89() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	// BRACED_CODE
-	case TokenBracedCode:
-		// Shift action
-		p.stateStack = append(p.stateStack, 119)
-		p.nodeStack = append(p.nodeStack, &Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state90() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: union_name -> ID
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal7(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalUnionName(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3728,8 +3541,6 @@ func (p *Parser) state90() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -3860,11 +3671,20 @@ func (p *Parser) state93() error {
 func (p *Parser) state94() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	// TAG
+	case TokenTag:
+		// Shift action
+		p.stateStack = append(p.stateStack, 129)
+		p.nodeStack = append(p.nodeStack, &Node{
+			Symbol: NewTerminal(terminal),
+			Lexeme: p.scanner.Lexeme(),
+		})
+		p.scanner.Next()
+		return nil
+	default:
 		// Reduce: symbol_declaration -> precedence_declarator token_decls_for_prec
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal8(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalSymbolDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3877,41 +3697,12 @@ func (p *Parser) state94() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	// TAG
-	case TokenTag:
-		// Shift action
-		p.stateStack = append(p.stateStack, 129)
-		p.nodeStack = append(p.nodeStack, &Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state95() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: token_decls_for_prec -> token_decl_for_prec.1
-		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal21(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalTokenDeclsForPrec),
-			Children: make([]*Node, 1),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// STRING
 	case TokenString:
 		// Shift action
@@ -3943,18 +3734,31 @@ func (p *Parser) state95() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: token_decls_for_prec -> token_decl_for_prec.1
+		p.stateStack = p.stateStack[:len(p.stateStack)-1]
+		nextState, err := p.gotoAfterNonterminalTokenDeclsForPrec(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol:   NewNonterminal(NonterminalTokenDeclsForPrec),
+			Children: make([]*Node, 1),
+		}
+		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
+		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
 func (p *Parser) state96() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: token_decl_for_prec.1 -> token_decl_for_prec
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal22(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalTokenDeclForPrec_1(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -3967,27 +3771,12 @@ func (p *Parser) state96() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state97() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: int.opt -> %empty
-		nextState, err := p.gotoAfterNonterminal19(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol: NewNonterminal(NonterminalInt_opt),
-		}
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// INT_LITERAL
 	case TokenIntLiteral:
 		// Shift action
@@ -3999,18 +3788,27 @@ func (p *Parser) state97() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: int.opt -> %empty
+		nextState, err := p.gotoAfterNonterminalInt_opt(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol: NewNonterminal(NonterminalInt_opt),
+		}
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
 func (p *Parser) state98() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: token_decl_for_prec -> string_as_id
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal23(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalTokenDeclForPrec(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4023,31 +3821,12 @@ func (p *Parser) state98() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state99() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: token_decls -> TAG token_decl.1
-		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal16(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalTokenDecls),
-			Children: make([]*Node, 2),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// CHAR_LITERAL
 	case TokenCharLiteral:
 		// Shift action
@@ -4069,7 +3848,21 @@ func (p *Parser) state99() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: token_decls -> TAG token_decl.1
+		p.stateStack = p.stateStack[:len(p.stateStack)-2]
+		nextState, err := p.gotoAfterNonterminalTokenDecls(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol:   NewNonterminal(NonterminalTokenDecls),
+			Children: make([]*Node, 2),
+		}
+		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
+		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
@@ -4104,11 +3897,10 @@ func (p *Parser) state100() error {
 func (p *Parser) state101() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: token_decl.1 -> token_decl.1 token_decl
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal17(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalTokenDecl_1(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4121,19 +3913,16 @@ func (p *Parser) state101() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state102() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: int.opt -> INT_LITERAL
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal19(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalInt_opt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4146,27 +3935,12 @@ func (p *Parser) state102() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state103() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: alias -> %empty
-		nextState, err := p.gotoAfterNonterminal20(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol: NewNonterminal(NonterminalAlias),
-		}
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// STRING
 	case TokenString:
 		// Shift action
@@ -4188,30 +3962,23 @@ func (p *Parser) state103() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: alias -> %empty
+		nextState, err := p.gotoAfterNonterminalAlias(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol: NewNonterminal(NonterminalAlias),
+		}
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
 func (p *Parser) state104() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: symbol_decls -> TAG symbols.1
-		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal24(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalSymbolDecls),
-			Children: make([]*Node, 2),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// STRING
 	case TokenString:
 		// Shift action
@@ -4243,7 +4010,21 @@ func (p *Parser) state104() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: symbol_decls -> TAG symbols.1
+		p.stateStack = p.stateStack[:len(p.stateStack)-2]
+		nextState, err := p.gotoAfterNonterminalSymbolDecls(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol:   NewNonterminal(NonterminalSymbolDecls),
+			Children: make([]*Node, 2),
+		}
+		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
+		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
@@ -4288,11 +4069,10 @@ func (p *Parser) state105() error {
 func (p *Parser) state106() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: symbols.1 -> symbols.1 symbol
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal25(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalSymbols_1(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4305,19 +4085,16 @@ func (p *Parser) state106() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state107() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: grammar_declaration -> PERCENT_CODE ID BRACED_CODE
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalGrammarDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4330,19 +4107,16 @@ func (p *Parser) state107() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state108() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: value -> STRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal33(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalValue(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4355,19 +4129,16 @@ func (p *Parser) state108() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state109() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: value -> BRACED_CODE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal33(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalValue(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4380,19 +4151,16 @@ func (p *Parser) state109() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state110() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: value -> ID
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal33(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalValue(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4405,19 +4173,16 @@ func (p *Parser) state110() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state111() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: prologue_declaration -> PERCENT_DEFINE variable value
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal3(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4430,19 +4195,16 @@ func (p *Parser) state111() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state112() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rules_or_grammar_declaration -> error SEMICOLON
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal27(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRulesOrGrammarDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4455,19 +4217,16 @@ func (p *Parser) state112() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state113() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rules_or_grammar_declaration -> grammar_declaration SEMICOLON
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal27(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRulesOrGrammarDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4480,8 +4239,6 @@ func (p *Parser) state113() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -4506,11 +4263,10 @@ func (p *Parser) state114() error {
 func (p *Parser) state115() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: grammar -> grammar rules_or_grammar_declaration
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal26(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalGrammar(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4523,19 +4279,16 @@ func (p *Parser) state115() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state116() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: input -> prologue_declarations PERCENT_PERCENT grammar epilogue.opt
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
-		nextState, err := p.gotoAfterNonterminal1(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalInput(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4548,19 +4301,16 @@ func (p *Parser) state116() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-4]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state117() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: named_ref.opt -> BRACKETED_ID
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal31(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalNamedRef_opt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4573,8 +4323,6 @@ func (p *Parser) state117() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -4599,11 +4347,10 @@ func (p *Parser) state118() error {
 func (p *Parser) state119() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: params -> params BRACED_CODE
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal4(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalParams(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4616,19 +4363,16 @@ func (p *Parser) state119() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state120() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: grammar_declaration -> PERCENT_UNION union_name BRACED_CODE
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalGrammarDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4641,19 +4385,16 @@ func (p *Parser) state120() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state121() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: tag -> TAG
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal14(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalTag(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4666,19 +4407,16 @@ func (p *Parser) state121() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state122() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: tag -> TAG_ANY
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal14(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalTag(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4691,19 +4429,16 @@ func (p *Parser) state122() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state123() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: tag -> TAG_NONE
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal14(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalTag(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4716,31 +4451,12 @@ func (p *Parser) state123() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state124() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: grammar_declaration -> code_props_type BRACED_CODE generic_symlist
-		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal5(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalGrammarDeclaration),
-			Children: make([]*Node, 3),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// STRING
 	case TokenString:
 		// Shift action
@@ -4802,18 +4518,31 @@ func (p *Parser) state124() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: grammar_declaration -> code_props_type BRACED_CODE generic_symlist
+		p.stateStack = p.stateStack[:len(p.stateStack)-3]
+		nextState, err := p.gotoAfterNonterminalGrammarDeclaration(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol:   NewNonterminal(NonterminalGrammarDeclaration),
+			Children: make([]*Node, 3),
+		}
+		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
+		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
 func (p *Parser) state125() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: generic_symlist -> generic_symlist_item
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal12(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalGenericSymlist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4826,19 +4555,16 @@ func (p *Parser) state125() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state126() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: generic_symlist_item -> tag
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal13(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalGenericSymlistItem(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4851,19 +4577,16 @@ func (p *Parser) state126() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state127() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: generic_symlist_item -> symbol
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal13(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalGenericSymlistItem(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4876,31 +4599,12 @@ func (p *Parser) state127() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state128() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: token_decls_for_prec -> TAG token_decl_for_prec.1
-		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal21(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalTokenDeclsForPrec),
-			Children: make([]*Node, 2),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// STRING
 	case TokenString:
 		// Shift action
@@ -4932,7 +4636,21 @@ func (p *Parser) state128() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: token_decls_for_prec -> TAG token_decl_for_prec.1
+		p.stateStack = p.stateStack[:len(p.stateStack)-2]
+		nextState, err := p.gotoAfterNonterminalTokenDeclsForPrec(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol:   NewNonterminal(NonterminalTokenDeclsForPrec),
+			Children: make([]*Node, 2),
+		}
+		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
+		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
@@ -4977,11 +4695,10 @@ func (p *Parser) state129() error {
 func (p *Parser) state130() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: token_decl_for_prec.1 -> token_decl_for_prec.1 token_decl_for_prec
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal22(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalTokenDeclForPrec_1(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -4994,19 +4711,16 @@ func (p *Parser) state130() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state131() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: token_decl_for_prec -> id int.opt
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal23(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalTokenDeclForPrec(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5019,19 +4733,36 @@ func (p *Parser) state131() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state132() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	// CHAR_LITERAL
+	case TokenCharLiteral:
+		// Shift action
+		p.stateStack = append(p.stateStack, 49)
+		p.nodeStack = append(p.nodeStack, &Node{
+			Symbol: NewTerminal(terminal),
+			Lexeme: p.scanner.Lexeme(),
+		})
+		p.scanner.Next()
+		return nil
+	// ID
+	case TokenId:
+		// Shift action
+		p.stateStack = append(p.stateStack, 50)
+		p.nodeStack = append(p.nodeStack, &Node{
+			Symbol: NewTerminal(terminal),
+			Lexeme: p.scanner.Lexeme(),
+		})
+		p.scanner.Next()
+		return nil
+	default:
 		// Reduce: token_decls -> token_decls TAG token_decl.1
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal16(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalTokenDecls(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5044,39 +4775,16 @@ func (p *Parser) state132() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	// CHAR_LITERAL
-	case TokenCharLiteral:
-		// Shift action
-		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// ID
-	case TokenId:
-		// Shift action
-		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state133() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: alias -> TSTRING
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal20(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalAlias(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5089,19 +4797,16 @@ func (p *Parser) state133() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state134() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: token_decl -> id int.opt alias
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal18(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalTokenDecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5114,19 +4819,16 @@ func (p *Parser) state134() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state135() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: alias -> string_as_id
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal20(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalAlias(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5139,19 +4841,46 @@ func (p *Parser) state135() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state136() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	// STRING
+	case TokenString:
+		// Shift action
+		p.stateStack = append(p.stateStack, 58)
+		p.nodeStack = append(p.nodeStack, &Node{
+			Symbol: NewTerminal(terminal),
+			Lexeme: p.scanner.Lexeme(),
+		})
+		p.scanner.Next()
+		return nil
+	// CHAR_LITERAL
+	case TokenCharLiteral:
+		// Shift action
+		p.stateStack = append(p.stateStack, 49)
+		p.nodeStack = append(p.nodeStack, &Node{
+			Symbol: NewTerminal(terminal),
+			Lexeme: p.scanner.Lexeme(),
+		})
+		p.scanner.Next()
+		return nil
+	// ID
+	case TokenId:
+		// Shift action
+		p.stateStack = append(p.stateStack, 50)
+		p.nodeStack = append(p.nodeStack, &Node{
+			Symbol: NewTerminal(terminal),
+			Lexeme: p.scanner.Lexeme(),
+		})
+		p.scanner.Next()
+		return nil
+	default:
 		// Reduce: symbol_decls -> symbol_decls TAG symbols.1
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal24(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalSymbolDecls(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5164,49 +4893,16 @@ func (p *Parser) state136() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	// STRING
-	case TokenString:
-		// Shift action
-		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// CHAR_LITERAL
-	case TokenCharLiteral:
-		// Shift action
-		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// ID
-	case TokenId:
-		// Shift action
-		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state137() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: epilogue.opt -> PERCENT_PERCENT EPILOGUE
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal38(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalEpilogue_opt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5219,18 +4915,15 @@ func (p *Parser) state137() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state138() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rhs -> %empty
-		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRhs(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5240,19 +4933,16 @@ func (p *Parser) state138() error {
 		}
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state139() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: generic_symlist -> generic_symlist generic_symlist_item
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal12(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalGenericSymlist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5265,31 +4955,12 @@ func (p *Parser) state139() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state140() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: token_decls_for_prec -> token_decls_for_prec TAG token_decl_for_prec.1
-		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal21(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalTokenDeclsForPrec),
-			Children: make([]*Node, 3),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// STRING
 	case TokenString:
 		// Shift action
@@ -5321,30 +4992,27 @@ func (p *Parser) state140() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: token_decls_for_prec -> token_decls_for_prec TAG token_decl_for_prec.1
+		p.stateStack = p.stateStack[:len(p.stateStack)-3]
+		nextState, err := p.gotoAfterNonterminalTokenDeclsForPrec(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol:   NewNonterminal(NonterminalTokenDeclsForPrec),
+			Children: make([]*Node, 3),
+		}
+		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
+		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
 func (p *Parser) state141() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: rules -> id_colon named_ref.opt COLON rhses.1
-		p.stateStack = p.stateStack[:len(p.stateStack)-4]
-		nextState, err := p.gotoAfterNonterminal28(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalRules),
-			Children: make([]*Node, 4),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-4:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-4]
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// PIPE
 	case TokenPipe:
 		// Shift action
@@ -5366,7 +5034,21 @@ func (p *Parser) state141() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: rules -> id_colon named_ref.opt COLON rhses.1
+		p.stateStack = p.stateStack[:len(p.stateStack)-4]
+		nextState, err := p.gotoAfterNonterminalRules(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol:   NewNonterminal(NonterminalRules),
+			Children: make([]*Node, 4),
+		}
+		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-4:])
+		p.nodeStack = p.nodeStack[:len(p.nodeStack)-4]
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
@@ -5376,7 +5058,7 @@ func (p *Parser) state142() error {
 	// BRACED_CODE
 	case TokenBracedCode:
 		// Reduce: tag.opt -> %empty
-		nextState, err := p.gotoAfterNonterminal11(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalTag_opt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5384,23 +5066,6 @@ func (p *Parser) state142() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalTag_opt),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
-	// $end
-	case Token_end:
-		// Reduce: rhses.1 -> rhs
-		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal29(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalRhses_1),
-			Children: make([]*Node, 1),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
@@ -5514,17 +5179,30 @@ func (p *Parser) state142() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: rhses.1 -> rhs
+		p.stateStack = p.stateStack[:len(p.stateStack)-1]
+		nextState, err := p.gotoAfterNonterminalRhses_1(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol:   NewNonterminal(NonterminalRhses_1),
+			Children: make([]*Node, 1),
+		}
+		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
+		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
 func (p *Parser) state143() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rhs -> %empty
-		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRhs(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5534,19 +5212,16 @@ func (p *Parser) state143() error {
 		}
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state144() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rhses.1 -> rhses.1 SEMICOLON
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal29(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRhses_1(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5559,8 +5234,6 @@ func (p *Parser) state144() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -5677,11 +5350,10 @@ func (p *Parser) state149() error {
 func (p *Parser) state150() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rhs -> rhs BRACED_PREDICATE
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRhs(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5694,19 +5366,16 @@ func (p *Parser) state150() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state151() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: tag.opt -> TAG
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminal11(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalTag_opt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5719,19 +5388,16 @@ func (p *Parser) state151() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state152() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rhs -> rhs PERCENT_EMPTY
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRhs(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5744,8 +5410,6 @@ func (p *Parser) state152() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
@@ -5770,19 +5434,6 @@ func (p *Parser) state153() error {
 func (p *Parser) state154() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: named_ref.opt -> %empty
-		nextState, err := p.gotoAfterNonterminal31(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol: NewNonterminal(NonterminalNamedRef_opt),
-		}
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// BRACKETED_ID
 	case TokenBracketedId:
 		// Shift action
@@ -5794,7 +5445,17 @@ func (p *Parser) state154() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: named_ref.opt -> %empty
+		nextState, err := p.gotoAfterNonterminalNamedRef_opt(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol: NewNonterminal(NonterminalNamedRef_opt),
+		}
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
@@ -5804,7 +5465,7 @@ func (p *Parser) state155() error {
 	// BRACED_CODE
 	case TokenBracedCode:
 		// Reduce: tag.opt -> %empty
-		nextState, err := p.gotoAfterNonterminal11(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalTag_opt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5812,23 +5473,6 @@ func (p *Parser) state155() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalTag_opt),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
-	// $end
-	case Token_end:
-		// Reduce: rhses.1 -> rhses.1 PIPE rhs
-		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal29(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalRhses_1),
-			Children: make([]*Node, 3),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
 	// STRING
@@ -5942,18 +5586,31 @@ func (p *Parser) state155() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: rhses.1 -> rhses.1 PIPE rhs
+		p.stateStack = p.stateStack[:len(p.stateStack)-3]
+		nextState, err := p.gotoAfterNonterminalRhses_1(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol:   NewNonterminal(NonterminalRhses_1),
+			Children: make([]*Node, 3),
+		}
+		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
+		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
 func (p *Parser) state156() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rhs -> rhs PERCENT_PREC symbol
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRhs(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5966,19 +5623,16 @@ func (p *Parser) state156() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state157() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rhs -> rhs PERCENT_DPREC INT_LITERAL
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRhs(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -5991,19 +5645,16 @@ func (p *Parser) state157() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state158() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rhs -> rhs PERCENT_MERGE TAG
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRhs(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -6016,19 +5667,16 @@ func (p *Parser) state158() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state159() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rhs -> rhs PERCENT_EXPECT INT_LITERAL
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRhs(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -6041,19 +5689,16 @@ func (p *Parser) state159() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state160() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rhs -> rhs PERCENT_EXPECT_RR INT_LITERAL
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRhs(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -6066,27 +5711,12 @@ func (p *Parser) state160() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state161() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
-		// Reduce: named_ref.opt -> %empty
-		nextState, err := p.gotoAfterNonterminal31(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol: NewNonterminal(NonterminalNamedRef_opt),
-		}
-		p.nodeStack = append(p.nodeStack, &newNode)
-		return nil
 	// BRACKETED_ID
 	case TokenBracketedId:
 		// Shift action
@@ -6098,18 +5728,27 @@ func (p *Parser) state161() error {
 		p.scanner.Next()
 		return nil
 	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+		// Reduce: named_ref.opt -> %empty
+		nextState, err := p.gotoAfterNonterminalNamedRef_opt(p.stateStack[len(p.stateStack)-1])
+		if err != nil {
+			return err
+		}
+		p.stateStack = append(p.stateStack, nextState)
+		newNode := Node{
+			Symbol: NewNonterminal(NonterminalNamedRef_opt),
+		}
+		p.nodeStack = append(p.nodeStack, &newNode)
+		return nil
 	}
 }
 
 func (p *Parser) state162() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rhs -> rhs symbol named_ref.opt
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRhs(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -6122,19 +5761,16 @@ func (p *Parser) state162() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
 func (p *Parser) state163() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// $end
-	case Token_end:
+	default:
 		// Reduce: rhs -> rhs tag.opt BRACED_CODE named_ref.opt
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
-		nextState, err := p.gotoAfterNonterminal30(p.stateStack[len(p.stateStack)-1])
+		nextState, err := p.gotoAfterNonterminalRhs(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
 			return err
 		}
@@ -6147,55 +5783,53 @@ func (p *Parser) state163() error {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-4]
 		p.nodeStack = append(p.nodeStack, &newNode)
 		return nil
-	default:
-		return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal0(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminal_accept(state int) (int, error) {
 	switch state {
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal0", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal_accept", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal1(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalInput(state int) (int, error) {
 	switch state {
 	case 0:
 		return 1, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal1", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalInput", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal2(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalPrologueDeclarations(state int) (int, error) {
 	switch state {
 	case 0:
 		return 2, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal2", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalPrologueDeclarations", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal3(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalPrologueDeclaration(state int) (int, error) {
 	switch state {
 	case 2:
 		return 43, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal3", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalPrologueDeclaration", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal4(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalParams(state int) (int, error) {
 	switch state {
 	case 41:
 		return 89, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal4", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalParams", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal5(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalGrammarDeclaration(state int) (int, error) {
 	switch state {
 	case 2:
 		return 44, nil
@@ -6204,11 +5838,11 @@ func (p *Parser) gotoAfterNonterminal5(state int) (int, error) {
 	case 84:
 		return 83, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal5", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalGrammarDeclaration", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal6(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalCodePropsType(state int) (int, error) {
 	switch state {
 	case 2:
 		return 45, nil
@@ -6217,20 +5851,20 @@ func (p *Parser) gotoAfterNonterminal6(state int) (int, error) {
 	case 84:
 		return 45, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal6", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalCodePropsType", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal7(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalUnionName(state int) (int, error) {
 	switch state {
 	case 42:
 		return 91, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal7", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalUnionName", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal8(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalSymbolDeclaration(state int) (int, error) {
 	switch state {
 	case 2:
 		return 46, nil
@@ -6239,11 +5873,11 @@ func (p *Parser) gotoAfterNonterminal8(state int) (int, error) {
 	case 84:
 		return 46, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal8", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalSymbolDeclaration", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal9(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalPrecedenceDeclarator(state int) (int, error) {
 	switch state {
 	case 2:
 		return 47, nil
@@ -6252,82 +5886,82 @@ func (p *Parser) gotoAfterNonterminal9(state int) (int, error) {
 	case 84:
 		return 47, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal9", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalPrecedenceDeclarator", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal10(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalString_opt(state int) (int, error) {
 	switch state {
 	case 23:
 		return 73, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal10", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalString_opt", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal11(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalTag_opt(state int) (int, error) {
 	switch state {
 	case 142:
 		return 153, nil
 	case 155:
 		return 153, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal11", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalTag_opt", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal12(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalGenericSymlist(state int) (int, error) {
 	switch state {
 	case 92:
 		return 124, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal12", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalGenericSymlist", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal13(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalGenericSymlistItem(state int) (int, error) {
 	switch state {
 	case 92:
 		return 125, nil
 	case 124:
 		return 139, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal13", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalGenericSymlistItem", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal14(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalTag(state int) (int, error) {
 	switch state {
 	case 92:
 		return 126, nil
 	case 124:
 		return 126, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal14", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalTag", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal15(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalNtermDecls(state int) (int, error) {
 	switch state {
 	case 6:
 		return 56, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal15", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalNtermDecls", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal16(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalTokenDecls(state int) (int, error) {
 	switch state {
 	case 5:
 		return 52, nil
 	case 6:
 		return 57, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal16", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalTokenDecls", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal17(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalTokenDecl_1(state int) (int, error) {
 	switch state {
 	case 5:
 		return 53, nil
@@ -6338,11 +5972,11 @@ func (p *Parser) gotoAfterNonterminal17(state int) (int, error) {
 	case 100:
 		return 132, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal17", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalTokenDecl_1", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal18(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalTokenDecl(state int) (int, error) {
 	switch state {
 	case 5:
 		return 54, nil
@@ -6359,40 +5993,40 @@ func (p *Parser) gotoAfterNonterminal18(state int) (int, error) {
 	case 132:
 		return 101, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal18", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalTokenDecl", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal19(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalInt_opt(state int) (int, error) {
 	switch state {
 	case 55:
 		return 103, nil
 	case 97:
 		return 131, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal19", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalInt_opt", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal20(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalAlias(state int) (int, error) {
 	switch state {
 	case 103:
 		return 134, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal20", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalAlias", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal21(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalTokenDeclsForPrec(state int) (int, error) {
 	switch state {
 	case 47:
 		return 94, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal21", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalTokenDeclsForPrec", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal22(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalTokenDeclForPrec_1(state int) (int, error) {
 	switch state {
 	case 47:
 		return 95, nil
@@ -6401,11 +6035,11 @@ func (p *Parser) gotoAfterNonterminal22(state int) (int, error) {
 	case 129:
 		return 140, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal22", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalTokenDeclForPrec_1", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal23(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalTokenDeclForPrec(state int) (int, error) {
 	switch state {
 	case 47:
 		return 96, nil
@@ -6420,20 +6054,20 @@ func (p *Parser) gotoAfterNonterminal23(state int) (int, error) {
 	case 140:
 		return 130, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal23", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalTokenDeclForPrec", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal24(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalSymbolDecls(state int) (int, error) {
 	switch state {
 	case 7:
 		return 60, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal24", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalSymbolDecls", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal25(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalSymbols_1(state int) (int, error) {
 	switch state {
 	case 7:
 		return 61, nil
@@ -6444,62 +6078,62 @@ func (p *Parser) gotoAfterNonterminal25(state int) (int, error) {
 	case 105:
 		return 136, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal25", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalSymbols_1", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal26(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalGrammar(state int) (int, error) {
 	switch state {
 	case 38:
 		return 84, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal26", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalGrammar", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal27(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalRulesOrGrammarDeclaration(state int) (int, error) {
 	switch state {
 	case 38:
 		return 85, nil
 	case 84:
 		return 115, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal27", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalRulesOrGrammarDeclaration", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal28(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalRules(state int) (int, error) {
 	switch state {
 	case 38:
 		return 86, nil
 	case 84:
 		return 86, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal28", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalRules", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal29(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalRhses_1(state int) (int, error) {
 	switch state {
 	case 138:
 		return 141, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal29", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalRhses_1", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal30(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalRhs(state int) (int, error) {
 	switch state {
 	case 138:
 		return 142, nil
 	case 143:
 		return 155, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal30", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalRhs", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal31(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalNamedRef_opt(state int) (int, error) {
 	switch state {
 	case 87:
 		return 118, nil
@@ -6508,29 +6142,29 @@ func (p *Parser) gotoAfterNonterminal31(state int) (int, error) {
 	case 161:
 		return 163, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal31", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalNamedRef_opt", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal32(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalVariable(state int) (int, error) {
 	switch state {
 	case 16:
 		return 68, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal32", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalVariable", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal33(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalValue(state int) (int, error) {
 	switch state {
 	case 68:
 		return 111, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal33", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalValue", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal34(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalId(state int) (int, error) {
 	switch state {
 	case 5:
 		return 55, nil
@@ -6585,22 +6219,22 @@ func (p *Parser) gotoAfterNonterminal34(state int) (int, error) {
 	case 155:
 		return 62, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal34", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalId", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal35(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalIdColon(state int) (int, error) {
 	switch state {
 	case 38:
 		return 87, nil
 	case 84:
 		return 87, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal35", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalIdColon", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal36(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalSymbol(state int) (int, error) {
 	switch state {
 	case 7:
 		return 63, nil
@@ -6629,11 +6263,11 @@ func (p *Parser) gotoAfterNonterminal36(state int) (int, error) {
 	case 155:
 		return 154, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal36", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalSymbol", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal37(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalStringAsId(state int) (int, error) {
 	switch state {
 	case 7:
 		return 64, nil
@@ -6676,15 +6310,15 @@ func (p *Parser) gotoAfterNonterminal37(state int) (int, error) {
 	case 155:
 		return 64, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal37", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalStringAsId", ErrInternal))
 	}
 }
 
-func (p *Parser) gotoAfterNonterminal38(state int) (int, error) {
+func (p *Parser) gotoAfterNonterminalEpilogue_opt(state int) (int, error) {
 	switch state {
 	case 84:
 		return 116, nil
 	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal38", ErrInternal))
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalEpilogue_opt", ErrInternal))
 	}
 }

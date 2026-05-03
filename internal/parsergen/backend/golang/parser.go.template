@@ -10,9 +10,9 @@ import (
 type Nonterminal int
 
 const (
-{{- range $i, $nonterminal := .Parser.Grammar.Nonterminals }}
-    {{ nonterminalName $nonterminal }} Nonterminal = {{ $i }} // {{ $nonterminal.Name }}{{ if ne $nonterminal.Alias "" }} ({{ $nonterminal.Alias }}){{ end }}
-{{- end }}
+    {{- range $i, $nonterminal := .Parser.Grammar.Nonterminals }}
+        {{ nonterminalName $nonterminal }} Nonterminal = {{ $i }} // {{ $nonterminal.Name }}{{ if ne $nonterminal.Alias "" }} ({{ $nonterminal.Alias }}){{ end }}
+    {{- end }}
 )
 
 // Nonterminal implements fmt.Stringer.
@@ -21,9 +21,9 @@ var _ fmt.Stringer = (*Nonterminal)(nil)
 // String returns a string representation of the nonterminal.
 func (n Nonterminal) String() string {
     switch n {
-{{- range $i, $nonterminal := .Parser.Grammar.Nonterminals }}
-    case {{ nonterminalName $nonterminal}}: return `{{ $nonterminal.Name }}`
-{{- end }}
+    {{- range $i, $nonterminal := .Parser.Grammar.Nonterminals }}
+        case {{ nonterminalName $nonterminal}}: return `{{ $nonterminal.Name }}`
+    {{- end }}
     default:
         return "unknown"
     }
@@ -167,10 +167,10 @@ func (p *Parser) Parse(scanner ParserScanner) (*Node, error) {
 
 func (p *Parser) dispatchState(state int) error {
     switch state {
-{{- range $i, $state := .Parser.States }}
-    case {{ $i }}:
-        return p.state{{ $i }}()
-{{- end }}
+    {{- range $i, $state := .Parser.States }}
+        case {{ $i }}:
+            return p.state{{ $i }}()
+    {{- end }}
     default:
         return p.raiseError(fmt.Errorf("%w: unexpected parser state %d", ErrInternal, state))
     }
@@ -193,62 +193,92 @@ func (p *Parser) raiseError(cause error) error {
 func (p *Parser) state{{ $i }}() error {
     terminal := p.scanner.Token()
     switch terminal {
-{{- range $stateAction := stateActions $.Parser.Grammar $state }}
-    // {{ range $j, $symbol := $stateAction.LookaheadSymbols }}{{ if gt $j 0 }}, {{ end }}{{ $symbol.Name }}{{ end }}
-    case {{ range $j, $terminal := $stateAction.LookaheadSymbols }}{{ if gt $j 0 }}, {{ end }}{{ terminalName $terminal }}{{ end }}:
-    {{- if $stateAction.IsReduce }}
-        // Reduce: {{ displayProduction $.Parser.Grammar $stateAction.ProductionIdx }}
-        {{- if ne $stateAction.PopSymbolCount 0 }}
-        p.stateStack = p.stateStack[:len(p.stateStack)-{{ $stateAction.PopSymbolCount }}]
-        {{- end }}
-        nextState, err := p.gotoAfterNonterminal{{ $stateAction.PushSymbol }}(p.stateStack[len(p.stateStack)-1])
-        if err != nil {
-            return err
-        }
-        p.stateStack = append(p.stateStack, nextState)
-        newNode := Node {
-            Symbol: NewNonterminal({{ nonterminalName (index $.Parser.Grammar.Nonterminals $stateAction.PushSymbol) }}),
+    {{- range $stateAction := stateActions $.Parser.Grammar $state }}
+        // {{ range $j, $symbol := $stateAction.LookaheadSymbols }}{{ if gt $j 0 }}, {{ end }}{{ $symbol.Name }}{{ end }}
+        case {{ range $j, $terminal := $stateAction.LookaheadSymbols }}{{ if gt $j 0 }}, {{ end }}{{ terminalName $terminal }}{{ end }}:
+        {{- if $stateAction.IsReduce }}
+            // Reduce: {{ displayProduction $.Parser.Grammar $stateAction.ProductionIdx }}
             {{- if ne $stateAction.PopSymbolCount 0 }}
-            Children: make([]*Node, {{ $stateAction.PopSymbolCount }}),
+            p.stateStack = p.stateStack[:len(p.stateStack)-{{ $stateAction.PopSymbolCount }}]
             {{- end }}
-        }
-        {{- if ne $stateAction.PopSymbolCount 0 }}
-        copy(newNode.Children, p.nodeStack[len(p.nodeStack)-{{ $stateAction.PopSymbolCount }}:])
-        p.nodeStack = p.nodeStack[:len(p.nodeStack)-{{ $stateAction.PopSymbolCount }}]
-        {{- end }}
-        p.nodeStack = append(p.nodeStack, &newNode)
-        {{- if eq $stateAction.ProductionIdx 0 }}
-        // The parse is successfully finished.
-        return errAccept
+            nextState, err := p.gotoAfter{{ nonterminalName (index $.Parser.Grammar.Nonterminals $stateAction.PushSymbol) }}(p.stateStack[len(p.stateStack)-1])
+            if err != nil {
+                return err
+            }
+            p.stateStack = append(p.stateStack, nextState)
+            newNode := Node {
+                Symbol: NewNonterminal({{ nonterminalName (index $.Parser.Grammar.Nonterminals $stateAction.PushSymbol) }}),
+                {{- if ne $stateAction.PopSymbolCount 0 }}
+                Children: make([]*Node, {{ $stateAction.PopSymbolCount }}),
+                {{- end }}
+            }
+            {{- if ne $stateAction.PopSymbolCount 0 }}
+            copy(newNode.Children, p.nodeStack[len(p.nodeStack)-{{ $stateAction.PopSymbolCount }}:])
+            p.nodeStack = p.nodeStack[:len(p.nodeStack)-{{ $stateAction.PopSymbolCount }}]
+            {{- end }}
+            p.nodeStack = append(p.nodeStack, &newNode)
+            {{- if eq $stateAction.ProductionIdx 0 }}
+            // The parse is successfully finished.
+            return errAccept
+            {{- else }}
+            return nil
+            {{- end }}
         {{- else }}
-        return nil
+            // Shift action
+            p.stateStack = append(p.stateStack, {{ $stateAction.PushState }})
+            p.nodeStack = append(p.nodeStack, &Node{
+                Symbol: NewTerminal(terminal),
+                Lexeme: p.scanner.Lexeme(),
+            })
+            p.scanner.Next()
+            return nil
         {{- end }}
-    {{- else }}
-        // Shift action
-        p.stateStack = append(p.stateStack, {{ $stateAction.PushState }})
-        p.nodeStack = append(p.nodeStack, &Node{
-            Symbol: NewTerminal(terminal),
-            Lexeme: p.scanner.Lexeme(),
-        })
-        p.scanner.Next()
-        return nil
     {{- end }}
-{{- end }}
     default:
-        return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+        {{- $stateAction := defaultReduce $.Parser.Grammar $state }}
+        {{- if $stateAction }}
+            // Reduce: {{ displayProduction $.Parser.Grammar $stateAction.ProductionIdx }}
+            {{- if ne $stateAction.PopSymbolCount 0 }}
+                p.stateStack = p.stateStack[:len(p.stateStack)-{{ $stateAction.PopSymbolCount }}]
+            {{- end }}
+            nextState, err := p.gotoAfter{{ nonterminalName (index $.Parser.Grammar.Nonterminals $stateAction.PushSymbol) }}(p.stateStack[len(p.stateStack)-1])
+            if err != nil {
+                return err
+            }
+            p.stateStack = append(p.stateStack, nextState)
+            newNode := Node {
+                Symbol: NewNonterminal({{ nonterminalName (index $.Parser.Grammar.Nonterminals $stateAction.PushSymbol) }}),
+                {{- if ne $stateAction.PopSymbolCount 0 }}
+                Children: make([]*Node, {{ $stateAction.PopSymbolCount }}),
+                {{- end }}
+            }
+            {{- if ne $stateAction.PopSymbolCount 0 }}
+                copy(newNode.Children, p.nodeStack[len(p.nodeStack)-{{ $stateAction.PopSymbolCount }}:])
+                p.nodeStack = p.nodeStack[:len(p.nodeStack)-{{ $stateAction.PopSymbolCount }}]
+            {{- end }}
+            p.nodeStack = append(p.nodeStack, &newNode)
+            {{- if eq $stateAction.ProductionIdx 0 }}
+                // The parse is successfully finished.
+                return errAccept
+            {{- else }}
+                return nil
+            {{- end }}
+        {{- else }}
+            return p.raiseError(fmt.Errorf("unexpected token %s", terminal))
+        {{- end }}
     }
 }
 {{ end }}
 
 {{ range $i, $nonterminal := .Parser.Grammar.Nonterminals }}
-func (p *Parser) gotoAfterNonterminal{{ $i }}(state int) (int, error) {
-    switch state {
-{{- range gotoAfterNonterminal $.Parser $i }}
-    case {{ .SourceStateIdx }}:
-        return {{ .DestinationStateIdx }}, nil
-{{- end }}
-    default:
-        return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal{{ $i }}", ErrInternal))
+    func (p *Parser) gotoAfter{{ nonterminalName $nonterminal }}(state int) (int, error) {
+        switch state {
+        {{- range gotoAfterNonterminal $.Parser $i }}
+            case {{ .SourceStateIdx }}:
+                return {{ .DestinationStateIdx }}, nil
+        {{- end }}
+        default:
+            return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfter{{ nonterminalName $nonterminal }}", ErrInternal))
+        }
     }
-}
 {{ end }}

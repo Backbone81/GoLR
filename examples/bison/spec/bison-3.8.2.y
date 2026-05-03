@@ -77,7 +77,7 @@
   EPILOGUE         
   EQUAL
   ID                
-  ID_COLON          
+  ID_COLON
   PERCENT_PERCENT
   PIPE
   PROLOGUE

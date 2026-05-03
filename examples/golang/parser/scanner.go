@@ -99,7 +99,7 @@ const (
 	TokenString       Token = 80
 	// InvalidToken is a terminal which does not exist. It is used for situations where no token was found yet.
 	InvalidToken Token = ^Token(0)
-	Token_end    Token = InvalidToken - 1
+	EndToken     Token = InvalidToken - 1
 	TokenError   Token = InvalidToken - 2
 )
 
@@ -273,7 +273,7 @@ func (t Token) String() string {
 		return `STRING`
 	case InvalidToken:
 		return "invalid token"
-	case Token_end:
+	case EndToken:
 		return "end token"
 	case TokenError:
 		return "token error"
@@ -361,7 +361,7 @@ func (s *Scanner) Next() bool {
 		s.err = nil
 		return true
 	}
-	s.token = InvalidToken
+	s.token = EndToken
 	return false
 }
 

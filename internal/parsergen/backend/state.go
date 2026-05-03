@@ -15,6 +15,10 @@ type State struct {
 
 	// ReduceActions provides a set of all reduce actions.
 	ReduceActions ReduceActionSet `json:"reduceActions" yaml:"reduce_actions"`
+
+	// DefaultReduceProductionIdx provides the production index for a default reduce action on any lookahead. Is nil
+	// if not set.
+	DefaultReduceProductionIdx *int `json:"defaultReduceProductionIdx,omitempty" yaml:"default_reduce_production_idx,omitempty"`
 }
 
 // State implements fmt.Stringer

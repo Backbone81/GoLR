@@ -22,6 +22,7 @@ var parserTemplate string
 
 var parsedTemplate = template.Must(template.New("parser.go.template").Funcs(template.FuncMap{
 	"stateActions":         buildStateActions,
+	"defaultReduce":        buildDefaultReduce,
 	"gotoAfterNonterminal": buildGotoAfterNonterminal,
 	"displayProduction":    displayProduction,
 	"terminalName":         terminalName,
@@ -134,6 +135,21 @@ func buildStateActions(grammar frontend.Grammar, state backend.State) ([]StateAc
 	return result, nil
 }
 
+func buildDefaultReduce(grammar frontend.Grammar, state backend.State) (*StateAction, error) {
+	if state.DefaultReduceProductionIdx == nil {
+		return nil, nil
+	}
+
+	var action StateAction
+	action.IsReduce = true
+
+	production := grammar.Productions[*state.DefaultReduceProductionIdx]
+	action.ProductionIdx = *state.DefaultReduceProductionIdx
+	action.PopSymbolCount = len(production.SymbolRefs)
+	action.PushSymbol = production.NonterminalIdx
+	return &action, nil
+}
+
 type Goto struct {
 	SourceStateIdx      int
 	DestinationStateIdx int
@@ -180,6 +196,9 @@ func displayProduction(grammar frontend.Grammar, productionIdx int) string {
 }
 
 func terminalName(symbol frontend.Symbol) string {
+	if symbol.Name == "$end" {
+		return "EndToken"
+	}
 	name := utils.GoIdentifier(symbol.Name)
 	return fmt.Sprintf("Token%s", name)
 }
