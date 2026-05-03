@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"golr/internal/scannergen/backend"
 	"io"
 	"os"
 	"runtime/trace"
 	"strings"
+
+	"golr/internal/scannergen/backend"
 )
 
 // ToDFA reads the deterministic finite automaton as JSON document from the given reader. Returns an error if the JSON

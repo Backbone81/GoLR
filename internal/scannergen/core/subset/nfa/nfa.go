@@ -2,8 +2,9 @@ package nfa
 
 import (
 	"context"
-	"golr/internal/scannergen/frontend"
 	"runtime/trace"
+
+	"golr/internal/scannergen/frontend"
 )
 
 // State is a single NFA state.

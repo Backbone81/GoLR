@@ -6,10 +6,8 @@ import (
 	"unicode/utf8"
 )
 
-var (
-	// ErrInvalidUTF8Encoding is an error used when decoding a UTF-8 rune fails.
-	ErrInvalidUTF8Encoding = errors.New("invalid UTF-8 encoding")
-)
+// ErrInvalidUTF8Encoding is an error used when decoding a UTF-8 rune fails.
+var ErrInvalidUTF8Encoding = errors.New("invalid UTF-8 encoding")
 
 // UTF8RuneReader extracts individual runes from the source provided. It does decode UTF-8 encoded runes as needed.
 // It keeps track of the overall byte offset of the rune from the start.

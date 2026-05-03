@@ -1,14 +1,14 @@
 package dfa_test
 
 import (
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"golr/internal/scannergen/backend"
 	"golr/internal/scannergen/core/subset/dfa"
 	"golr/internal/scannergen/core/subset/nfa"
 	"golr/internal/scannergen/frontend"
 	"golr/internal/utils"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("SubsetConstruction", func() {

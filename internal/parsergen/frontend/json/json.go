@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"golr/internal/parsergen/frontend"
 	"io"
 	"os"
 	"runtime/trace"
 	"strings"
+
+	"golr/internal/parsergen/frontend"
 )
 
 // ToGrammar reads the context free grammar as JSON document from the given reader. Returns an error if the JSON

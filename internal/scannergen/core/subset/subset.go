@@ -2,11 +2,12 @@ package thompsons
 
 import (
 	"context"
+	"runtime/trace"
+
 	"golr/internal/scannergen/backend"
 	"golr/internal/scannergen/core/subset/dfa"
 	"golr/internal/scannergen/core/subset/nfa"
 	"golr/internal/scannergen/frontend"
-	"runtime/trace"
 )
 
 // RulesToDFA creates a deterministic finite automaton from a set of rules.

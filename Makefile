@@ -8,10 +8,10 @@ lint:
 	docker run \
 		--tty \
 		--rm \
-		--volume ${PWD}:/app:ro \
+		--volume ${PWD}:/app \
 		--workdir /app \
 		golangci/golangci-lint:v2.11.4 \
-		golangci-lint run $(PACKAGE)
+		golangci-lint run --fix $(PACKAGE)
 
 .PHONY: generate
 generate:

@@ -2,8 +2,9 @@ package backend
 
 import (
 	"fmt"
-	"golr/internal/parsergen/frontend"
 	"strings"
+
+	"golr/internal/parsergen/frontend"
 )
 
 // Parser is a parser.
@@ -15,7 +16,7 @@ type Parser struct {
 	States []State `json:"states" yaml:"states"`
 }
 
-// Parser implements fmt.Stringer
+// Parser implements fmt.Stringer.
 var _ fmt.Stringer = (*Parser)(nil)
 
 // String returns a string representation.
@@ -23,7 +24,7 @@ func (p Parser) String() string {
 	var builder strings.Builder
 	builder.WriteString(p.Grammar.String())
 	for i := range p.States {
-		builder.WriteString(fmt.Sprintf("state %d:\n", i))
+		fmt.Fprintf(&builder, "state %d:\n", i)
 		builder.WriteString(p.States[i].String())
 		builder.WriteString("\n")
 	}

@@ -2,10 +2,11 @@ package frontend
 
 import (
 	"fmt"
-	"golr/internal/utils"
 	"slices"
 
 	"github.com/goccy/go-yaml"
+
+	"golr/internal/utils"
 )
 
 // SymbolRef is either a terminal index or a nonterminal index. The most significant bit is used to signal a
@@ -61,10 +62,10 @@ func (s SymbolRef) String() string {
 	return fmt.Sprintf("terminal %d", s.Idx())
 }
 
-// symbolIdxMarshal is a helper struct which is only used for marshaling
+// symbolIdxMarshal is a helper struct which is only used for marshaling.
 type symbolIdxMarshal struct {
 	Nonterminal bool `json:"nonterminal" yaml:"nonterminal"`
-	Index       int  `json:"index" yaml:"index"`
+	Index       int  `json:"index"       yaml:"index"`
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.

@@ -1,13 +1,14 @@
 package nfa_test
 
 import (
-	thompsonsnfa "golr/internal/scannergen/core/subset/nfa"
-	"golr/internal/scannergen/frontend"
-	"golr/internal/scannergen/frontend/dsl"
 	"unicode"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	thompsonsnfa "golr/internal/scannergen/core/subset/nfa"
+	"golr/internal/scannergen/frontend"
+	"golr/internal/scannergen/frontend/dsl"
 )
 
 var _ = Describe("Any", func() {

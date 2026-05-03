@@ -21,7 +21,7 @@ type State struct {
 	DefaultReduceProductionIdx *int `json:"defaultReduceProductionIdx,omitempty" yaml:"default_reduce_production_idx,omitempty"`
 }
 
-// State implements fmt.Stringer
+// State implements fmt.Stringer.
 var _ fmt.Stringer = (*State)(nil)
 
 // String returns a string representation.

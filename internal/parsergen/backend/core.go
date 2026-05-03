@@ -2,10 +2,11 @@ package backend
 
 import (
 	"fmt"
-	"golr/internal/utils"
 	"slices"
 
 	"github.com/goccy/go-yaml"
+
+	"golr/internal/utils"
 )
 
 // Core is the core of an LR(1) item consisting of a production index and a position within that production. The values
@@ -45,17 +46,17 @@ func (c Core) Position() int {
 	return int(c & corePositionMask)
 }
 
-// Core implements fmt.Stringer
+// Core implements fmt.Stringer.
 var _ fmt.Stringer = (*Core)(nil)
 
-// String returns a string representation
+// String returns a string representation.
 func (c Core) String() string {
 	return fmt.Sprintf("(production %d, position %d)", c.ProductionIdx(), c.Position())
 }
 
 type coreMarshal struct {
 	ProductionIdx int `json:"productionIdx" yaml:"production_idx"`
-	Position      int `json:"position" yaml:"position"`
+	Position      int `json:"position"      yaml:"position"`
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.

@@ -6,7 +6,7 @@ type WhitespaceSkipper struct {
 	Scanner ParserScanner
 }
 
-// WhitespaceSkipper implements ParserScanner
+// WhitespaceSkipper implements ParserScanner.
 var _ ParserScanner = (*WhitespaceSkipper)(nil)
 
 func (s *WhitespaceSkipper) Err() error {

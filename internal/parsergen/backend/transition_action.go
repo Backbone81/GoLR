@@ -2,11 +2,12 @@ package backend
 
 import (
 	"fmt"
-	"golr/internal/parsergen/frontend"
-	"golr/internal/utils"
 	"slices"
 
 	"github.com/goccy/go-yaml"
+
+	"golr/internal/parsergen/frontend"
+	"golr/internal/utils"
 )
 
 // TransitionAction is a transition action of an LR(1) item consisting of a symbol index representing a terminal or
@@ -47,7 +48,7 @@ func (a TransitionAction) StateIdx() int {
 	return int(a & transitionActionStateMask)
 }
 
-// TransitionAction implements fmt.Stringer
+// TransitionAction implements fmt.Stringer.
 var _ fmt.Stringer = (*TransitionAction)(nil)
 
 // String returns a string representation.
@@ -55,10 +56,10 @@ func (a TransitionAction) String() string {
 	return fmt.Sprintf("(symbol %d, state %d)", a.SymbolRef(), a.StateIdx())
 }
 
-// transitionActionMarshal is a helper struct which is only used for marshaling
+// transitionActionMarshal is a helper struct which is only used for marshaling.
 type transitionActionMarshal struct {
 	SymbolRef frontend.SymbolRef `json:"symbolRef" yaml:"symbol_ref"`
-	StateIdx  int                `json:"stateIdx" yaml:"state_idx"`
+	StateIdx  int                `json:"stateIdx"  yaml:"state_idx"`
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.

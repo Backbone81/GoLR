@@ -1,14 +1,15 @@
 package parser_test
 
 import (
-	"golr/examples/golang/spec"
-	"golr/pkg/scannergen/backend/json"
-	"golr/pkg/scannergen/backend/yaml"
-	"golr/pkg/scannergen/core/subset"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"golr/examples/golang/spec"
+	"golr/pkg/scannergen/backend/json"
+	"golr/pkg/scannergen/backend/yaml"
+	"golr/pkg/scannergen/core/subset"
 )
 
 var _ = Describe("Golang Parser", func() {

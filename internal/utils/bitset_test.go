@@ -1,12 +1,13 @@
 package utils_test
 
 import (
-	"golr/internal/utils"
 	"slices"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"golr/internal/utils"
 )
 
 var _ = Describe("Bitset", func() {

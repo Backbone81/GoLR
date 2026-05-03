@@ -1,8 +1,9 @@
 package dsl
 
 import (
-	"golr/internal/scannergen/frontend"
 	"unicode"
+
+	"golr/internal/scannergen/frontend"
 )
 
 // Rule constructs a rule for a regular expression with a name.

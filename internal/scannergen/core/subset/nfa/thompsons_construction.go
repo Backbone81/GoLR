@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"golr/internal/scannergen/frontend"
 	"runtime/trace"
+
+	"golr/internal/scannergen/frontend"
 )
 
 // ThompsonsConstruction is responsible for building the NFA from regular expressions.

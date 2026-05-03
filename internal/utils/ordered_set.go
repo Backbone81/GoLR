@@ -36,7 +36,7 @@ func (s *OrderedSet[T]) String() string {
 		if i > 0 {
 			builder.WriteString(", ")
 		}
-		builder.WriteString(fmt.Sprintf("%v", &s.data[i]))
+		fmt.Fprintf(&builder, "%v", &s.data[i])
 	}
 	builder.WriteString("}")
 	return builder.String()

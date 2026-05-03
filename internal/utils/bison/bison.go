@@ -9,9 +9,7 @@ import (
 	"strings"
 )
 
-var (
-	ErrVersionParseError = errors.New("could not parse bison version")
-)
+var ErrVersionParseError = errors.New("could not parse bison version")
 
 type BisonVersion struct {
 	Major int

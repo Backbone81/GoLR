@@ -16,7 +16,7 @@ type Production struct {
 	SymbolRefs []SymbolRef `json:"symbolRefs" yaml:"symbol_refs"`
 }
 
-// Production implements fmt.Stringer
+// Production implements fmt.Stringer.
 var _ fmt.Stringer = (*Production)(nil)
 
 // String returns a string representation of the production.

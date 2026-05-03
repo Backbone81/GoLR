@@ -1,10 +1,12 @@
 package utils_test
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"golr/internal/utils"
-	"testing"
 )
 
 var _ = Describe("DynamicRingBuffer", func() {

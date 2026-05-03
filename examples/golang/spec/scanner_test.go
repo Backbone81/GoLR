@@ -1,13 +1,14 @@
 package spec_test
 
 import (
-	"golr/examples/golang/spec"
-	"golr/pkg/scannergen/frontend/json"
-	"golr/pkg/scannergen/frontend/yaml"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"golr/examples/golang/spec"
+	"golr/pkg/scannergen/frontend/json"
+	"golr/pkg/scannergen/frontend/yaml"
 )
 
 var _ = Describe("Golang Spec", func() {

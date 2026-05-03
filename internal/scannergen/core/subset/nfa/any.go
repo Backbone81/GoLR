@@ -1,8 +1,9 @@
 package nfa
 
 import (
-	"golr/internal/scannergen/frontend"
 	"unicode"
+
+	"golr/internal/scannergen/frontend"
 )
 
 func (b *ThompsonsConstruction) fromAny(_ *frontend.Any, ruleIdx int, states []State) []State {

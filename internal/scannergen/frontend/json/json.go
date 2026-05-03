@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"golr/internal/scannergen/frontend"
 	"io"
 	"os"
 	"runtime/trace"
 	"strings"
+
+	"golr/internal/scannergen/frontend"
 )
 
 // ToRules reads the scanner rules as JSON document from the given reader. Returns an error if the JSON

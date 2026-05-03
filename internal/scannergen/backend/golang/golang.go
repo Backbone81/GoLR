@@ -7,13 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"go/format"
-	"golr/internal/scannergen/backend"
-	"golr/internal/scannergen/frontend"
-	"golr/internal/utils"
 	"io"
 	"os"
 	"runtime/trace"
 	"text/template"
+
+	"golr/internal/scannergen/backend"
+	"golr/internal/scannergen/frontend"
+	"golr/internal/utils"
 )
 
 //go:embed scanner.go.template
@@ -78,18 +79,18 @@ func DFAToFile(filePath string, dfa backend.DFA, config Config) error {
 // as is to be human-readable. Special characters which are not printable or any Unicode codepoint is printed as
 // its hexadecimal value. That way the direct coded scanner can be easily inspected and debugged by a human.
 func printRune(r rune) string {
-	switch {
-	case r == ' ':
+	switch r {
+	case ' ':
 		return "' '"
-	case r == '\t':
+	case '\t':
 		return "'\\t'"
-	case r == '\r':
+	case '\r':
 		return "'\\r'"
-	case r == '\n':
+	case '\n':
 		return "'\\n'"
-	case r == '\'':
+	case '\'':
 		return "'\\''"
-	case r == '\\':
+	case '\\':
 		return "'\\\\'"
 	default:
 		if 32 <= r && r < 127 {
@@ -106,5 +107,5 @@ func stateName(stateIdx int, rule frontend.Rule) string {
 
 func tokenName(ruleIdx int, rule frontend.Rule) string {
 	name := utils.GoIdentifier(rule.Name)
-	return fmt.Sprintf("Token%s", name)
+	return "Token" + name
 }

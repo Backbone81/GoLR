@@ -3,10 +3,11 @@ package dfa
 import (
 	"cmp"
 	"context"
-	"golr/internal/scannergen/backend"
-	"golr/internal/utils"
 	"runtime/trace"
 	"slices"
+
+	"golr/internal/scannergen/backend"
+	"golr/internal/utils"
 )
 
 // HopcroftsAlgorithm is responsible for creating a minimal DFA from a DFA created by the subset construction.

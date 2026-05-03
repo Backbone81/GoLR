@@ -7,14 +7,15 @@ import (
 	"errors"
 	"fmt"
 	"go/format"
-	"golr/internal/parsergen/backend"
-	"golr/internal/parsergen/frontend"
-	"golr/internal/utils"
 	"io"
 	"os"
 	"runtime/trace"
 	"strings"
 	"text/template"
+
+	"golr/internal/parsergen/backend"
+	"golr/internal/parsergen/frontend"
+	"golr/internal/utils"
 )
 
 //go:embed parser.go.template
@@ -200,10 +201,10 @@ func terminalName(symbol frontend.Symbol) string {
 		return "EndToken"
 	}
 	name := utils.GoIdentifier(symbol.Name)
-	return fmt.Sprintf("Token%s", name)
+	return "Token" + name
 }
 
 func nonterminalName(symbol frontend.Symbol) string {
 	name := utils.GoIdentifier(symbol.Name)
-	return fmt.Sprintf("Nonterminal%s", name)
+	return "Nonterminal" + name
 }

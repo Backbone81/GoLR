@@ -1,9 +1,10 @@
 package spec
 
 import (
+	"unicode"
+
 	"golr/pkg/scannergen"
 	. "golr/pkg/scannergen/frontend/dsl"
-	"unicode"
 )
 
 // GetScannerRules returns the rules for generating a scanner for parsing Go source code. The details can be found

@@ -1,12 +1,13 @@
 package frontend_test
 
 import (
-	"golr/internal/scannergen/frontend"
-	"golr/internal/scannergen/frontend/dsl"
 	"unicode"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"golr/internal/scannergen/frontend"
+	"golr/internal/scannergen/frontend/dsl"
 )
 
 var _ = Describe("CharRange", func() {

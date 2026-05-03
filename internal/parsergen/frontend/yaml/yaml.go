@@ -3,14 +3,14 @@ package yaml
 import (
 	"context"
 	"fmt"
-	"golr/internal/parsergen/frontend"
-
-	"github.com/goccy/go-yaml"
-
 	"io"
 	"os"
 	"runtime/trace"
 	"strings"
+
+	"github.com/goccy/go-yaml"
+
+	"golr/internal/parsergen/frontend"
 )
 
 // ToGrammar reads the context free grammar as YAML document from the given reader. Returns an error if the YAML

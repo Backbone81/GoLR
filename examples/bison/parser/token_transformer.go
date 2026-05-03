@@ -11,7 +11,7 @@ type TokenTransformer struct {
 	percentPercentCount int
 }
 
-// TokenTransformer implements ParserScanner
+// TokenTransformer implements ParserScanner.
 var _ ParserScanner = (*TokenTransformer)(nil)
 
 type TokenSnapshot struct {

@@ -1,7 +1,6 @@
 package runtime_test
 
 import (
-	"golr/pkg/runtime"
 	"io"
 	"math/rand"
 	"testing"
@@ -9,6 +8,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"golr/pkg/runtime"
 )
 
 var _ = Describe("UTF8RuneReader", func() {
@@ -28,7 +29,7 @@ var _ = Describe("UTF8RuneReader", func() {
 		}
 		for _, test := range tests {
 			Expect(reader.Next()).To(BeTrue())
-			Expect(reader.Err()).To(BeNil())
+			Expect(reader.Err()).To(Succeed())
 
 			Expect(reader.Rune()).To(Equal(test.wantRune))
 			Expect(reader.RuneSize()).To(Equal(test.wantRuneSize))
@@ -62,7 +63,7 @@ var _ = Describe("UTF8RuneReader", func() {
 		}
 		for _, test := range tests {
 			Expect(reader.Next()).To(BeTrue())
-			Expect(reader.Err()).To(BeNil())
+			Expect(reader.Err()).To(Succeed())
 
 			Expect(reader.Rune()).To(Equal(test.wantRune))
 			Expect(reader.RuneSize()).To(Equal(test.wantRuneSize))
@@ -98,7 +99,7 @@ var _ = Describe("UTF8RuneReader", func() {
 		}
 		for _, test := range tests {
 			Expect(reader.Next()).To(BeTrue())
-			Expect(reader.Err()).To(BeNil())
+			Expect(reader.Err()).To(Succeed())
 
 			Expect(reader.Rune()).To(Equal(test.wantRune))
 			Expect(reader.RuneSize()).To(Equal(test.wantRuneSize))
@@ -130,7 +131,7 @@ var _ = Describe("UTF8RuneReader", func() {
 		}
 		for _, test := range tests {
 			Expect(reader.Next()).To(BeTrue())
-			Expect(reader.Err()).To(BeNil())
+			Expect(reader.Err()).To(Succeed())
 
 			Expect(reader.Rune()).To(Equal(test.wantRune))
 			Expect(reader.RuneSize()).To(Equal(test.wantRuneSize))
@@ -165,7 +166,7 @@ var _ = Describe("UTF8RuneReader", func() {
 		}
 		for _, test := range tests {
 			Expect(reader.Next()).To(BeTrue())
-			Expect(reader.Err()).To(BeNil())
+			Expect(reader.Err()).To(Succeed())
 
 			Expect(reader.Rune()).To(Equal(test.wantRune))
 			Expect(reader.RuneSize()).To(Equal(test.wantRuneSize))
@@ -207,7 +208,7 @@ var _ = Describe("UTF8RuneReader", func() {
 			if i == 2 {
 				Expect(reader.Err()).To(MatchError(runtime.ErrInvalidUTF8Encoding))
 			} else {
-				Expect(reader.Err()).To(BeNil())
+				Expect(reader.Err()).To(Succeed())
 			}
 
 			Expect(reader.Rune()).To(Equal(test.wantRune))

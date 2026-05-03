@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"golr/internal/parsergen/backend"
 	"io"
 	"os"
 	"runtime/trace"
 	"strings"
+
+	"golr/internal/parsergen/backend"
 )
 
 // ToParser reads the parser as JSON document from the given reader. Returns an error if the JSON document can not be

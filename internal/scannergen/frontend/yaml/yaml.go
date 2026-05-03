@@ -3,13 +3,14 @@ package yaml
 import (
 	"context"
 	"fmt"
-	"golr/internal/scannergen/frontend"
 	"io"
 	"os"
 	"runtime/trace"
 	"strings"
 
 	"github.com/goccy/go-yaml"
+
+	"golr/internal/scannergen/frontend"
 )
 
 // ToRules reads the scanner rules as YAML document from the given reader. Returns an error if the YAML

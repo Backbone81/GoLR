@@ -12,7 +12,7 @@ import (
 // Low must always be smaller or equal to High.
 // Set Low and High to the same character to have a single character.
 type CharRange struct {
-	Low  rune `json:"low" yaml:"low"`
+	Low  rune `json:"low"  yaml:"low"`
 	High rune `json:"high" yaml:"high"`
 }
 
@@ -30,14 +30,14 @@ func (c *CharRange) String() string {
 
 // printRune is a helper method for creating a readable representation of a character range.
 func (c *CharRange) printRune(r rune) string {
-	switch {
-	case r == ' ':
+	switch r {
+	case ' ':
 		return "' '"
-	case r == '\t':
+	case '\t':
 		return "\\t"
-	case r == '\r':
+	case '\r':
 		return "\\r"
-	case r == '\n':
+	case '\n':
 		return "\\n"
 	default:
 		if 32 <= r && r < 127 {

@@ -25,9 +25,7 @@ func (s Symbol) String() string {
 	return s.Alias
 }
 
-var (
-	// SymbolEOF is the end of file symbol which marks the end of the parse.
-	SymbolEOF = Symbol{
-		Name: "$end",
-	}
-)
+// SymbolEOF is the end of file symbol which marks the end of the parse.
+var SymbolEOF = Symbol{
+	Name: "$end",
+}

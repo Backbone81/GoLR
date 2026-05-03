@@ -2,12 +2,13 @@ package dfa
 
 import (
 	"context"
+	"runtime/trace"
+	"slices"
+
 	"golr/internal/scannergen/backend"
 	thompsonsnfa "golr/internal/scannergen/core/subset/nfa"
 	"golr/internal/scannergen/frontend"
 	"golr/internal/utils"
-	"runtime/trace"
-	"slices"
 )
 
 // SubsetConstruction is responsible for building the DFA from an NFA.

@@ -13,7 +13,7 @@ import (
 type Repetition struct {
 	Minimum int   `json:"minimum" yaml:"minimum"`
 	Maximum int   `json:"maximum" yaml:"maximum"`
-	Child   *Node `json:"child" yaml:"child"`
+	Child   *Node `json:"child"   yaml:"child"`
 }
 
 // String returns a string representation of this regular expression.
@@ -26,9 +26,9 @@ func (r *Repetition) String() string {
 	if !r.Child.IsSingleNode() {
 		result.WriteString(")")
 	}
-	result.WriteString(fmt.Sprintf("{%d", r.Minimum))
+	fmt.Fprintf(&result, "{%d", r.Minimum)
 	if r.Minimum != r.Maximum {
-		result.WriteString(fmt.Sprintf(",%d", r.Maximum))
+		fmt.Fprintf(&result, ",%d", r.Maximum)
 	}
 	result.WriteString("}")
 	return result.String()

@@ -3,10 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
-	"golr/examples/bison/parser"
-	"golr/pkg/runtime"
 	"io"
 	"os"
+
+	"golr/examples/bison/parser"
+	"golr/pkg/runtime"
 )
 
 func main() {

@@ -121,13 +121,13 @@ func (k *Kind) UnmarshalYAML(data []byte) error {
 type Node struct {
 	Kind Kind `json:"kind" yaml:"kind"`
 
-	Any        Any        `json:"any" yaml:"any"`
-	CharClass  CharClass  `json:"charClass" yaml:"charClass"`
-	Concat     Concat     `json:"concat" yaml:"concat"`
-	Literal    Literal    `json:"literal" yaml:"literal"`
-	OneOrMore  OneOrMore  `json:"oneOrMore" yaml:"oneOrMore"`
-	Optional   Optional   `json:"optional" yaml:"optional"`
-	Or         Or         `json:"or" yaml:"or"`
+	Any        Any        `json:"any"        yaml:"any"`
+	CharClass  CharClass  `json:"charClass"  yaml:"charClass"`
+	Concat     Concat     `json:"concat"     yaml:"concat"`
+	Literal    Literal    `json:"literal"    yaml:"literal"`
+	OneOrMore  OneOrMore  `json:"oneOrMore"  yaml:"oneOrMore"`
+	Optional   Optional   `json:"optional"   yaml:"optional"`
+	Or         Or         `json:"or"         yaml:"or"`
 	Repetition Repetition `json:"repetition" yaml:"repetition"`
 	ZeroOrMore ZeroOrMore `json:"zeroOrMore" yaml:"zeroOrMore"`
 }
@@ -213,12 +213,12 @@ func (n *Node) Validate() error {
 type marshalNode struct {
 	Kind Kind `json:"kind" yaml:"kind"`
 
-	CharClass  *CharClass  `json:"charClass,omitempty" yaml:"charClass,omitempty"`
-	Concat     *Concat     `json:"concat,omitempty" yaml:"concat,omitempty"`
-	Literal    *Literal    `json:"literal,omitempty" yaml:"literal,omitempty"`
-	OneOrMore  *OneOrMore  `json:"oneOrMore,omitempty" yaml:"oneOrMore,omitempty"`
-	Optional   *Optional   `json:"optional,omitempty" yaml:"optional,omitempty"`
-	Or         *Or         `json:"or,omitempty" yaml:"or,omitempty"`
+	CharClass  *CharClass  `json:"charClass,omitempty"  yaml:"charClass,omitempty"`
+	Concat     *Concat     `json:"concat,omitempty"     yaml:"concat,omitempty"`
+	Literal    *Literal    `json:"literal,omitempty"    yaml:"literal,omitempty"`
+	OneOrMore  *OneOrMore  `json:"oneOrMore,omitempty"  yaml:"oneOrMore,omitempty"`
+	Optional   *Optional   `json:"optional,omitempty"   yaml:"optional,omitempty"`
+	Or         *Or         `json:"or,omitempty"         yaml:"or,omitempty"`
 	Repetition *Repetition `json:"repetition,omitempty" yaml:"repetition,omitempty"`
 	ZeroOrMore *ZeroOrMore `json:"zeroOrMore,omitempty" yaml:"zeroOrMore,omitempty"`
 }

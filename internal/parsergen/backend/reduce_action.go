@@ -3,13 +3,14 @@ package backend
 import (
 	"cmp"
 	"fmt"
+
 	"golr/internal/utils"
 )
 
 // ReduceAction is a reduce action of an LR(1) item consisting of a lookahead set of terminals and a production index
 // to reduce for. The values for the production must be in the range of [0, 65535].
 type ReduceAction struct {
-	LookaheadSet  LookaheadSet `json:"lookaheadSet" yaml:"lookahead_set"`
+	LookaheadSet  LookaheadSet `json:"lookaheadSet"  yaml:"lookahead_set"`
 	ProductionIdx int          `json:"productionIdx" yaml:"production_idx"`
 }
 
@@ -20,7 +21,7 @@ const (
 // NewReduceAction creates a new reduce action with the given lookahead set and the production index.
 func NewReduceAction(lookaheadSet LookaheadSet, productionIdx int) ReduceAction {
 	utils.AssertValidIndex(productionIdx, reduceActionProductionIdxMax)
-	//nolint:gosec // no integer overflow on correct usage
+
 	return ReduceAction{
 		LookaheadSet:  lookaheadSet,
 		ProductionIdx: productionIdx,
@@ -39,7 +40,7 @@ func ReduceActionEqual(x, y ReduceAction) bool {
 	return CompareReduceAction(x, y) == 0
 }
 
-// ReduceAction implements fmt.Stringer
+// ReduceAction implements fmt.Stringer.
 var _ fmt.Stringer = (*ReduceAction)(nil)
 
 // String returns a string representation.

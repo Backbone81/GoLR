@@ -3,11 +3,12 @@ package ielr1
 import (
 	"context"
 	"fmt"
+	"runtime/trace"
+	"strconv"
+
 	"golr/internal/parsergen/backend"
 	"golr/internal/parsergen/frontend"
 	"golr/internal/utils/bison"
-	"runtime/trace"
-	"strconv"
 )
 
 // GrammarToParser calculates a parser from the context free grammar.

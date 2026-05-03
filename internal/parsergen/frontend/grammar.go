@@ -56,7 +56,7 @@ func (g Grammar) Validate() error {
 	return nil
 }
 
-// Grammar implements fmt.Stringer
+// Grammar implements fmt.Stringer.
 var _ fmt.Stringer = (*Grammar)(nil)
 
 // String returns a string representation of the grammar.
@@ -64,21 +64,21 @@ func (g Grammar) String() string {
 	var builder strings.Builder
 
 	for i := range g.Terminals {
-		builder.WriteString(fmt.Sprintf("terminal %d: %s\n", i, g.Terminals[i]))
+		fmt.Fprintf(&builder, "terminal %d: %s\n", i, g.Terminals[i])
 	}
 	builder.WriteString("\n")
 
 	for i := range g.Nonterminals {
-		builder.WriteString(fmt.Sprintf("nonterminal %d: %s\n", i, g.Nonterminals[i]))
+		fmt.Fprintf(&builder, "nonterminal %d: %s\n", i, g.Nonterminals[i])
 	}
 	builder.WriteString("\n")
 
 	for i := range g.Productions {
-		builder.WriteString(fmt.Sprintf("production %d: %s\n", i, g.Productions[i]))
+		fmt.Fprintf(&builder, "production %d: %s\n", i, g.Productions[i])
 	}
 	builder.WriteString("\n")
 
-	builder.WriteString(fmt.Sprintf("start nonterminal: %d\n", g.StartNonterminalIdx))
+	fmt.Fprintf(&builder, "start nonterminal: %d\n", g.StartNonterminalIdx)
 	builder.WriteString("\n")
 	return builder.String()
 }

@@ -100,7 +100,7 @@ func (b *Bitset) All() iter.Seq[int] {
 // Merge adds all the bits set in the other bitset to the current one.
 func (b *Bitset) Merge(other *Bitset) {
 	commonChunks := min(len(b.chunks), len(other.chunks))
-	for i := 0; i < commonChunks; i++ {
+	for i := range commonChunks {
 		b.chunks[i] |= other.chunks[i]
 	}
 	b.chunks = append(b.chunks, other.chunks[commonChunks:]...)
@@ -161,7 +161,7 @@ func (b *Bitset) UnmarshalYAML(data []byte) error {
 // Bitset implements Stringer.
 var _ fmt.Stringer = (*Bitset)(nil)
 
-// String returns a string representation,
+// String returns a string representation.
 func (b *Bitset) String() string {
 	var builder strings.Builder
 	builder.WriteString("{")
