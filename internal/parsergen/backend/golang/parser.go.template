@@ -198,30 +198,30 @@ func (p *Parser) state{{ $i }}() error {
         case {{ range $j, $terminal := $stateAction.LookaheadSymbols }}{{ if gt $j 0 }}, {{ end }}{{ terminalName $terminal }}{{ end }}:
         {{- if $stateAction.IsReduce }}
             // Reduce: {{ displayProduction $.Parser.Grammar $stateAction.ProductionIdx }}
-            {{- if ne $stateAction.PopSymbolCount 0 }}
-            p.stateStack = p.stateStack[:len(p.stateStack)-{{ $stateAction.PopSymbolCount }}]
-            {{- end }}
-            nextState, err := p.gotoAfter{{ nonterminalName (index $.Parser.Grammar.Nonterminals $stateAction.PushSymbol) }}(p.stateStack[len(p.stateStack)-1])
-            if err != nil {
-                return err
-            }
-            p.stateStack = append(p.stateStack, nextState)
-            newNode := Node {
-                Symbol: NewNonterminal({{ nonterminalName (index $.Parser.Grammar.Nonterminals $stateAction.PushSymbol) }}),
+            {{- if ne $stateAction.ProductionIdx 0 }}
                 {{- if ne $stateAction.PopSymbolCount 0 }}
-                Children: make([]*Node, {{ $stateAction.PopSymbolCount }}),
+                    p.stateStack = p.stateStack[:len(p.stateStack)-{{ $stateAction.PopSymbolCount }}]
                 {{- end }}
-            }
-            {{- if ne $stateAction.PopSymbolCount 0 }}
-            copy(newNode.Children, p.nodeStack[len(p.nodeStack)-{{ $stateAction.PopSymbolCount }}:])
-            p.nodeStack = p.nodeStack[:len(p.nodeStack)-{{ $stateAction.PopSymbolCount }}]
-            {{- end }}
-            p.nodeStack = append(p.nodeStack, &newNode)
-            {{- if eq $stateAction.ProductionIdx 0 }}
-            // The parse is successfully finished.
-            return errAccept
+                nextState, err := p.gotoAfter{{ nonterminalName (index $.Parser.Grammar.Nonterminals $stateAction.PushSymbol) }}(p.stateStack[len(p.stateStack)-1])
+                if err != nil {
+                    return err
+                }
+                p.stateStack = append(p.stateStack, nextState)
+                newNode := Node {
+                    Symbol: NewNonterminal({{ nonterminalName (index $.Parser.Grammar.Nonterminals $stateAction.PushSymbol) }}),
+                    {{- if ne $stateAction.PopSymbolCount 0 }}
+                    Children: make([]*Node, {{ $stateAction.PopSymbolCount }}),
+                    {{- end }}
+                }
+                {{- if ne $stateAction.PopSymbolCount 0 }}
+                    copy(newNode.Children, p.nodeStack[len(p.nodeStack)-{{ $stateAction.PopSymbolCount }}:])
+                    p.nodeStack = p.nodeStack[:len(p.nodeStack)-{{ $stateAction.PopSymbolCount }}]
+                {{- end }}
+                p.nodeStack = append(p.nodeStack, &newNode)
+                return nil
             {{- else }}
-            return nil
+                // The parse is successfully finished.
+                return errAccept
             {{- end }}
         {{- else }}
             // Shift action
@@ -238,30 +238,30 @@ func (p *Parser) state{{ $i }}() error {
         {{- $stateAction := defaultReduce $.Parser.Grammar $state }}
         {{- if $stateAction }}
             // Reduce: {{ displayProduction $.Parser.Grammar $stateAction.ProductionIdx }}
-            {{- if ne $stateAction.PopSymbolCount 0 }}
-                p.stateStack = p.stateStack[:len(p.stateStack)-{{ $stateAction.PopSymbolCount }}]
-            {{- end }}
-            nextState, err := p.gotoAfter{{ nonterminalName (index $.Parser.Grammar.Nonterminals $stateAction.PushSymbol) }}(p.stateStack[len(p.stateStack)-1])
-            if err != nil {
-                return err
-            }
-            p.stateStack = append(p.stateStack, nextState)
-            newNode := Node {
-                Symbol: NewNonterminal({{ nonterminalName (index $.Parser.Grammar.Nonterminals $stateAction.PushSymbol) }}),
+            {{- if ne $stateAction.ProductionIdx 0 }}
                 {{- if ne $stateAction.PopSymbolCount 0 }}
-                Children: make([]*Node, {{ $stateAction.PopSymbolCount }}),
+                    p.stateStack = p.stateStack[:len(p.stateStack)-{{ $stateAction.PopSymbolCount }}]
                 {{- end }}
-            }
-            {{- if ne $stateAction.PopSymbolCount 0 }}
-                copy(newNode.Children, p.nodeStack[len(p.nodeStack)-{{ $stateAction.PopSymbolCount }}:])
-                p.nodeStack = p.nodeStack[:len(p.nodeStack)-{{ $stateAction.PopSymbolCount }}]
-            {{- end }}
-            p.nodeStack = append(p.nodeStack, &newNode)
-            {{- if eq $stateAction.ProductionIdx 0 }}
+                nextState, err := p.gotoAfter{{ nonterminalName (index $.Parser.Grammar.Nonterminals $stateAction.PushSymbol) }}(p.stateStack[len(p.stateStack)-1])
+                if err != nil {
+                    return err
+                }
+                p.stateStack = append(p.stateStack, nextState)
+                newNode := Node {
+                    Symbol: NewNonterminal({{ nonterminalName (index $.Parser.Grammar.Nonterminals $stateAction.PushSymbol) }}),
+                    {{- if ne $stateAction.PopSymbolCount 0 }}
+                        Children: make([]*Node, {{ $stateAction.PopSymbolCount }}),
+                    {{- end }}
+                }
+                {{- if ne $stateAction.PopSymbolCount 0 }}
+                    copy(newNode.Children, p.nodeStack[len(p.nodeStack)-{{ $stateAction.PopSymbolCount }}:])
+                    p.nodeStack = p.nodeStack[:len(p.nodeStack)-{{ $stateAction.PopSymbolCount }}]
+                {{- end }}
+                p.nodeStack = append(p.nodeStack, &newNode)
+                return nil
+            {{- else }}
                 // The parse is successfully finished.
                 return errAccept
-            {{- else }}
-                return nil
             {{- end }}
         {{- else }}
             return p.raiseError(fmt.Errorf("unexpected token %s", terminal))

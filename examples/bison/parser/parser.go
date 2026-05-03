@@ -1063,19 +1063,6 @@ func (p *Parser) state3() error {
 	switch terminal {
 	default:
 		// Reduce: $accept -> input $end
-		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminal_accept(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(Nonterminal_accept),
-			Children: make([]*Node, 2),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
 		// The parse is successfully finished.
 		return errAccept
 	}

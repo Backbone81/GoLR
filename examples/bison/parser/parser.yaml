@@ -1,0 +1,3853 @@
+grammar:
+  terminals:
+  - name: $end
+    alias: ""
+  - name: error
+    alias: ""
+  - name: STRING
+    alias: ""
+  - name: TSTRING
+    alias: ""
+  - name: PERCENT_TOKEN
+    alias: ""
+  - name: PERCENT_NTERM
+    alias: ""
+  - name: PERCENT_TYPE
+    alias: ""
+  - name: PERCENT_DESTRUCTOR
+    alias: ""
+  - name: PERCENT_PRINTER
+    alias: ""
+  - name: PERCENT_LEFT
+    alias: ""
+  - name: PERCENT_RIGHT
+    alias: ""
+  - name: PERCENT_NONASSOC
+    alias: ""
+  - name: PERCENT_PRECEDENCE
+    alias: ""
+  - name: PERCENT_PREC
+    alias: ""
+  - name: PERCENT_DPREC
+    alias: ""
+  - name: PERCENT_MERGE
+    alias: ""
+  - name: PERCENT_CODE
+    alias: ""
+  - name: PERCENT_DEFAULT_PREC
+    alias: ""
+  - name: PERCENT_DEFINE
+    alias: ""
+  - name: PERCENT_ERROR_VERBOSE
+    alias: ""
+  - name: PERCENT_EXPECT
+    alias: ""
+  - name: PERCENT_EXPECT_RR
+    alias: ""
+  - name: PERCENT_FILE_PREFIX
+    alias: ""
+  - name: PERCENT_FLAG
+    alias: ""
+  - name: PERCENT_GLR_PARSER
+    alias: ""
+  - name: PERCENT_HEADER
+    alias: ""
+  - name: PERCENT_INITIAL_ACTION
+    alias: ""
+  - name: PERCENT_LANGUAGE
+    alias: ""
+  - name: PERCENT_NAME_PREFIX
+    alias: ""
+  - name: PERCENT_NO_DEFAULT_PREC
+    alias: ""
+  - name: PERCENT_NO_LINES
+    alias: ""
+  - name: PERCENT_NONDETERMINISTIC_PARSER
+    alias: ""
+  - name: PERCENT_OUTPUT
+    alias: ""
+  - name: PERCENT_PURE_PARSER
+    alias: ""
+  - name: PERCENT_REQUIRE
+    alias: ""
+  - name: PERCENT_SKELETON
+    alias: ""
+  - name: PERCENT_START
+    alias: ""
+  - name: PERCENT_TOKEN_TABLE
+    alias: ""
+  - name: PERCENT_VERBOSE
+    alias: ""
+  - name: PERCENT_YACC
+    alias: ""
+  - name: BRACED_CODE
+    alias: ""
+  - name: BRACED_PREDICATE
+    alias: ""
+  - name: BRACKETED_ID
+    alias: ""
+  - name: CHAR_LITERAL
+    alias: ""
+  - name: COLON
+    alias: ""
+  - name: EPILOGUE
+    alias: ""
+  - name: EQUAL
+    alias: ""
+  - name: ID
+    alias: ""
+  - name: ID_COLON
+    alias: ""
+  - name: PERCENT_PERCENT
+    alias: ""
+  - name: PIPE
+    alias: ""
+  - name: PROLOGUE
+    alias: ""
+  - name: SEMICOLON
+    alias: ""
+  - name: TAG
+    alias: ""
+  - name: TAG_ANY
+    alias: ""
+  - name: TAG_NONE
+    alias: ""
+  - name: INT_LITERAL
+    alias: ""
+  - name: PERCENT_PARAM
+    alias: ""
+  - name: PERCENT_UNION
+    alias: ""
+  - name: PERCENT_EMPTY
+    alias: ""
+  nonterminals:
+  - name: $accept
+    alias: ""
+  - name: input
+    alias: ""
+  - name: prologue_declarations
+    alias: ""
+  - name: prologue_declaration
+    alias: ""
+  - name: params
+    alias: ""
+  - name: grammar_declaration
+    alias: ""
+  - name: code_props_type
+    alias: ""
+  - name: union_name
+    alias: ""
+  - name: symbol_declaration
+    alias: ""
+  - name: precedence_declarator
+    alias: ""
+  - name: string.opt
+    alias: ""
+  - name: tag.opt
+    alias: ""
+  - name: generic_symlist
+    alias: ""
+  - name: generic_symlist_item
+    alias: ""
+  - name: tag
+    alias: ""
+  - name: nterm_decls
+    alias: ""
+  - name: token_decls
+    alias: ""
+  - name: token_decl.1
+    alias: ""
+  - name: token_decl
+    alias: ""
+  - name: int.opt
+    alias: ""
+  - name: alias
+    alias: ""
+  - name: token_decls_for_prec
+    alias: ""
+  - name: token_decl_for_prec.1
+    alias: ""
+  - name: token_decl_for_prec
+    alias: ""
+  - name: symbol_decls
+    alias: ""
+  - name: symbols.1
+    alias: ""
+  - name: grammar
+    alias: ""
+  - name: rules_or_grammar_declaration
+    alias: ""
+  - name: rules
+    alias: ""
+  - name: rhses.1
+    alias: ""
+  - name: rhs
+    alias: ""
+  - name: named_ref.opt
+    alias: ""
+  - name: variable
+    alias: ""
+  - name: value
+    alias: ""
+  - name: id
+    alias: ""
+  - name: id_colon
+    alias: ""
+  - name: symbol
+    alias: ""
+  - name: string_as_id
+    alias: ""
+  - name: epilogue.opt
+    alias: ""
+  productions:
+  - nonterminal_idx: 0
+    symbol_refs:
+    - nonterminal: true
+      index: 1
+    - nonterminal: false
+      index: 0
+  - nonterminal_idx: 1
+    symbol_refs:
+    - nonterminal: true
+      index: 2
+    - nonterminal: false
+      index: 49
+    - nonterminal: true
+      index: 26
+    - nonterminal: true
+      index: 38
+  - nonterminal_idx: 2
+    symbol_refs: []
+  - nonterminal_idx: 2
+    symbol_refs:
+    - nonterminal: true
+      index: 2
+    - nonterminal: true
+      index: 3
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: true
+      index: 5
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 51
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 23
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 18
+    - nonterminal: true
+      index: 32
+    - nonterminal: true
+      index: 33
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 25
+    - nonterminal: true
+      index: 10
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 19
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 20
+    - nonterminal: false
+      index: 56
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 21
+    - nonterminal: false
+      index: 56
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 22
+    - nonterminal: false
+      index: 2
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 24
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 26
+    - nonterminal: false
+      index: 40
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 27
+    - nonterminal: false
+      index: 2
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 28
+    - nonterminal: false
+      index: 2
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 30
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 31
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 32
+    - nonterminal: false
+      index: 2
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 57
+    - nonterminal: true
+      index: 4
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 33
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 34
+    - nonterminal: false
+      index: 2
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 35
+    - nonterminal: false
+      index: 2
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 37
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 38
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 39
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 1
+    - nonterminal: false
+      index: 52
+  - nonterminal_idx: 3
+    symbol_refs:
+    - nonterminal: false
+      index: 52
+  - nonterminal_idx: 4
+    symbol_refs:
+    - nonterminal: true
+      index: 4
+    - nonterminal: false
+      index: 40
+  - nonterminal_idx: 4
+    symbol_refs:
+    - nonterminal: false
+      index: 40
+  - nonterminal_idx: 5
+    symbol_refs:
+    - nonterminal: true
+      index: 8
+  - nonterminal_idx: 5
+    symbol_refs:
+    - nonterminal: false
+      index: 36
+    - nonterminal: true
+      index: 25
+  - nonterminal_idx: 5
+    symbol_refs:
+    - nonterminal: true
+      index: 6
+    - nonterminal: false
+      index: 40
+    - nonterminal: true
+      index: 12
+  - nonterminal_idx: 5
+    symbol_refs:
+    - nonterminal: false
+      index: 17
+  - nonterminal_idx: 5
+    symbol_refs:
+    - nonterminal: false
+      index: 29
+  - nonterminal_idx: 5
+    symbol_refs:
+    - nonterminal: false
+      index: 16
+    - nonterminal: false
+      index: 40
+  - nonterminal_idx: 5
+    symbol_refs:
+    - nonterminal: false
+      index: 16
+    - nonterminal: false
+      index: 47
+    - nonterminal: false
+      index: 40
+  - nonterminal_idx: 6
+    symbol_refs:
+    - nonterminal: false
+      index: 7
+  - nonterminal_idx: 6
+    symbol_refs:
+    - nonterminal: false
+      index: 8
+  - nonterminal_idx: 7
+    symbol_refs: []
+  - nonterminal_idx: 7
+    symbol_refs:
+    - nonterminal: false
+      index: 47
+  - nonterminal_idx: 5
+    symbol_refs:
+    - nonterminal: false
+      index: 58
+    - nonterminal: true
+      index: 7
+    - nonterminal: false
+      index: 40
+  - nonterminal_idx: 8
+    symbol_refs:
+    - nonterminal: false
+      index: 5
+    - nonterminal: true
+      index: 15
+  - nonterminal_idx: 8
+    symbol_refs:
+    - nonterminal: false
+      index: 4
+    - nonterminal: true
+      index: 16
+  - nonterminal_idx: 8
+    symbol_refs:
+    - nonterminal: false
+      index: 6
+    - nonterminal: true
+      index: 24
+  - nonterminal_idx: 8
+    symbol_refs:
+    - nonterminal: true
+      index: 9
+    - nonterminal: true
+      index: 21
+  - nonterminal_idx: 9
+    symbol_refs:
+    - nonterminal: false
+      index: 9
+  - nonterminal_idx: 9
+    symbol_refs:
+    - nonterminal: false
+      index: 10
+  - nonterminal_idx: 9
+    symbol_refs:
+    - nonterminal: false
+      index: 11
+  - nonterminal_idx: 9
+    symbol_refs:
+    - nonterminal: false
+      index: 12
+  - nonterminal_idx: 10
+    symbol_refs: []
+  - nonterminal_idx: 10
+    symbol_refs:
+    - nonterminal: false
+      index: 2
+  - nonterminal_idx: 11
+    symbol_refs: []
+  - nonterminal_idx: 11
+    symbol_refs:
+    - nonterminal: false
+      index: 53
+  - nonterminal_idx: 12
+    symbol_refs:
+    - nonterminal: true
+      index: 13
+  - nonterminal_idx: 12
+    symbol_refs:
+    - nonterminal: true
+      index: 12
+    - nonterminal: true
+      index: 13
+  - nonterminal_idx: 13
+    symbol_refs:
+    - nonterminal: true
+      index: 36
+  - nonterminal_idx: 13
+    symbol_refs:
+    - nonterminal: true
+      index: 14
+  - nonterminal_idx: 14
+    symbol_refs:
+    - nonterminal: false
+      index: 53
+  - nonterminal_idx: 14
+    symbol_refs:
+    - nonterminal: false
+      index: 54
+  - nonterminal_idx: 14
+    symbol_refs:
+    - nonterminal: false
+      index: 55
+  - nonterminal_idx: 15
+    symbol_refs:
+    - nonterminal: true
+      index: 16
+  - nonterminal_idx: 16
+    symbol_refs:
+    - nonterminal: true
+      index: 17
+  - nonterminal_idx: 16
+    symbol_refs:
+    - nonterminal: false
+      index: 53
+    - nonterminal: true
+      index: 17
+  - nonterminal_idx: 16
+    symbol_refs:
+    - nonterminal: true
+      index: 16
+    - nonterminal: false
+      index: 53
+    - nonterminal: true
+      index: 17
+  - nonterminal_idx: 17
+    symbol_refs:
+    - nonterminal: true
+      index: 18
+  - nonterminal_idx: 17
+    symbol_refs:
+    - nonterminal: true
+      index: 17
+    - nonterminal: true
+      index: 18
+  - nonterminal_idx: 18
+    symbol_refs:
+    - nonterminal: true
+      index: 34
+    - nonterminal: true
+      index: 19
+    - nonterminal: true
+      index: 20
+  - nonterminal_idx: 19
+    symbol_refs: []
+  - nonterminal_idx: 19
+    symbol_refs:
+    - nonterminal: false
+      index: 56
+  - nonterminal_idx: 20
+    symbol_refs: []
+  - nonterminal_idx: 20
+    symbol_refs:
+    - nonterminal: true
+      index: 37
+  - nonterminal_idx: 20
+    symbol_refs:
+    - nonterminal: false
+      index: 3
+  - nonterminal_idx: 21
+    symbol_refs:
+    - nonterminal: true
+      index: 22
+  - nonterminal_idx: 21
+    symbol_refs:
+    - nonterminal: false
+      index: 53
+    - nonterminal: true
+      index: 22
+  - nonterminal_idx: 21
+    symbol_refs:
+    - nonterminal: true
+      index: 21
+    - nonterminal: false
+      index: 53
+    - nonterminal: true
+      index: 22
+  - nonterminal_idx: 22
+    symbol_refs:
+    - nonterminal: true
+      index: 23
+  - nonterminal_idx: 22
+    symbol_refs:
+    - nonterminal: true
+      index: 22
+    - nonterminal: true
+      index: 23
+  - nonterminal_idx: 23
+    symbol_refs:
+    - nonterminal: true
+      index: 34
+    - nonterminal: true
+      index: 19
+  - nonterminal_idx: 23
+    symbol_refs:
+    - nonterminal: true
+      index: 37
+  - nonterminal_idx: 24
+    symbol_refs:
+    - nonterminal: true
+      index: 25
+  - nonterminal_idx: 24
+    symbol_refs:
+    - nonterminal: false
+      index: 53
+    - nonterminal: true
+      index: 25
+  - nonterminal_idx: 24
+    symbol_refs:
+    - nonterminal: true
+      index: 24
+    - nonterminal: false
+      index: 53
+    - nonterminal: true
+      index: 25
+  - nonterminal_idx: 25
+    symbol_refs:
+    - nonterminal: true
+      index: 36
+  - nonterminal_idx: 25
+    symbol_refs:
+    - nonterminal: true
+      index: 25
+    - nonterminal: true
+      index: 36
+  - nonterminal_idx: 26
+    symbol_refs:
+    - nonterminal: true
+      index: 27
+  - nonterminal_idx: 26
+    symbol_refs:
+    - nonterminal: true
+      index: 26
+    - nonterminal: true
+      index: 27
+  - nonterminal_idx: 27
+    symbol_refs:
+    - nonterminal: true
+      index: 28
+  - nonterminal_idx: 27
+    symbol_refs:
+    - nonterminal: true
+      index: 5
+    - nonterminal: false
+      index: 52
+  - nonterminal_idx: 27
+    symbol_refs:
+    - nonterminal: false
+      index: 1
+    - nonterminal: false
+      index: 52
+  - nonterminal_idx: 28
+    symbol_refs:
+    - nonterminal: true
+      index: 35
+    - nonterminal: true
+      index: 31
+    - nonterminal: false
+      index: 44
+    - nonterminal: true
+      index: 29
+  - nonterminal_idx: 29
+    symbol_refs:
+    - nonterminal: true
+      index: 30
+  - nonterminal_idx: 29
+    symbol_refs:
+    - nonterminal: true
+      index: 29
+    - nonterminal: false
+      index: 50
+    - nonterminal: true
+      index: 30
+  - nonterminal_idx: 29
+    symbol_refs:
+    - nonterminal: true
+      index: 29
+    - nonterminal: false
+      index: 52
+  - nonterminal_idx: 30
+    symbol_refs: []
+  - nonterminal_idx: 30
+    symbol_refs:
+    - nonterminal: true
+      index: 30
+    - nonterminal: true
+      index: 36
+    - nonterminal: true
+      index: 31
+  - nonterminal_idx: 30
+    symbol_refs:
+    - nonterminal: true
+      index: 30
+    - nonterminal: true
+      index: 11
+    - nonterminal: false
+      index: 40
+    - nonterminal: true
+      index: 31
+  - nonterminal_idx: 30
+    symbol_refs:
+    - nonterminal: true
+      index: 30
+    - nonterminal: false
+      index: 41
+  - nonterminal_idx: 30
+    symbol_refs:
+    - nonterminal: true
+      index: 30
+    - nonterminal: false
+      index: 59
+  - nonterminal_idx: 30
+    symbol_refs:
+    - nonterminal: true
+      index: 30
+    - nonterminal: false
+      index: 13
+    - nonterminal: true
+      index: 36
+  - nonterminal_idx: 30
+    symbol_refs:
+    - nonterminal: true
+      index: 30
+    - nonterminal: false
+      index: 14
+    - nonterminal: false
+      index: 56
+  - nonterminal_idx: 30
+    symbol_refs:
+    - nonterminal: true
+      index: 30
+    - nonterminal: false
+      index: 15
+    - nonterminal: false
+      index: 53
+  - nonterminal_idx: 30
+    symbol_refs:
+    - nonterminal: true
+      index: 30
+    - nonterminal: false
+      index: 20
+    - nonterminal: false
+      index: 56
+  - nonterminal_idx: 30
+    symbol_refs:
+    - nonterminal: true
+      index: 30
+    - nonterminal: false
+      index: 21
+    - nonterminal: false
+      index: 56
+  - nonterminal_idx: 31
+    symbol_refs: []
+  - nonterminal_idx: 31
+    symbol_refs:
+    - nonterminal: false
+      index: 42
+  - nonterminal_idx: 32
+    symbol_refs:
+    - nonterminal: false
+      index: 47
+  - nonterminal_idx: 33
+    symbol_refs: []
+  - nonterminal_idx: 33
+    symbol_refs:
+    - nonterminal: false
+      index: 47
+  - nonterminal_idx: 33
+    symbol_refs:
+    - nonterminal: false
+      index: 2
+  - nonterminal_idx: 33
+    symbol_refs:
+    - nonterminal: false
+      index: 40
+  - nonterminal_idx: 34
+    symbol_refs:
+    - nonterminal: false
+      index: 47
+  - nonterminal_idx: 34
+    symbol_refs:
+    - nonterminal: false
+      index: 43
+  - nonterminal_idx: 35
+    symbol_refs:
+    - nonterminal: false
+      index: 48
+  - nonterminal_idx: 36
+    symbol_refs:
+    - nonterminal: true
+      index: 34
+  - nonterminal_idx: 36
+    symbol_refs:
+    - nonterminal: true
+      index: 37
+  - nonterminal_idx: 37
+    symbol_refs:
+    - nonterminal: false
+      index: 2
+  - nonterminal_idx: 38
+    symbol_refs: []
+  - nonterminal_idx: 38
+    symbol_refs:
+    - nonterminal: false
+      index: 49
+    - nonterminal: false
+      index: 45
+  start_nonterminal_idx: 0
+states:
+- kernel_items:
+  - production_idx: 0
+    position: 0
+  - production_idx: 1
+    position: 0
+  - production_idx: 2
+    position: 0
+  - production_idx: 3
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: true
+      index: 1
+    state_idx: 1
+  - symbol_ref:
+      nonterminal: true
+      index: 2
+    state_idx: 2
+  reduce_actions: null
+  default_reduce_production_idx: 2
+- kernel_items:
+  - production_idx: 0
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 0
+    state_idx: 3
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 1
+    position: 1
+  - production_idx: 3
+    position: 1
+  - production_idx: 4
+    position: 0
+  - production_idx: 5
+    position: 0
+  - production_idx: 6
+    position: 0
+  - production_idx: 7
+    position: 0
+  - production_idx: 8
+    position: 0
+  - production_idx: 9
+    position: 0
+  - production_idx: 10
+    position: 0
+  - production_idx: 11
+    position: 0
+  - production_idx: 12
+    position: 0
+  - production_idx: 13
+    position: 0
+  - production_idx: 14
+    position: 0
+  - production_idx: 15
+    position: 0
+  - production_idx: 16
+    position: 0
+  - production_idx: 17
+    position: 0
+  - production_idx: 18
+    position: 0
+  - production_idx: 19
+    position: 0
+  - production_idx: 20
+    position: 0
+  - production_idx: 21
+    position: 0
+  - production_idx: 22
+    position: 0
+  - production_idx: 23
+    position: 0
+  - production_idx: 24
+    position: 0
+  - production_idx: 25
+    position: 0
+  - production_idx: 26
+    position: 0
+  - production_idx: 27
+    position: 0
+  - production_idx: 28
+    position: 0
+  - production_idx: 31
+    position: 0
+  - production_idx: 32
+    position: 0
+  - production_idx: 33
+    position: 0
+  - production_idx: 34
+    position: 0
+  - production_idx: 35
+    position: 0
+  - production_idx: 36
+    position: 0
+  - production_idx: 37
+    position: 0
+  - production_idx: 38
+    position: 0
+  - production_idx: 39
+    position: 0
+  - production_idx: 42
+    position: 0
+  - production_idx: 43
+    position: 0
+  - production_idx: 44
+    position: 0
+  - production_idx: 45
+    position: 0
+  - production_idx: 46
+    position: 0
+  - production_idx: 47
+    position: 0
+  - production_idx: 48
+    position: 0
+  - production_idx: 49
+    position: 0
+  - production_idx: 50
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 1
+    state_idx: 4
+  - symbol_ref:
+      nonterminal: false
+      index: 4
+    state_idx: 5
+  - symbol_ref:
+      nonterminal: false
+      index: 5
+    state_idx: 6
+  - symbol_ref:
+      nonterminal: false
+      index: 6
+    state_idx: 7
+  - symbol_ref:
+      nonterminal: false
+      index: 7
+    state_idx: 8
+  - symbol_ref:
+      nonterminal: false
+      index: 8
+    state_idx: 9
+  - symbol_ref:
+      nonterminal: false
+      index: 9
+    state_idx: 10
+  - symbol_ref:
+      nonterminal: false
+      index: 10
+    state_idx: 11
+  - symbol_ref:
+      nonterminal: false
+      index: 11
+    state_idx: 12
+  - symbol_ref:
+      nonterminal: false
+      index: 12
+    state_idx: 13
+  - symbol_ref:
+      nonterminal: false
+      index: 16
+    state_idx: 14
+  - symbol_ref:
+      nonterminal: false
+      index: 17
+    state_idx: 15
+  - symbol_ref:
+      nonterminal: false
+      index: 18
+    state_idx: 16
+  - symbol_ref:
+      nonterminal: false
+      index: 19
+    state_idx: 17
+  - symbol_ref:
+      nonterminal: false
+      index: 20
+    state_idx: 18
+  - symbol_ref:
+      nonterminal: false
+      index: 21
+    state_idx: 19
+  - symbol_ref:
+      nonterminal: false
+      index: 22
+    state_idx: 20
+  - symbol_ref:
+      nonterminal: false
+      index: 23
+    state_idx: 21
+  - symbol_ref:
+      nonterminal: false
+      index: 24
+    state_idx: 22
+  - symbol_ref:
+      nonterminal: false
+      index: 25
+    state_idx: 23
+  - symbol_ref:
+      nonterminal: false
+      index: 26
+    state_idx: 24
+  - symbol_ref:
+      nonterminal: false
+      index: 27
+    state_idx: 25
+  - symbol_ref:
+      nonterminal: false
+      index: 28
+    state_idx: 26
+  - symbol_ref:
+      nonterminal: false
+      index: 29
+    state_idx: 27
+  - symbol_ref:
+      nonterminal: false
+      index: 30
+    state_idx: 28
+  - symbol_ref:
+      nonterminal: false
+      index: 31
+    state_idx: 29
+  - symbol_ref:
+      nonterminal: false
+      index: 32
+    state_idx: 30
+  - symbol_ref:
+      nonterminal: false
+      index: 33
+    state_idx: 31
+  - symbol_ref:
+      nonterminal: false
+      index: 34
+    state_idx: 32
+  - symbol_ref:
+      nonterminal: false
+      index: 35
+    state_idx: 33
+  - symbol_ref:
+      nonterminal: false
+      index: 36
+    state_idx: 34
+  - symbol_ref:
+      nonterminal: false
+      index: 37
+    state_idx: 35
+  - symbol_ref:
+      nonterminal: false
+      index: 38
+    state_idx: 36
+  - symbol_ref:
+      nonterminal: false
+      index: 39
+    state_idx: 37
+  - symbol_ref:
+      nonterminal: false
+      index: 49
+    state_idx: 38
+  - symbol_ref:
+      nonterminal: false
+      index: 51
+    state_idx: 39
+  - symbol_ref:
+      nonterminal: false
+      index: 52
+    state_idx: 40
+  - symbol_ref:
+      nonterminal: false
+      index: 57
+    state_idx: 41
+  - symbol_ref:
+      nonterminal: false
+      index: 58
+    state_idx: 42
+  - symbol_ref:
+      nonterminal: true
+      index: 3
+    state_idx: 43
+  - symbol_ref:
+      nonterminal: true
+      index: 5
+    state_idx: 44
+  - symbol_ref:
+      nonterminal: true
+      index: 6
+    state_idx: 45
+  - symbol_ref:
+      nonterminal: true
+      index: 8
+    state_idx: 46
+  - symbol_ref:
+      nonterminal: true
+      index: 9
+    state_idx: 47
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 0
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 0
+- kernel_items:
+  - production_idx: 27
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 52
+    state_idx: 48
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 44
+    position: 1
+  - production_idx: 63
+    position: 0
+  - production_idx: 64
+    position: 0
+  - production_idx: 65
+    position: 0
+  - production_idx: 66
+    position: 0
+  - production_idx: 67
+    position: 0
+  - production_idx: 68
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: false
+      index: 53
+    state_idx: 51
+  - symbol_ref:
+      nonterminal: true
+      index: 16
+    state_idx: 52
+  - symbol_ref:
+      nonterminal: true
+      index: 17
+    state_idx: 53
+  - symbol_ref:
+      nonterminal: true
+      index: 18
+    state_idx: 54
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 55
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 43
+    position: 1
+  - production_idx: 62
+    position: 0
+  - production_idx: 63
+    position: 0
+  - production_idx: 64
+    position: 0
+  - production_idx: 65
+    position: 0
+  - production_idx: 66
+    position: 0
+  - production_idx: 67
+    position: 0
+  - production_idx: 68
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: false
+      index: 53
+    state_idx: 51
+  - symbol_ref:
+      nonterminal: true
+      index: 15
+    state_idx: 56
+  - symbol_ref:
+      nonterminal: true
+      index: 16
+    state_idx: 57
+  - symbol_ref:
+      nonterminal: true
+      index: 17
+    state_idx: 53
+  - symbol_ref:
+      nonterminal: true
+      index: 18
+    state_idx: 54
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 55
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 45
+    position: 1
+  - production_idx: 81
+    position: 0
+  - production_idx: 82
+    position: 0
+  - production_idx: 83
+    position: 0
+  - production_idx: 84
+    position: 0
+  - production_idx: 85
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 115
+    position: 0
+  - production_idx: 116
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: false
+      index: 53
+    state_idx: 59
+  - symbol_ref:
+      nonterminal: true
+      index: 24
+    state_idx: 60
+  - symbol_ref:
+      nonterminal: true
+      index: 25
+    state_idx: 61
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 62
+  - symbol_ref:
+      nonterminal: true
+      index: 36
+    state_idx: 63
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 64
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 38
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 38
+- kernel_items:
+  - production_idx: 39
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 39
+- kernel_items:
+  - production_idx: 47
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 47
+- kernel_items:
+  - production_idx: 48
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 48
+- kernel_items:
+  - production_idx: 49
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 49
+- kernel_items:
+  - production_idx: 50
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 50
+- kernel_items:
+  - production_idx: 36
+    position: 1
+  - production_idx: 37
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 40
+    state_idx: 65
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 66
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 34
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 34
+- kernel_items:
+  - production_idx: 7
+    position: 1
+  - production_idx: 107
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 67
+  - symbol_ref:
+      nonterminal: true
+      index: 32
+    state_idx: 68
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 9
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 9
+- kernel_items:
+  - production_idx: 10
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 56
+    state_idx: 69
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 11
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 56
+    state_idx: 70
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 12
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 71
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 6
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 6
+- kernel_items:
+  - production_idx: 13
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 13
+- kernel_items:
+  - production_idx: 8
+    position: 1
+  - production_idx: 51
+    position: 0
+  - production_idx: 52
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 72
+  - symbol_ref:
+      nonterminal: true
+      index: 10
+    state_idx: 73
+  reduce_actions: null
+  default_reduce_production_idx: 51
+- kernel_items:
+  - production_idx: 14
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 40
+    state_idx: 74
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 15
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 75
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 16
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 76
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 35
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 35
+- kernel_items:
+  - production_idx: 17
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 17
+- kernel_items:
+  - production_idx: 18
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 18
+- kernel_items:
+  - production_idx: 19
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 77
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 21
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 21
+- kernel_items:
+  - production_idx: 22
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 78
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 23
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 79
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 32
+    position: 1
+  - production_idx: 84
+    position: 0
+  - production_idx: 85
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 115
+    position: 0
+  - production_idx: 116
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 25
+    state_idx: 80
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 62
+  - symbol_ref:
+      nonterminal: true
+      index: 36
+    state_idx: 63
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 64
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 24
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 24
+- kernel_items:
+  - production_idx: 25
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 25
+- kernel_items:
+  - production_idx: 26
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 26
+- kernel_items:
+  - production_idx: 1
+    position: 2
+  - production_idx: 31
+    position: 0
+  - production_idx: 32
+    position: 0
+  - production_idx: 33
+    position: 0
+  - production_idx: 34
+    position: 0
+  - production_idx: 35
+    position: 0
+  - production_idx: 36
+    position: 0
+  - production_idx: 37
+    position: 0
+  - production_idx: 38
+    position: 0
+  - production_idx: 39
+    position: 0
+  - production_idx: 42
+    position: 0
+  - production_idx: 43
+    position: 0
+  - production_idx: 44
+    position: 0
+  - production_idx: 45
+    position: 0
+  - production_idx: 46
+    position: 0
+  - production_idx: 47
+    position: 0
+  - production_idx: 48
+    position: 0
+  - production_idx: 49
+    position: 0
+  - production_idx: 50
+    position: 0
+  - production_idx: 86
+    position: 0
+  - production_idx: 87
+    position: 0
+  - production_idx: 88
+    position: 0
+  - production_idx: 89
+    position: 0
+  - production_idx: 90
+    position: 0
+  - production_idx: 91
+    position: 0
+  - production_idx: 114
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 1
+    state_idx: 81
+  - symbol_ref:
+      nonterminal: false
+      index: 4
+    state_idx: 5
+  - symbol_ref:
+      nonterminal: false
+      index: 5
+    state_idx: 6
+  - symbol_ref:
+      nonterminal: false
+      index: 6
+    state_idx: 7
+  - symbol_ref:
+      nonterminal: false
+      index: 7
+    state_idx: 8
+  - symbol_ref:
+      nonterminal: false
+      index: 8
+    state_idx: 9
+  - symbol_ref:
+      nonterminal: false
+      index: 9
+    state_idx: 10
+  - symbol_ref:
+      nonterminal: false
+      index: 10
+    state_idx: 11
+  - symbol_ref:
+      nonterminal: false
+      index: 11
+    state_idx: 12
+  - symbol_ref:
+      nonterminal: false
+      index: 12
+    state_idx: 13
+  - symbol_ref:
+      nonterminal: false
+      index: 16
+    state_idx: 14
+  - symbol_ref:
+      nonterminal: false
+      index: 17
+    state_idx: 15
+  - symbol_ref:
+      nonterminal: false
+      index: 29
+    state_idx: 27
+  - symbol_ref:
+      nonterminal: false
+      index: 36
+    state_idx: 34
+  - symbol_ref:
+      nonterminal: false
+      index: 48
+    state_idx: 82
+  - symbol_ref:
+      nonterminal: false
+      index: 58
+    state_idx: 42
+  - symbol_ref:
+      nonterminal: true
+      index: 5
+    state_idx: 83
+  - symbol_ref:
+      nonterminal: true
+      index: 6
+    state_idx: 45
+  - symbol_ref:
+      nonterminal: true
+      index: 8
+    state_idx: 46
+  - symbol_ref:
+      nonterminal: true
+      index: 9
+    state_idx: 47
+  - symbol_ref:
+      nonterminal: true
+      index: 26
+    state_idx: 84
+  - symbol_ref:
+      nonterminal: true
+      index: 27
+    state_idx: 85
+  - symbol_ref:
+      nonterminal: true
+      index: 28
+    state_idx: 86
+  - symbol_ref:
+      nonterminal: true
+      index: 35
+    state_idx: 87
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 5
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 5
+- kernel_items:
+  - production_idx: 28
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 28
+- kernel_items:
+  - production_idx: 20
+    position: 1
+  - production_idx: 29
+    position: 0
+  - production_idx: 30
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 40
+    state_idx: 88
+  - symbol_ref:
+      nonterminal: true
+      index: 4
+    state_idx: 89
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 40
+    position: 0
+  - production_idx: 41
+    position: 0
+  - production_idx: 42
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 90
+  - symbol_ref:
+      nonterminal: true
+      index: 7
+    state_idx: 91
+  reduce_actions: null
+  default_reduce_production_idx: 40
+- kernel_items:
+  - production_idx: 3
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 3
+- kernel_items:
+  - production_idx: 4
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 4
+- kernel_items:
+  - production_idx: 33
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 40
+    state_idx: 92
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 31
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 31
+- kernel_items:
+  - production_idx: 46
+    position: 1
+  - production_idx: 74
+    position: 0
+  - production_idx: 75
+    position: 0
+  - production_idx: 76
+    position: 0
+  - production_idx: 77
+    position: 0
+  - production_idx: 78
+    position: 0
+  - production_idx: 79
+    position: 0
+  - production_idx: 80
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: false
+      index: 53
+    state_idx: 93
+  - symbol_ref:
+      nonterminal: true
+      index: 21
+    state_idx: 94
+  - symbol_ref:
+      nonterminal: true
+      index: 22
+    state_idx: 95
+  - symbol_ref:
+      nonterminal: true
+      index: 23
+    state_idx: 96
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 97
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 98
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 27
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 27
+- kernel_items:
+  - production_idx: 113
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 113
+- kernel_items:
+  - production_idx: 112
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 112
+- kernel_items:
+  - production_idx: 64
+    position: 1
+  - production_idx: 66
+    position: 0
+  - production_idx: 67
+    position: 0
+  - production_idx: 68
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 17
+    state_idx: 99
+  - symbol_ref:
+      nonterminal: true
+      index: 18
+    state_idx: 54
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 55
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 44
+    position: 2
+  - production_idx: 65
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 53
+    state_idx: 100
+  reduce_actions: null
+  default_reduce_production_idx: 44
+- kernel_items:
+  - production_idx: 63
+    position: 1
+  - production_idx: 67
+    position: 1
+  - production_idx: 68
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 18
+    state_idx: 101
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 55
+  reduce_actions: null
+  default_reduce_production_idx: 63
+- kernel_items:
+  - production_idx: 66
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 66
+- kernel_items:
+  - production_idx: 68
+    position: 1
+  - production_idx: 69
+    position: 0
+  - production_idx: 70
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 56
+    state_idx: 102
+  - symbol_ref:
+      nonterminal: true
+      index: 19
+    state_idx: 103
+  reduce_actions: null
+  default_reduce_production_idx: 69
+- kernel_items:
+  - production_idx: 43
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 43
+- kernel_items:
+  - production_idx: 62
+    position: 1
+  - production_idx: 65
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 53
+    state_idx: 100
+  reduce_actions: null
+  default_reduce_production_idx: 62
+- kernel_items:
+  - production_idx: 117
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 117
+- kernel_items:
+  - production_idx: 82
+    position: 1
+  - production_idx: 84
+    position: 0
+  - production_idx: 85
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 115
+    position: 0
+  - production_idx: 116
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 25
+    state_idx: 104
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 62
+  - symbol_ref:
+      nonterminal: true
+      index: 36
+    state_idx: 63
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 64
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 45
+    position: 2
+  - production_idx: 83
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 53
+    state_idx: 105
+  reduce_actions: null
+  default_reduce_production_idx: 45
+- kernel_items:
+  - production_idx: 81
+    position: 1
+  - production_idx: 85
+    position: 1
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 115
+    position: 0
+  - production_idx: 116
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 62
+  - symbol_ref:
+      nonterminal: true
+      index: 36
+    state_idx: 106
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 64
+  reduce_actions: null
+  default_reduce_production_idx: 81
+- kernel_items:
+  - production_idx: 115
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 115
+- kernel_items:
+  - production_idx: 84
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 84
+- kernel_items:
+  - production_idx: 116
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 116
+- kernel_items:
+  - production_idx: 36
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 36
+- kernel_items:
+  - production_idx: 37
+    position: 2
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 40
+    state_idx: 107
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 107
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 107
+- kernel_items:
+  - production_idx: 7
+    position: 2
+  - production_idx: 108
+    position: 0
+  - production_idx: 109
+    position: 0
+  - production_idx: 110
+    position: 0
+  - production_idx: 111
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 108
+  - symbol_ref:
+      nonterminal: false
+      index: 40
+    state_idx: 109
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 110
+  - symbol_ref:
+      nonterminal: true
+      index: 33
+    state_idx: 111
+  reduce_actions: null
+  default_reduce_production_idx: 108
+- kernel_items:
+  - production_idx: 10
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 10
+- kernel_items:
+  - production_idx: 11
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 11
+- kernel_items:
+  - production_idx: 12
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 12
+- kernel_items:
+  - production_idx: 52
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 52
+- kernel_items:
+  - production_idx: 8
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 8
+- kernel_items:
+  - production_idx: 14
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 14
+- kernel_items:
+  - production_idx: 15
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 15
+- kernel_items:
+  - production_idx: 16
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 16
+- kernel_items:
+  - production_idx: 19
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 19
+- kernel_items:
+  - production_idx: 22
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 22
+- kernel_items:
+  - production_idx: 23
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 23
+- kernel_items:
+  - production_idx: 32
+    position: 2
+  - production_idx: 85
+    position: 1
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 115
+    position: 0
+  - production_idx: 116
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 62
+  - symbol_ref:
+      nonterminal: true
+      index: 36
+    state_idx: 106
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 64
+  reduce_actions: null
+  default_reduce_production_idx: 32
+- kernel_items:
+  - production_idx: 90
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 52
+    state_idx: 112
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 114
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 114
+- kernel_items:
+  - production_idx: 89
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 52
+    state_idx: 113
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 1
+    position: 3
+  - production_idx: 31
+    position: 0
+  - production_idx: 32
+    position: 0
+  - production_idx: 33
+    position: 0
+  - production_idx: 34
+    position: 0
+  - production_idx: 35
+    position: 0
+  - production_idx: 36
+    position: 0
+  - production_idx: 37
+    position: 0
+  - production_idx: 38
+    position: 0
+  - production_idx: 39
+    position: 0
+  - production_idx: 42
+    position: 0
+  - production_idx: 43
+    position: 0
+  - production_idx: 44
+    position: 0
+  - production_idx: 45
+    position: 0
+  - production_idx: 46
+    position: 0
+  - production_idx: 47
+    position: 0
+  - production_idx: 48
+    position: 0
+  - production_idx: 49
+    position: 0
+  - production_idx: 50
+    position: 0
+  - production_idx: 87
+    position: 1
+  - production_idx: 88
+    position: 0
+  - production_idx: 89
+    position: 0
+  - production_idx: 90
+    position: 0
+  - production_idx: 91
+    position: 0
+  - production_idx: 114
+    position: 0
+  - production_idx: 118
+    position: 0
+  - production_idx: 119
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 1
+    state_idx: 81
+  - symbol_ref:
+      nonterminal: false
+      index: 4
+    state_idx: 5
+  - symbol_ref:
+      nonterminal: false
+      index: 5
+    state_idx: 6
+  - symbol_ref:
+      nonterminal: false
+      index: 6
+    state_idx: 7
+  - symbol_ref:
+      nonterminal: false
+      index: 7
+    state_idx: 8
+  - symbol_ref:
+      nonterminal: false
+      index: 8
+    state_idx: 9
+  - symbol_ref:
+      nonterminal: false
+      index: 9
+    state_idx: 10
+  - symbol_ref:
+      nonterminal: false
+      index: 10
+    state_idx: 11
+  - symbol_ref:
+      nonterminal: false
+      index: 11
+    state_idx: 12
+  - symbol_ref:
+      nonterminal: false
+      index: 12
+    state_idx: 13
+  - symbol_ref:
+      nonterminal: false
+      index: 16
+    state_idx: 14
+  - symbol_ref:
+      nonterminal: false
+      index: 17
+    state_idx: 15
+  - symbol_ref:
+      nonterminal: false
+      index: 29
+    state_idx: 27
+  - symbol_ref:
+      nonterminal: false
+      index: 36
+    state_idx: 34
+  - symbol_ref:
+      nonterminal: false
+      index: 48
+    state_idx: 82
+  - symbol_ref:
+      nonterminal: false
+      index: 49
+    state_idx: 114
+  - symbol_ref:
+      nonterminal: false
+      index: 58
+    state_idx: 42
+  - symbol_ref:
+      nonterminal: true
+      index: 5
+    state_idx: 83
+  - symbol_ref:
+      nonterminal: true
+      index: 6
+    state_idx: 45
+  - symbol_ref:
+      nonterminal: true
+      index: 8
+    state_idx: 46
+  - symbol_ref:
+      nonterminal: true
+      index: 9
+    state_idx: 47
+  - symbol_ref:
+      nonterminal: true
+      index: 27
+    state_idx: 115
+  - symbol_ref:
+      nonterminal: true
+      index: 28
+    state_idx: 86
+  - symbol_ref:
+      nonterminal: true
+      index: 35
+    state_idx: 87
+  - symbol_ref:
+      nonterminal: true
+      index: 38
+    state_idx: 116
+  reduce_actions:
+  - lookahead_set:
+    - 0
+    production_idx: 118
+- kernel_items:
+  - production_idx: 86
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 86
+- kernel_items:
+  - production_idx: 88
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 88
+- kernel_items:
+  - production_idx: 91
+    position: 1
+  - production_idx: 105
+    position: 0
+  - production_idx: 106
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 42
+    state_idx: 117
+  - symbol_ref:
+      nonterminal: true
+      index: 31
+    state_idx: 118
+  reduce_actions: null
+  default_reduce_production_idx: 105
+- kernel_items:
+  - production_idx: 30
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 30
+- kernel_items:
+  - production_idx: 20
+    position: 2
+  - production_idx: 29
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 40
+    state_idx: 119
+  reduce_actions: null
+  default_reduce_production_idx: 20
+- kernel_items:
+  - production_idx: 41
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 41
+- kernel_items:
+  - production_idx: 42
+    position: 2
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 40
+    state_idx: 120
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 33
+    position: 2
+  - production_idx: 55
+    position: 0
+  - production_idx: 56
+    position: 0
+  - production_idx: 57
+    position: 0
+  - production_idx: 58
+    position: 0
+  - production_idx: 59
+    position: 0
+  - production_idx: 60
+    position: 0
+  - production_idx: 61
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 115
+    position: 0
+  - production_idx: 116
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: false
+      index: 53
+    state_idx: 121
+  - symbol_ref:
+      nonterminal: false
+      index: 54
+    state_idx: 122
+  - symbol_ref:
+      nonterminal: false
+      index: 55
+    state_idx: 123
+  - symbol_ref:
+      nonterminal: true
+      index: 12
+    state_idx: 124
+  - symbol_ref:
+      nonterminal: true
+      index: 13
+    state_idx: 125
+  - symbol_ref:
+      nonterminal: true
+      index: 14
+    state_idx: 126
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 62
+  - symbol_ref:
+      nonterminal: true
+      index: 36
+    state_idx: 127
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 64
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 75
+    position: 1
+  - production_idx: 77
+    position: 0
+  - production_idx: 78
+    position: 0
+  - production_idx: 79
+    position: 0
+  - production_idx: 80
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 22
+    state_idx: 128
+  - symbol_ref:
+      nonterminal: true
+      index: 23
+    state_idx: 96
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 97
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 98
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 46
+    position: 2
+  - production_idx: 76
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 53
+    state_idx: 129
+  reduce_actions: null
+  default_reduce_production_idx: 46
+- kernel_items:
+  - production_idx: 74
+    position: 1
+  - production_idx: 78
+    position: 1
+  - production_idx: 79
+    position: 0
+  - production_idx: 80
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 23
+    state_idx: 130
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 97
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 98
+  reduce_actions: null
+  default_reduce_production_idx: 74
+- kernel_items:
+  - production_idx: 77
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 77
+- kernel_items:
+  - production_idx: 69
+    position: 0
+  - production_idx: 70
+    position: 0
+  - production_idx: 79
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 56
+    state_idx: 102
+  - symbol_ref:
+      nonterminal: true
+      index: 19
+    state_idx: 131
+  reduce_actions: null
+  default_reduce_production_idx: 69
+- kernel_items:
+  - production_idx: 80
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 80
+- kernel_items:
+  - production_idx: 64
+    position: 2
+  - production_idx: 67
+    position: 1
+  - production_idx: 68
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 18
+    state_idx: 101
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 55
+  reduce_actions: null
+  default_reduce_production_idx: 64
+- kernel_items:
+  - production_idx: 65
+    position: 2
+  - production_idx: 66
+    position: 0
+  - production_idx: 67
+    position: 0
+  - production_idx: 68
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 17
+    state_idx: 132
+  - symbol_ref:
+      nonterminal: true
+      index: 18
+    state_idx: 54
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 55
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 67
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 67
+- kernel_items:
+  - production_idx: 70
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 70
+- kernel_items:
+  - production_idx: 68
+    position: 2
+  - production_idx: 71
+    position: 0
+  - production_idx: 72
+    position: 0
+  - production_idx: 73
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 3
+    state_idx: 133
+  - symbol_ref:
+      nonterminal: true
+      index: 20
+    state_idx: 134
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 135
+  reduce_actions: null
+  default_reduce_production_idx: 71
+- kernel_items:
+  - production_idx: 82
+    position: 2
+  - production_idx: 85
+    position: 1
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 115
+    position: 0
+  - production_idx: 116
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 62
+  - symbol_ref:
+      nonterminal: true
+      index: 36
+    state_idx: 106
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 64
+  reduce_actions: null
+  default_reduce_production_idx: 82
+- kernel_items:
+  - production_idx: 83
+    position: 2
+  - production_idx: 84
+    position: 0
+  - production_idx: 85
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 115
+    position: 0
+  - production_idx: 116
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 25
+    state_idx: 136
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 62
+  - symbol_ref:
+      nonterminal: true
+      index: 36
+    state_idx: 63
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 64
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 85
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 85
+- kernel_items:
+  - production_idx: 37
+    position: 3
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 37
+- kernel_items:
+  - production_idx: 110
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 110
+- kernel_items:
+  - production_idx: 111
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 111
+- kernel_items:
+  - production_idx: 109
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 109
+- kernel_items:
+  - production_idx: 7
+    position: 3
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 7
+- kernel_items:
+  - production_idx: 90
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 90
+- kernel_items:
+  - production_idx: 89
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 89
+- kernel_items:
+  - production_idx: 119
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 45
+    state_idx: 137
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 87
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 87
+- kernel_items:
+  - production_idx: 1
+    position: 4
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 1
+- kernel_items:
+  - production_idx: 106
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 106
+- kernel_items:
+  - production_idx: 91
+    position: 2
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 44
+    state_idx: 138
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 29
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 29
+- kernel_items:
+  - production_idx: 42
+    position: 3
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 42
+- kernel_items:
+  - production_idx: 59
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 59
+- kernel_items:
+  - production_idx: 60
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 60
+- kernel_items:
+  - production_idx: 61
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 61
+- kernel_items:
+  - production_idx: 33
+    position: 3
+  - production_idx: 56
+    position: 1
+  - production_idx: 57
+    position: 0
+  - production_idx: 58
+    position: 0
+  - production_idx: 59
+    position: 0
+  - production_idx: 60
+    position: 0
+  - production_idx: 61
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 115
+    position: 0
+  - production_idx: 116
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: false
+      index: 53
+    state_idx: 121
+  - symbol_ref:
+      nonterminal: false
+      index: 54
+    state_idx: 122
+  - symbol_ref:
+      nonterminal: false
+      index: 55
+    state_idx: 123
+  - symbol_ref:
+      nonterminal: true
+      index: 13
+    state_idx: 139
+  - symbol_ref:
+      nonterminal: true
+      index: 14
+    state_idx: 126
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 62
+  - symbol_ref:
+      nonterminal: true
+      index: 36
+    state_idx: 127
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 64
+  reduce_actions: null
+  default_reduce_production_idx: 33
+- kernel_items:
+  - production_idx: 55
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 55
+- kernel_items:
+  - production_idx: 58
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 58
+- kernel_items:
+  - production_idx: 57
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 57
+- kernel_items:
+  - production_idx: 75
+    position: 2
+  - production_idx: 78
+    position: 1
+  - production_idx: 79
+    position: 0
+  - production_idx: 80
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 23
+    state_idx: 130
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 97
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 98
+  reduce_actions: null
+  default_reduce_production_idx: 75
+- kernel_items:
+  - production_idx: 76
+    position: 2
+  - production_idx: 77
+    position: 0
+  - production_idx: 78
+    position: 0
+  - production_idx: 79
+    position: 0
+  - production_idx: 80
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 22
+    state_idx: 140
+  - symbol_ref:
+      nonterminal: true
+      index: 23
+    state_idx: 96
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 97
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 98
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 78
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 78
+- kernel_items:
+  - production_idx: 79
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 79
+- kernel_items:
+  - production_idx: 65
+    position: 3
+  - production_idx: 67
+    position: 1
+  - production_idx: 68
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 18
+    state_idx: 101
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 55
+  reduce_actions: null
+  default_reduce_production_idx: 65
+- kernel_items:
+  - production_idx: 73
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 73
+- kernel_items:
+  - production_idx: 68
+    position: 3
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 68
+- kernel_items:
+  - production_idx: 72
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 72
+- kernel_items:
+  - production_idx: 83
+    position: 3
+  - production_idx: 85
+    position: 1
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 115
+    position: 0
+  - production_idx: 116
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 62
+  - symbol_ref:
+      nonterminal: true
+      index: 36
+    state_idx: 106
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 64
+  reduce_actions: null
+  default_reduce_production_idx: 83
+- kernel_items:
+  - production_idx: 119
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 119
+- kernel_items:
+  - production_idx: 91
+    position: 3
+  - production_idx: 92
+    position: 0
+  - production_idx: 93
+    position: 0
+  - production_idx: 94
+    position: 0
+  - production_idx: 95
+    position: 0
+  - production_idx: 96
+    position: 0
+  - production_idx: 97
+    position: 0
+  - production_idx: 98
+    position: 0
+  - production_idx: 99
+    position: 0
+  - production_idx: 100
+    position: 0
+  - production_idx: 101
+    position: 0
+  - production_idx: 102
+    position: 0
+  - production_idx: 103
+    position: 0
+  - production_idx: 104
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: true
+      index: 29
+    state_idx: 141
+  - symbol_ref:
+      nonterminal: true
+      index: 30
+    state_idx: 142
+  reduce_actions: null
+  default_reduce_production_idx: 95
+- kernel_items:
+  - production_idx: 56
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 56
+- kernel_items:
+  - production_idx: 76
+    position: 3
+  - production_idx: 78
+    position: 1
+  - production_idx: 79
+    position: 0
+  - production_idx: 80
+    position: 0
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 23
+    state_idx: 130
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 97
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 98
+  reduce_actions: null
+  default_reduce_production_idx: 76
+- kernel_items:
+  - production_idx: 91
+    position: 4
+  - production_idx: 93
+    position: 1
+  - production_idx: 94
+    position: 1
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 50
+    state_idx: 143
+  - symbol_ref:
+      nonterminal: false
+      index: 52
+    state_idx: 144
+  reduce_actions: null
+  default_reduce_production_idx: 91
+- kernel_items:
+  - production_idx: 53
+    position: 0
+  - production_idx: 54
+    position: 0
+  - production_idx: 92
+    position: 1
+  - production_idx: 96
+    position: 1
+  - production_idx: 97
+    position: 1
+  - production_idx: 98
+    position: 1
+  - production_idx: 99
+    position: 1
+  - production_idx: 100
+    position: 1
+  - production_idx: 101
+    position: 1
+  - production_idx: 102
+    position: 1
+  - production_idx: 103
+    position: 1
+  - production_idx: 104
+    position: 1
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 115
+    position: 0
+  - production_idx: 116
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 13
+    state_idx: 145
+  - symbol_ref:
+      nonterminal: false
+      index: 14
+    state_idx: 146
+  - symbol_ref:
+      nonterminal: false
+      index: 15
+    state_idx: 147
+  - symbol_ref:
+      nonterminal: false
+      index: 20
+    state_idx: 148
+  - symbol_ref:
+      nonterminal: false
+      index: 21
+    state_idx: 149
+  - symbol_ref:
+      nonterminal: false
+      index: 41
+    state_idx: 150
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: false
+      index: 53
+    state_idx: 151
+  - symbol_ref:
+      nonterminal: false
+      index: 59
+    state_idx: 152
+  - symbol_ref:
+      nonterminal: true
+      index: 11
+    state_idx: 153
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 62
+  - symbol_ref:
+      nonterminal: true
+      index: 36
+    state_idx: 154
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 64
+  reduce_actions:
+  - lookahead_set:
+    - 40
+    production_idx: 53
+  default_reduce_production_idx: 92
+- kernel_items:
+  - production_idx: 93
+    position: 2
+  - production_idx: 95
+    position: 0
+  - production_idx: 96
+    position: 0
+  - production_idx: 97
+    position: 0
+  - production_idx: 98
+    position: 0
+  - production_idx: 99
+    position: 0
+  - production_idx: 100
+    position: 0
+  - production_idx: 101
+    position: 0
+  - production_idx: 102
+    position: 0
+  - production_idx: 103
+    position: 0
+  - production_idx: 104
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: true
+      index: 30
+    state_idx: 155
+  reduce_actions: null
+  default_reduce_production_idx: 95
+- kernel_items:
+  - production_idx: 94
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 94
+- kernel_items:
+  - production_idx: 100
+    position: 2
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 115
+    position: 0
+  - production_idx: 116
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 62
+  - symbol_ref:
+      nonterminal: true
+      index: 36
+    state_idx: 156
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 64
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 101
+    position: 2
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 56
+    state_idx: 157
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 102
+    position: 2
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 53
+    state_idx: 158
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 103
+    position: 2
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 56
+    state_idx: 159
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 104
+    position: 2
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 56
+    state_idx: 160
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 98
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 98
+- kernel_items:
+  - production_idx: 54
+    position: 1
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 54
+- kernel_items:
+  - production_idx: 99
+    position: 2
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 99
+- kernel_items:
+  - production_idx: 97
+    position: 2
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 40
+    state_idx: 161
+  reduce_actions: null
+- kernel_items:
+  - production_idx: 96
+    position: 2
+  - production_idx: 105
+    position: 0
+  - production_idx: 106
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 42
+    state_idx: 117
+  - symbol_ref:
+      nonterminal: true
+      index: 31
+    state_idx: 162
+  reduce_actions: null
+  default_reduce_production_idx: 105
+- kernel_items:
+  - production_idx: 53
+    position: 0
+  - production_idx: 54
+    position: 0
+  - production_idx: 93
+    position: 3
+  - production_idx: 96
+    position: 1
+  - production_idx: 97
+    position: 1
+  - production_idx: 98
+    position: 1
+  - production_idx: 99
+    position: 1
+  - production_idx: 100
+    position: 1
+  - production_idx: 101
+    position: 1
+  - production_idx: 102
+    position: 1
+  - production_idx: 103
+    position: 1
+  - production_idx: 104
+    position: 1
+  - production_idx: 112
+    position: 0
+  - production_idx: 113
+    position: 0
+  - production_idx: 115
+    position: 0
+  - production_idx: 116
+    position: 0
+  - production_idx: 117
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 2
+    state_idx: 58
+  - symbol_ref:
+      nonterminal: false
+      index: 13
+    state_idx: 145
+  - symbol_ref:
+      nonterminal: false
+      index: 14
+    state_idx: 146
+  - symbol_ref:
+      nonterminal: false
+      index: 15
+    state_idx: 147
+  - symbol_ref:
+      nonterminal: false
+      index: 20
+    state_idx: 148
+  - symbol_ref:
+      nonterminal: false
+      index: 21
+    state_idx: 149
+  - symbol_ref:
+      nonterminal: false
+      index: 41
+    state_idx: 150
+  - symbol_ref:
+      nonterminal: false
+      index: 43
+    state_idx: 49
+  - symbol_ref:
+      nonterminal: false
+      index: 47
+    state_idx: 50
+  - symbol_ref:
+      nonterminal: false
+      index: 53
+    state_idx: 151
+  - symbol_ref:
+      nonterminal: false
+      index: 59
+    state_idx: 152
+  - symbol_ref:
+      nonterminal: true
+      index: 11
+    state_idx: 153
+  - symbol_ref:
+      nonterminal: true
+      index: 34
+    state_idx: 62
+  - symbol_ref:
+      nonterminal: true
+      index: 36
+    state_idx: 154
+  - symbol_ref:
+      nonterminal: true
+      index: 37
+    state_idx: 64
+  reduce_actions:
+  - lookahead_set:
+    - 40
+    production_idx: 53
+  default_reduce_production_idx: 93
+- kernel_items:
+  - production_idx: 100
+    position: 3
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 100
+- kernel_items:
+  - production_idx: 101
+    position: 3
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 101
+- kernel_items:
+  - production_idx: 102
+    position: 3
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 102
+- kernel_items:
+  - production_idx: 103
+    position: 3
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 103
+- kernel_items:
+  - production_idx: 104
+    position: 3
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 104
+- kernel_items:
+  - production_idx: 97
+    position: 3
+  - production_idx: 105
+    position: 0
+  - production_idx: 106
+    position: 0
+  transition_actions:
+  - symbol_ref:
+      nonterminal: false
+      index: 42
+    state_idx: 117
+  - symbol_ref:
+      nonterminal: true
+      index: 31
+    state_idx: 163
+  reduce_actions: null
+  default_reduce_production_idx: 105
+- kernel_items:
+  - production_idx: 96
+    position: 3
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 96
+- kernel_items:
+  - production_idx: 97
+    position: 4
+  transition_actions: null
+  reduce_actions: null
+  default_reduce_production_idx: 97
