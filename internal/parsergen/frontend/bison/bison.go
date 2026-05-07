@@ -53,6 +53,6 @@ func GrammarFromFile(filePath string) (frontend.Grammar, error) {
 
 // GrammarFromString reads the context free grammar as GNU Bison grammar document from the given string. Returns an
 // error if the grammar document can not be parsed successfully.
-func GrammarFromString(jsonDocument string) (frontend.Grammar, error) {
-	return ToGrammar(strings.NewReader(jsonDocument), "in-memory")
+func GrammarFromString(bisonGrammar string) (frontend.Grammar, error) {
+	return ToGrammar(strings.NewReader(bisonGrammar), "in-memory")
 }

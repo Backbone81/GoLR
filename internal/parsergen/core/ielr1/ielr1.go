@@ -107,9 +107,7 @@ func (i *IELR1) grammarToBisonGrammarFile(file *os.File) {
 
 	fmt.Fprintln(file)
 	fmt.Fprintln(file, "  ;")
-
 	fmt.Fprintln(file)
-	fmt.Fprintln(file, "%%")
 }
 
 func (i *IELR1) buildTerminalList(report bison.BisonXMLReport, parser *backend.Parser) {
