@@ -1,13 +1,13 @@
 package cmd
 
 import (
+	"golr/internal/parsergen/frontend/bison"
 	"os"
 
 	"github.com/spf13/cobra"
 
 	"golr/internal/parsergen/backend/golang"
 	"golr/internal/parsergen/core/ielr1"
-	frontend2 "golr/internal/parsergen/frontend"
 )
 
 var (
@@ -22,6 +22,11 @@ var rootCmd = &cobra.Command{
 	Long:         `GoLR is a parser generator for LR(1) grammars.`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		grammar, err := bison.GrammarFromFile("internal/parsergen/frontend/bison/spec/bison-3.8.2.y")
+		if err != nil {
+			return err
+		}
+		_ = grammar
 		// if err := bison.BuildLALR1("tmp/bison-3.8.2.y", "tmp/output-lalr1.xml"); err != nil {
 		//	return err
 		//}
@@ -37,7 +42,7 @@ var rootCmd = &cobra.Command{
 		//	return err
 		//}
 
-		parser, err := ielr1.GrammarToParser(frontend2.Grammar{})
+		parser, err := ielr1.GrammarToParser(grammar)
 		if err != nil {
 			return err
 		}

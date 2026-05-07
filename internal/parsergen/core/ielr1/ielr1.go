@@ -3,6 +3,7 @@ package ielr1
 import (
 	"context"
 	"fmt"
+	"os"
 	"runtime/trace"
 	"strconv"
 
@@ -20,27 +21,39 @@ func GrammarToParser(augmentedGrammar frontend.Grammar) (backend.Parser, error) 
 }
 
 type IELR1 struct {
+	grammar              frontend.Grammar
 	terminalIdxByName    map[string]int
 	nonterminalIdxByName map[string]int
 }
 
 func NewIELR1(augmentedGrammar frontend.Grammar) *IELR1 {
 	return &IELR1{
+		grammar:              augmentedGrammar,
 		terminalIdxByName:    make(map[string]int),
 		nonterminalIdxByName: make(map[string]int),
 	}
 }
 
 func (i *IELR1) BuildParser() (backend.Parser, error) {
-	// TODO: Output bison grammar file to temporary file.
+	bisonGrammarFile, err := os.CreateTemp("", "golr-ielr1-*.y")
+	if err != nil {
+		return backend.Parser{}, err
+	}
+	defer os.Remove(bisonGrammarFile.Name())
 
-	// TODO: Run bison against generated grammar file and produce XML report.
+	i.grammarToBisonGrammarFile(bisonGrammarFile)
 
-	if err := bison.BuildIELR1("examples/bison/spec/bison-3.8.2.y", "tmp/bison-3.8.2.xml"); err != nil {
+	bisonXmlFile, err := os.CreateTemp("", "golr-ielr1-*.xml")
+	if err != nil {
+		return backend.Parser{}, err
+	}
+	defer os.Remove(bisonXmlFile.Name())
+
+	if err := bison.BuildIELR1(bisonGrammarFile.Name(), bisonXmlFile.Name()); err != nil {
 		return backend.Parser{}, err
 	}
 
-	report, err := bison.LoadBisonXMLReportFromFile("tmp/bison-3.8.2.xml")
+	report, err := bison.LoadBisonXMLReportFromFile(bisonXmlFile.Name())
 	if err != nil {
 		return backend.Parser{}, err
 	}
@@ -53,6 +66,50 @@ func (i *IELR1) BuildParser() (backend.Parser, error) {
 		return backend.Parser{}, err
 	}
 	return parser, nil
+}
+
+func (i *IELR1) grammarToBisonGrammarFile(file *os.File) {
+	fmt.Fprintf(file, "%%token\n")
+	for _, symbol := range i.grammar.Terminals {
+		fmt.Fprintf(file, "  %s\n", symbol.Name)
+	}
+
+	fmt.Fprintln(file)
+	fmt.Fprintln(file, "%%")
+	fmt.Fprintln(file)
+
+	currNonterminalIdx := -1
+	for _, production := range i.grammar.Productions {
+		if currNonterminalIdx != production.NonterminalIdx {
+			if currNonterminalIdx != -1 {
+				fmt.Fprintln(file)
+				fmt.Fprintln(file, "  ;")
+				fmt.Fprintln(file)
+			}
+			fmt.Fprintf(file, "%s\n", i.grammar.Nonterminals[production.NonterminalIdx].Name)
+			fmt.Fprintf(file, "  :")
+			currNonterminalIdx = production.NonterminalIdx
+		} else {
+			fmt.Fprintln(file)
+			fmt.Fprintf(file, "  |")
+		}
+		if len(production.SymbolRefs) == 0 {
+			fmt.Fprintf(file, " %%empty")
+		}
+		for _, symbolRef := range production.SymbolRefs {
+			if symbolRef.IsTerminal() {
+				fmt.Fprintf(file, " %s", i.grammar.Terminals[symbolRef.Idx()].Name)
+			} else {
+				fmt.Fprintf(file, " %s", i.grammar.Nonterminals[symbolRef.Idx()].Name)
+			}
+		}
+	}
+
+	fmt.Fprintln(file)
+	fmt.Fprintln(file, "  ;")
+
+	fmt.Fprintln(file)
+	fmt.Fprintln(file, "%%")
 }
 
 func (i *IELR1) buildTerminalList(report bison.BisonXMLReport, parser *backend.Parser) {
