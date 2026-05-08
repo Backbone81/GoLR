@@ -109,7 +109,6 @@ func GetScannerRules() []scannergen.Rule {
 
 	rules = append(rules, Rule("BRACED_CODE", Literal("__not_implemented__")))
 	rules = append(rules, Rule("BRACED_PREDICATE", Literal("__not_implemented__")))
-	rules = append(rules, Rule("BRACKETED_ID", Literal("__not_implemented__")))
 	rules = append(rules, Rule("CHAR_LITERAL", Literal("__not_implemented__")))
 	rules = append(rules, Rule("COLON", Literal(":")))
 	rules = append(rules, Rule("EPILOGUE", Literal("__not_implemented__")))
@@ -127,13 +126,16 @@ func GetScannerRules() []scannergen.Rule {
 				CharRange('0', '9'),
 				CharRange('_', '_'),
 				CharRange('.', '.'),
-				CharRange('[', '['),
-				CharRange(']', ']'),
 			),
 		),
 	)
 	rules = append(rules, Rule("ID", id))
-	rules = append(rules, Rule("ID_COLON", Literal("__not_implemented__")))
+	rules = append(rules, Rule("BRACKETED_ID", Concat(
+		Literal("["),
+		id,
+		Literal("]"),
+	)))
+	rules = append(rules, Rule("ID_COLON", Literal("__implemented_by_token_transformer__")))
 	rules = append(rules, Rule("PERCENT_PERCENT", Literal("%%")))
 	rules = append(rules, Rule("PIPE", Literal("|")))
 	rules = append(rules, Rule("PROLOGUE", Literal("__not_implemented__")))

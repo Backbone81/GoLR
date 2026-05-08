@@ -3,11 +3,11 @@
 package main
 
 import (
-	"golr/examples/bison/spec"
 	golangparsergen "golr/internal/parsergen/backend/golang"
 	yamlparsergen "golr/internal/parsergen/backend/yaml"
 	"golr/internal/parsergen/core/ielr1"
-	frontend2 "golr/internal/parsergen/frontend"
+	"golr/internal/parsergen/frontend/bison"
+	"golr/internal/parsergen/frontend/bison/spec"
 	golangscannergen "golr/internal/scannergen/backend/golang"
 	yamlscannergen "golr/pkg/scannergen/backend/yaml"
 	"golr/pkg/scannergen/core/subset"
@@ -23,7 +23,12 @@ func main() {
 		panic(err)
 	}
 
-	parser, err := ielr1.GrammarToParser(frontend2.Grammar{})
+	grammar, err := bison.GrammarFromFile("internal/parsergen/frontend/bison/spec/bison-3.8.2.y")
+	if err != nil {
+		panic(err)
+	}
+
+	parser, err := ielr1.GrammarToParser(grammar)
 	if err != nil {
 		panic(err)
 	}

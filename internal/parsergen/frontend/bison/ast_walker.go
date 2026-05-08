@@ -65,6 +65,27 @@ func (w *ASTWalker) buildTerminals(node *parser.Node) {
 			Name: id,
 		})
 		w.terminalIdxByName[id] = len(w.grammar.Terminals) - 1
+		for _, child := range node.Children {
+			w.buildTerminals(child)
+		}
+	case parser.NonterminalAlias:
+		if len(node.Children) == 1 {
+			if terminal, ok := node.Children[0].Symbol.Terminal(); ok && terminal == parser.TokenTstring {
+				w.grammar.Terminals[len(w.grammar.Terminals)-1].Alias = string(node.Children[0].Lexeme)
+			}
+		}
+		for _, child := range node.Children {
+			w.buildTerminals(child)
+		}
+	case parser.NonterminalStringAsId:
+		if len(node.Children) == 1 {
+			if terminal, ok := node.Children[0].Symbol.Terminal(); ok && terminal == parser.TokenString {
+				w.grammar.Terminals[len(w.grammar.Terminals)-1].Alias = string(node.Children[0].Lexeme)
+			}
+		}
+		for _, child := range node.Children {
+			w.buildTerminals(child)
+		}
 	}
 }
 
