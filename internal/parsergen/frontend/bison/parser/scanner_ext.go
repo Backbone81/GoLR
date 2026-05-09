@@ -76,6 +76,53 @@ func (s *Scanner) ReadPrologue() {
 	s.token = InvalidToken
 }
 
+func (s *Scanner) ReadBracedCode() {
+	s.readBracedContent(TokenBracedCode)
+}
+
+func (s *Scanner) ReadBracedPredicate() {
+	s.readBracedContent(TokenBracedPredicate)
+}
+
+func (s *Scanner) readBracedContent(token Token) {
+	s.err = nil
+	var previousRune rune
+	var nestingLevel int
+	for {
+		currRune := s.runeReader.Rune()
+		switch {
+		// <% is the C digraph for {
+		case currRune == '{' || (previousRune == '<' && currRune == '%'):
+			nestingLevel++
+		// %> is the C digraph for }
+		case currRune == '}' || (previousRune == '%' && currRune == '>'):
+			if nestingLevel == 0 {
+				s.runeReader.Next()
+				s.tokenEnd = s.runeReader
+				s.token = token
+				return
+			}
+			nestingLevel--
+		case previousRune == '/' && currRune == '*':
+			s.skipBlockComment()
+		case previousRune == '/' && currRune == '/':
+			s.skipLineComment()
+		case currRune == '"':
+			s.skipString('"')
+		case currRune == '\'':
+			s.skipString('\'')
+		}
+
+		previousRune = s.runeReader.Rune()
+		if !s.runeReader.Next() {
+			break
+		}
+	}
+
+	// The braced content was not closed.
+	s.token = InvalidToken
+}
+
 func (s *Scanner) skipBlockComment() {
 	var previousRune rune
 	for {

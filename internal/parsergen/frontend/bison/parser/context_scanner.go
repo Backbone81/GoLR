@@ -50,6 +50,10 @@ func (c *ContextScanner) Next() bool {
 		c.Scanner.ReadTag()
 	case TokenPrologueStart:
 		c.Scanner.ReadPrologue()
+	case TokenBracedCodeStart:
+		c.Scanner.ReadBracedCode()
+	case TokenBracedPredicateStart:
+		c.Scanner.ReadBracedPredicate()
 	}
 	return result
 }
