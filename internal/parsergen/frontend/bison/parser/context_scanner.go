@@ -48,6 +48,8 @@ func (c *ContextScanner) Next() bool {
 		c.percentPercentCount++
 	case TokenTagStart:
 		c.Scanner.ReadTag()
+	case TokenPrologueStart:
+		c.Scanner.ReadPrologue()
 	}
 	return result
 }
