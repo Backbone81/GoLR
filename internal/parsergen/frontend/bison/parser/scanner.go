@@ -72,10 +72,11 @@ const (
 	TokenTag                           Token = 53
 	TokenTagAny                        Token = 54
 	TokenTagNone                       Token = 55
-	TokenIntLiteral                    Token = 56
-	TokenPercentParam                  Token = 57
-	TokenPercentUnion                  Token = 58
-	TokenPercentEmpty                  Token = 59
+	TokenTagStart                      Token = 56
+	TokenIntLiteral                    Token = 57
+	TokenPercentParam                  Token = 58
+	TokenPercentUnion                  Token = 59
+	TokenPercentEmpty                  Token = 60
 	// InvalidToken is a terminal which does not exist. It is used for situations where no token was found yet.
 	InvalidToken Token = ^Token(0)
 	EndToken     Token = InvalidToken - 1
@@ -200,6 +201,8 @@ func (t Token) String() string {
 		return `TAG_ANY`
 	case TokenTagNone:
 		return `TAG_NONE`
+	case TokenTagStart:
+		return `TAG_START`
 	case TokenIntLiteral:
 		return `INT_LITERAL`
 	case TokenPercentParam:
@@ -333,7 +336,7 @@ func (s *Scanner) dispatchState() error {
 	case 13:
 		return s.state13Semicolon()
 	case 14:
-		return s.state14TagAny()
+		return s.state14TagStart()
 	case 15:
 		return s.state15IntLiteral()
 	case 16:
@@ -1338,8 +1341,12 @@ func (s *Scanner) state13Semicolon() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state14TagAny() error {
+func (s *Scanner) state14TagStart() error {
 	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenTagStart
+	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
 		return s.runeReader.Err()

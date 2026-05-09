@@ -459,9 +459,10 @@ rules:
       text: ";"
 - name: TAG
   regex:
-    kind: Literal
-    literal:
-      text: "__not_implemented__"
+    kind: CharClass
+    charClass:
+      negate: false
+      ranges: []
 - name: TAG_ANY
   regex:
     kind: Literal
@@ -472,6 +473,11 @@ rules:
     kind: Literal
     literal:
       text: "<>"
+- name: TAG_START
+  regex:
+    kind: Literal
+    literal:
+      text: "<"
 - name: INT_LITERAL
   regex:
     kind: OneOrMore
@@ -785,7 +791,8 @@ states:
   accept: true
 - ruleIdx: 52
   accept: true
-- ruleIdx: 54
+- ruleIdx: 56
+  accept: true
   transitions:
   - charRange:
       low: 42
@@ -795,7 +802,7 @@ states:
       low: 62
       high: 62
     stateIdx: 46
-- ruleIdx: 56
+- ruleIdx: 57
   accept: true
   transitions:
   - charRange:
@@ -1017,7 +1024,7 @@ states:
     stateIdx: 79
 - ruleIdx: 49
   accept: true
-- ruleIdx: 58
+- ruleIdx: 59
   transitions:
   - charRange:
       low: 110
@@ -1212,7 +1219,7 @@ states:
       low: 114
       high: 114
     stateIdx: 99
-- ruleIdx: 57
+- ruleIdx: 58
   transitions:
   - charRange:
       low: 114
@@ -1266,7 +1273,7 @@ states:
       low: 112
       high: 112
     stateIdx: 108
-- ruleIdx: 59
+- ruleIdx: 60
   transitions:
   - charRange:
       low: 112
@@ -1332,7 +1339,7 @@ states:
       low: 99
       high: 99
     stateIdx: 119
-- ruleIdx: 58
+- ruleIdx: 59
   transitions:
   - charRange:
       low: 105
@@ -1485,7 +1492,7 @@ states:
       low: 101
       high: 101
     stateIdx: 138
-- ruleIdx: 57
+- ruleIdx: 58
   transitions:
   - charRange:
       low: 97
@@ -1539,7 +1546,7 @@ states:
       low: 101
       high: 101
     stateIdx: 147
-- ruleIdx: 59
+- ruleIdx: 60
   transitions:
   - charRange:
       low: 116
@@ -1605,7 +1612,7 @@ states:
       low: 99
       high: 99
     stateIdx: 158
-- ruleIdx: 58
+- ruleIdx: 59
   transitions:
   - charRange:
       low: 111
@@ -1736,7 +1743,7 @@ states:
       low: 45
       high: 45
     stateIdx: 175
-- ruleIdx: 57
+- ruleIdx: 58
   transitions:
   - charRange:
       low: 109
@@ -1782,7 +1789,7 @@ states:
       low: 99
       high: 99
     stateIdx: 182
-- ruleIdx: 59
+- ruleIdx: 60
   transitions:
   - charRange:
       low: 121
@@ -1844,7 +1851,7 @@ states:
     stateIdx: 192
 - ruleIdx: 39
   accept: true
-- ruleIdx: 58
+- ruleIdx: 59
   transitions:
   - charRange:
       low: 110
@@ -1956,7 +1963,7 @@ states:
       low: 112
       high: 112
     stateIdx: 206
-- ruleIdx: 57
+- ruleIdx: 58
   accept: true
 - ruleIdx: 27
   transitions:
@@ -1986,7 +1993,7 @@ states:
       low: 116
       high: 116
     stateIdx: 210
-- ruleIdx: 59
+- ruleIdx: 60
   accept: true
 - ruleIdx: 22
   transitions:
@@ -2038,7 +2045,7 @@ states:
       low: 115
       high: 115
     stateIdx: 218
-- ruleIdx: 58
+- ruleIdx: 59
   accept: true
 - ruleIdx: 40
   transitions:

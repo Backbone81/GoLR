@@ -43,8 +43,11 @@ func (c *ContextScanner) Next() bool {
 	}
 
 	result := c.Scanner.Next()
-	if c.Token() == TokenPercentPercent {
+	switch c.Token() {
+	case TokenPercentPercent:
 		c.percentPercentCount++
+	case TokenTagStart:
+		c.Scanner.ReadTag()
 	}
 	return result
 }
