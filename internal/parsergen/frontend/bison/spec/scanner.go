@@ -143,6 +143,7 @@ func GetScannerRules() []scannergen.Rule {
 				CharRange('A', 'Z'),
 				CharRange('0', '9'),
 				CharRange('_', '_'),
+				CharRange('-', '-'),
 				CharRange('.', '.'),
 			),
 		),

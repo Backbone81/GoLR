@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	filePath := "examples/bison/spec/bison-3.8.2.y"
+	filePath := "internal/parsergen/frontend/bison/testdata/bison-3.8.2.y"
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		panic(err)
@@ -25,7 +25,9 @@ func printTokens(filePath string, data []byte) {
 	runeReader := runtime.NewUTF8RuneReader(data)
 	scanner := parser.TokenTransformer{
 		Scanner: &parser.WhitespaceSkipper{
-			Scanner: parser.NewScanner(runeReader, filePath),
+			Scanner: &parser.ContextScanner{
+				Scanner: parser.NewScanner(runeReader, filePath),
+			},
 		},
 	}
 
@@ -46,7 +48,9 @@ func printAbstractSyntaxTree(filePath string, data []byte) {
 	runeReader := runtime.NewUTF8RuneReader(data)
 	scanner := parser.TokenTransformer{
 		Scanner: &parser.WhitespaceSkipper{
-			Scanner: parser.NewScanner(runeReader, filePath),
+			Scanner: &parser.ContextScanner{
+				Scanner: parser.NewScanner(runeReader, filePath),
+			},
 		},
 	}
 

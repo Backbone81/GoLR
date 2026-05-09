@@ -1276,6 +1276,9 @@ func (s *Scanner) state11Id() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
+	case nextRune == '-':
+		s.state = 11
+		return nil
 	case nextRune == '.':
 		s.state = 11
 		return nil
@@ -1914,6 +1917,9 @@ func (s *Scanner) state46BracketedId() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
+	case nextRune == '-':
+		s.state = 46
+		return nil
 	case nextRune == '.':
 		s.state = 46
 		return nil

@@ -57,25 +57,29 @@ const (
 	TokenPercentVerbose                Token = 38
 	TokenPercentYacc                   Token = 39
 	TokenBracedCode                    Token = 40
-	TokenBracedPredicate               Token = 41
-	TokenCharLiteral                   Token = 42
-	TokenColon                         Token = 43
-	TokenEpilogue                      Token = 44
-	TokenEqual                         Token = 45
-	TokenId                            Token = 46
-	TokenBracketedId                   Token = 47
-	TokenIdColon                       Token = 48
-	TokenPercentPercent                Token = 49
-	TokenPipe                          Token = 50
-	TokenPrologue                      Token = 51
-	TokenSemicolon                     Token = 52
-	TokenTag                           Token = 53
-	TokenTagAny                        Token = 54
-	TokenTagNone                       Token = 55
-	TokenIntLiteral                    Token = 56
-	TokenPercentParam                  Token = 57
-	TokenPercentUnion                  Token = 58
-	TokenPercentEmpty                  Token = 59
+	TokenBracedCodeStart               Token = 41
+	TokenBracedPredicate               Token = 42
+	TokenBracedPredicateStart          Token = 43
+	TokenCharLiteral                   Token = 44
+	TokenColon                         Token = 45
+	TokenEpilogue                      Token = 46
+	TokenEqual                         Token = 47
+	TokenId                            Token = 48
+	TokenBracketedId                   Token = 49
+	TokenIdColon                       Token = 50
+	TokenPercentPercent                Token = 51
+	TokenPipe                          Token = 52
+	TokenPrologue                      Token = 53
+	TokenPrologueStart                 Token = 54
+	TokenSemicolon                     Token = 55
+	TokenTag                           Token = 56
+	TokenTagAny                        Token = 57
+	TokenTagNone                       Token = 58
+	TokenTagStart                      Token = 59
+	TokenIntLiteral                    Token = 60
+	TokenPercentParam                  Token = 61
+	TokenPercentUnion                  Token = 62
+	TokenPercentEmpty                  Token = 63
 	// InvalidToken is a terminal which does not exist. It is used for situations where no token was found yet.
 	InvalidToken Token = ^Token(0)
 	EndToken     Token = InvalidToken - 1
@@ -170,8 +174,12 @@ func (t Token) String() string {
 		return `PERCENT_YACC`
 	case TokenBracedCode:
 		return `BRACED_CODE`
+	case TokenBracedCodeStart:
+		return `BRACED_CODE_START`
 	case TokenBracedPredicate:
 		return `BRACED_PREDICATE`
+	case TokenBracedPredicateStart:
+		return `BRACED_PREDICATE_START`
 	case TokenCharLiteral:
 		return `CHAR_LITERAL`
 	case TokenColon:
@@ -192,6 +200,8 @@ func (t Token) String() string {
 		return `PIPE`
 	case TokenPrologue:
 		return `PROLOGUE`
+	case TokenPrologueStart:
+		return `PROLOGUE_START`
 	case TokenSemicolon:
 		return `SEMICOLON`
 	case TokenTag:
@@ -200,6 +210,8 @@ func (t Token) String() string {
 		return `TAG_ANY`
 	case TokenTagNone:
 		return `TAG_NONE`
+	case TokenTagStart:
+		return `TAG_START`
 	case TokenIntLiteral:
 		return `INT_LITERAL`
 	case TokenPercentParam:
@@ -319,35 +331,35 @@ func (s *Scanner) dispatchState() error {
 	case 6:
 		return s.state6PercentToken()
 	case 7:
-		return s.state7CharLiteral()
+		return s.state7BracedCodeStart()
 	case 8:
-		return s.state8Colon()
+		return s.state8CharLiteral()
 	case 9:
-		return s.state9Equal()
+		return s.state9Colon()
 	case 10:
-		return s.state10Id()
+		return s.state10Equal()
 	case 11:
-		return s.state11BracketedId()
+		return s.state11Id()
 	case 12:
-		return s.state12Pipe()
+		return s.state12BracketedId()
 	case 13:
-		return s.state13Semicolon()
+		return s.state13Pipe()
 	case 14:
-		return s.state14TagAny()
+		return s.state14Semicolon()
 	case 15:
-		return s.state15IntLiteral()
+		return s.state15TagStart()
 	case 16:
-		return s.state16Comment()
+		return s.state16IntLiteral()
 	case 17:
 		return s.state17Comment()
 	case 18:
-		return s.state18String()
+		return s.state18Comment()
 	case 19:
 		return s.state19String()
 	case 20:
-		return s.state20Tstring()
+		return s.state20String()
 	case 21:
-		return s.state21BracedCode()
+		return s.state21Tstring()
 	case 22:
 		return s.state22PercentToken()
 	case 23:
@@ -385,173 +397,173 @@ func (s *Scanner) dispatchState() error {
 	case 39:
 		return s.state39PercentYacc()
 	case 40:
-		return s.state40PercentPercent()
+		return s.state40BracedPredicateStart()
 	case 41:
-		return s.state41PercentUnion()
+		return s.state41PercentPercent()
 	case 42:
-		return s.state42CharLiteral()
+		return s.state42PrologueStart()
 	case 43:
-		return s.state43CharLiteral()
+		return s.state43PercentUnion()
 	case 44:
-		return s.state44BracketedId()
+		return s.state44CharLiteral()
 	case 45:
-		return s.state45TagAny()
+		return s.state45CharLiteral()
 	case 46:
-		return s.state46TagNone()
+		return s.state46BracketedId()
 	case 47:
-		return s.state47Comment()
+		return s.state47TagAny()
 	case 48:
-		return s.state48String()
+		return s.state48TagNone()
 	case 49:
-		return s.state49Tstring()
+		return s.state49Comment()
 	case 50:
-		return s.state50BracedCode()
+		return s.state50String()
 	case 51:
-		return s.state51PercentToken()
+		return s.state51Tstring()
 	case 52:
-		return s.state52PercentType()
+		return s.state52PercentToken()
 	case 53:
-		return s.state53PercentNterm()
+		return s.state53PercentType()
 	case 54:
-		return s.state54PercentNonassoc()
+		return s.state54PercentNterm()
 	case 55:
-		return s.state55PercentNamePrefix()
+		return s.state55PercentNonassoc()
 	case 56:
-		return s.state56PercentDestructor()
+		return s.state56PercentNamePrefix()
 	case 57:
-		return s.state57PercentDprec()
+		return s.state57PercentDestructor()
 	case 58:
-		return s.state58PercentPrinter()
+		return s.state58PercentDprec()
 	case 59:
-		return s.state59PercentPureParser()
+		return s.state59PercentPrinter()
 	case 60:
-		return s.state60PercentParam()
+		return s.state60PercentPureParser()
 	case 61:
-		return s.state61PercentLeft()
+		return s.state61PercentParam()
 	case 62:
-		return s.state62PercentLanguage()
+		return s.state62PercentLeft()
 	case 63:
-		return s.state63PercentRight()
+		return s.state63PercentLanguage()
 	case 64:
-		return s.state64PercentRequire()
+		return s.state64PercentRight()
 	case 65:
-		return s.state65PercentMerge()
+		return s.state65PercentRequire()
 	case 66:
-		return s.state66PercentCode()
+		return s.state66PercentMerge()
 	case 67:
-		return s.state67PercentErrorVerbose()
+		return s.state67PercentCode()
 	case 68:
-		return s.state68PercentExpect()
+		return s.state68PercentErrorVerbose()
 	case 69:
-		return s.state69PercentEmpty()
+		return s.state69PercentExpect()
 	case 70:
-		return s.state70PercentFilePrefix()
+		return s.state70PercentEmpty()
 	case 71:
-		return s.state71PercentFlag()
+		return s.state71PercentFilePrefix()
 	case 72:
-		return s.state72PercentGlrParser()
+		return s.state72PercentFlag()
 	case 73:
-		return s.state73PercentHeader()
+		return s.state73PercentGlrParser()
 	case 74:
-		return s.state74PercentInitialAction()
+		return s.state74PercentHeader()
 	case 75:
-		return s.state75PercentOutput()
+		return s.state75PercentInitialAction()
 	case 76:
-		return s.state76PercentSkeleton()
+		return s.state76PercentOutput()
 	case 77:
-		return s.state77PercentStart()
+		return s.state77PercentSkeleton()
 	case 78:
-		return s.state78PercentVerbose()
+		return s.state78PercentStart()
 	case 79:
-		return s.state79PercentYacc()
+		return s.state79PercentVerbose()
 	case 80:
-		return s.state80PercentUnion()
+		return s.state80PercentYacc()
 	case 81:
-		return s.state81CharLiteral()
+		return s.state81BracedPredicateStart()
 	case 82:
-		return s.state82BracketedId()
+		return s.state82PercentUnion()
 	case 83:
-		return s.state83TagAny()
+		return s.state83CharLiteral()
 	case 84:
-		return s.state84Comment()
+		return s.state84BracketedId()
 	case 85:
-		return s.state85Tstring()
+		return s.state85TagAny()
 	case 86:
-		return s.state86Tstring()
+		return s.state86Comment()
 	case 87:
-		return s.state87BracedCode()
+		return s.state87Tstring()
 	case 88:
-		return s.state88PercentToken()
+		return s.state88Tstring()
 	case 89:
-		return s.state89PercentType()
+		return s.state89PercentToken()
 	case 90:
-		return s.state90PercentNterm()
+		return s.state90PercentType()
 	case 91:
-		return s.state91PercentNonassoc()
+		return s.state91PercentNterm()
 	case 92:
-		return s.state92PercentNoDefaultPrec()
+		return s.state92PercentNonassoc()
 	case 93:
-		return s.state93PercentNamePrefix()
+		return s.state93PercentNoDefaultPrec()
 	case 94:
-		return s.state94PercentDestructor()
+		return s.state94PercentNamePrefix()
 	case 95:
-		return s.state95PercentDefaultPrec()
+		return s.state95PercentDestructor()
 	case 96:
-		return s.state96PercentDprec()
+		return s.state96PercentDefaultPrec()
 	case 97:
-		return s.state97PercentPrinter()
+		return s.state97PercentDprec()
 	case 98:
-		return s.state98PercentPrecedence()
+		return s.state98PercentPrinter()
 	case 99:
-		return s.state99PercentPureParser()
+		return s.state99PercentPrecedence()
 	case 100:
-		return s.state100PercentParam()
+		return s.state100PercentPureParser()
 	case 101:
-		return s.state101PercentLeft()
+		return s.state101PercentParam()
 	case 102:
-		return s.state102PercentLanguage()
+		return s.state102PercentLeft()
 	case 103:
-		return s.state103PercentRight()
+		return s.state103PercentLanguage()
 	case 104:
-		return s.state104PercentRequire()
+		return s.state104PercentRight()
 	case 105:
-		return s.state105PercentMerge()
+		return s.state105PercentRequire()
 	case 106:
-		return s.state106PercentCode()
+		return s.state106PercentMerge()
 	case 107:
-		return s.state107PercentErrorVerbose()
+		return s.state107PercentCode()
 	case 108:
-		return s.state108PercentExpect()
+		return s.state108PercentErrorVerbose()
 	case 109:
-		return s.state109PercentEmpty()
+		return s.state109PercentExpect()
 	case 110:
-		return s.state110PercentFilePrefix()
+		return s.state110PercentEmpty()
 	case 111:
-		return s.state111PercentFlag()
+		return s.state111PercentFilePrefix()
 	case 112:
-		return s.state112PercentGlrParser()
+		return s.state112PercentFlag()
 	case 113:
-		return s.state113PercentHeader()
+		return s.state113PercentGlrParser()
 	case 114:
-		return s.state114PercentInitialAction()
+		return s.state114PercentHeader()
 	case 115:
-		return s.state115PercentOutput()
+		return s.state115PercentInitialAction()
 	case 116:
-		return s.state116PercentSkeleton()
+		return s.state116PercentOutput()
 	case 117:
-		return s.state117PercentStart()
+		return s.state117PercentSkeleton()
 	case 118:
-		return s.state118PercentVerbose()
+		return s.state118PercentStart()
 	case 119:
-		return s.state119PercentYacc()
+		return s.state119PercentVerbose()
 	case 120:
-		return s.state120PercentUnion()
+		return s.state120PercentYacc()
 	case 121:
-		return s.state121Tstring()
+		return s.state121PercentUnion()
 	case 122:
 		return s.state122Tstring()
 	case 123:
-		return s.state123BracedCode()
+		return s.state123Tstring()
 	case 124:
 		return s.state124PercentToken()
 	case 125:
@@ -627,331 +639,303 @@ func (s *Scanner) dispatchState() error {
 	case 160:
 		return s.state160Tstring()
 	case 161:
-		return s.state161BracedCode()
+		return s.state161PercentToken()
 	case 162:
-		return s.state162PercentToken()
+		return s.state162PercentNterm()
 	case 163:
-		return s.state163PercentNterm()
+		return s.state163PercentNonassoc()
 	case 164:
-		return s.state164PercentNonassoc()
+		return s.state164PercentNondeterministicParser()
 	case 165:
-		return s.state165PercentNondeterministicParser()
+		return s.state165PercentNoDefaultPrec()
 	case 166:
-		return s.state166PercentNoDefaultPrec()
+		return s.state166PercentNoLines()
 	case 167:
-		return s.state167PercentNoLines()
+		return s.state167PercentNamePrefix()
 	case 168:
-		return s.state168PercentNamePrefix()
+		return s.state168PercentDestructor()
 	case 169:
-		return s.state169PercentDestructor()
+		return s.state169PercentDefaultPrec()
 	case 170:
-		return s.state170PercentDefaultPrec()
+		return s.state170PercentDefine()
 	case 171:
-		return s.state171PercentDefine()
+		return s.state171PercentDprec()
 	case 172:
-		return s.state172PercentDprec()
+		return s.state172PercentPrinter()
 	case 173:
-		return s.state173PercentPrinter()
+		return s.state173PercentPrecedence()
 	case 174:
-		return s.state174PercentPrecedence()
+		return s.state174PercentPureParser()
 	case 175:
-		return s.state175PercentPureParser()
+		return s.state175PercentParam()
 	case 176:
-		return s.state176PercentParam()
+		return s.state176PercentLanguage()
 	case 177:
-		return s.state177PercentLanguage()
+		return s.state177PercentRight()
 	case 178:
-		return s.state178PercentRight()
+		return s.state178PercentRequire()
 	case 179:
-		return s.state179PercentRequire()
+		return s.state179PercentMerge()
 	case 180:
-		return s.state180PercentMerge()
+		return s.state180PercentErrorVerbose()
 	case 181:
-		return s.state181PercentErrorVerbose()
+		return s.state181PercentExpect()
 	case 182:
-		return s.state182PercentExpect()
+		return s.state182PercentEmpty()
 	case 183:
-		return s.state183PercentEmpty()
+		return s.state183PercentFilePrefix()
 	case 184:
-		return s.state184PercentFilePrefix()
+		return s.state184PercentFlag()
 	case 185:
-		return s.state185PercentFlag()
+		return s.state185PercentGlrParser()
 	case 186:
-		return s.state186PercentGlrParser()
+		return s.state186PercentHeader()
 	case 187:
-		return s.state187PercentHeader()
+		return s.state187PercentInitialAction()
 	case 188:
-		return s.state188PercentInitialAction()
+		return s.state188PercentOutput()
 	case 189:
-		return s.state189PercentOutput()
+		return s.state189PercentSkeleton()
 	case 190:
-		return s.state190PercentSkeleton()
+		return s.state190PercentStart()
 	case 191:
-		return s.state191PercentStart()
+		return s.state191PercentVerbose()
 	case 192:
-		return s.state192PercentVerbose()
+		return s.state192PercentUnion()
 	case 193:
-		return s.state193PercentUnion()
+		return s.state193PercentTokenTable()
 	case 194:
-		return s.state194BracedCode()
+		return s.state194PercentNonassoc()
 	case 195:
-		return s.state195PercentTokenTable()
+		return s.state195PercentNondeterministicParser()
 	case 196:
-		return s.state196PercentNonassoc()
+		return s.state196PercentNoDefaultPrec()
 	case 197:
-		return s.state197PercentNondeterministicParser()
+		return s.state197PercentNoLines()
 	case 198:
-		return s.state198PercentNoDefaultPrec()
+		return s.state198PercentNamePrefix()
 	case 199:
-		return s.state199PercentNoLines()
+		return s.state199PercentDestructor()
 	case 200:
-		return s.state200PercentNamePrefix()
+		return s.state200PercentDefaultPrec()
 	case 201:
-		return s.state201PercentDestructor()
+		return s.state201PercentDefine()
 	case 202:
-		return s.state202PercentDefaultPrec()
+		return s.state202PercentPrinter()
 	case 203:
-		return s.state203PercentDefine()
+		return s.state203PercentPrecedence()
 	case 204:
-		return s.state204PercentPrinter()
+		return s.state204PercentPureParser()
 	case 205:
-		return s.state205PercentPrecedence()
+		return s.state205PercentLanguage()
 	case 206:
-		return s.state206PercentPureParser()
+		return s.state206PercentRequire()
 	case 207:
-		return s.state207PercentLanguage()
+		return s.state207PercentErrorVerbose()
 	case 208:
-		return s.state208PercentRequire()
+		return s.state208PercentExpect()
 	case 209:
-		return s.state209PercentErrorVerbose()
+		return s.state209PercentFilePrefix()
 	case 210:
-		return s.state210PercentExpect()
+		return s.state210PercentFlag()
 	case 211:
-		return s.state211PercentFilePrefix()
+		return s.state211PercentGlrParser()
 	case 212:
-		return s.state212PercentFlag()
+		return s.state212PercentHeader()
 	case 213:
-		return s.state213PercentGlrParser()
+		return s.state213PercentInitialAction()
 	case 214:
-		return s.state214PercentHeader()
+		return s.state214PercentOutput()
 	case 215:
-		return s.state215PercentInitialAction()
+		return s.state215PercentSkeleton()
 	case 216:
-		return s.state216PercentOutput()
+		return s.state216PercentVerbose()
 	case 217:
-		return s.state217PercentSkeleton()
+		return s.state217PercentTokenTable()
 	case 218:
-		return s.state218PercentVerbose()
+		return s.state218PercentNonassoc()
 	case 219:
-		return s.state219BracedCode()
+		return s.state219PercentNondeterministicParser()
 	case 220:
-		return s.state220PercentTokenTable()
+		return s.state220PercentNoDefaultPrec()
 	case 221:
-		return s.state221PercentNonassoc()
+		return s.state221PercentNoLines()
 	case 222:
-		return s.state222PercentNondeterministicParser()
+		return s.state222PercentNamePrefix()
 	case 223:
-		return s.state223PercentNoDefaultPrec()
+		return s.state223PercentDestructor()
 	case 224:
-		return s.state224PercentNoLines()
+		return s.state224PercentDefaultPrec()
 	case 225:
-		return s.state225PercentNamePrefix()
+		return s.state225PercentPrinter()
 	case 226:
-		return s.state226PercentDestructor()
+		return s.state226PercentPrecedence()
 	case 227:
-		return s.state227PercentDefaultPrec()
+		return s.state227PercentPureParser()
 	case 228:
-		return s.state228PercentPrinter()
+		return s.state228PercentLanguage()
 	case 229:
-		return s.state229PercentPrecedence()
+		return s.state229PercentRequire()
 	case 230:
-		return s.state230PercentPureParser()
+		return s.state230PercentErrorVerbose()
 	case 231:
-		return s.state231PercentLanguage()
+		return s.state231PercentExpectRr()
 	case 232:
-		return s.state232PercentRequire()
+		return s.state232PercentFilePrefix()
 	case 233:
-		return s.state233PercentErrorVerbose()
+		return s.state233PercentGlrParser()
 	case 234:
-		return s.state234PercentExpectRr()
+		return s.state234PercentInitialAction()
 	case 235:
-		return s.state235PercentFilePrefix()
+		return s.state235PercentSkeleton()
 	case 236:
-		return s.state236PercentGlrParser()
+		return s.state236PercentVerbose()
 	case 237:
-		return s.state237PercentInitialAction()
+		return s.state237PercentTokenTable()
 	case 238:
-		return s.state238PercentSkeleton()
+		return s.state238PercentNonassoc()
 	case 239:
-		return s.state239PercentVerbose()
+		return s.state239PercentNondeterministicParser()
 	case 240:
-		return s.state240BracedCode()
+		return s.state240PercentNoDefaultPrec()
 	case 241:
-		return s.state241PercentTokenTable()
+		return s.state241PercentNoLines()
 	case 242:
-		return s.state242PercentNonassoc()
+		return s.state242PercentNamePrefix()
 	case 243:
-		return s.state243PercentNondeterministicParser()
+		return s.state243PercentDestructor()
 	case 244:
-		return s.state244PercentNoDefaultPrec()
+		return s.state244PercentDefaultPrec()
 	case 245:
-		return s.state245PercentNoLines()
+		return s.state245PercentPrecedence()
 	case 246:
-		return s.state246PercentNamePrefix()
+		return s.state246PercentPureParser()
 	case 247:
-		return s.state247PercentDestructor()
+		return s.state247PercentLanguage()
 	case 248:
-		return s.state248PercentDefaultPrec()
+		return s.state248PercentErrorVerbose()
 	case 249:
-		return s.state249PercentPrecedence()
+		return s.state249PercentExpectRr()
 	case 250:
-		return s.state250PercentPureParser()
+		return s.state250PercentFilePrefix()
 	case 251:
-		return s.state251PercentLanguage()
+		return s.state251PercentGlrParser()
 	case 252:
-		return s.state252PercentErrorVerbose()
+		return s.state252PercentInitialAction()
 	case 253:
-		return s.state253PercentExpectRr()
+		return s.state253PercentSkeleton()
 	case 254:
-		return s.state254PercentFilePrefix()
+		return s.state254PercentTokenTable()
 	case 255:
-		return s.state255PercentGlrParser()
+		return s.state255PercentNondeterministicParser()
 	case 256:
-		return s.state256PercentInitialAction()
+		return s.state256PercentNoDefaultPrec()
 	case 257:
-		return s.state257PercentSkeleton()
+		return s.state257PercentNamePrefix()
 	case 258:
-		return s.state258BracedCode()
+		return s.state258PercentDestructor()
 	case 259:
-		return s.state259PercentTokenTable()
+		return s.state259PercentDefaultPrec()
 	case 260:
-		return s.state260PercentNondeterministicParser()
+		return s.state260PercentPrecedence()
 	case 261:
-		return s.state261PercentNoDefaultPrec()
+		return s.state261PercentPureParser()
 	case 262:
-		return s.state262PercentNamePrefix()
+		return s.state262PercentErrorVerbose()
 	case 263:
-		return s.state263PercentDestructor()
+		return s.state263PercentExpectRr()
 	case 264:
-		return s.state264PercentDefaultPrec()
+		return s.state264PercentFilePrefix()
 	case 265:
-		return s.state265PercentPrecedence()
+		return s.state265PercentGlrParser()
 	case 266:
-		return s.state266PercentPureParser()
+		return s.state266PercentInitialAction()
 	case 267:
-		return s.state267PercentErrorVerbose()
+		return s.state267PercentTokenTable()
 	case 268:
-		return s.state268PercentExpectRr()
+		return s.state268PercentNondeterministicParser()
 	case 269:
-		return s.state269PercentFilePrefix()
+		return s.state269PercentNoDefaultPrec()
 	case 270:
-		return s.state270PercentGlrParser()
+		return s.state270PercentNamePrefix()
 	case 271:
-		return s.state271PercentInitialAction()
+		return s.state271PercentDestructor()
 	case 272:
-		return s.state272BracedCode()
+		return s.state272PercentDefaultPrec()
 	case 273:
-		return s.state273PercentTokenTable()
+		return s.state273PercentPrecedence()
 	case 274:
-		return s.state274PercentNondeterministicParser()
+		return s.state274PercentPureParser()
 	case 275:
-		return s.state275PercentNoDefaultPrec()
+		return s.state275PercentErrorVerbose()
 	case 276:
-		return s.state276PercentNamePrefix()
+		return s.state276PercentFilePrefix()
 	case 277:
-		return s.state277PercentDestructor()
+		return s.state277PercentGlrParser()
 	case 278:
-		return s.state278PercentDefaultPrec()
+		return s.state278PercentInitialAction()
 	case 279:
-		return s.state279PercentPrecedence()
+		return s.state279PercentTokenTable()
 	case 280:
-		return s.state280PercentPureParser()
+		return s.state280PercentNondeterministicParser()
 	case 281:
-		return s.state281PercentErrorVerbose()
+		return s.state281PercentNoDefaultPrec()
 	case 282:
-		return s.state282PercentFilePrefix()
+		return s.state282PercentNamePrefix()
 	case 283:
-		return s.state283PercentGlrParser()
+		return s.state283PercentDefaultPrec()
 	case 284:
-		return s.state284PercentInitialAction()
+		return s.state284PercentPureParser()
 	case 285:
-		return s.state285BracedCode()
+		return s.state285PercentErrorVerbose()
 	case 286:
-		return s.state286PercentTokenTable()
+		return s.state286PercentFilePrefix()
 	case 287:
-		return s.state287PercentNondeterministicParser()
+		return s.state287PercentInitialAction()
 	case 288:
-		return s.state288PercentNoDefaultPrec()
+		return s.state288PercentNondeterministicParser()
 	case 289:
-		return s.state289PercentNamePrefix()
+		return s.state289PercentNoDefaultPrec()
 	case 290:
 		return s.state290PercentDefaultPrec()
 	case 291:
-		return s.state291PercentPureParser()
+		return s.state291PercentErrorVerbose()
 	case 292:
-		return s.state292PercentErrorVerbose()
+		return s.state292PercentInitialAction()
 	case 293:
-		return s.state293PercentFilePrefix()
+		return s.state293PercentNondeterministicParser()
 	case 294:
-		return s.state294PercentInitialAction()
+		return s.state294PercentNoDefaultPrec()
 	case 295:
-		return s.state295BracedCode()
+		return s.state295PercentErrorVerbose()
 	case 296:
-		return s.state296PercentNondeterministicParser()
+		return s.state296PercentInitialAction()
 	case 297:
-		return s.state297PercentNoDefaultPrec()
+		return s.state297PercentNondeterministicParser()
 	case 298:
-		return s.state298PercentDefaultPrec()
+		return s.state298PercentNoDefaultPrec()
 	case 299:
-		return s.state299PercentErrorVerbose()
+		return s.state299PercentInitialAction()
 	case 300:
-		return s.state300PercentInitialAction()
+		return s.state300PercentNondeterministicParser()
 	case 301:
-		return s.state301BracedCode()
+		return s.state301PercentNoDefaultPrec()
 	case 302:
 		return s.state302PercentNondeterministicParser()
 	case 303:
-		return s.state303PercentNoDefaultPrec()
+		return s.state303PercentNondeterministicParser()
 	case 304:
-		return s.state304PercentErrorVerbose()
+		return s.state304PercentNondeterministicParser()
 	case 305:
-		return s.state305PercentInitialAction()
+		return s.state305PercentNondeterministicParser()
 	case 306:
-		return s.state306BracedCode()
+		return s.state306PercentNondeterministicParser()
 	case 307:
 		return s.state307PercentNondeterministicParser()
 	case 308:
-		return s.state308PercentNoDefaultPrec()
+		return s.state308PercentNondeterministicParser()
 	case 309:
-		return s.state309PercentInitialAction()
-	case 310:
-		return s.state310BracedCode()
-	case 311:
-		return s.state311PercentNondeterministicParser()
-	case 312:
-		return s.state312PercentNoDefaultPrec()
-	case 313:
-		return s.state313BracedCode()
-	case 314:
-		return s.state314PercentNondeterministicParser()
-	case 315:
-		return s.state315BracedCode()
-	case 316:
-		return s.state316PercentNondeterministicParser()
-	case 317:
-		return s.state317BracedCode()
-	case 318:
-		return s.state318PercentNondeterministicParser()
-	case 319:
-		return s.state319PercentNondeterministicParser()
-	case 320:
-		return s.state320PercentNondeterministicParser()
-	case 321:
-		return s.state321PercentNondeterministicParser()
-	case 322:
-		return s.state322PercentNondeterministicParser()
-	case 323:
-		return s.state323PercentNondeterministicParser()
+		return s.state309PercentNondeterministicParser()
 	default:
 		return fmt.Errorf("unexpected scanner state %d", s.state)
 	}
@@ -983,40 +967,43 @@ func (s *Scanner) state0Ws() error {
 		s.state = 6
 		return nil
 	case nextRune == '\'':
-		s.state = 7
+		s.state = 8
 		return nil
 	case nextRune == '/':
 		s.state = 3
 		return nil
 	case '0' <= nextRune && nextRune <= '9':
-		s.state = 15
+		s.state = 16
 		return nil
 	case nextRune == ':':
-		s.state = 8
-		return nil
-	case nextRune == ';':
-		s.state = 13
-		return nil
-	case nextRune == '<':
-		s.state = 14
-		return nil
-	case nextRune == '=':
 		s.state = 9
 		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case nextRune == ';':
+		s.state = 14
+		return nil
+	case nextRune == '<':
+		s.state = 15
+		return nil
+	case nextRune == '=':
 		s.state = 10
 		return nil
-	case nextRune == '[':
+	case 'A' <= nextRune && nextRune <= 'Z':
 		s.state = 11
+		return nil
+	case nextRune == '[':
+		s.state = 12
 		return nil
 	case nextRune == '_':
 		s.state = 5
 		return nil
 	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 10
+		s.state = 11
+		return nil
+	case nextRune == '{':
+		s.state = 7
 		return nil
 	case nextRune == '|':
-		s.state = 12
+		s.state = 13
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1077,10 +1064,10 @@ func (s *Scanner) state3Comment() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '*':
-		s.state = 16
+		s.state = 17
 		return nil
 	case nextRune == '/':
-		s.state = 17
+		s.state = 18
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1099,13 +1086,13 @@ func (s *Scanner) state4String() error {
 		s.state = 4
 		return nil
 	case nextRune == '"':
-		s.state = 19
+		s.state = 20
 		return nil
 	case '#' <= nextRune && nextRune <= '[':
 		s.state = 4
 		return nil
 	case nextRune == '\\':
-		s.state = 18
+		s.state = 19
 		return nil
 	case ']' <= nextRune && nextRune <= 0x10ffff:
 		s.state = 4
@@ -1124,9 +1111,6 @@ func (s *Scanner) state5Tstring() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '(':
-		s.state = 20
-		return nil
-	case nextRune == '_':
 		s.state = 21
 		return nil
 	default:
@@ -1143,10 +1127,13 @@ func (s *Scanner) state6PercentToken() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '%':
-		s.state = 40
+		s.state = 41
 		return nil
 	case nextRune == '<':
 		s.state = 32
+		return nil
+	case nextRune == '?':
+		s.state = 40
 		return nil
 	case nextRune == 'c':
 		s.state = 29
@@ -1194,7 +1181,7 @@ func (s *Scanner) state6PercentToken() error {
 		s.state = 22
 		return nil
 	case nextRune == 'u':
-		s.state = 41
+		s.state = 43
 		return nil
 	case nextRune == 'v':
 		s.state = 38
@@ -1202,12 +1189,28 @@ func (s *Scanner) state6PercentToken() error {
 	case nextRune == 'y':
 		s.state = 39
 		return nil
+	case nextRune == '{':
+		s.state = 42
+		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state7CharLiteral() error {
+func (s *Scanner) state7BracedCodeStart() error {
+	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenBracedCodeStart
+	s.tokenEnd = s.runeReader
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	return ErrInvalidRune
+}
+
+func (s *Scanner) state8CharLiteral() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -1216,26 +1219,26 @@ func (s *Scanner) state7CharLiteral() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case 0x0 <= nextRune && nextRune <= '&':
-		s.state = 7
+		s.state = 8
 		return nil
 	case nextRune == '\'':
-		s.state = 43
+		s.state = 45
 		return nil
 	case '(' <= nextRune && nextRune <= '[':
-		s.state = 7
+		s.state = 8
 		return nil
 	case nextRune == '\\':
-		s.state = 42
+		s.state = 44
 		return nil
 	case ']' <= nextRune && nextRune <= 0x10ffff:
-		s.state = 7
+		s.state = 8
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state8Colon() error {
+func (s *Scanner) state9Colon() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -1248,7 +1251,7 @@ func (s *Scanner) state8Colon() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state9Equal() error {
+func (s *Scanner) state10Equal() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -1261,7 +1264,7 @@ func (s *Scanner) state9Equal() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state10Id() error {
+func (s *Scanner) state11Id() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -1273,27 +1276,30 @@ func (s *Scanner) state10Id() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
+	case nextRune == '-':
+		s.state = 11
+		return nil
 	case nextRune == '.':
-		s.state = 10
+		s.state = 11
 		return nil
 	case '0' <= nextRune && nextRune <= '9':
-		s.state = 10
+		s.state = 11
 		return nil
 	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 10
+		s.state = 11
 		return nil
 	case nextRune == '_':
-		s.state = 10
+		s.state = 11
 		return nil
 	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 10
+		s.state = 11
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state11BracketedId() error {
+func (s *Scanner) state12BracketedId() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -1302,17 +1308,17 @@ func (s *Scanner) state11BracketedId() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 44
+		s.state = 46
 		return nil
 	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 44
+		s.state = 46
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state12Pipe() error {
+func (s *Scanner) state13Pipe() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -1325,7 +1331,7 @@ func (s *Scanner) state12Pipe() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state13Semicolon() error {
+func (s *Scanner) state14Semicolon() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -1338,8 +1344,12 @@ func (s *Scanner) state13Semicolon() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state14TagAny() error {
+func (s *Scanner) state15TagStart() error {
 	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenTagStart
+	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
 		return s.runeReader.Err()
@@ -1347,17 +1357,17 @@ func (s *Scanner) state14TagAny() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '*':
-		s.state = 45
+		s.state = 47
 		return nil
 	case nextRune == '>':
-		s.state = 46
+		s.state = 48
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state15IntLiteral() error {
+func (s *Scanner) state16IntLiteral() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -1370,28 +1380,6 @@ func (s *Scanner) state15IntLiteral() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case '0' <= nextRune && nextRune <= '9':
-		s.state = 15
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state16Comment() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case 0x0 <= nextRune && nextRune <= ')':
-		s.state = 16
-		return nil
-	case nextRune == '*':
-		s.state = 47
-		return nil
-	case '+' <= nextRune && nextRune <= 0x10ffff:
 		s.state = 16
 		return nil
 	default:
@@ -1400,6 +1388,28 @@ func (s *Scanner) state16Comment() error {
 }
 
 func (s *Scanner) state17Comment() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case 0x0 <= nextRune && nextRune <= ')':
+		s.state = 17
+		return nil
+	case nextRune == '*':
+		s.state = 49
+		return nil
+	case '+' <= nextRune && nextRune <= 0x10ffff:
+		s.state = 17
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state18Comment() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -1412,17 +1422,17 @@ func (s *Scanner) state17Comment() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case 0x0 <= nextRune && nextRune <= '\t':
-		s.state = 17
+		s.state = 18
 		return nil
 	case 0xb <= nextRune && nextRune <= 0x10ffff:
-		s.state = 17
+		s.state = 18
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state18String() error {
+func (s *Scanner) state19String() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -1434,13 +1444,13 @@ func (s *Scanner) state18String() error {
 		s.state = 4
 		return nil
 	case nextRune == '"':
-		s.state = 48
+		s.state = 50
 		return nil
 	case '#' <= nextRune && nextRune <= '[':
 		s.state = 4
 		return nil
 	case nextRune == '\\':
-		s.state = 18
+		s.state = 19
 		return nil
 	case ']' <= nextRune && nextRune <= 0x10ffff:
 		s.state = 4
@@ -1450,7 +1460,7 @@ func (s *Scanner) state18String() error {
 	}
 }
 
-func (s *Scanner) state19String() error {
+func (s *Scanner) state20String() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -1463,7 +1473,7 @@ func (s *Scanner) state19String() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state20Tstring() error {
+func (s *Scanner) state21Tstring() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -1472,23 +1482,7 @@ func (s *Scanner) state20Tstring() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '"':
-		s.state = 49
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state21BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'n':
-		s.state = 50
+		s.state = 51
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1504,10 +1498,10 @@ func (s *Scanner) state22PercentToken() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'o':
-		s.state = 51
+		s.state = 52
 		return nil
 	case nextRune == 'y':
-		s.state = 52
+		s.state = 53
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1523,13 +1517,13 @@ func (s *Scanner) state23PercentNterm() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'a':
-		s.state = 55
+		s.state = 56
 		return nil
 	case nextRune == 'o':
-		s.state = 54
+		s.state = 55
 		return nil
 	case nextRune == 't':
-		s.state = 53
+		s.state = 54
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1545,10 +1539,10 @@ func (s *Scanner) state24PercentDestructor() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 56
+		s.state = 57
 		return nil
 	case nextRune == 'p':
-		s.state = 57
+		s.state = 58
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1564,13 +1558,13 @@ func (s *Scanner) state25PercentPrinter() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'a':
-		s.state = 60
+		s.state = 61
 		return nil
 	case nextRune == 'r':
-		s.state = 58
+		s.state = 59
 		return nil
 	case nextRune == 'u':
-		s.state = 59
+		s.state = 60
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1586,10 +1580,10 @@ func (s *Scanner) state26PercentLeft() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'a':
-		s.state = 62
+		s.state = 63
 		return nil
 	case nextRune == 'e':
-		s.state = 61
+		s.state = 62
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1605,10 +1599,10 @@ func (s *Scanner) state27PercentRight() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 64
+		s.state = 65
 		return nil
 	case nextRune == 'i':
-		s.state = 63
+		s.state = 64
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1624,7 +1618,7 @@ func (s *Scanner) state28PercentMerge() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 65
+		s.state = 66
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1640,7 +1634,7 @@ func (s *Scanner) state29PercentCode() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'o':
-		s.state = 66
+		s.state = 67
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1656,13 +1650,13 @@ func (s *Scanner) state30PercentErrorVerbose() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'm':
-		s.state = 69
+		s.state = 70
 		return nil
 	case nextRune == 'r':
-		s.state = 67
+		s.state = 68
 		return nil
 	case nextRune == 'x':
-		s.state = 68
+		s.state = 69
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1678,7 +1672,7 @@ func (s *Scanner) state31PercentFilePrefix() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'i':
-		s.state = 70
+		s.state = 71
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1694,7 +1688,7 @@ func (s *Scanner) state32PercentFlag() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'f':
-		s.state = 71
+		s.state = 72
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1710,7 +1704,7 @@ func (s *Scanner) state33PercentGlrParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'l':
-		s.state = 72
+		s.state = 73
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1726,7 +1720,7 @@ func (s *Scanner) state34PercentHeader() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 73
+		s.state = 74
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1742,7 +1736,7 @@ func (s *Scanner) state35PercentInitialAction() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'n':
-		s.state = 74
+		s.state = 75
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1758,7 +1752,7 @@ func (s *Scanner) state36PercentOutput() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'u':
-		s.state = 75
+		s.state = 76
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1774,10 +1768,10 @@ func (s *Scanner) state37PercentSkeleton() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'k':
-		s.state = 76
+		s.state = 77
 		return nil
 	case nextRune == 't':
-		s.state = 77
+		s.state = 78
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1793,7 +1787,7 @@ func (s *Scanner) state38PercentVerbose() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 78
+		s.state = 79
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1809,14 +1803,30 @@ func (s *Scanner) state39PercentYacc() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'a':
-		s.state = 79
+		s.state = 80
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state40PercentPercent() error {
+func (s *Scanner) state40BracedPredicateStart() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == '{':
+		s.state = 81
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state41PercentPercent() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -1829,7 +1839,20 @@ func (s *Scanner) state40PercentPercent() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state41PercentUnion() error {
+func (s *Scanner) state42PrologueStart() error {
+	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenPrologueStart
+	s.tokenEnd = s.runeReader
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	return ErrInvalidRune
+}
+
+func (s *Scanner) state43PercentUnion() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -1838,14 +1861,14 @@ func (s *Scanner) state41PercentUnion() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'n':
-		s.state = 80
+		s.state = 82
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state42CharLiteral() error {
+func (s *Scanner) state44CharLiteral() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -1854,26 +1877,26 @@ func (s *Scanner) state42CharLiteral() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case 0x0 <= nextRune && nextRune <= '&':
-		s.state = 7
+		s.state = 8
 		return nil
 	case nextRune == '\'':
-		s.state = 81
+		s.state = 83
 		return nil
 	case '(' <= nextRune && nextRune <= '[':
-		s.state = 7
+		s.state = 8
 		return nil
 	case nextRune == '\\':
-		s.state = 42
+		s.state = 44
 		return nil
 	case ']' <= nextRune && nextRune <= 0x10ffff:
-		s.state = 7
+		s.state = 8
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state43CharLiteral() error {
+func (s *Scanner) state45CharLiteral() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -1886,7 +1909,7 @@ func (s *Scanner) state43CharLiteral() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state44BracketedId() error {
+func (s *Scanner) state46BracketedId() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -1894,30 +1917,33 @@ func (s *Scanner) state44BracketedId() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
+	case nextRune == '-':
+		s.state = 46
+		return nil
 	case nextRune == '.':
-		s.state = 44
+		s.state = 46
 		return nil
 	case '0' <= nextRune && nextRune <= '9':
-		s.state = 44
+		s.state = 46
 		return nil
 	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 44
+		s.state = 46
 		return nil
 	case nextRune == ']':
-		s.state = 82
+		s.state = 84
 		return nil
 	case nextRune == '_':
-		s.state = 44
+		s.state = 46
 		return nil
 	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 44
+		s.state = 46
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state45TagAny() error {
+func (s *Scanner) state47TagAny() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -1926,14 +1952,14 @@ func (s *Scanner) state45TagAny() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '>':
-		s.state = 83
+		s.state = 85
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state46TagNone() error {
+func (s *Scanner) state48TagNone() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -1946,7 +1972,7 @@ func (s *Scanner) state46TagNone() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state47Comment() error {
+func (s *Scanner) state49Comment() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -1955,20 +1981,20 @@ func (s *Scanner) state47Comment() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case 0x0 <= nextRune && nextRune <= '.':
-		s.state = 16
+		s.state = 17
 		return nil
 	case nextRune == '/':
-		s.state = 84
+		s.state = 86
 		return nil
 	case '0' <= nextRune && nextRune <= 0x10ffff:
-		s.state = 16
+		s.state = 17
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state48String() error {
+func (s *Scanner) state50String() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -1984,13 +2010,13 @@ func (s *Scanner) state48String() error {
 		s.state = 4
 		return nil
 	case nextRune == '"':
-		s.state = 19
+		s.state = 20
 		return nil
 	case '#' <= nextRune && nextRune <= '[':
 		s.state = 4
 		return nil
 	case nextRune == '\\':
-		s.state = 18
+		s.state = 19
 		return nil
 	case ']' <= nextRune && nextRune <= 0x10ffff:
 		s.state = 4
@@ -2000,7 +2026,7 @@ func (s *Scanner) state48String() error {
 	}
 }
 
-func (s *Scanner) state49Tstring() error {
+func (s *Scanner) state51Tstring() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2009,42 +2035,26 @@ func (s *Scanner) state49Tstring() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case 0x0 <= nextRune && nextRune <= '!':
-		s.state = 49
+		s.state = 51
 		return nil
 	case nextRune == '"':
-		s.state = 86
+		s.state = 88
 		return nil
 	case '#' <= nextRune && nextRune <= '[':
-		s.state = 49
+		s.state = 51
 		return nil
 	case nextRune == '\\':
-		s.state = 85
-		return nil
-	case ']' <= nextRune && nextRune <= 0x10ffff:
-		s.state = 49
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state50BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'o':
 		s.state = 87
 		return nil
+	case ']' <= nextRune && nextRune <= 0x10ffff:
+		s.state = 51
+		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state51PercentToken() error {
+func (s *Scanner) state52PercentToken() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2053,14 +2063,14 @@ func (s *Scanner) state51PercentToken() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'k':
-		s.state = 88
+		s.state = 89
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state52PercentType() error {
+func (s *Scanner) state53PercentType() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2069,14 +2079,14 @@ func (s *Scanner) state52PercentType() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'p':
-		s.state = 89
+		s.state = 90
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state53PercentNterm() error {
+func (s *Scanner) state54PercentNterm() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2085,14 +2095,14 @@ func (s *Scanner) state53PercentNterm() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 90
+		s.state = 91
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state54PercentNonassoc() error {
+func (s *Scanner) state55PercentNonassoc() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2101,17 +2111,17 @@ func (s *Scanner) state54PercentNonassoc() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '-':
-		s.state = 92
+		s.state = 93
 		return nil
 	case nextRune == 'n':
-		s.state = 91
+		s.state = 92
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state55PercentNamePrefix() error {
+func (s *Scanner) state56PercentNamePrefix() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2120,14 +2130,14 @@ func (s *Scanner) state55PercentNamePrefix() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'm':
-		s.state = 93
+		s.state = 94
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state56PercentDestructor() error {
+func (s *Scanner) state57PercentDestructor() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2136,17 +2146,17 @@ func (s *Scanner) state56PercentDestructor() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'f':
-		s.state = 95
+		s.state = 96
 		return nil
 	case nextRune == 's':
-		s.state = 94
+		s.state = 95
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state57PercentDprec() error {
+func (s *Scanner) state58PercentDprec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2155,14 +2165,14 @@ func (s *Scanner) state57PercentDprec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 96
+		s.state = 97
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state58PercentPrinter() error {
+func (s *Scanner) state59PercentPrinter() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2171,33 +2181,17 @@ func (s *Scanner) state58PercentPrinter() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 98
-		return nil
-	case nextRune == 'i':
-		s.state = 97
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state59PercentPureParser() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'r':
 		s.state = 99
 		return nil
+	case nextRune == 'i':
+		s.state = 98
+		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state60PercentParam() error {
+func (s *Scanner) state60PercentPureParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2213,7 +2207,23 @@ func (s *Scanner) state60PercentParam() error {
 	}
 }
 
-func (s *Scanner) state61PercentLeft() error {
+func (s *Scanner) state61PercentParam() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'r':
+		s.state = 101
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state62PercentLeft() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2222,14 +2232,14 @@ func (s *Scanner) state61PercentLeft() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'f':
-		s.state = 101
+		s.state = 102
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state62PercentLanguage() error {
+func (s *Scanner) state63PercentLanguage() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2238,14 +2248,14 @@ func (s *Scanner) state62PercentLanguage() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'n':
-		s.state = 102
+		s.state = 103
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state63PercentRight() error {
+func (s *Scanner) state64PercentRight() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2254,14 +2264,14 @@ func (s *Scanner) state63PercentRight() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'g':
-		s.state = 103
+		s.state = 104
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state64PercentRequire() error {
+func (s *Scanner) state65PercentRequire() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2270,14 +2280,14 @@ func (s *Scanner) state64PercentRequire() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'q':
-		s.state = 104
+		s.state = 105
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state65PercentMerge() error {
+func (s *Scanner) state66PercentMerge() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2286,14 +2296,14 @@ func (s *Scanner) state65PercentMerge() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 105
+		s.state = 106
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state66PercentCode() error {
+func (s *Scanner) state67PercentCode() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2302,14 +2312,14 @@ func (s *Scanner) state66PercentCode() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'd':
-		s.state = 106
+		s.state = 107
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state67PercentErrorVerbose() error {
+func (s *Scanner) state68PercentErrorVerbose() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2318,22 +2328,6 @@ func (s *Scanner) state67PercentErrorVerbose() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 107
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state68PercentExpect() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'p':
 		s.state = 108
 		return nil
 	default:
@@ -2341,7 +2335,7 @@ func (s *Scanner) state68PercentExpect() error {
 	}
 }
 
-func (s *Scanner) state69PercentEmpty() error {
+func (s *Scanner) state69PercentExpect() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2357,7 +2351,7 @@ func (s *Scanner) state69PercentEmpty() error {
 	}
 }
 
-func (s *Scanner) state70PercentFilePrefix() error {
+func (s *Scanner) state70PercentEmpty() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2365,7 +2359,7 @@ func (s *Scanner) state70PercentFilePrefix() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
-	case nextRune == 'l':
+	case nextRune == 'p':
 		s.state = 110
 		return nil
 	default:
@@ -2373,7 +2367,7 @@ func (s *Scanner) state70PercentFilePrefix() error {
 	}
 }
 
-func (s *Scanner) state71PercentFlag() error {
+func (s *Scanner) state71PercentFilePrefix() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2389,7 +2383,23 @@ func (s *Scanner) state71PercentFlag() error {
 	}
 }
 
-func (s *Scanner) state72PercentGlrParser() error {
+func (s *Scanner) state72PercentFlag() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'l':
+		s.state = 112
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state73PercentGlrParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2398,14 +2408,14 @@ func (s *Scanner) state72PercentGlrParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 112
+		s.state = 113
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state73PercentHeader() error {
+func (s *Scanner) state74PercentHeader() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2414,14 +2424,14 @@ func (s *Scanner) state73PercentHeader() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'a':
-		s.state = 113
+		s.state = 114
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state74PercentInitialAction() error {
+func (s *Scanner) state75PercentInitialAction() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2430,14 +2440,14 @@ func (s *Scanner) state74PercentInitialAction() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'i':
-		s.state = 114
+		s.state = 115
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state75PercentOutput() error {
+func (s *Scanner) state76PercentOutput() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2446,14 +2456,14 @@ func (s *Scanner) state75PercentOutput() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 't':
-		s.state = 115
+		s.state = 116
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state76PercentSkeleton() error {
+func (s *Scanner) state77PercentSkeleton() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2462,14 +2472,14 @@ func (s *Scanner) state76PercentSkeleton() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 116
+		s.state = 117
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state77PercentStart() error {
+func (s *Scanner) state78PercentStart() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2478,14 +2488,14 @@ func (s *Scanner) state77PercentStart() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'a':
-		s.state = 117
+		s.state = 118
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state78PercentVerbose() error {
+func (s *Scanner) state79PercentVerbose() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2494,14 +2504,14 @@ func (s *Scanner) state78PercentVerbose() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 118
+		s.state = 119
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state79PercentYacc() error {
+func (s *Scanner) state80PercentYacc() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2510,14 +2520,27 @@ func (s *Scanner) state79PercentYacc() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'c':
-		s.state = 119
+		s.state = 120
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state80PercentUnion() error {
+func (s *Scanner) state81BracedPredicateStart() error {
+	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenBracedPredicateStart
+	s.tokenEnd = s.runeReader
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	return ErrInvalidRune
+}
+
+func (s *Scanner) state82PercentUnion() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2526,14 +2549,14 @@ func (s *Scanner) state80PercentUnion() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'i':
-		s.state = 120
+		s.state = 121
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state81CharLiteral() error {
+func (s *Scanner) state83CharLiteral() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -2546,26 +2569,26 @@ func (s *Scanner) state81CharLiteral() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case 0x0 <= nextRune && nextRune <= '&':
-		s.state = 7
+		s.state = 8
 		return nil
 	case nextRune == '\'':
-		s.state = 43
+		s.state = 45
 		return nil
 	case '(' <= nextRune && nextRune <= '[':
-		s.state = 7
+		s.state = 8
 		return nil
 	case nextRune == '\\':
-		s.state = 42
+		s.state = 44
 		return nil
 	case ']' <= nextRune && nextRune <= 0x10ffff:
-		s.state = 7
+		s.state = 8
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state82BracketedId() error {
+func (s *Scanner) state84BracketedId() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -2578,7 +2601,7 @@ func (s *Scanner) state82BracketedId() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state83TagAny() error {
+func (s *Scanner) state85TagAny() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -2591,7 +2614,7 @@ func (s *Scanner) state83TagAny() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state84Comment() error {
+func (s *Scanner) state86Comment() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -2604,7 +2627,7 @@ func (s *Scanner) state84Comment() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state85Tstring() error {
+func (s *Scanner) state87Tstring() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2613,26 +2636,26 @@ func (s *Scanner) state85Tstring() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case 0x0 <= nextRune && nextRune <= '!':
-		s.state = 49
+		s.state = 51
 		return nil
 	case nextRune == '"':
-		s.state = 121
+		s.state = 122
 		return nil
 	case '#' <= nextRune && nextRune <= '[':
-		s.state = 49
+		s.state = 51
 		return nil
 	case nextRune == '\\':
-		s.state = 85
+		s.state = 87
 		return nil
 	case ']' <= nextRune && nextRune <= 0x10ffff:
-		s.state = 49
+		s.state = 51
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state86Tstring() error {
+func (s *Scanner) state88Tstring() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2641,22 +2664,6 @@ func (s *Scanner) state86Tstring() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == ')':
-		s.state = 122
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state87BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 't':
 		s.state = 123
 		return nil
 	default:
@@ -2664,7 +2671,7 @@ func (s *Scanner) state87BracedCode() error {
 	}
 }
 
-func (s *Scanner) state88PercentToken() error {
+func (s *Scanner) state89PercentToken() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2680,7 +2687,7 @@ func (s *Scanner) state88PercentToken() error {
 	}
 }
 
-func (s *Scanner) state89PercentType() error {
+func (s *Scanner) state90PercentType() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2696,7 +2703,7 @@ func (s *Scanner) state89PercentType() error {
 	}
 }
 
-func (s *Scanner) state90PercentNterm() error {
+func (s *Scanner) state91PercentNterm() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2712,7 +2719,7 @@ func (s *Scanner) state90PercentNterm() error {
 	}
 }
 
-func (s *Scanner) state91PercentNonassoc() error {
+func (s *Scanner) state92PercentNonassoc() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2731,7 +2738,7 @@ func (s *Scanner) state91PercentNonassoc() error {
 	}
 }
 
-func (s *Scanner) state92PercentNoDefaultPrec() error {
+func (s *Scanner) state93PercentNoDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2750,7 +2757,7 @@ func (s *Scanner) state92PercentNoDefaultPrec() error {
 	}
 }
 
-func (s *Scanner) state93PercentNamePrefix() error {
+func (s *Scanner) state94PercentNamePrefix() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2766,7 +2773,7 @@ func (s *Scanner) state93PercentNamePrefix() error {
 	}
 }
 
-func (s *Scanner) state94PercentDestructor() error {
+func (s *Scanner) state95PercentDestructor() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2782,7 +2789,7 @@ func (s *Scanner) state94PercentDestructor() error {
 	}
 }
 
-func (s *Scanner) state95PercentDefaultPrec() error {
+func (s *Scanner) state96PercentDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2801,7 +2808,7 @@ func (s *Scanner) state95PercentDefaultPrec() error {
 	}
 }
 
-func (s *Scanner) state96PercentDprec() error {
+func (s *Scanner) state97PercentDprec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2817,7 +2824,7 @@ func (s *Scanner) state96PercentDprec() error {
 	}
 }
 
-func (s *Scanner) state97PercentPrinter() error {
+func (s *Scanner) state98PercentPrinter() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2833,7 +2840,7 @@ func (s *Scanner) state97PercentPrinter() error {
 	}
 }
 
-func (s *Scanner) state98PercentPrecedence() error {
+func (s *Scanner) state99PercentPrecedence() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2849,7 +2856,7 @@ func (s *Scanner) state98PercentPrecedence() error {
 	}
 }
 
-func (s *Scanner) state99PercentPureParser() error {
+func (s *Scanner) state100PercentPureParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2865,7 +2872,7 @@ func (s *Scanner) state99PercentPureParser() error {
 	}
 }
 
-func (s *Scanner) state100PercentParam() error {
+func (s *Scanner) state101PercentParam() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2881,7 +2888,7 @@ func (s *Scanner) state100PercentParam() error {
 	}
 }
 
-func (s *Scanner) state101PercentLeft() error {
+func (s *Scanner) state102PercentLeft() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2897,7 +2904,7 @@ func (s *Scanner) state101PercentLeft() error {
 	}
 }
 
-func (s *Scanner) state102PercentLanguage() error {
+func (s *Scanner) state103PercentLanguage() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2913,7 +2920,7 @@ func (s *Scanner) state102PercentLanguage() error {
 	}
 }
 
-func (s *Scanner) state103PercentRight() error {
+func (s *Scanner) state104PercentRight() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2929,7 +2936,7 @@ func (s *Scanner) state103PercentRight() error {
 	}
 }
 
-func (s *Scanner) state104PercentRequire() error {
+func (s *Scanner) state105PercentRequire() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2945,7 +2952,7 @@ func (s *Scanner) state104PercentRequire() error {
 	}
 }
 
-func (s *Scanner) state105PercentMerge() error {
+func (s *Scanner) state106PercentMerge() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2961,7 +2968,7 @@ func (s *Scanner) state105PercentMerge() error {
 	}
 }
 
-func (s *Scanner) state106PercentCode() error {
+func (s *Scanner) state107PercentCode() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2977,7 +2984,7 @@ func (s *Scanner) state106PercentCode() error {
 	}
 }
 
-func (s *Scanner) state107PercentErrorVerbose() error {
+func (s *Scanner) state108PercentErrorVerbose() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -2993,7 +3000,7 @@ func (s *Scanner) state107PercentErrorVerbose() error {
 	}
 }
 
-func (s *Scanner) state108PercentExpect() error {
+func (s *Scanner) state109PercentExpect() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3009,7 +3016,7 @@ func (s *Scanner) state108PercentExpect() error {
 	}
 }
 
-func (s *Scanner) state109PercentEmpty() error {
+func (s *Scanner) state110PercentEmpty() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3025,7 +3032,7 @@ func (s *Scanner) state109PercentEmpty() error {
 	}
 }
 
-func (s *Scanner) state110PercentFilePrefix() error {
+func (s *Scanner) state111PercentFilePrefix() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3041,7 +3048,7 @@ func (s *Scanner) state110PercentFilePrefix() error {
 	}
 }
 
-func (s *Scanner) state111PercentFlag() error {
+func (s *Scanner) state112PercentFlag() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3057,7 +3064,7 @@ func (s *Scanner) state111PercentFlag() error {
 	}
 }
 
-func (s *Scanner) state112PercentGlrParser() error {
+func (s *Scanner) state113PercentGlrParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3073,7 +3080,7 @@ func (s *Scanner) state112PercentGlrParser() error {
 	}
 }
 
-func (s *Scanner) state113PercentHeader() error {
+func (s *Scanner) state114PercentHeader() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3089,7 +3096,7 @@ func (s *Scanner) state113PercentHeader() error {
 	}
 }
 
-func (s *Scanner) state114PercentInitialAction() error {
+func (s *Scanner) state115PercentInitialAction() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3105,7 +3112,7 @@ func (s *Scanner) state114PercentInitialAction() error {
 	}
 }
 
-func (s *Scanner) state115PercentOutput() error {
+func (s *Scanner) state116PercentOutput() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3121,7 +3128,7 @@ func (s *Scanner) state115PercentOutput() error {
 	}
 }
 
-func (s *Scanner) state116PercentSkeleton() error {
+func (s *Scanner) state117PercentSkeleton() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3137,7 +3144,7 @@ func (s *Scanner) state116PercentSkeleton() error {
 	}
 }
 
-func (s *Scanner) state117PercentStart() error {
+func (s *Scanner) state118PercentStart() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3153,7 +3160,7 @@ func (s *Scanner) state117PercentStart() error {
 	}
 }
 
-func (s *Scanner) state118PercentVerbose() error {
+func (s *Scanner) state119PercentVerbose() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3169,7 +3176,7 @@ func (s *Scanner) state118PercentVerbose() error {
 	}
 }
 
-func (s *Scanner) state119PercentYacc() error {
+func (s *Scanner) state120PercentYacc() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3185,7 +3192,7 @@ func (s *Scanner) state119PercentYacc() error {
 	}
 }
 
-func (s *Scanner) state120PercentUnion() error {
+func (s *Scanner) state121PercentUnion() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3201,7 +3208,7 @@ func (s *Scanner) state120PercentUnion() error {
 	}
 }
 
-func (s *Scanner) state121Tstring() error {
+func (s *Scanner) state122Tstring() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3210,32 +3217,32 @@ func (s *Scanner) state121Tstring() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case 0x0 <= nextRune && nextRune <= '!':
-		s.state = 49
+		s.state = 51
 		return nil
 	case nextRune == '"':
-		s.state = 86
+		s.state = 88
 		return nil
 	case '#' <= nextRune && nextRune <= '(':
-		s.state = 49
+		s.state = 51
 		return nil
 	case nextRune == ')':
 		s.state = 160
 		return nil
 	case '*' <= nextRune && nextRune <= '[':
-		s.state = 49
+		s.state = 51
 		return nil
 	case nextRune == '\\':
-		s.state = 85
+		s.state = 87
 		return nil
 	case ']' <= nextRune && nextRune <= 0x10ffff:
-		s.state = 49
+		s.state = 51
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state122Tstring() error {
+func (s *Scanner) state123Tstring() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -3248,22 +3255,6 @@ func (s *Scanner) state122Tstring() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state123BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '_':
-		s.state = 161
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
 func (s *Scanner) state124PercentToken() error {
 	_ = s.runeReader.Next()
 
@@ -3273,7 +3264,7 @@ func (s *Scanner) state124PercentToken() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'n':
-		s.state = 162
+		s.state = 161
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3302,7 +3293,7 @@ func (s *Scanner) state126PercentNterm() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'm':
-		s.state = 163
+		s.state = 162
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3318,7 +3309,7 @@ func (s *Scanner) state127PercentNonassoc() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 's':
-		s.state = 164
+		s.state = 163
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3334,7 +3325,7 @@ func (s *Scanner) state128PercentNondeterministicParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 165
+		s.state = 164
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3350,7 +3341,7 @@ func (s *Scanner) state129PercentNoDefaultPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 166
+		s.state = 165
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3366,7 +3357,7 @@ func (s *Scanner) state130PercentNoLines() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'i':
-		s.state = 167
+		s.state = 166
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3382,7 +3373,7 @@ func (s *Scanner) state131PercentNamePrefix() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '-':
-		s.state = 168
+		s.state = 167
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3398,7 +3389,7 @@ func (s *Scanner) state132PercentDestructor() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 169
+		s.state = 168
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3414,7 +3405,7 @@ func (s *Scanner) state133PercentDefaultPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'u':
-		s.state = 170
+		s.state = 169
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3430,7 +3421,7 @@ func (s *Scanner) state134PercentDefine() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'n':
-		s.state = 171
+		s.state = 170
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3446,7 +3437,7 @@ func (s *Scanner) state135PercentDprec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'c':
-		s.state = 172
+		s.state = 171
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3462,7 +3453,7 @@ func (s *Scanner) state136PercentPrinter() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 't':
-		s.state = 173
+		s.state = 172
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3482,7 +3473,7 @@ func (s *Scanner) state137PercentPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 174
+		s.state = 173
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3498,7 +3489,7 @@ func (s *Scanner) state138PercentPureParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '-':
-		s.state = 175
+		s.state = 174
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3514,7 +3505,7 @@ func (s *Scanner) state139PercentParam() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'm':
-		s.state = 176
+		s.state = 175
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3543,7 +3534,7 @@ func (s *Scanner) state141PercentLanguage() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'u':
-		s.state = 177
+		s.state = 176
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3559,7 +3550,7 @@ func (s *Scanner) state142PercentRight() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 't':
-		s.state = 178
+		s.state = 177
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3575,7 +3566,7 @@ func (s *Scanner) state143PercentRequire() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'i':
-		s.state = 179
+		s.state = 178
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3591,7 +3582,7 @@ func (s *Scanner) state144PercentMerge() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 180
+		s.state = 179
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3620,7 +3611,7 @@ func (s *Scanner) state146PercentErrorVerbose() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 181
+		s.state = 180
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3636,7 +3627,7 @@ func (s *Scanner) state147PercentExpect() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'c':
-		s.state = 182
+		s.state = 181
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3652,7 +3643,7 @@ func (s *Scanner) state148PercentEmpty() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'y':
-		s.state = 183
+		s.state = 182
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3668,7 +3659,7 @@ func (s *Scanner) state149PercentFilePrefix() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '-':
-		s.state = 184
+		s.state = 183
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3684,7 +3675,7 @@ func (s *Scanner) state150PercentFlag() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'g':
-		s.state = 185
+		s.state = 184
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3700,7 +3691,7 @@ func (s *Scanner) state151PercentGlrParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'p':
-		s.state = 186
+		s.state = 185
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3716,7 +3707,7 @@ func (s *Scanner) state152PercentHeader() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 187
+		s.state = 186
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3732,7 +3723,7 @@ func (s *Scanner) state153PercentInitialAction() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'i':
-		s.state = 188
+		s.state = 187
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3748,7 +3739,7 @@ func (s *Scanner) state154PercentOutput() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'u':
-		s.state = 189
+		s.state = 188
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3764,7 +3755,7 @@ func (s *Scanner) state155PercentSkeleton() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 190
+		s.state = 189
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3780,7 +3771,7 @@ func (s *Scanner) state156PercentStart() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 't':
-		s.state = 191
+		s.state = 190
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3796,7 +3787,7 @@ func (s *Scanner) state157PercentVerbose() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'o':
-		s.state = 192
+		s.state = 191
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3825,7 +3816,7 @@ func (s *Scanner) state159PercentUnion() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'n':
-		s.state = 193
+		s.state = 192
 		return nil
 	default:
 		return ErrInvalidRune
@@ -3845,42 +3836,26 @@ func (s *Scanner) state160Tstring() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case 0x0 <= nextRune && nextRune <= '!':
-		s.state = 49
+		s.state = 51
 		return nil
 	case nextRune == '"':
-		s.state = 86
+		s.state = 88
 		return nil
 	case '#' <= nextRune && nextRune <= '[':
-		s.state = 49
+		s.state = 51
 		return nil
 	case nextRune == '\\':
-		s.state = 85
+		s.state = 87
 		return nil
 	case ']' <= nextRune && nextRune <= 0x10ffff:
-		s.state = 49
+		s.state = 51
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state161BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'i':
-		s.state = 194
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state162PercentToken() error {
+func (s *Scanner) state161PercentToken() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -3893,14 +3868,14 @@ func (s *Scanner) state162PercentToken() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '-':
-		s.state = 195
+		s.state = 193
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state163PercentNterm() error {
+func (s *Scanner) state162PercentNterm() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -3913,7 +3888,7 @@ func (s *Scanner) state163PercentNterm() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state164PercentNonassoc() error {
+func (s *Scanner) state163PercentNonassoc() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3922,14 +3897,14 @@ func (s *Scanner) state164PercentNonassoc() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 's':
-		s.state = 196
+		s.state = 194
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state165PercentNondeterministicParser() error {
+func (s *Scanner) state164PercentNondeterministicParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3938,14 +3913,14 @@ func (s *Scanner) state165PercentNondeterministicParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 't':
-		s.state = 197
+		s.state = 195
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state166PercentNoDefaultPrec() error {
+func (s *Scanner) state165PercentNoDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3954,14 +3929,14 @@ func (s *Scanner) state166PercentNoDefaultPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'f':
-		s.state = 198
+		s.state = 196
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state167PercentNoLines() error {
+func (s *Scanner) state166PercentNoLines() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3970,14 +3945,14 @@ func (s *Scanner) state167PercentNoLines() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'n':
-		s.state = 199
+		s.state = 197
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state168PercentNamePrefix() error {
+func (s *Scanner) state167PercentNamePrefix() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -3986,14 +3961,14 @@ func (s *Scanner) state168PercentNamePrefix() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'p':
-		s.state = 200
+		s.state = 198
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state169PercentDestructor() error {
+func (s *Scanner) state168PercentDestructor() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4002,14 +3977,14 @@ func (s *Scanner) state169PercentDestructor() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'u':
-		s.state = 201
+		s.state = 199
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state170PercentDefaultPrec() error {
+func (s *Scanner) state169PercentDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4018,14 +3993,14 @@ func (s *Scanner) state170PercentDefaultPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'l':
-		s.state = 202
+		s.state = 200
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state171PercentDefine() error {
+func (s *Scanner) state170PercentDefine() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4034,14 +4009,14 @@ func (s *Scanner) state171PercentDefine() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 203
+		s.state = 201
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state172PercentDprec() error {
+func (s *Scanner) state171PercentDprec() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -4054,7 +4029,7 @@ func (s *Scanner) state172PercentDprec() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state173PercentPrinter() error {
+func (s *Scanner) state172PercentPrinter() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4063,14 +4038,14 @@ func (s *Scanner) state173PercentPrinter() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 204
+		s.state = 202
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state174PercentPrecedence() error {
+func (s *Scanner) state173PercentPrecedence() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4079,14 +4054,14 @@ func (s *Scanner) state174PercentPrecedence() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'd':
-		s.state = 205
+		s.state = 203
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state175PercentPureParser() error {
+func (s *Scanner) state174PercentPureParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4095,14 +4070,14 @@ func (s *Scanner) state175PercentPureParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'p':
-		s.state = 206
+		s.state = 204
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state176PercentParam() error {
+func (s *Scanner) state175PercentParam() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -4115,7 +4090,7 @@ func (s *Scanner) state176PercentParam() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state177PercentLanguage() error {
+func (s *Scanner) state176PercentLanguage() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4124,14 +4099,14 @@ func (s *Scanner) state177PercentLanguage() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'a':
-		s.state = 207
+		s.state = 205
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state178PercentRight() error {
+func (s *Scanner) state177PercentRight() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -4144,7 +4119,7 @@ func (s *Scanner) state178PercentRight() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state179PercentRequire() error {
+func (s *Scanner) state178PercentRequire() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4153,14 +4128,14 @@ func (s *Scanner) state179PercentRequire() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 208
+		s.state = 206
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state180PercentMerge() error {
+func (s *Scanner) state179PercentMerge() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -4173,7 +4148,7 @@ func (s *Scanner) state180PercentMerge() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state181PercentErrorVerbose() error {
+func (s *Scanner) state180PercentErrorVerbose() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4182,14 +4157,14 @@ func (s *Scanner) state181PercentErrorVerbose() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '-':
-		s.state = 209
+		s.state = 207
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state182PercentExpect() error {
+func (s *Scanner) state181PercentExpect() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4198,14 +4173,14 @@ func (s *Scanner) state182PercentExpect() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 't':
-		s.state = 210
+		s.state = 208
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state183PercentEmpty() error {
+func (s *Scanner) state182PercentEmpty() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -4218,7 +4193,7 @@ func (s *Scanner) state183PercentEmpty() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state184PercentFilePrefix() error {
+func (s *Scanner) state183PercentFilePrefix() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4227,14 +4202,14 @@ func (s *Scanner) state184PercentFilePrefix() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'p':
-		s.state = 211
+		s.state = 209
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state185PercentFlag() error {
+func (s *Scanner) state184PercentFlag() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4243,6 +4218,38 @@ func (s *Scanner) state185PercentFlag() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '>':
+		s.state = 210
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state185PercentGlrParser() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'a':
+		s.state = 211
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state186PercentHeader() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'r':
 		s.state = 212
 		return nil
 	default:
@@ -4250,7 +4257,7 @@ func (s *Scanner) state185PercentFlag() error {
 	}
 }
 
-func (s *Scanner) state186PercentGlrParser() error {
+func (s *Scanner) state187PercentInitialAction() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4266,39 +4273,7 @@ func (s *Scanner) state186PercentGlrParser() error {
 	}
 }
 
-func (s *Scanner) state187PercentHeader() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'r':
-		s.state = 214
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state188PercentInitialAction() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'a':
-		s.state = 215
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state189PercentOutput() error {
+func (s *Scanner) state188PercentOutput() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4307,6 +4282,51 @@ func (s *Scanner) state189PercentOutput() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 't':
+		s.state = 214
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state189PercentSkeleton() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 't':
+		s.state = 215
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state190PercentStart() error {
+	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenPercentStart
+	s.tokenEnd = s.runeReader
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	return ErrInvalidRune
+}
+
+func (s *Scanner) state191PercentVerbose() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 's':
 		s.state = 216
 		return nil
 	default:
@@ -4314,7 +4334,20 @@ func (s *Scanner) state189PercentOutput() error {
 	}
 }
 
-func (s *Scanner) state190PercentSkeleton() error {
+func (s *Scanner) state192PercentUnion() error {
+	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenPercentUnion
+	s.tokenEnd = s.runeReader
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	return ErrInvalidRune
+}
+
+func (s *Scanner) state193PercentTokenTable() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4330,81 +4363,7 @@ func (s *Scanner) state190PercentSkeleton() error {
 	}
 }
 
-func (s *Scanner) state191PercentStart() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenPercentStart
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state192PercentVerbose() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 's':
-		s.state = 218
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state193PercentUnion() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenPercentUnion
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state194BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'm':
-		s.state = 219
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state195PercentTokenTable() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 't':
-		s.state = 220
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state196PercentNonassoc() error {
+func (s *Scanner) state194PercentNonassoc() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4413,14 +4372,14 @@ func (s *Scanner) state196PercentNonassoc() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'o':
-		s.state = 221
+		s.state = 218
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state197PercentNondeterministicParser() error {
+func (s *Scanner) state195PercentNondeterministicParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4429,14 +4388,14 @@ func (s *Scanner) state197PercentNondeterministicParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 222
+		s.state = 219
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state198PercentNoDefaultPrec() error {
+func (s *Scanner) state196PercentNoDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4445,14 +4404,14 @@ func (s *Scanner) state198PercentNoDefaultPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'a':
-		s.state = 223
+		s.state = 220
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state199PercentNoLines() error {
+func (s *Scanner) state197PercentNoLines() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4461,6 +4420,54 @@ func (s *Scanner) state199PercentNoLines() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
+		s.state = 221
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state198PercentNamePrefix() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'r':
+		s.state = 222
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state199PercentDestructor() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'c':
+		s.state = 223
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state200PercentDefaultPrec() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 't':
 		s.state = 224
 		return nil
 	default:
@@ -4468,7 +4475,20 @@ func (s *Scanner) state199PercentNoLines() error {
 	}
 }
 
-func (s *Scanner) state200PercentNamePrefix() error {
+func (s *Scanner) state201PercentDefine() error {
+	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenPercentDefine
+	s.tokenEnd = s.runeReader
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	return ErrInvalidRune
+}
+
+func (s *Scanner) state202PercentPrinter() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4484,7 +4504,7 @@ func (s *Scanner) state200PercentNamePrefix() error {
 	}
 }
 
-func (s *Scanner) state201PercentDestructor() error {
+func (s *Scanner) state203PercentPrecedence() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4492,7 +4512,7 @@ func (s *Scanner) state201PercentDestructor() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
-	case nextRune == 'c':
+	case nextRune == 'e':
 		s.state = 226
 		return nil
 	default:
@@ -4500,7 +4520,7 @@ func (s *Scanner) state201PercentDestructor() error {
 	}
 }
 
-func (s *Scanner) state202PercentDefaultPrec() error {
+func (s *Scanner) state204PercentPureParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4508,7 +4528,7 @@ func (s *Scanner) state202PercentDefaultPrec() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
-	case nextRune == 't':
+	case nextRune == 'a':
 		s.state = 227
 		return nil
 	default:
@@ -4516,20 +4536,7 @@ func (s *Scanner) state202PercentDefaultPrec() error {
 	}
 }
 
-func (s *Scanner) state203PercentDefine() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenPercentDefine
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state204PercentPrinter() error {
+func (s *Scanner) state205PercentLanguage() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4537,7 +4544,7 @@ func (s *Scanner) state204PercentPrinter() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
-	case nextRune == 'r':
+	case nextRune == 'g':
 		s.state = 228
 		return nil
 	default:
@@ -4545,7 +4552,7 @@ func (s *Scanner) state204PercentPrinter() error {
 	}
 }
 
-func (s *Scanner) state205PercentPrecedence() error {
+func (s *Scanner) state206PercentRequire() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4561,55 +4568,7 @@ func (s *Scanner) state205PercentPrecedence() error {
 	}
 }
 
-func (s *Scanner) state206PercentPureParser() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'a':
-		s.state = 230
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state207PercentLanguage() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'g':
-		s.state = 231
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state208PercentRequire() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'e':
-		s.state = 232
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state209PercentErrorVerbose() error {
+func (s *Scanner) state207PercentErrorVerbose() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4618,14 +4577,14 @@ func (s *Scanner) state209PercentErrorVerbose() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'v':
-		s.state = 233
+		s.state = 230
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state210PercentExpect() error {
+func (s *Scanner) state208PercentExpect() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -4638,14 +4597,14 @@ func (s *Scanner) state210PercentExpect() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '-':
-		s.state = 234
+		s.state = 231
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state211PercentFilePrefix() error {
+func (s *Scanner) state209PercentFilePrefix() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4654,14 +4613,14 @@ func (s *Scanner) state211PercentFilePrefix() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 235
+		s.state = 232
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state212PercentFlag() error {
+func (s *Scanner) state210PercentFlag() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -4674,7 +4633,7 @@ func (s *Scanner) state212PercentFlag() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state213PercentGlrParser() error {
+func (s *Scanner) state211PercentGlrParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4683,14 +4642,14 @@ func (s *Scanner) state213PercentGlrParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 236
+		s.state = 233
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state214PercentHeader() error {
+func (s *Scanner) state212PercentHeader() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -4703,7 +4662,7 @@ func (s *Scanner) state214PercentHeader() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state215PercentInitialAction() error {
+func (s *Scanner) state213PercentInitialAction() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4712,14 +4671,14 @@ func (s *Scanner) state215PercentInitialAction() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'l':
-		s.state = 237
+		s.state = 234
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state216PercentOutput() error {
+func (s *Scanner) state214PercentOutput() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -4732,7 +4691,7 @@ func (s *Scanner) state216PercentOutput() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state217PercentSkeleton() error {
+func (s *Scanner) state215PercentSkeleton() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4741,14 +4700,14 @@ func (s *Scanner) state217PercentSkeleton() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'o':
-		s.state = 238
+		s.state = 235
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state218PercentVerbose() error {
+func (s *Scanner) state216PercentVerbose() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4757,30 +4716,14 @@ func (s *Scanner) state218PercentVerbose() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 239
+		s.state = 236
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state219BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'p':
-		s.state = 240
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state220PercentTokenTable() error {
+func (s *Scanner) state217PercentTokenTable() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4789,14 +4732,14 @@ func (s *Scanner) state220PercentTokenTable() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'a':
-		s.state = 241
+		s.state = 237
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state221PercentNonassoc() error {
+func (s *Scanner) state218PercentNonassoc() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4805,14 +4748,14 @@ func (s *Scanner) state221PercentNonassoc() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'c':
-		s.state = 242
+		s.state = 238
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state222PercentNondeterministicParser() error {
+func (s *Scanner) state219PercentNondeterministicParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4821,14 +4764,14 @@ func (s *Scanner) state222PercentNondeterministicParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 243
+		s.state = 239
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state223PercentNoDefaultPrec() error {
+func (s *Scanner) state220PercentNoDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4837,14 +4780,14 @@ func (s *Scanner) state223PercentNoDefaultPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'u':
-		s.state = 244
+		s.state = 240
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state224PercentNoLines() error {
+func (s *Scanner) state221PercentNoLines() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4853,14 +4796,14 @@ func (s *Scanner) state224PercentNoLines() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 's':
-		s.state = 245
+		s.state = 241
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state225PercentNamePrefix() error {
+func (s *Scanner) state222PercentNamePrefix() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4869,14 +4812,14 @@ func (s *Scanner) state225PercentNamePrefix() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 246
+		s.state = 242
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state226PercentDestructor() error {
+func (s *Scanner) state223PercentDestructor() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4885,14 +4828,14 @@ func (s *Scanner) state226PercentDestructor() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 't':
-		s.state = 247
+		s.state = 243
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state227PercentDefaultPrec() error {
+func (s *Scanner) state224PercentDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4901,14 +4844,14 @@ func (s *Scanner) state227PercentDefaultPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '-':
-		s.state = 248
+		s.state = 244
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state228PercentPrinter() error {
+func (s *Scanner) state225PercentPrinter() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -4921,7 +4864,7 @@ func (s *Scanner) state228PercentPrinter() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state229PercentPrecedence() error {
+func (s *Scanner) state226PercentPrecedence() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4930,14 +4873,14 @@ func (s *Scanner) state229PercentPrecedence() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'n':
-		s.state = 249
+		s.state = 245
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state230PercentPureParser() error {
+func (s *Scanner) state227PercentPureParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4946,14 +4889,14 @@ func (s *Scanner) state230PercentPureParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 250
+		s.state = 246
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state231PercentLanguage() error {
+func (s *Scanner) state228PercentLanguage() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4962,14 +4905,14 @@ func (s *Scanner) state231PercentLanguage() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 251
+		s.state = 247
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state232PercentRequire() error {
+func (s *Scanner) state229PercentRequire() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -4982,7 +4925,7 @@ func (s *Scanner) state232PercentRequire() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state233PercentErrorVerbose() error {
+func (s *Scanner) state230PercentErrorVerbose() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -4991,14 +4934,14 @@ func (s *Scanner) state233PercentErrorVerbose() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 252
+		s.state = 248
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state234PercentExpectRr() error {
+func (s *Scanner) state231PercentExpectRr() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5007,14 +4950,14 @@ func (s *Scanner) state234PercentExpectRr() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 253
+		s.state = 249
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state235PercentFilePrefix() error {
+func (s *Scanner) state232PercentFilePrefix() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5023,14 +4966,14 @@ func (s *Scanner) state235PercentFilePrefix() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 254
+		s.state = 250
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state236PercentGlrParser() error {
+func (s *Scanner) state233PercentGlrParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5039,14 +4982,14 @@ func (s *Scanner) state236PercentGlrParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 's':
-		s.state = 255
+		s.state = 251
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state237PercentInitialAction() error {
+func (s *Scanner) state234PercentInitialAction() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5055,14 +4998,14 @@ func (s *Scanner) state237PercentInitialAction() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '-':
-		s.state = 256
+		s.state = 252
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state238PercentSkeleton() error {
+func (s *Scanner) state235PercentSkeleton() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5071,14 +5014,14 @@ func (s *Scanner) state238PercentSkeleton() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'n':
-		s.state = 257
+		s.state = 253
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state239PercentVerbose() error {
+func (s *Scanner) state236PercentVerbose() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -5091,23 +5034,7 @@ func (s *Scanner) state239PercentVerbose() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state240BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'l':
-		s.state = 258
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state241PercentTokenTable() error {
+func (s *Scanner) state237PercentTokenTable() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5116,14 +5043,14 @@ func (s *Scanner) state241PercentTokenTable() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'b':
-		s.state = 259
+		s.state = 254
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state242PercentNonassoc() error {
+func (s *Scanner) state238PercentNonassoc() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -5136,7 +5063,7 @@ func (s *Scanner) state242PercentNonassoc() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state243PercentNondeterministicParser() error {
+func (s *Scanner) state239PercentNondeterministicParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5145,14 +5072,14 @@ func (s *Scanner) state243PercentNondeterministicParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'm':
-		s.state = 260
+		s.state = 255
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state244PercentNoDefaultPrec() error {
+func (s *Scanner) state240PercentNoDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5161,14 +5088,14 @@ func (s *Scanner) state244PercentNoDefaultPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'l':
-		s.state = 261
+		s.state = 256
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state245PercentNoLines() error {
+func (s *Scanner) state241PercentNoLines() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -5181,7 +5108,7 @@ func (s *Scanner) state245PercentNoLines() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state246PercentNamePrefix() error {
+func (s *Scanner) state242PercentNamePrefix() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5190,14 +5117,14 @@ func (s *Scanner) state246PercentNamePrefix() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'f':
-		s.state = 262
+		s.state = 257
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state247PercentDestructor() error {
+func (s *Scanner) state243PercentDestructor() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5206,14 +5133,14 @@ func (s *Scanner) state247PercentDestructor() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'o':
-		s.state = 263
+		s.state = 258
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state248PercentDefaultPrec() error {
+func (s *Scanner) state244PercentDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5222,14 +5149,14 @@ func (s *Scanner) state248PercentDefaultPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'p':
-		s.state = 264
+		s.state = 259
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state249PercentPrecedence() error {
+func (s *Scanner) state245PercentPrecedence() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5238,14 +5165,14 @@ func (s *Scanner) state249PercentPrecedence() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'c':
-		s.state = 265
+		s.state = 260
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state250PercentPureParser() error {
+func (s *Scanner) state246PercentPureParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5254,14 +5181,14 @@ func (s *Scanner) state250PercentPureParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 's':
-		s.state = 266
+		s.state = 261
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state251PercentLanguage() error {
+func (s *Scanner) state247PercentLanguage() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -5274,7 +5201,7 @@ func (s *Scanner) state251PercentLanguage() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state252PercentErrorVerbose() error {
+func (s *Scanner) state248PercentErrorVerbose() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5283,14 +5210,14 @@ func (s *Scanner) state252PercentErrorVerbose() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 267
+		s.state = 262
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state253PercentExpectRr() error {
+func (s *Scanner) state249PercentExpectRr() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5299,14 +5226,14 @@ func (s *Scanner) state253PercentExpectRr() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 268
+		s.state = 263
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state254PercentFilePrefix() error {
+func (s *Scanner) state250PercentFilePrefix() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5315,14 +5242,14 @@ func (s *Scanner) state254PercentFilePrefix() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'f':
-		s.state = 269
+		s.state = 264
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state255PercentGlrParser() error {
+func (s *Scanner) state251PercentGlrParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5331,14 +5258,14 @@ func (s *Scanner) state255PercentGlrParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 270
+		s.state = 265
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state256PercentInitialAction() error {
+func (s *Scanner) state252PercentInitialAction() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5347,14 +5274,14 @@ func (s *Scanner) state256PercentInitialAction() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'a':
-		s.state = 271
+		s.state = 266
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state257PercentSkeleton() error {
+func (s *Scanner) state253PercentSkeleton() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -5367,23 +5294,7 @@ func (s *Scanner) state257PercentSkeleton() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state258BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'e':
-		s.state = 272
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state259PercentTokenTable() error {
+func (s *Scanner) state254PercentTokenTable() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5392,14 +5303,14 @@ func (s *Scanner) state259PercentTokenTable() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'l':
-		s.state = 273
+		s.state = 267
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state260PercentNondeterministicParser() error {
+func (s *Scanner) state255PercentNondeterministicParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5408,14 +5319,14 @@ func (s *Scanner) state260PercentNondeterministicParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'i':
-		s.state = 274
+		s.state = 268
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state261PercentNoDefaultPrec() error {
+func (s *Scanner) state256PercentNoDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5424,6 +5335,102 @@ func (s *Scanner) state261PercentNoDefaultPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 't':
+		s.state = 269
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state257PercentNamePrefix() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'i':
+		s.state = 270
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state258PercentDestructor() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'r':
+		s.state = 271
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state259PercentDefaultPrec() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'r':
+		s.state = 272
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state260PercentPrecedence() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'e':
+		s.state = 273
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state261PercentPureParser() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'e':
+		s.state = 274
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state262PercentErrorVerbose() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'b':
 		s.state = 275
 		return nil
 	default:
@@ -5431,7 +5438,20 @@ func (s *Scanner) state261PercentNoDefaultPrec() error {
 	}
 }
 
-func (s *Scanner) state262PercentNamePrefix() error {
+func (s *Scanner) state263PercentExpectRr() error {
+	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenPercentExpectRr
+	s.tokenEnd = s.runeReader
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	return ErrInvalidRune
+}
+
+func (s *Scanner) state264PercentFilePrefix() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5447,7 +5467,7 @@ func (s *Scanner) state262PercentNamePrefix() error {
 	}
 }
 
-func (s *Scanner) state263PercentDestructor() error {
+func (s *Scanner) state265PercentGlrParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5463,7 +5483,7 @@ func (s *Scanner) state263PercentDestructor() error {
 	}
 }
 
-func (s *Scanner) state264PercentDefaultPrec() error {
+func (s *Scanner) state266PercentInitialAction() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5471,7 +5491,7 @@ func (s *Scanner) state264PercentDefaultPrec() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
-	case nextRune == 'r':
+	case nextRune == 'c':
 		s.state = 278
 		return nil
 	default:
@@ -5479,7 +5499,7 @@ func (s *Scanner) state264PercentDefaultPrec() error {
 	}
 }
 
-func (s *Scanner) state265PercentPrecedence() error {
+func (s *Scanner) state267PercentTokenTable() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5495,132 +5515,7 @@ func (s *Scanner) state265PercentPrecedence() error {
 	}
 }
 
-func (s *Scanner) state266PercentPureParser() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'e':
-		s.state = 280
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state267PercentErrorVerbose() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'b':
-		s.state = 281
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state268PercentExpectRr() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenPercentExpectRr
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state269PercentFilePrefix() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'i':
-		s.state = 282
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state270PercentGlrParser() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'r':
-		s.state = 283
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state271PercentInitialAction() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'c':
-		s.state = 284
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state272BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'm':
-		s.state = 285
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state273PercentTokenTable() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'e':
-		s.state = 286
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state274PercentNondeterministicParser() error {
+func (s *Scanner) state268PercentNondeterministicParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5629,14 +5524,14 @@ func (s *Scanner) state274PercentNondeterministicParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'n':
-		s.state = 287
+		s.state = 280
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state275PercentNoDefaultPrec() error {
+func (s *Scanner) state269PercentNoDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5645,14 +5540,14 @@ func (s *Scanner) state275PercentNoDefaultPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '-':
-		s.state = 288
+		s.state = 281
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state276PercentNamePrefix() error {
+func (s *Scanner) state270PercentNamePrefix() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5661,14 +5556,14 @@ func (s *Scanner) state276PercentNamePrefix() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'x':
-		s.state = 289
+		s.state = 282
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state277PercentDestructor() error {
+func (s *Scanner) state271PercentDestructor() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -5681,7 +5576,7 @@ func (s *Scanner) state277PercentDestructor() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state278PercentDefaultPrec() error {
+func (s *Scanner) state272PercentDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5690,14 +5585,14 @@ func (s *Scanner) state278PercentDefaultPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'e':
-		s.state = 290
+		s.state = 283
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state279PercentPrecedence() error {
+func (s *Scanner) state273PercentPrecedence() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -5710,7 +5605,7 @@ func (s *Scanner) state279PercentPrecedence() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state280PercentPureParser() error {
+func (s *Scanner) state274PercentPureParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5719,14 +5614,14 @@ func (s *Scanner) state280PercentPureParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'r':
-		s.state = 291
+		s.state = 284
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state281PercentErrorVerbose() error {
+func (s *Scanner) state275PercentErrorVerbose() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5735,14 +5630,14 @@ func (s *Scanner) state281PercentErrorVerbose() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'o':
-		s.state = 292
+		s.state = 285
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state282PercentFilePrefix() error {
+func (s *Scanner) state276PercentFilePrefix() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5751,14 +5646,14 @@ func (s *Scanner) state282PercentFilePrefix() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 'x':
-		s.state = 293
+		s.state = 286
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state283PercentGlrParser() error {
+func (s *Scanner) state277PercentGlrParser() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
@@ -5771,7 +5666,7 @@ func (s *Scanner) state283PercentGlrParser() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state284PercentInitialAction() error {
+func (s *Scanner) state278PercentInitialAction() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5780,6 +5675,170 @@ func (s *Scanner) state284PercentInitialAction() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == 't':
+		s.state = 287
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state279PercentTokenTable() error {
+	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenPercentTokenTable
+	s.tokenEnd = s.runeReader
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	return ErrInvalidRune
+}
+
+func (s *Scanner) state280PercentNondeterministicParser() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'i':
+		s.state = 288
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state281PercentNoDefaultPrec() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'p':
+		s.state = 289
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state282PercentNamePrefix() error {
+	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenPercentNamePrefix
+	s.tokenEnd = s.runeReader
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	return ErrInvalidRune
+}
+
+func (s *Scanner) state283PercentDefaultPrec() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'c':
+		s.state = 290
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state284PercentPureParser() error {
+	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenPercentPureParser
+	s.tokenEnd = s.runeReader
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	return ErrInvalidRune
+}
+
+func (s *Scanner) state285PercentErrorVerbose() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 's':
+		s.state = 291
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state286PercentFilePrefix() error {
+	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenPercentFilePrefix
+	s.tokenEnd = s.runeReader
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	return ErrInvalidRune
+}
+
+func (s *Scanner) state287PercentInitialAction() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'i':
+		s.state = 292
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state288PercentNondeterministicParser() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 's':
+		s.state = 293
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state289PercentNoDefaultPrec() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'r':
 		s.state = 294
 		return nil
 	default:
@@ -5787,7 +5846,20 @@ func (s *Scanner) state284PercentInitialAction() error {
 	}
 }
 
-func (s *Scanner) state285BracedCode() error {
+func (s *Scanner) state290PercentDefaultPrec() error {
+	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenPercentDefaultPrec
+	s.tokenEnd = s.runeReader
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	return ErrInvalidRune
+}
+
+func (s *Scanner) state291PercentErrorVerbose() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5803,20 +5875,7 @@ func (s *Scanner) state285BracedCode() error {
 	}
 }
 
-func (s *Scanner) state286PercentTokenTable() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenPercentTokenTable
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state287PercentNondeterministicParser() error {
+func (s *Scanner) state292PercentInitialAction() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5824,7 +5883,7 @@ func (s *Scanner) state287PercentNondeterministicParser() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
-	case nextRune == 'i':
+	case nextRune == 'o':
 		s.state = 296
 		return nil
 	default:
@@ -5832,7 +5891,7 @@ func (s *Scanner) state287PercentNondeterministicParser() error {
 	}
 }
 
-func (s *Scanner) state288PercentNoDefaultPrec() error {
+func (s *Scanner) state293PercentNondeterministicParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5840,7 +5899,7 @@ func (s *Scanner) state288PercentNoDefaultPrec() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
-	case nextRune == 'p':
+	case nextRune == 't':
 		s.state = 297
 		return nil
 	default:
@@ -5848,20 +5907,7 @@ func (s *Scanner) state288PercentNoDefaultPrec() error {
 	}
 }
 
-func (s *Scanner) state289PercentNamePrefix() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenPercentNamePrefix
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state290PercentDefaultPrec() error {
+func (s *Scanner) state294PercentNoDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5869,7 +5915,7 @@ func (s *Scanner) state290PercentDefaultPrec() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
-	case nextRune == 'c':
+	case nextRune == 'e':
 		s.state = 298
 		return nil
 	default:
@@ -5877,11 +5923,11 @@ func (s *Scanner) state290PercentDefaultPrec() error {
 	}
 }
 
-func (s *Scanner) state291PercentPureParser() error {
+func (s *Scanner) state295PercentErrorVerbose() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TokenPercentPureParser
+	s.token = TokenPercentErrorVerbose
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5890,7 +5936,7 @@ func (s *Scanner) state291PercentPureParser() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state292PercentErrorVerbose() error {
+func (s *Scanner) state296PercentInitialAction() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5898,7 +5944,7 @@ func (s *Scanner) state292PercentErrorVerbose() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
-	case nextRune == 's':
+	case nextRune == 'n':
 		s.state = 299
 		return nil
 	default:
@@ -5906,20 +5952,7 @@ func (s *Scanner) state292PercentErrorVerbose() error {
 	}
 }
 
-func (s *Scanner) state293PercentFilePrefix() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenPercentFilePrefix
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state294PercentInitialAction() error {
+func (s *Scanner) state297PercentNondeterministicParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5935,7 +5968,7 @@ func (s *Scanner) state294PercentInitialAction() error {
 	}
 }
 
-func (s *Scanner) state295BracedCode() error {
+func (s *Scanner) state298PercentNoDefaultPrec() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -5943,7 +5976,7 @@ func (s *Scanner) state295BracedCode() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
-	case nextRune == 'n':
+	case nextRune == 'c':
 		s.state = 301
 		return nil
 	default:
@@ -5951,43 +5984,11 @@ func (s *Scanner) state295BracedCode() error {
 	}
 }
 
-func (s *Scanner) state296PercentNondeterministicParser() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 's':
-		s.state = 302
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state297PercentNoDefaultPrec() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'r':
-		s.state = 303
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state298PercentDefaultPrec() error {
+func (s *Scanner) state299PercentInitialAction() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.
-	s.token = TokenPercentDefaultPrec
+	s.token = TokenPercentInitialAction
 	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
@@ -5996,7 +5997,7 @@ func (s *Scanner) state298PercentDefaultPrec() error {
 	return ErrInvalidRune
 }
 
-func (s *Scanner) state299PercentErrorVerbose() error {
+func (s *Scanner) state300PercentNondeterministicParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -6004,44 +6005,25 @@ func (s *Scanner) state299PercentErrorVerbose() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
-	case nextRune == 'e':
-		s.state = 304
+	case nextRune == 'c':
+		s.state = 302
 		return nil
 	default:
 		return ErrInvalidRune
 	}
 }
 
-func (s *Scanner) state300PercentInitialAction() error {
+func (s *Scanner) state301PercentNoDefaultPrec() error {
 	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenPercentNoDefaultPrec
+	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
 		return s.runeReader.Err()
 	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'o':
-		s.state = 305
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state301BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 't':
-		s.state = 306
-		return nil
-	default:
-		return ErrInvalidRune
-	}
+	return ErrInvalidRune
 }
 
 func (s *Scanner) state302PercentNondeterministicParser() error {
@@ -6052,7 +6034,71 @@ func (s *Scanner) state302PercentNondeterministicParser() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
-	case nextRune == 't':
+	case nextRune == '-':
+		s.state = 303
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state303PercentNondeterministicParser() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'p':
+		s.state = 304
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state304PercentNondeterministicParser() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'a':
+		s.state = 305
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state305PercentNondeterministicParser() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 'r':
+		s.state = 306
+		return nil
+	default:
+		return ErrInvalidRune
+	}
+}
+
+func (s *Scanner) state306PercentNondeterministicParser() error {
+	_ = s.runeReader.Next()
+
+	if s.runeReader.Err() != nil {
+		return s.runeReader.Err()
+	}
+	nextRune := s.runeReader.Rune()
+	switch {
+	case nextRune == 's':
 		s.state = 307
 		return nil
 	default:
@@ -6060,7 +6106,7 @@ func (s *Scanner) state302PercentNondeterministicParser() error {
 	}
 }
 
-func (s *Scanner) state303PercentNoDefaultPrec() error {
+func (s *Scanner) state307PercentNondeterministicParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -6076,20 +6122,7 @@ func (s *Scanner) state303PercentNoDefaultPrec() error {
 	}
 }
 
-func (s *Scanner) state304PercentErrorVerbose() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenPercentErrorVerbose
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state305PercentInitialAction() error {
+func (s *Scanner) state308PercentNondeterministicParser() error {
 	_ = s.runeReader.Next()
 
 	if s.runeReader.Err() != nil {
@@ -6097,7 +6130,7 @@ func (s *Scanner) state305PercentInitialAction() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
-	case nextRune == 'n':
+	case nextRune == 'r':
 		s.state = 309
 		return nil
 	default:
@@ -6105,270 +6138,7 @@ func (s *Scanner) state305PercentInitialAction() error {
 	}
 }
 
-func (s *Scanner) state306BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'e':
-		s.state = 310
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state307PercentNondeterministicParser() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'i':
-		s.state = 311
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state308PercentNoDefaultPrec() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'c':
-		s.state = 312
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state309PercentInitialAction() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenPercentInitialAction
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state310BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'd':
-		s.state = 313
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state311PercentNondeterministicParser() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'c':
-		s.state = 314
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state312PercentNoDefaultPrec() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenPercentNoDefaultPrec
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state313BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '_':
-		s.state = 315
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state314PercentNondeterministicParser() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '-':
-		s.state = 316
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state315BracedCode() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '_':
-		s.state = 317
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state316PercentNondeterministicParser() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'p':
-		s.state = 318
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state317BracedCode() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenBracedCode
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state318PercentNondeterministicParser() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'a':
-		s.state = 319
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state319PercentNondeterministicParser() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'r':
-		s.state = 320
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state320PercentNondeterministicParser() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 's':
-		s.state = 321
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state321PercentNondeterministicParser() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'e':
-		s.state = 322
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state322PercentNondeterministicParser() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == 'r':
-		s.state = 323
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state323PercentNondeterministicParser() error {
+func (s *Scanner) state309PercentNondeterministicParser() error {
 	_ = s.runeReader.Next()
 
 	// We have an accepting state, update our bookkeeping.

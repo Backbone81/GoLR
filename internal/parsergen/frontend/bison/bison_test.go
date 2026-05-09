@@ -658,4 +658,24 @@ var _ = Describe("Bison Grammar Files", func() {
 			}))
 		})
 	})
+
+	Context("well known Bison grammars", func() {
+		It("should correctly parse the Bison 3.8.2 grammar", func() {
+			grammar, err := bison.GrammarFromFile("testdata/bison-3.8.2.y")
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(grammar.Terminals).To(HaveLen(54 + 1 + 1 + 1 + 1))
+			Expect(grammar.Nonterminals).To(HaveLen(39))
+			Expect(grammar.Productions).To(HaveLen(119))
+		})
+
+		It("should correctly parse the Go 1.5.4 grammar", func() {
+			grammar, err := bison.GrammarFromFile("testdata/go-1.5.4.y")
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(grammar.Terminals).To(HaveLen(46 + 24))
+			Expect(grammar.Nonterminals).To(HaveLen(127 + 1))
+			Expect(grammar.Productions).To(HaveLen(127 + 210))
+		})
+	})
 })

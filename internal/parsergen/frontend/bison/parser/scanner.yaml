@@ -402,6 +402,8 @@ rules:
                 high: 57
               - low: 95
                 high: 95
+              - low: 45
+                high: 45
               - low: 46
                 high: 46
 - name: BRACKETED_ID
@@ -438,6 +440,8 @@ rules:
                     high: 57
                   - low: 95
                     high: 95
+                  - low: 45
+                    high: 45
                   - low: 46
                     high: 46
       - kind: Literal
@@ -786,6 +790,10 @@ states:
   accept: true
   transitions:
   - charRange:
+      low: 45
+      high: 45
+    stateIdx: 11
+  - charRange:
       low: 46
       high: 46
     stateIdx: 11
@@ -1086,6 +1094,10 @@ states:
   accept: true
 - ruleIdx: 49
   transitions:
+  - charRange:
+      low: 45
+      high: 45
+    stateIdx: 46
   - charRange:
       low: 46
       high: 46
