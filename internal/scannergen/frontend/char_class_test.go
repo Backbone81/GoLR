@@ -73,9 +73,9 @@ var _ = Describe("CharClass", func() {
 		Expect(expression.IsSingleNode()).To(BeTrue())
 	})
 
-	It("should fail validation with zero value", func() {
+	It("should succeed validation with zero value", func() {
 		expression := dsl.CharClass()
-		Expect(expression.Validate()).ToNot(Succeed())
+		Expect(expression.Validate()).To(Succeed())
 	})
 
 	It("should fail validation with invalid character range", func() {

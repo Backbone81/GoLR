@@ -322,9 +322,30 @@ rules:
       text: "__not_implemented__"
 - name: CHAR_LITERAL
   regex:
-    kind: Literal
-    literal:
-      text: "__not_implemented__"
+    kind: Concat
+    concat:
+      children:
+      - kind: Literal
+        literal:
+          text: "'"
+      - kind: ZeroOrMore
+        zeroOrMore:
+          child:
+            kind: Or
+            or:
+              children:
+              - kind: CharClass
+                charClass:
+                  negate: true
+                  ranges:
+                  - low: 39
+                    high: 39
+              - kind: Literal
+                literal:
+                  text: "\\'"
+      - kind: Literal
+        literal:
+          text: "'"
 - name: COLON
   regex:
     kind: Literal
@@ -332,9 +353,10 @@ rules:
       text: ":"
 - name: EPILOGUE
   regex:
-    kind: Literal
-    literal:
-      text: "__not_implemented__"
+    kind: CharClass
+    charClass:
+      negate: false
+      ranges: []
 - name: EQUAL
   regex:
     kind: Literal
@@ -411,9 +433,10 @@ rules:
           text: "]"
 - name: ID_COLON
   regex:
-    kind: Literal
-    literal:
-      text: "__implemented_by_token_transformer__"
+    kind: CharClass
+    charClass:
+      negate: false
+      ranges: []
 - name: PERCENT_PERCENT
   regex:
     kind: Literal
@@ -443,12 +466,12 @@ rules:
   regex:
     kind: Literal
     literal:
-      text: "__not_implemented__"
+      text: "<*>"
 - name: TAG_NONE
   regex:
     kind: Literal
     literal:
-      text: "__not_implemented__"
+      text: "<>"
 - name: INT_LITERAL
   regex:
     kind: OneOrMore
@@ -503,33 +526,41 @@ states:
       high: 37
     stateIdx: 6
   - charRange:
+      low: 39
+      high: 39
+    stateIdx: 7
+  - charRange:
       low: 47
       high: 47
     stateIdx: 3
   - charRange:
       low: 48
       high: 57
-    stateIdx: 13
+    stateIdx: 15
   - charRange:
       low: 58
       high: 58
-    stateIdx: 7
+    stateIdx: 8
   - charRange:
       low: 59
       high: 59
-    stateIdx: 12
+    stateIdx: 13
+  - charRange:
+      low: 60
+      high: 60
+    stateIdx: 14
   - charRange:
       low: 61
       high: 61
-    stateIdx: 8
+    stateIdx: 9
   - charRange:
       low: 65
       high: 90
-    stateIdx: 9
+    stateIdx: 10
   - charRange:
       low: 91
       high: 91
-    stateIdx: 10
+    stateIdx: 11
   - charRange:
       low: 95
       high: 95
@@ -537,11 +568,11 @@ states:
   - charRange:
       low: 97
       high: 122
-    stateIdx: 9
+    stateIdx: 10
   - charRange:
       low: 124
       high: 124
-    stateIdx: 11
+    stateIdx: 12
 - ruleIdx: 0
   accept: true
   transitions:
@@ -572,11 +603,11 @@ states:
   - charRange:
       low: 42
       high: 42
-    stateIdx: 14
+    stateIdx: 16
   - charRange:
       low: 47
       high: 47
-    stateIdx: 15
+    stateIdx: 17
 - ruleIdx: 2
   transitions:
   - charRange:
@@ -586,7 +617,7 @@ states:
   - charRange:
       low: 34
       high: 34
-    stateIdx: 17
+    stateIdx: 19
   - charRange:
       low: 35
       high: 91
@@ -594,7 +625,7 @@ states:
   - charRange:
       low: 92
       high: 92
-    stateIdx: 16
+    stateIdx: 18
   - charRange:
       low: 93
       high: 1114111
@@ -604,93 +635,115 @@ states:
   - charRange:
       low: 40
       high: 40
-    stateIdx: 18
+    stateIdx: 20
   - charRange:
       low: 95
       high: 95
-    stateIdx: 19
+    stateIdx: 21
 - ruleIdx: 4
   transitions:
   - charRange:
       low: 37
       high: 37
-    stateIdx: 38
+    stateIdx: 40
   - charRange:
       low: 60
       high: 60
-    stateIdx: 30
+    stateIdx: 32
   - charRange:
       low: 99
       high: 99
-    stateIdx: 27
+    stateIdx: 29
   - charRange:
       low: 100
       high: 100
-    stateIdx: 22
+    stateIdx: 24
   - charRange:
       low: 101
       high: 101
-    stateIdx: 28
+    stateIdx: 30
   - charRange:
       low: 102
       high: 102
-    stateIdx: 29
+    stateIdx: 31
   - charRange:
       low: 103
       high: 103
-    stateIdx: 31
+    stateIdx: 33
   - charRange:
       low: 104
       high: 104
-    stateIdx: 32
+    stateIdx: 34
   - charRange:
       low: 105
       high: 105
-    stateIdx: 33
+    stateIdx: 35
   - charRange:
       low: 108
       high: 108
-    stateIdx: 24
+    stateIdx: 26
   - charRange:
       low: 109
       high: 109
-    stateIdx: 26
+    stateIdx: 28
   - charRange:
       low: 110
       high: 110
-    stateIdx: 21
+    stateIdx: 23
   - charRange:
       low: 111
       high: 111
-    stateIdx: 34
+    stateIdx: 36
   - charRange:
       low: 112
       high: 112
-    stateIdx: 23
+    stateIdx: 25
   - charRange:
       low: 114
       high: 114
-    stateIdx: 25
+    stateIdx: 27
   - charRange:
       low: 115
       high: 115
-    stateIdx: 35
+    stateIdx: 37
   - charRange:
       low: 116
       high: 116
-    stateIdx: 20
+    stateIdx: 22
   - charRange:
       low: 117
       high: 117
-    stateIdx: 39
+    stateIdx: 41
   - charRange:
       low: 118
       high: 118
-    stateIdx: 36
+    stateIdx: 38
   - charRange:
       low: 121
       high: 121
-    stateIdx: 37
+    stateIdx: 39
+- ruleIdx: 42
+  transitions:
+  - charRange:
+      low: 0
+      high: 38
+    stateIdx: 7
+  - charRange:
+      low: 39
+      high: 39
+    stateIdx: 43
+  - charRange:
+      low: 40
+      high: 91
+    stateIdx: 7
+  - charRange:
+      low: 92
+      high: 92
+    stateIdx: 42
+  - charRange:
+      low: 93
+      high: 1114111
+    stateIdx: 7
 - ruleIdx: 43
   accept: true
 - ruleIdx: 45
@@ -701,69 +754,79 @@ states:
   - charRange:
       low: 46
       high: 46
-    stateIdx: 9
+    stateIdx: 10
   - charRange:
       low: 48
       high: 57
-    stateIdx: 9
+    stateIdx: 10
   - charRange:
       low: 65
       high: 90
-    stateIdx: 9
+    stateIdx: 10
   - charRange:
       low: 95
       high: 95
-    stateIdx: 9
+    stateIdx: 10
   - charRange:
       low: 97
       high: 122
-    stateIdx: 9
+    stateIdx: 10
 - ruleIdx: 47
   transitions:
   - charRange:
       low: 65
       high: 90
-    stateIdx: 40
+    stateIdx: 44
   - charRange:
       low: 97
       high: 122
-    stateIdx: 40
+    stateIdx: 44
 - ruleIdx: 50
   accept: true
 - ruleIdx: 52
   accept: true
+- ruleIdx: 54
+  transitions:
+  - charRange:
+      low: 42
+      high: 42
+    stateIdx: 45
+  - charRange:
+      low: 62
+      high: 62
+    stateIdx: 46
 - ruleIdx: 56
   accept: true
   transitions:
   - charRange:
       low: 48
       high: 57
-    stateIdx: 13
+    stateIdx: 15
 - ruleIdx: 1
   transitions:
   - charRange:
       low: 0
       high: 41
-    stateIdx: 14
+    stateIdx: 16
   - charRange:
       low: 42
       high: 42
-    stateIdx: 41
+    stateIdx: 47
   - charRange:
       low: 43
       high: 1114111
-    stateIdx: 14
+    stateIdx: 16
 - ruleIdx: 1
   accept: true
   transitions:
   - charRange:
       low: 0
       high: 9
-    stateIdx: 15
+    stateIdx: 17
   - charRange:
       low: 11
       high: 1114111
-    stateIdx: 15
+    stateIdx: 17
 - ruleIdx: 2
   transitions:
   - charRange:
@@ -773,7 +836,7 @@ states:
   - charRange:
       low: 34
       high: 34
-    stateIdx: 42
+    stateIdx: 48
   - charRange:
       low: 35
       high: 91
@@ -781,7 +844,7 @@ states:
   - charRange:
       low: 92
       high: 92
-    stateIdx: 16
+    stateIdx: 18
   - charRange:
       low: 93
       high: 1114111
@@ -793,169 +856,165 @@ states:
   - charRange:
       low: 34
       high: 34
-    stateIdx: 43
+    stateIdx: 49
 - ruleIdx: 40
   transitions:
   - charRange:
-      low: 105
-      high: 105
-    stateIdx: 45
-  - charRange:
       low: 110
       high: 110
-    stateIdx: 44
+    stateIdx: 50
 - ruleIdx: 4
   transitions:
   - charRange:
       low: 111
       high: 111
-    stateIdx: 46
+    stateIdx: 51
   - charRange:
       low: 121
       high: 121
-    stateIdx: 47
-- ruleIdx: 5
-  transitions:
-  - charRange:
-      low: 97
-      high: 97
-    stateIdx: 50
-  - charRange:
-      low: 111
-      high: 111
-    stateIdx: 49
-  - charRange:
-      low: 116
-      high: 116
-    stateIdx: 48
-- ruleIdx: 7
-  transitions:
-  - charRange:
-      low: 101
-      high: 101
-    stateIdx: 51
-  - charRange:
-      low: 112
-      high: 112
     stateIdx: 52
-- ruleIdx: 8
+- ruleIdx: 5
   transitions:
   - charRange:
       low: 97
       high: 97
     stateIdx: 55
   - charRange:
+      low: 111
+      high: 111
+    stateIdx: 54
+  - charRange:
+      low: 116
+      high: 116
+    stateIdx: 53
+- ruleIdx: 7
+  transitions:
+  - charRange:
+      low: 101
+      high: 101
+    stateIdx: 56
+  - charRange:
+      low: 112
+      high: 112
+    stateIdx: 57
+- ruleIdx: 8
+  transitions:
+  - charRange:
+      low: 97
+      high: 97
+    stateIdx: 60
+  - charRange:
       low: 114
       high: 114
-    stateIdx: 53
+    stateIdx: 58
   - charRange:
       low: 117
       high: 117
-    stateIdx: 54
+    stateIdx: 59
 - ruleIdx: 9
   transitions:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 57
+    stateIdx: 62
   - charRange:
       low: 101
       high: 101
-    stateIdx: 56
+    stateIdx: 61
 - ruleIdx: 10
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 59
+    stateIdx: 64
   - charRange:
       low: 105
       high: 105
-    stateIdx: 58
+    stateIdx: 63
 - ruleIdx: 15
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 60
+    stateIdx: 65
 - ruleIdx: 16
   transitions:
   - charRange:
       low: 111
       high: 111
-    stateIdx: 61
+    stateIdx: 66
 - ruleIdx: 19
   transitions:
   - charRange:
       low: 109
       high: 109
-    stateIdx: 64
+    stateIdx: 69
   - charRange:
       low: 114
       high: 114
-    stateIdx: 62
+    stateIdx: 67
   - charRange:
       low: 120
       high: 120
-    stateIdx: 63
+    stateIdx: 68
 - ruleIdx: 22
   transitions:
   - charRange:
       low: 105
       high: 105
-    stateIdx: 65
+    stateIdx: 70
 - ruleIdx: 23
   transitions:
   - charRange:
       low: 102
       high: 102
-    stateIdx: 66
+    stateIdx: 71
 - ruleIdx: 24
   transitions:
   - charRange:
       low: 108
       high: 108
-    stateIdx: 67
+    stateIdx: 72
 - ruleIdx: 25
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 68
+    stateIdx: 73
 - ruleIdx: 26
   transitions:
   - charRange:
       low: 110
       high: 110
-    stateIdx: 69
+    stateIdx: 74
 - ruleIdx: 32
   transitions:
   - charRange:
       low: 117
       high: 117
-    stateIdx: 70
+    stateIdx: 75
 - ruleIdx: 35
   transitions:
   - charRange:
       low: 107
       high: 107
-    stateIdx: 71
+    stateIdx: 76
   - charRange:
       low: 116
       high: 116
-    stateIdx: 72
+    stateIdx: 77
 - ruleIdx: 38
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 73
+    stateIdx: 78
 - ruleIdx: 39
   transitions:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 74
+    stateIdx: 79
 - ruleIdx: 49
   accept: true
 - ruleIdx: 58
@@ -963,47 +1022,79 @@ states:
   - charRange:
       low: 110
       high: 110
-    stateIdx: 75
+    stateIdx: 80
+- ruleIdx: 42
+  transitions:
+  - charRange:
+      low: 0
+      high: 38
+    stateIdx: 7
+  - charRange:
+      low: 39
+      high: 39
+    stateIdx: 81
+  - charRange:
+      low: 40
+      high: 91
+    stateIdx: 7
+  - charRange:
+      low: 92
+      high: 92
+    stateIdx: 42
+  - charRange:
+      low: 93
+      high: 1114111
+    stateIdx: 7
+- ruleIdx: 42
+  accept: true
 - ruleIdx: 47
   transitions:
   - charRange:
       low: 46
       high: 46
-    stateIdx: 40
+    stateIdx: 44
   - charRange:
       low: 48
       high: 57
-    stateIdx: 40
+    stateIdx: 44
   - charRange:
       low: 65
       high: 90
-    stateIdx: 40
+    stateIdx: 44
   - charRange:
       low: 93
       high: 93
-    stateIdx: 76
+    stateIdx: 82
   - charRange:
       low: 95
       high: 95
-    stateIdx: 40
+    stateIdx: 44
   - charRange:
       low: 97
       high: 122
-    stateIdx: 40
+    stateIdx: 44
+- ruleIdx: 54
+  transitions:
+  - charRange:
+      low: 62
+      high: 62
+    stateIdx: 83
+- ruleIdx: 55
+  accept: true
 - ruleIdx: 1
   transitions:
   - charRange:
       low: 0
       high: 46
-    stateIdx: 14
+    stateIdx: 16
   - charRange:
       low: 47
       high: 47
-    stateIdx: 77
+    stateIdx: 84
   - charRange:
       low: 48
       high: 1114111
-    stateIdx: 14
+    stateIdx: 16
 - ruleIdx: 2
   accept: true
   transitions:
@@ -1014,7 +1105,7 @@ states:
   - charRange:
       low: 34
       high: 34
-    stateIdx: 17
+    stateIdx: 19
   - charRange:
       low: 35
       high: 91
@@ -1022,7 +1113,7 @@ states:
   - charRange:
       low: 92
       high: 92
-    stateIdx: 16
+    stateIdx: 18
   - charRange:
       low: 93
       high: 1114111
@@ -1032,228 +1123,247 @@ states:
   - charRange:
       low: 0
       high: 33
-    stateIdx: 43
+    stateIdx: 49
   - charRange:
       low: 34
       high: 34
-    stateIdx: 79
+    stateIdx: 86
   - charRange:
       low: 35
       high: 91
-    stateIdx: 43
+    stateIdx: 49
   - charRange:
       low: 92
       high: 92
-    stateIdx: 78
+    stateIdx: 85
   - charRange:
       low: 93
       high: 1114111
-    stateIdx: 43
+    stateIdx: 49
 - ruleIdx: 40
   transitions:
   - charRange:
       low: 111
       high: 111
-    stateIdx: 80
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 109
-      high: 109
-    stateIdx: 81
+    stateIdx: 87
 - ruleIdx: 4
   transitions:
   - charRange:
       low: 107
       high: 107
-    stateIdx: 82
+    stateIdx: 88
 - ruleIdx: 6
   transitions:
   - charRange:
       low: 112
       high: 112
-    stateIdx: 83
+    stateIdx: 89
 - ruleIdx: 5
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 84
+    stateIdx: 90
 - ruleIdx: 11
   transitions:
   - charRange:
       low: 45
       high: 45
-    stateIdx: 86
+    stateIdx: 92
   - charRange:
       low: 110
       high: 110
-    stateIdx: 85
+    stateIdx: 91
 - ruleIdx: 28
   transitions:
   - charRange:
       low: 109
       high: 109
-    stateIdx: 87
+    stateIdx: 93
 - ruleIdx: 7
   transitions:
   - charRange:
       low: 102
       high: 102
-    stateIdx: 89
+    stateIdx: 95
   - charRange:
       low: 115
       high: 115
-    stateIdx: 88
+    stateIdx: 94
 - ruleIdx: 14
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 90
+    stateIdx: 96
 - ruleIdx: 8
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 92
+    stateIdx: 98
   - charRange:
       low: 105
       high: 105
-    stateIdx: 91
+    stateIdx: 97
 - ruleIdx: 33
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 93
+    stateIdx: 99
 - ruleIdx: 57
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 94
+    stateIdx: 100
 - ruleIdx: 9
   transitions:
   - charRange:
       low: 102
       high: 102
-    stateIdx: 95
+    stateIdx: 101
 - ruleIdx: 27
   transitions:
   - charRange:
       low: 110
       high: 110
-    stateIdx: 96
+    stateIdx: 102
 - ruleIdx: 10
   transitions:
   - charRange:
       low: 103
       high: 103
-    stateIdx: 97
+    stateIdx: 103
 - ruleIdx: 34
   transitions:
   - charRange:
       low: 113
       high: 113
-    stateIdx: 98
+    stateIdx: 104
 - ruleIdx: 15
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 99
+    stateIdx: 105
 - ruleIdx: 16
   transitions:
   - charRange:
       low: 100
       high: 100
-    stateIdx: 100
+    stateIdx: 106
 - ruleIdx: 19
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 101
+    stateIdx: 107
 - ruleIdx: 20
   transitions:
   - charRange:
       low: 112
       high: 112
-    stateIdx: 102
+    stateIdx: 108
 - ruleIdx: 59
   transitions:
   - charRange:
       low: 112
       high: 112
-    stateIdx: 103
+    stateIdx: 109
 - ruleIdx: 22
   transitions:
   - charRange:
       low: 108
       high: 108
-    stateIdx: 104
+    stateIdx: 110
 - ruleIdx: 23
   transitions:
   - charRange:
       low: 108
       high: 108
-    stateIdx: 105
+    stateIdx: 111
 - ruleIdx: 24
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 106
+    stateIdx: 112
 - ruleIdx: 25
   transitions:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 107
+    stateIdx: 113
 - ruleIdx: 26
   transitions:
   - charRange:
       low: 105
       high: 105
-    stateIdx: 108
+    stateIdx: 114
 - ruleIdx: 32
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 109
+    stateIdx: 115
 - ruleIdx: 35
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 110
+    stateIdx: 116
 - ruleIdx: 36
   transitions:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 111
+    stateIdx: 117
 - ruleIdx: 38
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 112
+    stateIdx: 118
 - ruleIdx: 39
   transitions:
   - charRange:
       low: 99
       high: 99
-    stateIdx: 113
+    stateIdx: 119
 - ruleIdx: 58
   transitions:
   - charRange:
       low: 105
       high: 105
-    stateIdx: 114
+    stateIdx: 120
+- ruleIdx: 42
+  accept: true
+  transitions:
+  - charRange:
+      low: 0
+      high: 38
+    stateIdx: 7
+  - charRange:
+      low: 39
+      high: 39
+    stateIdx: 43
+  - charRange:
+      low: 40
+      high: 91
+    stateIdx: 7
+  - charRange:
+      low: 92
+      high: 92
+    stateIdx: 42
+  - charRange:
+      low: 93
+      high: 1114111
+    stateIdx: 7
 - ruleIdx: 47
+  accept: true
+- ruleIdx: 54
   accept: true
 - ruleIdx: 1
   accept: true
@@ -1262,281 +1372,275 @@ states:
   - charRange:
       low: 0
       high: 33
-    stateIdx: 43
+    stateIdx: 49
   - charRange:
       low: 34
       high: 34
-    stateIdx: 115
+    stateIdx: 121
   - charRange:
       low: 35
       high: 91
-    stateIdx: 43
+    stateIdx: 49
   - charRange:
       low: 92
       high: 92
-    stateIdx: 78
+    stateIdx: 85
   - charRange:
       low: 93
       high: 1114111
-    stateIdx: 43
+    stateIdx: 49
 - ruleIdx: 3
   transitions:
   - charRange:
       low: 41
       high: 41
-    stateIdx: 116
+    stateIdx: 122
 - ruleIdx: 40
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 117
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 112
-      high: 112
-    stateIdx: 118
+    stateIdx: 123
 - ruleIdx: 4
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 119
+    stateIdx: 124
 - ruleIdx: 6
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 120
+    stateIdx: 125
 - ruleIdx: 5
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 121
+    stateIdx: 126
 - ruleIdx: 11
   transitions:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 122
+    stateIdx: 127
   - charRange:
       low: 100
       high: 100
-    stateIdx: 123
+    stateIdx: 128
 - ruleIdx: 29
   transitions:
   - charRange:
       low: 100
       high: 100
-    stateIdx: 124
+    stateIdx: 129
   - charRange:
       low: 108
       high: 108
-    stateIdx: 125
+    stateIdx: 130
 - ruleIdx: 28
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 126
+    stateIdx: 131
 - ruleIdx: 7
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 127
+    stateIdx: 132
 - ruleIdx: 17
   transitions:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 128
+    stateIdx: 133
   - charRange:
       low: 105
       high: 105
-    stateIdx: 129
+    stateIdx: 134
 - ruleIdx: 14
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 130
+    stateIdx: 135
 - ruleIdx: 8
   transitions:
   - charRange:
       low: 110
       high: 110
-    stateIdx: 131
+    stateIdx: 136
 - ruleIdx: 12
   transitions:
   - charRange:
       low: 99
       high: 99
-    stateIdx: 132
+    stateIdx: 137
 - ruleIdx: 33
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 133
+    stateIdx: 138
 - ruleIdx: 57
   transitions:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 134
+    stateIdx: 139
 - ruleIdx: 9
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 135
+    stateIdx: 140
 - ruleIdx: 27
   transitions:
   - charRange:
       low: 103
       high: 103
-    stateIdx: 136
+    stateIdx: 141
 - ruleIdx: 10
   transitions:
   - charRange:
       low: 104
       high: 104
-    stateIdx: 137
+    stateIdx: 142
 - ruleIdx: 34
   transitions:
   - charRange:
       low: 117
       high: 117
-    stateIdx: 138
+    stateIdx: 143
 - ruleIdx: 15
   transitions:
   - charRange:
       low: 103
       high: 103
-    stateIdx: 139
+    stateIdx: 144
 - ruleIdx: 16
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 140
+    stateIdx: 145
 - ruleIdx: 19
   transitions:
   - charRange:
       low: 111
       high: 111
-    stateIdx: 141
+    stateIdx: 146
 - ruleIdx: 20
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 142
+    stateIdx: 147
 - ruleIdx: 59
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 143
+    stateIdx: 148
 - ruleIdx: 22
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 144
+    stateIdx: 149
 - ruleIdx: 23
   transitions:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 145
+    stateIdx: 150
 - ruleIdx: 24
   transitions:
   - charRange:
       low: 45
       high: 45
-    stateIdx: 146
+    stateIdx: 151
 - ruleIdx: 25
   transitions:
   - charRange:
       low: 100
       high: 100
-    stateIdx: 147
+    stateIdx: 152
 - ruleIdx: 26
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 148
+    stateIdx: 153
 - ruleIdx: 32
   transitions:
   - charRange:
       low: 112
       high: 112
-    stateIdx: 149
+    stateIdx: 154
 - ruleIdx: 35
   transitions:
   - charRange:
       low: 108
       high: 108
-    stateIdx: 150
+    stateIdx: 155
 - ruleIdx: 36
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 151
+    stateIdx: 156
 - ruleIdx: 38
   transitions:
   - charRange:
       low: 98
       high: 98
-    stateIdx: 152
+    stateIdx: 157
 - ruleIdx: 39
   transitions:
   - charRange:
       low: 99
       high: 99
-    stateIdx: 153
+    stateIdx: 158
 - ruleIdx: 58
   transitions:
   - charRange:
       low: 111
       high: 111
-    stateIdx: 154
+    stateIdx: 159
 - ruleIdx: 3
   transitions:
   - charRange:
       low: 0
       high: 33
-    stateIdx: 43
+    stateIdx: 49
   - charRange:
       low: 34
       high: 34
-    stateIdx: 79
+    stateIdx: 86
   - charRange:
       low: 35
       high: 40
-    stateIdx: 43
+    stateIdx: 49
   - charRange:
       low: 41
       high: 41
-    stateIdx: 155
+    stateIdx: 160
   - charRange:
       low: 42
       high: 91
-    stateIdx: 43
+    stateIdx: 49
   - charRange:
       low: 92
       high: 92
-    stateIdx: 78
+    stateIdx: 85
   - charRange:
       low: 93
       high: 1114111
-    stateIdx: 43
+    stateIdx: 49
 - ruleIdx: 3
   accept: true
 - ruleIdx: 40
@@ -1544,19 +1648,13 @@ states:
   - charRange:
       low: 95
       high: 95
-    stateIdx: 156
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 108
-      high: 108
-    stateIdx: 157
+    stateIdx: 161
 - ruleIdx: 4
   transitions:
   - charRange:
       low: 110
       high: 110
-    stateIdx: 158
+    stateIdx: 162
 - ruleIdx: 6
   accept: true
 - ruleIdx: 5
@@ -1564,86 +1662,86 @@ states:
   - charRange:
       low: 109
       high: 109
-    stateIdx: 159
+    stateIdx: 163
 - ruleIdx: 11
   transitions:
   - charRange:
       low: 115
       high: 115
-    stateIdx: 160
+    stateIdx: 164
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 161
+    stateIdx: 165
 - ruleIdx: 29
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 162
+    stateIdx: 166
 - ruleIdx: 30
   transitions:
   - charRange:
       low: 105
       high: 105
-    stateIdx: 163
+    stateIdx: 167
 - ruleIdx: 28
   transitions:
   - charRange:
       low: 45
       high: 45
-    stateIdx: 164
+    stateIdx: 168
 - ruleIdx: 7
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 165
+    stateIdx: 169
 - ruleIdx: 17
   transitions:
   - charRange:
       low: 117
       high: 117
-    stateIdx: 166
+    stateIdx: 170
 - ruleIdx: 18
   transitions:
   - charRange:
       low: 110
       high: 110
-    stateIdx: 167
+    stateIdx: 171
 - ruleIdx: 14
   transitions:
   - charRange:
       low: 99
       high: 99
-    stateIdx: 168
+    stateIdx: 172
 - ruleIdx: 8
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 169
+    stateIdx: 173
 - ruleIdx: 13
   accept: true
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 170
+    stateIdx: 174
 - ruleIdx: 33
   transitions:
   - charRange:
       low: 45
       high: 45
-    stateIdx: 171
+    stateIdx: 175
 - ruleIdx: 57
   transitions:
   - charRange:
       low: 109
       high: 109
-    stateIdx: 172
+    stateIdx: 176
 - ruleIdx: 9
   accept: true
 - ruleIdx: 27
@@ -1651,25 +1749,25 @@ states:
   - charRange:
       low: 117
       high: 117
-    stateIdx: 173
+    stateIdx: 177
 - ruleIdx: 10
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 174
+    stateIdx: 178
 - ruleIdx: 34
   transitions:
   - charRange:
       low: 105
       high: 105
-    stateIdx: 175
+    stateIdx: 179
 - ruleIdx: 15
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 176
+    stateIdx: 180
 - ruleIdx: 16
   accept: true
 - ruleIdx: 19
@@ -1677,73 +1775,73 @@ states:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 177
+    stateIdx: 181
 - ruleIdx: 20
   transitions:
   - charRange:
       low: 99
       high: 99
-    stateIdx: 178
+    stateIdx: 182
 - ruleIdx: 59
   transitions:
   - charRange:
       low: 121
       high: 121
-    stateIdx: 179
+    stateIdx: 183
 - ruleIdx: 22
   transitions:
   - charRange:
       low: 45
       high: 45
-    stateIdx: 180
+    stateIdx: 184
 - ruleIdx: 23
   transitions:
   - charRange:
       low: 103
       high: 103
-    stateIdx: 181
+    stateIdx: 185
 - ruleIdx: 24
   transitions:
   - charRange:
       low: 112
       high: 112
-    stateIdx: 182
+    stateIdx: 186
 - ruleIdx: 25
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 183
+    stateIdx: 187
 - ruleIdx: 26
   transitions:
   - charRange:
       low: 105
       high: 105
-    stateIdx: 184
+    stateIdx: 188
 - ruleIdx: 32
   transitions:
   - charRange:
       low: 117
       high: 117
-    stateIdx: 185
+    stateIdx: 189
 - ruleIdx: 35
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 186
+    stateIdx: 190
 - ruleIdx: 36
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 187
+    stateIdx: 191
 - ruleIdx: 38
   transitions:
   - charRange:
       low: 111
       high: 111
-    stateIdx: 188
+    stateIdx: 192
 - ruleIdx: 39
   accept: true
 - ruleIdx: 58
@@ -1751,49 +1849,43 @@ states:
   - charRange:
       low: 110
       high: 110
-    stateIdx: 189
+    stateIdx: 193
 - ruleIdx: 3
   accept: true
   transitions:
   - charRange:
       low: 0
       high: 33
-    stateIdx: 43
+    stateIdx: 49
   - charRange:
       low: 34
       high: 34
-    stateIdx: 79
+    stateIdx: 86
   - charRange:
       low: 35
       high: 91
-    stateIdx: 43
+    stateIdx: 49
   - charRange:
       low: 92
       high: 92
-    stateIdx: 78
+    stateIdx: 85
   - charRange:
       low: 93
       high: 1114111
-    stateIdx: 43
+    stateIdx: 49
 - ruleIdx: 40
   transitions:
   - charRange:
       low: 105
       high: 105
-    stateIdx: 190
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 101
-      high: 101
-    stateIdx: 191
+    stateIdx: 194
 - ruleIdx: 4
   accept: true
   transitions:
   - charRange:
       low: 45
       high: 45
-    stateIdx: 192
+    stateIdx: 195
 - ruleIdx: 5
   accept: true
 - ruleIdx: 11
@@ -1801,49 +1893,49 @@ states:
   - charRange:
       low: 115
       high: 115
-    stateIdx: 193
+    stateIdx: 196
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 194
+    stateIdx: 197
 - ruleIdx: 29
   transitions:
   - charRange:
       low: 102
       high: 102
-    stateIdx: 195
+    stateIdx: 198
 - ruleIdx: 30
   transitions:
   - charRange:
       low: 110
       high: 110
-    stateIdx: 196
+    stateIdx: 199
 - ruleIdx: 28
   transitions:
   - charRange:
       low: 112
       high: 112
-    stateIdx: 197
+    stateIdx: 200
 - ruleIdx: 7
   transitions:
   - charRange:
       low: 117
       high: 117
-    stateIdx: 198
+    stateIdx: 201
 - ruleIdx: 17
   transitions:
   - charRange:
       low: 108
       high: 108
-    stateIdx: 199
+    stateIdx: 202
 - ruleIdx: 18
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 200
+    stateIdx: 203
 - ruleIdx: 14
   accept: true
 - ruleIdx: 8
@@ -1851,19 +1943,19 @@ states:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 201
+    stateIdx: 204
 - ruleIdx: 12
   transitions:
   - charRange:
       low: 100
       high: 100
-    stateIdx: 202
+    stateIdx: 205
 - ruleIdx: 33
   transitions:
   - charRange:
       low: 112
       high: 112
-    stateIdx: 203
+    stateIdx: 206
 - ruleIdx: 57
   accept: true
 - ruleIdx: 27
@@ -1871,7 +1963,7 @@ states:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 204
+    stateIdx: 207
 - ruleIdx: 10
   accept: true
 - ruleIdx: 34
@@ -1879,7 +1971,7 @@ states:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 205
+    stateIdx: 208
 - ruleIdx: 15
   accept: true
 - ruleIdx: 19
@@ -1887,13 +1979,13 @@ states:
   - charRange:
       low: 45
       high: 45
-    stateIdx: 206
+    stateIdx: 209
 - ruleIdx: 20
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 207
+    stateIdx: 210
 - ruleIdx: 59
   accept: true
 - ruleIdx: 22
@@ -1901,43 +1993,43 @@ states:
   - charRange:
       low: 112
       high: 112
-    stateIdx: 208
+    stateIdx: 211
 - ruleIdx: 23
   transitions:
   - charRange:
       low: 62
       high: 62
-    stateIdx: 209
+    stateIdx: 212
 - ruleIdx: 24
   transitions:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 210
+    stateIdx: 213
 - ruleIdx: 25
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 211
+    stateIdx: 214
 - ruleIdx: 26
   transitions:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 212
+    stateIdx: 215
 - ruleIdx: 32
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 213
+    stateIdx: 216
 - ruleIdx: 35
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 214
+    stateIdx: 217
 - ruleIdx: 36
   accept: true
 - ruleIdx: 38
@@ -1945,7 +2037,7 @@ states:
   - charRange:
       low: 115
       high: 115
-    stateIdx: 215
+    stateIdx: 218
 - ruleIdx: 58
   accept: true
 - ruleIdx: 40
@@ -1953,61 +2045,55 @@ states:
   - charRange:
       low: 109
       high: 109
-    stateIdx: 216
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 109
-      high: 109
-    stateIdx: 217
+    stateIdx: 219
 - ruleIdx: 37
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 218
+    stateIdx: 220
 - ruleIdx: 11
   transitions:
   - charRange:
       low: 111
       high: 111
-    stateIdx: 219
+    stateIdx: 221
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 220
+    stateIdx: 222
 - ruleIdx: 29
   transitions:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 221
+    stateIdx: 223
 - ruleIdx: 30
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 222
+    stateIdx: 224
 - ruleIdx: 28
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 223
+    stateIdx: 225
 - ruleIdx: 7
   transitions:
   - charRange:
       low: 99
       high: 99
-    stateIdx: 224
+    stateIdx: 226
 - ruleIdx: 17
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 225
+    stateIdx: 227
 - ruleIdx: 18
   accept: true
 - ruleIdx: 8
@@ -2015,50 +2101,50 @@ states:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 226
+    stateIdx: 228
 - ruleIdx: 12
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 227
+    stateIdx: 229
 - ruleIdx: 33
   transitions:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 228
+    stateIdx: 230
 - ruleIdx: 27
   transitions:
   - charRange:
       low: 103
       high: 103
-    stateIdx: 229
+    stateIdx: 231
 - ruleIdx: 34
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 230
+    stateIdx: 232
 - ruleIdx: 19
   transitions:
   - charRange:
       low: 118
       high: 118
-    stateIdx: 231
+    stateIdx: 233
 - ruleIdx: 20
   accept: true
   transitions:
   - charRange:
       low: 45
       high: 45
-    stateIdx: 232
+    stateIdx: 234
 - ruleIdx: 22
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 233
+    stateIdx: 235
 - ruleIdx: 23
   accept: true
 - ruleIdx: 24
@@ -2066,7 +2152,7 @@ states:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 234
+    stateIdx: 236
 - ruleIdx: 25
   accept: true
 - ruleIdx: 26
@@ -2074,7 +2160,7 @@ states:
   - charRange:
       low: 108
       high: 108
-    stateIdx: 235
+    stateIdx: 237
 - ruleIdx: 32
   accept: true
 - ruleIdx: 35
@@ -2082,73 +2168,67 @@ states:
   - charRange:
       low: 111
       high: 111
-    stateIdx: 236
+    stateIdx: 238
 - ruleIdx: 38
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 237
+    stateIdx: 239
 - ruleIdx: 40
   transitions:
   - charRange:
       low: 112
       high: 112
-    stateIdx: 238
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 101
-      high: 101
-    stateIdx: 239
+    stateIdx: 240
 - ruleIdx: 37
   transitions:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 240
+    stateIdx: 241
 - ruleIdx: 11
   transitions:
   - charRange:
       low: 99
       high: 99
-    stateIdx: 241
+    stateIdx: 242
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 242
+    stateIdx: 243
 - ruleIdx: 29
   transitions:
   - charRange:
       low: 117
       high: 117
-    stateIdx: 243
+    stateIdx: 244
 - ruleIdx: 30
   transitions:
   - charRange:
       low: 115
       high: 115
-    stateIdx: 244
+    stateIdx: 245
 - ruleIdx: 28
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 245
+    stateIdx: 246
 - ruleIdx: 7
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 246
+    stateIdx: 247
 - ruleIdx: 17
   transitions:
   - charRange:
       low: 45
       high: 45
-    stateIdx: 247
+    stateIdx: 248
 - ruleIdx: 8
   accept: true
 - ruleIdx: 12
@@ -2156,19 +2236,19 @@ states:
   - charRange:
       low: 110
       high: 110
-    stateIdx: 248
+    stateIdx: 249
 - ruleIdx: 33
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 249
+    stateIdx: 250
 - ruleIdx: 27
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 250
+    stateIdx: 251
 - ruleIdx: 34
   accept: true
 - ruleIdx: 19
@@ -2176,37 +2256,37 @@ states:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 251
+    stateIdx: 252
 - ruleIdx: 21
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 252
+    stateIdx: 253
 - ruleIdx: 22
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 253
+    stateIdx: 254
 - ruleIdx: 24
   transitions:
   - charRange:
       low: 115
       high: 115
-    stateIdx: 254
+    stateIdx: 255
 - ruleIdx: 26
   transitions:
   - charRange:
       low: 45
       high: 45
-    stateIdx: 255
+    stateIdx: 256
 - ruleIdx: 35
   transitions:
   - charRange:
       low: 110
       high: 110
-    stateIdx: 256
+    stateIdx: 257
 - ruleIdx: 38
   accept: true
 - ruleIdx: 40
@@ -2214,12 +2294,6 @@ states:
   - charRange:
       low: 108
       high: 108
-    stateIdx: 257
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 110
-      high: 110
     stateIdx: 258
 - ruleIdx: 37
   transitions:
@@ -2313,66 +2387,60 @@ states:
       low: 101
       high: 101
     stateIdx: 272
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 116
-      high: 116
-    stateIdx: 273
 - ruleIdx: 37
   transitions:
   - charRange:
       low: 108
       high: 108
-    stateIdx: 274
+    stateIdx: 273
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 105
       high: 105
-    stateIdx: 275
+    stateIdx: 274
 - ruleIdx: 29
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 276
+    stateIdx: 275
 - ruleIdx: 28
   transitions:
   - charRange:
       low: 105
       high: 105
-    stateIdx: 277
+    stateIdx: 276
 - ruleIdx: 7
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 278
+    stateIdx: 277
 - ruleIdx: 17
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 279
+    stateIdx: 278
 - ruleIdx: 12
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 280
+    stateIdx: 279
 - ruleIdx: 33
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 281
+    stateIdx: 280
 - ruleIdx: 19
   transitions:
   - charRange:
       low: 98
       high: 98
-    stateIdx: 282
+    stateIdx: 281
 - ruleIdx: 21
   accept: true
 - ruleIdx: 22
@@ -2380,55 +2448,49 @@ states:
   - charRange:
       low: 105
       high: 105
-    stateIdx: 283
+    stateIdx: 282
 - ruleIdx: 24
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 284
+    stateIdx: 283
 - ruleIdx: 26
   transitions:
   - charRange:
       low: 99
       high: 99
-    stateIdx: 285
+    stateIdx: 284
 - ruleIdx: 40
   transitions:
   - charRange:
       low: 109
       high: 109
-    stateIdx: 286
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 101
-      high: 101
-    stateIdx: 287
+    stateIdx: 285
 - ruleIdx: 37
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 288
+    stateIdx: 286
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 110
       high: 110
-    stateIdx: 289
+    stateIdx: 287
 - ruleIdx: 29
   transitions:
   - charRange:
       low: 45
       high: 45
-    stateIdx: 290
+    stateIdx: 288
 - ruleIdx: 28
   transitions:
   - charRange:
       low: 120
       high: 120
-    stateIdx: 291
+    stateIdx: 289
 - ruleIdx: 7
   accept: true
 - ruleIdx: 17
@@ -2436,7 +2498,7 @@ states:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 292
+    stateIdx: 290
 - ruleIdx: 12
   accept: true
 - ruleIdx: 33
@@ -2444,19 +2506,19 @@ states:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 293
+    stateIdx: 291
 - ruleIdx: 19
   transitions:
   - charRange:
       low: 111
       high: 111
-    stateIdx: 294
+    stateIdx: 292
 - ruleIdx: 22
   transitions:
   - charRange:
       low: 120
       high: 120
-    stateIdx: 295
+    stateIdx: 293
 - ruleIdx: 24
   accept: true
 - ruleIdx: 26
@@ -2464,19 +2526,13 @@ states:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 296
+    stateIdx: 294
 - ruleIdx: 40
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 297
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 100
-      high: 100
-    stateIdx: 298
+    stateIdx: 295
 - ruleIdx: 37
   accept: true
 - ruleIdx: 31
@@ -2484,13 +2540,13 @@ states:
   - charRange:
       low: 105
       high: 105
-    stateIdx: 299
+    stateIdx: 296
 - ruleIdx: 29
   transitions:
   - charRange:
       low: 112
       high: 112
-    stateIdx: 300
+    stateIdx: 297
 - ruleIdx: 28
   accept: true
 - ruleIdx: 17
@@ -2498,7 +2554,7 @@ states:
   - charRange:
       low: 99
       high: 99
-    stateIdx: 301
+    stateIdx: 298
 - ruleIdx: 33
   accept: true
 - ruleIdx: 19
@@ -2506,7 +2562,7 @@ states:
   - charRange:
       low: 115
       high: 115
-    stateIdx: 302
+    stateIdx: 299
 - ruleIdx: 22
   accept: true
 - ruleIdx: 26
@@ -2514,31 +2570,25 @@ states:
   - charRange:
       low: 105
       high: 105
-    stateIdx: 303
+    stateIdx: 300
 - ruleIdx: 40
   transitions:
   - charRange:
       low: 110
       high: 110
-    stateIdx: 304
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 95
-      high: 95
-    stateIdx: 305
+    stateIdx: 301
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 115
       high: 115
-    stateIdx: 306
+    stateIdx: 302
 - ruleIdx: 29
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 307
+    stateIdx: 303
 - ruleIdx: 17
   accept: true
 - ruleIdx: 19
@@ -2546,37 +2596,31 @@ states:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 308
+    stateIdx: 304
 - ruleIdx: 26
   transitions:
   - charRange:
       low: 111
       high: 111
-    stateIdx: 309
+    stateIdx: 305
 - ruleIdx: 40
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 310
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 98
-      high: 98
-    stateIdx: 311
+    stateIdx: 306
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 116
       high: 116
-    stateIdx: 312
+    stateIdx: 307
 - ruleIdx: 29
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 313
+    stateIdx: 308
 - ruleIdx: 19
   accept: true
 - ruleIdx: 26
@@ -2584,31 +2628,25 @@ states:
   - charRange:
       low: 110
       high: 110
-    stateIdx: 314
+    stateIdx: 309
 - ruleIdx: 40
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 315
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 121
-      high: 121
-    stateIdx: 316
+    stateIdx: 310
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 105
       high: 105
-    stateIdx: 317
+    stateIdx: 311
 - ruleIdx: 29
   transitions:
   - charRange:
       low: 99
       high: 99
-    stateIdx: 318
+    stateIdx: 312
 - ruleIdx: 26
   accept: true
 - ruleIdx: 40
@@ -2616,19 +2654,13 @@ states:
   - charRange:
       low: 100
       high: 100
-    stateIdx: 319
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 95
-      high: 95
-    stateIdx: 320
+    stateIdx: 313
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 99
       high: 99
-    stateIdx: 321
+    stateIdx: 314
 - ruleIdx: 29
   accept: true
 - ruleIdx: 40
@@ -2636,172 +2668,56 @@ states:
   - charRange:
       low: 95
       high: 95
-    stateIdx: 322
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 116
-      high: 116
-    stateIdx: 323
+    stateIdx: 315
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 45
       high: 45
-    stateIdx: 324
+    stateIdx: 316
 - ruleIdx: 40
   transitions:
   - charRange:
       low: 95
       high: 95
-    stateIdx: 325
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 111
-      high: 111
-    stateIdx: 326
+    stateIdx: 317
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 112
       high: 112
-    stateIdx: 327
+    stateIdx: 318
 - ruleIdx: 40
   accept: true
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 107
-      high: 107
-    stateIdx: 328
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 97
       high: 97
-    stateIdx: 329
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 101
-      high: 101
-    stateIdx: 330
+    stateIdx: 319
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 331
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 110
-      high: 110
-    stateIdx: 332
+    stateIdx: 320
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 115
       high: 115
-    stateIdx: 333
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 95
-      high: 95
-    stateIdx: 334
+    stateIdx: 321
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 101
       high: 101
-    stateIdx: 335
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 116
-      high: 116
-    stateIdx: 336
+    stateIdx: 322
 - ruleIdx: 31
   transitions:
   - charRange:
       low: 114
       high: 114
-    stateIdx: 337
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 114
-      high: 114
-    stateIdx: 338
+    stateIdx: 323
 - ruleIdx: 31
-  accept: true
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 97
-      high: 97
-    stateIdx: 339
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 110
-      high: 110
-    stateIdx: 340
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 115
-      high: 115
-    stateIdx: 341
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 102
-      high: 102
-    stateIdx: 342
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 111
-      high: 111
-    stateIdx: 343
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 114
-      high: 114
-    stateIdx: 344
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 109
-      high: 109
-    stateIdx: 345
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 101
-      high: 101
-    stateIdx: 346
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 114
-      high: 114
-    stateIdx: 347
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 95
-      high: 95
-    stateIdx: 348
-- ruleIdx: 48
-  transitions:
-  - charRange:
-      low: 95
-      high: 95
-    stateIdx: 349
-- ruleIdx: 48
   accept: true

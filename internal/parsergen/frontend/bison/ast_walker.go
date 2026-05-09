@@ -188,8 +188,8 @@ func (w *ASTWalker) getID(node *parser.Node) (string, error) {
 	if !ok {
 		return "", errors.New("no token")
 	}
-	if idTerminal != parser.TokenId {
-		return "", errors.New("expected token id")
+	if idTerminal != parser.TokenId && idTerminal != parser.TokenCharLiteral {
+		return "", errors.New("expected token id or char literal")
 	}
 	return string(firstChildChild.Lexeme), nil
 }

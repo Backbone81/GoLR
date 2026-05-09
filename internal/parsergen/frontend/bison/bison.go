@@ -25,7 +25,9 @@ func ToGrammar(reader io.Reader, filePath string) (frontend.Grammar, error) {
 	runeReader := runtime.NewUTF8RuneReader(data)
 	scanner := bisonparser.TokenTransformer{
 		Scanner: &bisonparser.WhitespaceSkipper{
-			Scanner: bisonparser.NewScanner(runeReader, filePath),
+			Scanner: &bisonparser.ContextScanner{
+				Scanner: bisonparser.NewScanner(runeReader, filePath),
+			},
 		},
 	}
 

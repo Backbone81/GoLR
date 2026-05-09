@@ -1,7 +1,6 @@
 package frontend
 
 import (
-	"errors"
 	"strings"
 )
 
@@ -41,9 +40,9 @@ func (c *CharClass) IsSingleNode() bool {
 // In situations where the regular expression has children, all children are checked for validity recursively. If
 // any child is not valid, this regular expression is also not valid.
 func (c *CharClass) Validate() error {
-	if len(c.Ranges) == 0 {
-		return errors.New("the regular expression requires at least one character range")
-	}
+	// We explicitly allow empty char classes for situations where a token needs to be declared but the scanner should
+	// not match anything. This is helpful for situations where not all tokens can reliably be derived by a DFA but
+	// instead have some overlay mechanic over the base scanner.
 	for _, charRange := range c.Ranges {
 		if err := charRange.Validate(); err != nil {
 			return err
