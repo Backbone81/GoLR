@@ -33,6 +33,30 @@ var _ = Describe("Bison Grammar Files", func() {
 		}))
 	})
 
+	It("should accept %empty", func() {
+		bisonGrammar := `
+			%%
+			s: %empty
+		`
+		grammar, err := bison.GrammarFromString(bisonGrammar)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(grammar).To(Equal(frontend.Grammar{
+			Terminals: nil,
+			Nonterminals: []frontend.Symbol{
+				{
+					Name: "s",
+				},
+			},
+			Productions: []frontend.Production{
+				{
+					NonterminalIdx: 0,
+					SymbolRefs:     nil,
+				},
+			},
+			StartNonterminalIdx: 0,
+		}))
+	})
+
 	Context("%token", func() {
 		It("should accept single %token", func() {
 			bisonGrammar := `
@@ -352,27 +376,286 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 	})
 
-	It("should accept %empty", func() {
-		bisonGrammar := `
-			%%
-			s: %empty
-		`
-		grammar, err := bison.GrammarFromString(bisonGrammar)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(grammar).To(Equal(frontend.Grammar{
-			Terminals: nil,
-			Nonterminals: []frontend.Symbol{
-				{
-					Name: "s",
+	Context("rules", func() {
+		It("should accept a single terminal", func() {
+			bisonGrammar := `
+				%token FOO
+				%%
+				s: FOO
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name: "FOO",
+					},
 				},
-			},
-			Productions: []frontend.Production{
-				{
-					NonterminalIdx: 0,
-					SymbolRefs:     nil,
+				Nonterminals: []frontend.Symbol{
+					{
+						Name: "s",
+					},
 				},
-			},
-			StartNonterminalIdx: 0,
-		}))
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewTerminalRef(0),
+						},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should accept a single nonterminal", func() {
+			bisonGrammar := `
+				%%
+				s: foo
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: nil,
+				Nonterminals: []frontend.Symbol{
+					{
+						Name: "s",
+					},
+					{
+						Name: "foo",
+					},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(1),
+						},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should accept a mix of terminals and nonterminals", func() {
+			bisonGrammar := `
+				%token FOO BAR
+				%%
+				s: FOO baz BAR bat
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name: "FOO",
+					},
+					{
+						Name: "BAR",
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{
+						Name: "s",
+					},
+					{
+						Name: "baz",
+					},
+					{
+						Name: "bat",
+					},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewTerminalRef(0),
+							frontend.NewNonterminalRef(1),
+							frontend.NewTerminalRef(1),
+							frontend.NewNonterminalRef(2),
+						},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should accept multiple alternatives", func() {
+			bisonGrammar := `
+				%%
+				s: foo | bar | baz
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: nil,
+				Nonterminals: []frontend.Symbol{
+					{
+						Name: "s",
+					},
+					{
+						Name: "foo",
+					},
+					{
+						Name: "bar",
+					},
+					{
+						Name: "baz",
+					},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(1),
+						},
+					},
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(2),
+						},
+					},
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(3),
+						},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should accept %empty as one alternatives", func() {
+			bisonGrammar := `
+				%%
+				s: %empty | foo | bar
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: nil,
+				Nonterminals: []frontend.Symbol{
+					{
+						Name: "s",
+					},
+					{
+						Name: "foo",
+					},
+					{
+						Name: "bar",
+					},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs:     nil,
+					},
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(1),
+						},
+					},
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(2),
+						},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should accept multiple alternatives as separate rules", func() {
+			bisonGrammar := `
+				%%
+				s: foo
+				s: bar
+				s: baz
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: nil,
+				Nonterminals: []frontend.Symbol{
+					{
+						Name: "s",
+					},
+					{
+						Name: "foo",
+					},
+					{
+						Name: "bar",
+					},
+					{
+						Name: "baz",
+					},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(1),
+						},
+					},
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(2),
+						},
+					},
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(3),
+						},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should correctly map string aliases", func() {
+			bisonGrammar := `
+				%token FOO "foo"
+				%%
+				s: bar "foo" baz
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:  "FOO",
+						Alias: `"foo"`,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{
+						Name: "s",
+					},
+					{
+						Name: "bar",
+					},
+					{
+						Name: "baz",
+					},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(1),
+							frontend.NewTerminalRef(0),
+							frontend.NewNonterminalRef(2),
+						},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
 	})
 })

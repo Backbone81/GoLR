@@ -72,6 +72,7 @@ func (w *ASTWalker) buildTerminals(node *parser.Node) {
 		if len(node.Children) == 1 {
 			if terminal, ok := node.Children[0].Symbol.Terminal(); ok && terminal == parser.TokenTstring {
 				w.grammar.Terminals[len(w.grammar.Terminals)-1].Alias = string(node.Children[0].Lexeme)
+				w.terminalIdxByName[string(node.Children[0].Lexeme)] = len(w.grammar.Terminals) - 1
 			}
 		}
 		for _, child := range node.Children {
@@ -81,6 +82,7 @@ func (w *ASTWalker) buildTerminals(node *parser.Node) {
 		if len(node.Children) == 1 {
 			if terminal, ok := node.Children[0].Symbol.Terminal(); ok && terminal == parser.TokenString {
 				w.grammar.Terminals[len(w.grammar.Terminals)-1].Alias = string(node.Children[0].Lexeme)
+				w.terminalIdxByName[string(node.Children[0].Lexeme)] = len(w.grammar.Terminals) - 1
 			}
 		}
 		for _, child := range node.Children {
@@ -142,9 +144,14 @@ func (w *ASTWalker) buildProductions(node *parser.Node) {
 			w.buildProductions(child)
 		}
 	case parser.NonterminalSymbol:
-		id, err := w.getID(node)
+		var id string
+		var err error
+		id, err = w.getID(node)
 		if err != nil {
-			return
+			id, err = w.getStringAsID(node)
+			if err != nil {
+				return
+			}
 		}
 		if terminalIdx, ok := w.terminalIdxByName[id]; ok {
 			production := w.grammar.Productions[len(w.grammar.Productions)-1]
@@ -183,6 +190,27 @@ func (w *ASTWalker) getID(node *parser.Node) (string, error) {
 	}
 	if idTerminal != parser.TokenId {
 		return "", errors.New("expected token id")
+	}
+	return string(firstChildChild.Lexeme), nil
+}
+
+func (w *ASTWalker) getStringAsID(node *parser.Node) (string, error) {
+	firstChild := node.Children[0]
+	idNonterminal, ok := firstChild.Symbol.Nonterminal()
+	if !ok {
+		return "", errors.New("no nonterminal")
+	}
+	if idNonterminal != parser.NonterminalStringAsId {
+		return "", errors.New("expected nonterminal string as id")
+	}
+
+	firstChildChild := firstChild.Children[0]
+	idTerminal, ok := firstChildChild.Symbol.Terminal()
+	if !ok {
+		return "", errors.New("no token")
+	}
+	if idTerminal != parser.TokenString {
+		return "", errors.New("expected token string")
 	}
 	return string(firstChildChild.Lexeme), nil
 }
