@@ -664,18 +664,51 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromFile("testdata/bison-3.8.2.y")
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(grammar.Terminals).To(HaveLen(54 + 1 + 1 + 1 + 1))
-			Expect(grammar.Nonterminals).To(HaveLen(39))
-			Expect(grammar.Productions).To(HaveLen(119))
+			// All %token declarations
+			Expect(grammar.Terminals).To(HaveLen(58))
+
+			// All left hand sides of productions + error nonterminal
+			// Note that grammar_declaration shows up twice and must be counted only once.
+			Expect(grammar.Nonterminals).To(HaveLen(38 + 1))
+
+			// All productions + alternatives
+			// Note that not all alternatives start in the first column. symbols.1 has an alternative which is indented
+			// and therefore easy to overlook with a regex search in the grammar file.
+			Expect(grammar.Productions).To(HaveLen(39 + 80))
 		})
 
 		It("should correctly parse the Go 1.5.4 grammar", func() {
 			grammar, err := bison.GrammarFromFile("testdata/go-1.5.4.y")
 			Expect(err).ToNot(HaveOccurred())
 
+			// All %token declarations + char literals
 			Expect(grammar.Terminals).To(HaveLen(46 + 24))
+
+			// All left hand sides of productions + error nonterminal
 			Expect(grammar.Nonterminals).To(HaveLen(127 + 1))
+
+			// All productions + alternatives
 			Expect(grammar.Productions).To(HaveLen(127 + 210))
+		})
+
+		It("should correctly parse the GCC 4.2.4 Java grammar", func() {
+			grammar, err := bison.GrammarFromFile("testdata/gcc-4.2.4-java.y")
+			Expect(err).ToNot(HaveOccurred())
+
+			// All %token declarations
+			// Note that there are duplicate %token declarations to assign a tag after declaration. Searching for all
+			// %token declarations would therefore result in duplicate tokens.
+			Expect(grammar.Terminals).To(HaveLen(109))
+
+			// All left hand sides of productions + error nonterminal
+			// Note that searching for identifiers at the start of the line with a colon at the end will turn up results
+			// in comments which need to be ignored.
+			Expect(grammar.Nonterminals).To(HaveLen(153 + 1))
+
+			// All productions + alternatives
+			// Note that one alternative is inside of a block comment starting with "Screws up thing". We need to remove
+			// that from the result.
+			Expect(grammar.Productions).To(HaveLen(153 + 352))
 		})
 	})
 })

@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	filePath := "internal/parsergen/frontend/bison/testdata/bison-3.8.2.y"
+	filePath := "internal/parsergen/frontend/bison/testdata/gcc-4.2.4-java.y"
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		panic(err)

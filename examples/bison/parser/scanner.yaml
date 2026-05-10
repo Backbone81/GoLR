@@ -197,9 +197,15 @@ rules:
       text: "%code"
 - name: PERCENT_DEFAULT_PREC
   regex:
-    kind: Literal
-    literal:
-      text: "%default-prec"
+    kind: Or
+    or:
+      children:
+      - kind: Literal
+        literal:
+          text: "%default-prec"
+      - kind: Literal
+        literal:
+          text: "%default_prec"
 - name: PERCENT_DEFINE
   regex:
     kind: Literal
@@ -207,9 +213,15 @@ rules:
       text: "%define"
 - name: PERCENT_ERROR_VERBOSE
   regex:
-    kind: Literal
-    literal:
-      text: "%error-verbose"
+    kind: Or
+    or:
+      children:
+      - kind: Literal
+        literal:
+          text: "%error-verbose"
+      - kind: Literal
+        literal:
+          text: "%error_verbose"
 - name: PERCENT_EXPECT
   regex:
     kind: Literal
@@ -217,9 +229,15 @@ rules:
       text: "%expect"
 - name: PERCENT_EXPECT_RR
   regex:
-    kind: Literal
-    literal:
-      text: "%expect-rr"
+    kind: Or
+    or:
+      children:
+      - kind: Literal
+        literal:
+          text: "%expect-rr"
+      - kind: Literal
+        literal:
+          text: "%expect_rr"
 - name: PERCENT_FILE_PREFIX
   regex:
     kind: Literal
@@ -252,19 +270,43 @@ rules:
       text: "%language"
 - name: PERCENT_NAME_PREFIX
   regex:
-    kind: Literal
-    literal:
-      text: "%name-prefix"
+    kind: Or
+    or:
+      children:
+      - kind: Literal
+        literal:
+          text: "%name-prefix"
+      - kind: Literal
+        literal:
+          text: "%name_prefix"
 - name: PERCENT_NO_DEFAULT_PREC
   regex:
-    kind: Literal
-    literal:
-      text: "%no-default-prec"
+    kind: Or
+    or:
+      children:
+      - kind: Literal
+        literal:
+          text: "%no-default-prec"
+      - kind: Literal
+        literal:
+          text: "%no_default-prec"
+      - kind: Literal
+        literal:
+          text: "%no-default_prec"
+      - kind: Literal
+        literal:
+          text: "%no_default_prec"
 - name: PERCENT_NO_LINES
   regex:
-    kind: Literal
-    literal:
-      text: "%no-lines"
+    kind: Or
+    or:
+      children:
+      - kind: Literal
+        literal:
+          text: "%no-lines"
+      - kind: Literal
+        literal:
+          text: "%no_lines"
 - name: PERCENT_NONDETERMINISTIC_PARSER
   regex:
     kind: Literal
@@ -277,9 +319,15 @@ rules:
       text: "%output"
 - name: PERCENT_PURE_PARSER
   regex:
-    kind: Literal
-    literal:
-      text: "%pure-parser"
+    kind: Or
+    or:
+      children:
+      - kind: Literal
+        literal:
+          text: "%pure-parser"
+      - kind: Literal
+        literal:
+          text: "%pure_parser"
 - name: PERCENT_REQUIRE
   regex:
     kind: Literal
@@ -297,9 +345,15 @@ rules:
       text: "%start"
 - name: PERCENT_TOKEN_TABLE
   regex:
-    kind: Literal
-    literal:
-      text: "%token-table"
+    kind: Or
+    or:
+      children:
+      - kind: Literal
+        literal:
+          text: "%token-table"
+      - kind: Literal
+        literal:
+          text: "%token_table"
 - name: PERCENT_VERBOSE
   regex:
     kind: Literal
@@ -1214,6 +1268,10 @@ states:
       high: 45
     stateIdx: 93
   - charRange:
+      low: 95
+      high: 95
+    stateIdx: 93
+  - charRange:
       low: 110
       high: 110
     stateIdx: 92
@@ -1726,6 +1784,10 @@ states:
       low: 45
       high: 45
     stateIdx: 167
+  - charRange:
+      low: 95
+      high: 95
+    stateIdx: 167
 - ruleIdx: 7
   transitions:
   - charRange:
@@ -1768,6 +1830,10 @@ states:
   - charRange:
       low: 45
       high: 45
+    stateIdx: 174
+  - charRange:
+      low: 95
+      high: 95
     stateIdx: 174
 - ruleIdx: 61
   transitions:
@@ -1913,6 +1979,10 @@ states:
       low: 45
       high: 45
     stateIdx: 193
+  - charRange:
+      low: 95
+      high: 95
+    stateIdx: 193
 - ruleIdx: 5
   accept: true
 - ruleIdx: 11
@@ -2006,6 +2076,10 @@ states:
   - charRange:
       low: 45
       high: 45
+    stateIdx: 207
+  - charRange:
+      low: 95
+      high: 95
     stateIdx: 207
 - ruleIdx: 20
   transitions:
@@ -2160,6 +2234,10 @@ states:
       low: 45
       high: 45
     stateIdx: 231
+  - charRange:
+      low: 95
+      high: 95
+    stateIdx: 231
 - ruleIdx: 22
   transitions:
   - charRange:
@@ -2243,6 +2321,10 @@ states:
   - charRange:
       low: 45
       high: 45
+    stateIdx: 244
+  - charRange:
+      low: 95
+      high: 95
     stateIdx: 244
 - ruleIdx: 8
   accept: true
@@ -2481,6 +2563,10 @@ states:
   - charRange:
       low: 45
       high: 45
+    stateIdx: 281
+  - charRange:
+      low: 95
+      high: 95
     stateIdx: 281
 - ruleIdx: 28
   transitions:

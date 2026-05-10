@@ -83,27 +83,53 @@ func GetScannerRules() []scannergen.Rule {
 	rules = append(rules, Rule("PERCENT_MERGE", Literal("%merge")))
 
 	rules = append(rules, Rule("PERCENT_CODE", Literal("%code")))
-	rules = append(rules, Rule("PERCENT_DEFAULT_PREC", Literal("%default-prec")))
+	rules = append(rules, Rule("PERCENT_DEFAULT_PREC", Or(
+		Literal("%default-prec"),
+		Literal("%default_prec"),
+	)))
 	rules = append(rules, Rule("PERCENT_DEFINE", Literal("%define")))
-	rules = append(rules, Rule("PERCENT_ERROR_VERBOSE", Literal("%error-verbose")))
+	rules = append(rules, Rule("PERCENT_ERROR_VERBOSE", Or(
+		Literal("%error-verbose"),
+		Literal("%error_verbose"),
+	)))
 	rules = append(rules, Rule("PERCENT_EXPECT", Literal("%expect")))
-	rules = append(rules, Rule("PERCENT_EXPECT_RR", Literal("%expect-rr")))
+	rules = append(rules, Rule("PERCENT_EXPECT_RR", Or(
+		Literal("%expect-rr"),
+		Literal("%expect_rr"),
+	)))
 	rules = append(rules, Rule("PERCENT_FILE_PREFIX", Literal("%file-prefix")))
 	rules = append(rules, Rule("PERCENT_FLAG", Literal("%<flag>")))
 	rules = append(rules, Rule("PERCENT_GLR_PARSER", Literal("%glr-parser")))
 	rules = append(rules, Rule("PERCENT_HEADER", Literal("%header")))
 	rules = append(rules, Rule("PERCENT_INITIAL_ACTION", Literal("%initial-action")))
 	rules = append(rules, Rule("PERCENT_LANGUAGE", Literal("%language")))
-	rules = append(rules, Rule("PERCENT_NAME_PREFIX", Literal("%name-prefix")))
-	rules = append(rules, Rule("PERCENT_NO_DEFAULT_PREC", Literal("%no-default-prec")))
-	rules = append(rules, Rule("PERCENT_NO_LINES", Literal("%no-lines")))
+	rules = append(rules, Rule("PERCENT_NAME_PREFIX", Or(
+		Literal("%name-prefix"),
+		Literal("%name_prefix"),
+	)))
+	rules = append(rules, Rule("PERCENT_NO_DEFAULT_PREC", Or(
+		Literal("%no-default-prec"),
+		Literal("%no_default-prec"),
+		Literal("%no-default_prec"),
+		Literal("%no_default_prec"),
+	)))
+	rules = append(rules, Rule("PERCENT_NO_LINES", Or(
+		Literal("%no-lines"),
+		Literal("%no_lines"),
+	)))
 	rules = append(rules, Rule("PERCENT_NONDETERMINISTIC_PARSER", Literal("%nondeterministic-parser")))
 	rules = append(rules, Rule("PERCENT_OUTPUT", Literal("%output")))
-	rules = append(rules, Rule("PERCENT_PURE_PARSER", Literal("%pure-parser")))
+	rules = append(rules, Rule("PERCENT_PURE_PARSER", Or(
+		Literal("%pure-parser"),
+		Literal("%pure_parser"),
+	)))
 	rules = append(rules, Rule("PERCENT_REQUIRE", Literal("%require")))
 	rules = append(rules, Rule("PERCENT_SKELETON", Literal("%skeleton")))
 	rules = append(rules, Rule("PERCENT_START", Literal("%start")))
-	rules = append(rules, Rule("PERCENT_TOKEN_TABLE", Literal("%token-table")))
+	rules = append(rules, Rule("PERCENT_TOKEN_TABLE", Or(
+		Literal("%token-table"),
+		Literal("%token_table"),
+	)))
 	rules = append(rules, Rule("PERCENT_VERBOSE", Literal("%verbose")))
 	rules = append(rules, Rule("PERCENT_YACC", Literal("%yacc")))
 

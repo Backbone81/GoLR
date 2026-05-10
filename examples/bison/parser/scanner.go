@@ -2113,6 +2113,9 @@ func (s *Scanner) state55PercentNonassoc() error {
 	case nextRune == '-':
 		s.state = 93
 		return nil
+	case nextRune == '_':
+		s.state = 93
+		return nil
 	case nextRune == 'n':
 		s.state = 92
 		return nil
@@ -3375,6 +3378,9 @@ func (s *Scanner) state131PercentNamePrefix() error {
 	case nextRune == '-':
 		s.state = 167
 		return nil
+	case nextRune == '_':
+		s.state = 167
+		return nil
 	default:
 		return ErrInvalidRune
 	}
@@ -3489,6 +3495,9 @@ func (s *Scanner) state138PercentPureParser() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '-':
+		s.state = 174
+		return nil
+	case nextRune == '_':
 		s.state = 174
 		return nil
 	default:
@@ -3870,6 +3879,9 @@ func (s *Scanner) state161PercentToken() error {
 	case nextRune == '-':
 		s.state = 193
 		return nil
+	case nextRune == '_':
+		s.state = 193
+		return nil
 	default:
 		return ErrInvalidRune
 	}
@@ -4157,6 +4169,9 @@ func (s *Scanner) state180PercentErrorVerbose() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '-':
+		s.state = 207
+		return nil
+	case nextRune == '_':
 		s.state = 207
 		return nil
 	default:
@@ -4599,6 +4614,9 @@ func (s *Scanner) state208PercentExpect() error {
 	case nextRune == '-':
 		s.state = 231
 		return nil
+	case nextRune == '_':
+		s.state = 231
+		return nil
 	default:
 		return ErrInvalidRune
 	}
@@ -4844,6 +4862,9 @@ func (s *Scanner) state224PercentDefaultPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '-':
+		s.state = 244
+		return nil
+	case nextRune == '_':
 		s.state = 244
 		return nil
 	default:
@@ -5540,6 +5561,9 @@ func (s *Scanner) state269PercentNoDefaultPrec() error {
 	nextRune := s.runeReader.Rune()
 	switch {
 	case nextRune == '-':
+		s.state = 281
+		return nil
+	case nextRune == '_':
 		s.state = 281
 		return nil
 	default:
