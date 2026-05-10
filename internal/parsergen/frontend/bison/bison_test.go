@@ -728,5 +728,22 @@ var _ = Describe("Bison Grammar Files", func() {
 			// Note that some alternatives are commented out and need to be removed from the count.
 			Expect(grammar.Productions).To(HaveLen(117 + 247))
 		})
+
+		It("should correctly parse the GCC 2.95.3 Objective C grammar", func() {
+			grammar, err := bison.GrammarFromFile("testdata/gcc-2.95.3-objc.y")
+			Expect(err).ToNot(HaveOccurred())
+
+			// All %token declarations + %left + %right + %nonassoc + char literals
+			Expect(grammar.Terminals).To(HaveLen(47 + 19 + 7 + 2 + 6))
+
+			// All left hand sides of productions + error nonterminal
+			// Note that the production for all_iter_stmt_with_decl is commented out and needs to be removed from the
+			// list for a correct count.
+			Expect(grammar.Nonterminals).To(HaveLen(162 + 1))
+
+			// All productions + alternatives
+			// Note that some alternatives are commented out and need to be removed from the count.
+			Expect(grammar.Productions).To(HaveLen(162 + 340))
+		})
 	})
 })
