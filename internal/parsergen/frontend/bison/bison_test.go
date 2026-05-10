@@ -681,8 +681,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromFile("testdata/go-1.5.4.y")
 			Expect(err).ToNot(HaveOccurred())
 
-			// All %token declarations + char literals
-			Expect(grammar.Terminals).To(HaveLen(46 + 24))
+			// All %token declarations + %left + char literals
+			// Note that some %left declarations are identical to %token and should not be counted twice.
+			Expect(grammar.Terminals).To(HaveLen(46 + 3 + 24))
 
 			// All left hand sides of productions + error nonterminal
 			Expect(grammar.Nonterminals).To(HaveLen(127 + 1))
@@ -711,18 +712,21 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar.Productions).To(HaveLen(153 + 352))
 		})
 
-		PIt("should correctly parse the GCC 2.95.3 C grammar", func() {
+		It("should correctly parse the GCC 2.95.3 C grammar", func() {
 			grammar, err := bison.GrammarFromFile("testdata/gcc-2.95.3-c.y")
 			Expect(err).ToNot(HaveOccurred())
 
-			// All %token declarations
-			Expect(grammar.Terminals).To(HaveLen(47))
+			// All %token declarations + %left + %right + %nonassoc + char literals
+			Expect(grammar.Terminals).To(HaveLen(47 + 19 + 7 + 2 + 6))
 
 			// All left hand sides of productions + error nonterminal
-			Expect(grammar.Nonterminals).To(HaveLen(0 + 1))
+			// Note that the production for all_iter_stmt_with_decl is commented out and needs to be removed from the
+			// list for a correct count.
+			Expect(grammar.Nonterminals).To(HaveLen(117 + 1))
 
 			// All productions + alternatives
-			Expect(grammar.Productions).To(HaveLen(0 + 0))
+			// Note that some alternatives are commented out and need to be removed from the count.
+			Expect(grammar.Productions).To(HaveLen(117 + 247))
 		})
 	})
 })

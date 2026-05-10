@@ -180,6 +180,8 @@ func (w *ASTWalker) visitSymbolDeclaration(node *parser.Node) {
 		switch nonterminal {
 		case parser.NonterminalTokenDecls:
 			w.visitTokenDecls(child)
+		case parser.NonterminalTokenDeclsForPrec:
+			w.visitTokenDeclsForPrec(child)
 		}
 	}
 }
@@ -287,6 +289,75 @@ func (w *ASTWalker) visitStringAsId(node *parser.Node) {
 			w.grammar.Terminals[len(w.grammar.Terminals)-1].Alias = string(node.Children[0].Lexeme)
 			w.terminalIdxByName[string(node.Children[0].Lexeme)] = len(w.grammar.Terminals) - 1
 		}
+	}
+}
+
+func (w *ASTWalker) visitTokenDeclsForPrec(node *parser.Node) {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalTokenDeclsForPrec {
+		panic("unexpected nonterminal")
+	}
+
+	for _, child := range node.Children {
+		nonterminal, ok := child.Symbol.Nonterminal()
+		if !ok {
+			continue
+		}
+		switch nonterminal {
+		case parser.NonterminalTokenDeclsForPrec:
+			w.visitTokenDeclsForPrec(child)
+		case parser.NonterminalTokenDeclForPrec_1:
+			w.visitTokenDeclForPrec_1(child)
+		}
+	}
+}
+
+func (w *ASTWalker) visitTokenDeclForPrec_1(node *parser.Node) {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalTokenDeclForPrec_1 {
+		panic("unexpected nonterminal")
+	}
+
+	for _, child := range node.Children {
+		nonterminal, ok := child.Symbol.Nonterminal()
+		if !ok {
+			continue
+		}
+		switch nonterminal {
+		case parser.NonterminalTokenDeclForPrec_1:
+			w.visitTokenDeclForPrec_1(child)
+		case parser.NonterminalTokenDeclForPrec:
+			w.visitTokenDeclForPrec(child)
+		}
+	}
+}
+
+func (w *ASTWalker) visitTokenDeclForPrec(node *parser.Node) {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalTokenDeclForPrec {
+		panic("unexpected nonterminal")
+	}
+
+	id, err := w.getID(node)
+	if err != nil {
+		id, err = w.getStringAsID(node)
+		if err != nil {
+			id, err = w.getCharLiteralAsID(node)
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	if _, ok := w.terminalIdxByName[id]; !ok {
+		if id[0] == '\'' {
+			w.grammar.Terminals = append(w.grammar.Terminals, frontend.Symbol{
+				Name:  fmt.Sprintf("CHAR_%d", int(id[1])),
+				Alias: id,
+			})
+		} else {
+			w.grammar.Terminals = append(w.grammar.Terminals, frontend.Symbol{
+				Name: id,
+			})
+		}
+		w.terminalIdxByName[id] = len(w.grammar.Terminals) - 1
 	}
 }
 
