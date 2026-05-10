@@ -327,7 +327,7 @@ func (s *Scanner) dispatchState() error {
 	case 4:
 		return s.state4String()
 	case 5:
-		return s.state5Tstring()
+		return s.state5Id()
 	case 6:
 		return s.state6PercentToken()
 	case 7:
@@ -975,6 +975,9 @@ func (s *Scanner) state0Ws() error {
 	case nextRune == '\'':
 		s.state = 8
 		return nil
+	case nextRune == '.':
+		s.state = 11
+		return nil
 	case nextRune == '/':
 		s.state = 3
 		return nil
@@ -1114,8 +1117,12 @@ func (s *Scanner) state4String() error {
 	}
 }
 
-func (s *Scanner) state5Tstring() error {
+func (s *Scanner) state5Id() error {
 	_ = s.runeReader.Next()
+
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenId
+	s.tokenEnd = s.runeReader
 
 	if s.runeReader.Err() != nil {
 		return s.runeReader.Err()
@@ -1124,6 +1131,24 @@ func (s *Scanner) state5Tstring() error {
 	switch {
 	case nextRune == '(':
 		s.state = 21
+		return nil
+	case nextRune == '-':
+		s.state = 11
+		return nil
+	case nextRune == '.':
+		s.state = 11
+		return nil
+	case '0' <= nextRune && nextRune <= '9':
+		s.state = 11
+		return nil
+	case 'A' <= nextRune && nextRune <= 'Z':
+		s.state = 11
+		return nil
+	case nextRune == '_':
+		s.state = 11
+		return nil
+	case 'a' <= nextRune && nextRune <= 'z':
+		s.state = 11
 		return nil
 	default:
 		return ErrInvalidRune
@@ -1319,7 +1344,13 @@ func (s *Scanner) state12BracketedId() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
+	case nextRune == '.':
+		s.state = 46
+		return nil
 	case 'A' <= nextRune && nextRune <= 'Z':
+		s.state = 46
+		return nil
+	case nextRune == '_':
 		s.state = 46
 		return nil
 	case 'a' <= nextRune && nextRune <= 'z':

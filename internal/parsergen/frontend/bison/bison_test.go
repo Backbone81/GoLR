@@ -745,5 +745,24 @@ var _ = Describe("Bison Grammar Files", func() {
 			// Note that some alternatives are commented out and need to be removed from the count.
 			Expect(grammar.Productions).To(HaveLen(162 + 340))
 		})
+
+		It("should correctly parse the GCC 3.3.6 C++ grammar", func() {
+			grammar, err := bison.GrammarFromFile("testdata/gcc-3.3.6-cpp.y")
+			Expect(err).ToNot(HaveOccurred())
+
+			// All %token declarations + %left + %right + %nonassoc + char literals
+			// Note that some terminals show up as duplicates between %token and %nonassoc or %left and need to be
+			// counted once only.
+			Expect(grammar.Terminals).To(HaveLen(68 + 32 + 9 + 3))
+
+			// All left hand sides of productions
+			// Note that error was declared as a token and therefore does not show up in the list of nonterminals. In
+			// addition the rule for primary_no_id is commented out and needs to be rmeoved.
+			Expect(grammar.Nonterminals).To(HaveLen(238))
+
+			// All productions + alternatives
+			// Note that some alternatives are commented out and need to be removed from the count.
+			Expect(grammar.Productions).To(HaveLen(238 + 633))
+		})
 	})
 })

@@ -447,6 +447,10 @@ rules:
             high: 122
           - low: 65
             high: 90
+          - low: 95
+            high: 95
+          - low: 46
+            high: 46
       - kind: ZeroOrMore
         zeroOrMore:
           child:
@@ -485,6 +489,10 @@ rules:
                 high: 122
               - low: 65
                 high: 90
+              - low: 95
+                high: 95
+              - low: 46
+                high: 46
           - kind: ZeroOrMore
             zeroOrMore:
               child:
@@ -626,6 +634,10 @@ states:
       high: 39
     stateIdx: 8
   - charRange:
+      low: 46
+      high: 46
+    stateIdx: 11
+  - charRange:
       low: 47
       high: 47
     stateIdx: 3
@@ -738,12 +750,37 @@ states:
       low: 93
       high: 1114111
     stateIdx: 4
-- ruleIdx: 3
+- ruleIdx: 48
+  accept: true
   transitions:
   - charRange:
       low: 40
       high: 40
     stateIdx: 21
+  - charRange:
+      low: 45
+      high: 45
+    stateIdx: 11
+  - charRange:
+      low: 46
+      high: 46
+    stateIdx: 11
+  - charRange:
+      low: 48
+      high: 57
+    stateIdx: 11
+  - charRange:
+      low: 65
+      high: 90
+    stateIdx: 11
+  - charRange:
+      low: 95
+      high: 95
+    stateIdx: 11
+  - charRange:
+      low: 97
+      high: 122
+    stateIdx: 11
 - ruleIdx: 4
   transitions:
   - charRange:
@@ -892,8 +929,16 @@ states:
 - ruleIdx: 49
   transitions:
   - charRange:
+      low: 46
+      high: 46
+    stateIdx: 46
+  - charRange:
       low: 65
       high: 90
+    stateIdx: 46
+  - charRange:
+      low: 95
+      high: 95
     stateIdx: 46
   - charRange:
       low: 97

@@ -164,6 +164,8 @@ func GetScannerRules() []scannergen.Rule {
 		CharClass(
 			CharRange('a', 'z'),
 			CharRange('A', 'Z'),
+			CharRange('_', '_'),
+			CharRange('.', '.'),
 		),
 		ZeroOrMore(
 			CharClass(
