@@ -710,5 +710,19 @@ var _ = Describe("Bison Grammar Files", func() {
 			// that from the result.
 			Expect(grammar.Productions).To(HaveLen(153 + 352))
 		})
+
+		PIt("should correctly parse the GCC 2.95.3 C grammar", func() {
+			grammar, err := bison.GrammarFromFile("testdata/gcc-2.95.3-c.y")
+			Expect(err).ToNot(HaveOccurred())
+
+			// All %token declarations
+			Expect(grammar.Terminals).To(HaveLen(47))
+
+			// All left hand sides of productions + error nonterminal
+			Expect(grammar.Nonterminals).To(HaveLen(0 + 1))
+
+			// All productions + alternatives
+			Expect(grammar.Productions).To(HaveLen(0 + 0))
+		})
 	})
 })

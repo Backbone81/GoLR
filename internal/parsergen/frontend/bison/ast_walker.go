@@ -22,8 +22,7 @@ func NewASTWalker() *ASTWalker {
 }
 
 func (w *ASTWalker) BuildGrammar(node *parser.Node) frontend.Grammar {
-	w.buildTerminals(node)
-	w.buildProductions(node)
+	w.visitInput(node)
 	return w.grammar
 }
 
@@ -103,8 +102,190 @@ func (w *ASTWalker) visitInput(node *parser.Node) {
 
 	for _, child := range node.Children {
 		nonterminal, ok := child.Symbol.Nonterminal()
-		if ok && nonterminal == parser.NonterminalGrammar {
+		if !ok {
+			continue
+		}
+		switch nonterminal {
+		case parser.NonterminalPrologueDeclarations:
+			w.visitPrologueDeclarations(child)
+		case parser.NonterminalGrammar:
 			w.visitGrammar(child)
+		}
+	}
+}
+
+func (w *ASTWalker) visitPrologueDeclarations(node *parser.Node) {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalPrologueDeclarations {
+		panic("unexpected nonterminal")
+	}
+
+	for _, child := range node.Children {
+		nonterminal, ok := child.Symbol.Nonterminal()
+		if !ok {
+			continue
+		}
+		switch nonterminal {
+		case parser.NonterminalPrologueDeclarations:
+			w.visitPrologueDeclarations(child)
+		case parser.NonterminalPrologueDeclaration:
+			w.visitPrologueDeclaration(child)
+		}
+	}
+}
+
+func (w *ASTWalker) visitPrologueDeclaration(node *parser.Node) {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalPrologueDeclaration {
+		panic("unexpected nonterminal")
+	}
+
+	for _, child := range node.Children {
+		nonterminal, ok := child.Symbol.Nonterminal()
+		if !ok {
+			continue
+		}
+		switch nonterminal {
+		case parser.NonterminalGrammarDeclaration:
+			w.visitGrammarDeclaration(child)
+		}
+	}
+}
+
+func (w *ASTWalker) visitGrammarDeclaration(node *parser.Node) {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalGrammarDeclaration {
+		panic("unexpected nonterminal")
+	}
+
+	for _, child := range node.Children {
+		nonterminal, ok := child.Symbol.Nonterminal()
+		if !ok {
+			continue
+		}
+		switch nonterminal {
+		case parser.NonterminalSymbolDeclaration:
+			w.visitSymbolDeclaration(child)
+		}
+	}
+}
+
+func (w *ASTWalker) visitSymbolDeclaration(node *parser.Node) {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalSymbolDeclaration {
+		panic("unexpected nonterminal")
+	}
+
+	for _, child := range node.Children {
+		nonterminal, ok := child.Symbol.Nonterminal()
+		if !ok {
+			continue
+		}
+		switch nonterminal {
+		case parser.NonterminalTokenDecls:
+			w.visitTokenDecls(child)
+		}
+	}
+}
+
+func (w *ASTWalker) visitTokenDecls(node *parser.Node) {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalTokenDecls {
+		panic("unexpected nonterminal")
+	}
+
+	for _, child := range node.Children {
+		nonterminal, ok := child.Symbol.Nonterminal()
+		if !ok {
+			continue
+		}
+		switch nonterminal {
+		case parser.NonterminalTokenDecl_1:
+			w.visitTokenDecl_1(child)
+		}
+	}
+}
+
+func (w *ASTWalker) visitTokenDecl_1(node *parser.Node) {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalTokenDecl_1 {
+		panic("unexpected nonterminal")
+	}
+
+	for _, child := range node.Children {
+		nonterminal, ok := child.Symbol.Nonterminal()
+		if !ok {
+			continue
+		}
+		switch nonterminal {
+		case parser.NonterminalTokenDecl_1:
+			w.visitTokenDecl_1(child)
+		case parser.NonterminalTokenDecl:
+			w.visitTokenDecl(child)
+		}
+	}
+}
+
+func (w *ASTWalker) visitTokenDecl(node *parser.Node) {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalTokenDecl {
+		panic("unexpected nonterminal")
+	}
+
+	// id int.opt[num] alias
+	id, err := w.getID(node)
+	if err != nil {
+		return
+	}
+
+	if _, ok := w.terminalIdxByName[id]; ok {
+		// We have a duplicate. Ignore it.
+		return
+	}
+
+	w.grammar.Terminals = append(w.grammar.Terminals, frontend.Symbol{
+		Name: id,
+	})
+	w.terminalIdxByName[id] = len(w.grammar.Terminals) - 1
+
+	for _, child := range node.Children {
+		nonterminal, ok := child.Symbol.Nonterminal()
+		if !ok {
+			continue
+		}
+		switch nonterminal {
+		case parser.NonterminalAlias:
+			w.visitAlias(child)
+		}
+	}
+}
+
+func (w *ASTWalker) visitAlias(node *parser.Node) {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalAlias {
+		panic("unexpected nonterminal")
+	}
+
+	if len(node.Children) == 1 {
+		if terminal, ok := node.Children[0].Symbol.Terminal(); ok && terminal == parser.TokenTstring {
+			w.grammar.Terminals[len(w.grammar.Terminals)-1].Alias = string(node.Children[0].Lexeme)
+			w.terminalIdxByName[string(node.Children[0].Lexeme)] = len(w.grammar.Terminals) - 1
+		}
+	}
+
+	for _, child := range node.Children {
+		nonterminal, ok := child.Symbol.Nonterminal()
+		if !ok {
+			continue
+		}
+		switch nonterminal {
+		case parser.NonterminalStringAsId:
+			w.visitStringAsId(child)
+		}
+	}
+}
+
+func (w *ASTWalker) visitStringAsId(node *parser.Node) {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalStringAsId {
+		panic("unexpected nonterminal")
+	}
+
+	if len(node.Children) == 1 {
+		if terminal, ok := node.Children[0].Symbol.Terminal(); ok && terminal == parser.TokenString {
+			w.grammar.Terminals[len(w.grammar.Terminals)-1].Alias = string(node.Children[0].Lexeme)
+			w.terminalIdxByName[string(node.Children[0].Lexeme)] = len(w.grammar.Terminals) - 1
 		}
 	}
 }
@@ -138,8 +319,11 @@ func (w *ASTWalker) visitRulesOrGrammarDeclaration(node *parser.Node) {
 		if !ok {
 			continue
 		}
-		if nonterminal == parser.NonterminalRules {
+		switch nonterminal {
+		case parser.NonterminalRules:
 			w.visitRules(child)
+		case parser.NonterminalGrammarDeclaration:
+			w.visitGrammarDeclaration(child)
 		}
 	}
 }
@@ -170,7 +354,8 @@ func (w *ASTWalker) visitRules(node *parser.Node) {
 		if !ok {
 			continue
 		}
-		if nonterminal == parser.NonterminalRhses_1 {
+		switch nonterminal {
+		case parser.NonterminalRhses_1:
 			w.visitRhses_1(child)
 		}
 	}

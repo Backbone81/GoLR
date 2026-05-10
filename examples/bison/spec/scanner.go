@@ -18,6 +18,8 @@ func GetScannerRules() []scannergen.Rule {
 	horizontalWhitespace := Or(
 		Literal(" "),
 		Literal("\t"),
+		Literal("\f"),
+		Literal("\v"),
 	)
 	whitespaces := OneOrMore(
 		Or(

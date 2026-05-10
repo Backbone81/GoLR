@@ -954,6 +954,12 @@ func (s *Scanner) state0Ws() error {
 	case nextRune == '\n':
 		s.state = 1
 		return nil
+	case nextRune == 0xb:
+		s.state = 1
+		return nil
+	case nextRune == 0xc:
+		s.state = 1
+		return nil
 	case nextRune == '\r':
 		s.state = 2
 		return nil
@@ -1026,6 +1032,12 @@ func (s *Scanner) state1Ws() error {
 		s.state = 1
 		return nil
 	case nextRune == '\n':
+		s.state = 1
+		return nil
+	case nextRune == 0xb:
+		s.state = 1
+		return nil
+	case nextRune == 0xc:
 		s.state = 1
 		return nil
 	case nextRune == '\r':

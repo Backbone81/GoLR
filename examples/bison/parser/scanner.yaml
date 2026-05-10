@@ -25,6 +25,12 @@ rules:
               - kind: Literal
                 literal:
                   text: "\t"
+              - kind: Literal
+                literal:
+                  text: "\f"
+              - kind: Literal
+                literal:
+                  text: "\v"
 - name: COMMENT
   regex:
     kind: Or
@@ -592,6 +598,14 @@ states:
       high: 10
     stateIdx: 1
   - charRange:
+      low: 11
+      high: 11
+    stateIdx: 1
+  - charRange:
+      low: 12
+      high: 12
+    stateIdx: 1
+  - charRange:
       low: 13
       high: 13
     stateIdx: 2
@@ -669,6 +683,14 @@ states:
   - charRange:
       low: 10
       high: 10
+    stateIdx: 1
+  - charRange:
+      low: 11
+      high: 11
+    stateIdx: 1
+  - charRange:
+      low: 12
+      high: 12
     stateIdx: 1
   - charRange:
       low: 13
