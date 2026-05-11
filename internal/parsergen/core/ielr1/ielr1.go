@@ -3,8 +3,10 @@ package ielr1
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"runtime/trace"
+	"slices"
 	"strconv"
 
 	"golr/internal/parsergen/backend"
@@ -69,15 +71,74 @@ func (i *IELR1) BuildParser() (backend.Parser, error) {
 }
 
 func (i *IELR1) grammarToBisonGrammarFile(file *os.File) {
-	fmt.Fprintf(file, "%%token\n")
-	for _, symbol := range i.grammar.Terminals {
-		fmt.Fprintf(file, "  %s\n", symbol.Name)
-	}
+	i.writeBisonGrammarTokens(file)
+	i.writeBisonAssociativityAndPrecedence(file)
 
 	fmt.Fprintln(file)
 	fmt.Fprintln(file, "%%")
 	fmt.Fprintln(file)
 
+	i.writeBisonGrammarProductions(file)
+
+	fmt.Fprintln(file)
+	fmt.Fprintln(file, "  ;")
+	fmt.Fprintln(file)
+}
+
+func (i *IELR1) writeBisonGrammarTokens(file *os.File) {
+	fmt.Fprintf(file, "%%token\n")
+	for _, symbol := range i.grammar.Terminals {
+		fmt.Fprintf(file, "  %s\n", symbol.Name)
+	}
+}
+
+func (i *IELR1) writeBisonAssociativityAndPrecedence(file *os.File) {
+	type PrecedenceGroup struct {
+		Associativity frontend.Associativity
+		TerminalIdxs  []int
+	}
+
+	precedenceGroupByLevel := make(map[int]*PrecedenceGroup)
+	for idx, terminal := range i.grammar.Terminals {
+		if terminal.Precedence == 0 {
+			// Precedence of 0 means no precedence was set.
+			continue
+		}
+
+		group, ok := precedenceGroupByLevel[terminal.Precedence]
+		if !ok {
+			group = &PrecedenceGroup{
+				Associativity: terminal.Associativity,
+			}
+			precedenceGroupByLevel[terminal.Precedence] = group
+		}
+		group.TerminalIdxs = append(group.TerminalIdxs, idx)
+	}
+
+	levels := slices.Collect(maps.Keys(precedenceGroupByLevel))
+	slices.Sort(levels)
+	for _, level := range levels {
+		group := precedenceGroupByLevel[level]
+
+		switch group.Associativity {
+		case frontend.AssociativityLeft:
+			fmt.Fprintf(file, "%%left")
+		case frontend.AssociativityRight:
+			fmt.Fprintf(file, "%%right")
+		case frontend.AssociativityNone:
+			fmt.Fprintf(file, "%%nonassoc")
+		default:
+			fmt.Fprintf(file, "%%precedence")
+		}
+
+		for _, idx := range group.TerminalIdxs {
+			fmt.Fprintf(file, " %s", i.grammar.Terminals[idx].Name)
+		}
+		fmt.Fprintln(file)
+	}
+}
+
+func (i *IELR1) writeBisonGrammarProductions(file *os.File) {
 	currNonterminalIdx := -1
 	for _, production := range i.grammar.Productions {
 		if currNonterminalIdx != production.NonterminalIdx {
@@ -103,11 +164,10 @@ func (i *IELR1) grammarToBisonGrammarFile(file *os.File) {
 				fmt.Fprintf(file, " %s", i.grammar.Nonterminals[symbolRef.Idx()].Name)
 			}
 		}
+		if production.PrecedenceTerminalIdx != nil {
+			fmt.Fprintf(file, " %%prec %s", i.grammar.Terminals[*production.PrecedenceTerminalIdx].Name)
+		}
 	}
-
-	fmt.Fprintln(file)
-	fmt.Fprintln(file, "  ;")
-	fmt.Fprintln(file)
 }
 
 func (i *IELR1) buildTerminalList(report bison.BisonXMLReport, parser *backend.Parser) {

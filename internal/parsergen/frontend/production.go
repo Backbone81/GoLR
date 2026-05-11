@@ -14,6 +14,10 @@ type Production struct {
 
 	// SymbolRefs is the list of symbols which make up the right hand side of the production.
 	SymbolRefs []SymbolRef `json:"symbolRefs" yaml:"symbol_refs"`
+
+	// PrecedenceTerminalIdx provides the terminal index to use for deriving the precedence for this production.
+	// If this is nil, the default behavior is used which is the precedence of the rightmost terminal.
+	PrecedenceTerminalIdx *int `json:"precedenceTerminalIdx,omitempty" yaml:"precedence_terminal_idx,omitempty"`
 }
 
 // Production implements fmt.Stringer.

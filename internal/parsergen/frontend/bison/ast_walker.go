@@ -15,6 +15,10 @@ type ASTWalker struct {
 
 	activePercentStart   bool
 	startNonterminalName string
+
+	currentPrecedence    int
+	currentAssociativity frontend.Associativity
+	activePercentPrec    bool
 }
 
 func NewASTWalker() *ASTWalker {
@@ -155,6 +159,33 @@ func (w *ASTWalker) visitSymbolDeclaration(node *parser.Node) {
 			w.visitTokenDecls(child)
 		case parser.NonterminalTokenDeclsForPrec:
 			w.visitTokenDeclsForPrec(child)
+		case parser.NonterminalPrecedenceDeclarator:
+			w.visitPrecedenceDeclarator(child)
+		}
+	}
+}
+
+func (w *ASTWalker) visitPrecedenceDeclarator(node *parser.Node) {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalPrecedenceDeclarator {
+		panic("unexpected nonterminal")
+	}
+
+	w.currentPrecedence++
+
+	for _, child := range node.Children {
+		terminal, ok := child.Symbol.Terminal()
+		if !ok {
+			continue
+		}
+		switch terminal {
+		case parser.TokenPercentLeft:
+			w.currentAssociativity = frontend.AssociativityLeft
+		case parser.TokenPercentRight:
+			w.currentAssociativity = frontend.AssociativityRight
+		case parser.TokenPercentNonassoc:
+			w.currentAssociativity = frontend.AssociativityNone
+		case parser.TokenPercentPrecedence:
+			w.currentAssociativity = frontend.AssociativityUndeclared
 		}
 	}
 }
@@ -319,19 +350,25 @@ func (w *ASTWalker) visitTokenDeclForPrec(node *parser.Node) {
 		}
 	}
 
-	if _, ok := w.terminalIdxByName[id]; !ok {
-		if id[0] == '\'' {
-			w.grammar.Terminals = append(w.grammar.Terminals, frontend.Symbol{
-				Name:  fmt.Sprintf("CHAR_%d", int(id[1])),
-				Alias: id,
-			})
-		} else {
-			w.grammar.Terminals = append(w.grammar.Terminals, frontend.Symbol{
-				Name: id,
-			})
-		}
-		w.terminalIdxByName[id] = len(w.grammar.Terminals) - 1
+	if idx, ok := w.terminalIdxByName[id]; ok {
+		// Terminal is already declared. We only update it.
+		w.grammar.Terminals[idx].Associativity = w.currentAssociativity
+		w.grammar.Terminals[idx].Precedence = w.currentPrecedence
+		return
 	}
+
+	symbol := frontend.Symbol{
+		Associativity: w.currentAssociativity,
+		Precedence:    w.currentPrecedence,
+	}
+	if id[0] == '\'' {
+		symbol.Name = fmt.Sprintf("CHAR_%d", int(id[1]))
+		symbol.Alias = id
+	} else {
+		symbol.Name = id
+	}
+	w.grammar.Terminals = append(w.grammar.Terminals, symbol)
+	w.terminalIdxByName[id] = len(w.grammar.Terminals) - 1
 }
 
 func (w *ASTWalker) visitGrammar(node *parser.Node) {
@@ -442,18 +479,22 @@ func (w *ASTWalker) visitRhs(node *parser.Node) {
 	}
 
 	for _, child := range node.Children {
-		nonterminal, ok := child.Symbol.Nonterminal()
-		if !ok {
-			// When we encounter a terminal in the context of a Rhs, we stop because that is usually a situation
-			// where "rhs PERCENT_PREC symbol" is encountered and the symbol is nothing we want to extract as
-			// nonterminal.
-			return
+		if terminal, ok := child.Symbol.Terminal(); ok {
+			if terminal == parser.TokenPercentPrec {
+				w.activePercentPrec = true
+			}
+			continue
 		}
-		switch nonterminal {
-		case parser.NonterminalSymbol:
-			w.visitSymbol(child)
-		case parser.NonterminalRhs:
-			w.visitRhs(child)
+
+		if nonterminal, ok := child.Symbol.Nonterminal(); ok {
+			switch nonterminal {
+			case parser.NonterminalSymbol:
+				w.visitSymbol(child)
+				w.activePercentPrec = false
+			case parser.NonterminalRhs:
+				w.visitRhs(child)
+			}
+			continue
 		}
 	}
 }
@@ -484,6 +525,16 @@ func (w *ASTWalker) visitSymbol(node *parser.Node) {
 				w.terminalIdxByName[id] = len(w.grammar.Terminals) - 1
 			}
 		}
+	}
+
+	if w.activePercentPrec {
+		// Update the precedence for the production
+		if idx, ok := w.terminalIdxByName[id]; ok {
+			production := w.grammar.Productions[len(w.grammar.Productions)-1]
+			production.PrecedenceTerminalIdx = &idx
+			w.grammar.Productions[len(w.grammar.Productions)-1] = production
+		}
+		return
 	}
 
 	if w.activePercentStart {
