@@ -12,6 +12,9 @@ type ASTWalker struct {
 
 	terminalIdxByName    map[string]int
 	nonterminalIdxByName map[string]int
+
+	activePercentStart   bool
+	startNonterminalName string
 }
 
 func NewASTWalker() *ASTWalker {
@@ -21,78 +24,16 @@ func NewASTWalker() *ASTWalker {
 	}
 }
 
-func (w *ASTWalker) BuildGrammar(node *parser.Node) frontend.Grammar {
+func (w *ASTWalker) BuildGrammar(node *parser.Node) (frontend.Grammar, error) {
 	w.visitInput(node)
-	return w.grammar
-}
-
-func (w *ASTWalker) buildTerminals(node *parser.Node) {
-	nonterminal, ok := node.Symbol.Nonterminal()
-	if !ok {
-		return
+	if w.startNonterminalName != "" {
+		idx, ok := w.nonterminalIdxByName[w.startNonterminalName]
+		if !ok {
+			return frontend.Grammar{}, fmt.Errorf("unknown start nonterminal %q", w.startNonterminalName)
+		}
+		w.grammar.StartNonterminalIdx = idx
 	}
-
-	switch nonterminal {
-	case
-		parser.NonterminalInput,
-
-		parser.NonterminalPrologueDeclarations,
-		parser.NonterminalPrologueDeclaration,
-
-		parser.NonterminalGrammar,
-		parser.NonterminalRulesOrGrammarDeclaration,
-
-		parser.NonterminalGrammarDeclaration,
-		parser.NonterminalSymbolDeclaration,
-		parser.NonterminalTokenDecls,
-		parser.NonterminalTokenDecl_1:
-		for _, child := range node.Children {
-			w.buildTerminals(child)
-		}
-	case parser.NonterminalTokenDecl:
-		// id int.opt[num] alias
-		id, err := w.getID(node)
-		if err != nil {
-			return
-		}
-
-		if _, ok := w.terminalIdxByName[id]; ok {
-			// We have a duplicate. Ignore it.
-			return
-		}
-
-		w.grammar.Terminals = append(w.grammar.Terminals, frontend.Symbol{
-			Name: id,
-		})
-		w.terminalIdxByName[id] = len(w.grammar.Terminals) - 1
-		for _, child := range node.Children {
-			w.buildTerminals(child)
-		}
-	case parser.NonterminalAlias:
-		if len(node.Children) == 1 {
-			if terminal, ok := node.Children[0].Symbol.Terminal(); ok && terminal == parser.TokenTstring {
-				w.grammar.Terminals[len(w.grammar.Terminals)-1].Alias = string(node.Children[0].Lexeme)
-				w.terminalIdxByName[string(node.Children[0].Lexeme)] = len(w.grammar.Terminals) - 1
-			}
-		}
-		for _, child := range node.Children {
-			w.buildTerminals(child)
-		}
-	case parser.NonterminalStringAsId:
-		if len(node.Children) == 1 {
-			if terminal, ok := node.Children[0].Symbol.Terminal(); ok && terminal == parser.TokenString {
-				w.grammar.Terminals[len(w.grammar.Terminals)-1].Alias = string(node.Children[0].Lexeme)
-				w.terminalIdxByName[string(node.Children[0].Lexeme)] = len(w.grammar.Terminals) - 1
-			}
-		}
-		for _, child := range node.Children {
-			w.buildTerminals(child)
-		}
-	}
-}
-
-func (w *ASTWalker) buildProductions(node *parser.Node) {
-	w.visitInput(node)
+	return w.grammar, nil
 }
 
 func (w *ASTWalker) visitInput(node *parser.Node) {
@@ -155,14 +96,46 @@ func (w *ASTWalker) visitGrammarDeclaration(node *parser.Node) {
 		panic("unexpected nonterminal")
 	}
 
+	activePercentStartBackup := w.activePercentStart
+	for _, child := range node.Children {
+		nonterminal, ok := child.Symbol.Nonterminal()
+		if ok {
+			switch nonterminal {
+			case parser.NonterminalSymbolDeclaration:
+				w.visitSymbolDeclaration(child)
+			case parser.NonterminalSymbols_1:
+				w.visitSymbols_1(child)
+			}
+			continue
+		}
+
+		terminal, ok := child.Symbol.Terminal()
+		if ok {
+			switch terminal {
+			case parser.TokenPercentStart:
+				w.activePercentStart = true
+			}
+			continue
+		}
+	}
+	w.activePercentStart = activePercentStartBackup
+}
+
+func (w *ASTWalker) visitSymbols_1(node *parser.Node) {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalSymbols_1 {
+		panic("unexpected nonterminal")
+	}
+
 	for _, child := range node.Children {
 		nonterminal, ok := child.Symbol.Nonterminal()
 		if !ok {
 			continue
 		}
 		switch nonterminal {
-		case parser.NonterminalSymbolDeclaration:
-			w.visitSymbolDeclaration(child)
+		case parser.NonterminalSymbol:
+			w.visitSymbol(child)
+		case parser.NonterminalSymbols_1:
+			w.visitSymbols_1(child)
 		}
 	}
 }
@@ -512,6 +485,16 @@ func (w *ASTWalker) visitSymbol(node *parser.Node) {
 			}
 		}
 	}
+
+	if w.activePercentStart {
+		// We arrived here through the %start declaration. We set the start nonterminal only if not already set.
+		if w.startNonterminalName == "" {
+			w.startNonterminalName = id
+		}
+		return
+	}
+
+	// We are here because we are reading a rule and need to fill the right hand side of the production.
 	if terminalIdx, ok := w.terminalIdxByName[id]; ok {
 		production := w.grammar.Productions[len(w.grammar.Productions)-1]
 		production.SymbolRefs = append(production.SymbolRefs, frontend.NewTerminalRef(terminalIdx))

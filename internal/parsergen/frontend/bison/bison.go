@@ -38,7 +38,7 @@ func ToGrammar(reader io.Reader, filePath string) (frontend.Grammar, error) {
 	}
 
 	walker := NewASTWalker()
-	return walker.BuildGrammar(rootNode), nil
+	return walker.BuildGrammar(rootNode)
 }
 
 // GrammarFromFile reads the context free grammar as GNU Bison grammar document from the given file path. Returns an
