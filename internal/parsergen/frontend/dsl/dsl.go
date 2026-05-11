@@ -2,6 +2,7 @@ package dsl
 
 import "golr/internal/parsergen/frontend"
 
+// Grammar describes the context free grammar.
 type Grammar struct {
 	idxForTerminal    map[string]int
 	idxForNonterminal map[string]int
@@ -9,6 +10,7 @@ type Grammar struct {
 	result frontend.Grammar
 }
 
+// NewGrammar creates a new grammar to add terminals, nonterminals and productions to.
 func NewGrammar() *Grammar {
 	return &Grammar{
 		idxForTerminal:    make(map[string]int),
@@ -16,6 +18,13 @@ func NewGrammar() *Grammar {
 	}
 }
 
+// Build returns the grammar described so far.
+func (g *Grammar) Build() frontend.Grammar {
+	return g.result
+}
+
+// Terminal adds the given terminal to the grammar. Returns a symbol reference to it. If the terminal already exists
+// in the grammar, the existing terminal is returned.
 func (g *Grammar) Terminal(name string) frontend.SymbolRef {
 	idx, ok := g.idxForTerminal[name]
 	if !ok {
@@ -28,6 +37,8 @@ func (g *Grammar) Terminal(name string) frontend.SymbolRef {
 	return frontend.NewTerminalRef(idx)
 }
 
+// Nonterminal adds the given nonterminal to the grammar. Returns a symbol reference to it. If the nonterminal already
+// exists in the grammar, the existing nonterminal is returned.
 func (g *Grammar) Nonterminal(name string) frontend.SymbolRef {
 	idx, ok := g.idxForNonterminal[name]
 	if !ok {
@@ -40,6 +51,7 @@ func (g *Grammar) Nonterminal(name string) frontend.SymbolRef {
 	return frontend.NewNonterminalRef(idx)
 }
 
+// Production adds a production with the nonterminal on the left hand side and the symbols on the right hand side.
 func (g *Grammar) Production(nonterminal frontend.SymbolRef, symbols ...frontend.SymbolRef) {
 	if !nonterminal.IsNonterminal() {
 		panic("nonterminal expected on left hand side of the production")
