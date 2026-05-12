@@ -4,21 +4,16 @@ package main
 
 import (
 	golangparsergen "golr/internal/parsergen/backend/golang"
-	yamlparsergen "golr/internal/parsergen/backend/yaml"
 	"golr/internal/parsergen/core/ielr1"
 	"golr/internal/parsergen/frontend/bison"
 	"golr/internal/parsergen/frontend/bison/spec"
 	golangscannergen "golr/internal/scannergen/backend/golang"
-	yamlscannergen "golr/pkg/scannergen/backend/yaml"
 	"golr/pkg/scannergen/core/subset"
 )
 
 func main() {
 	rules := spec.GetScannerRules()
 	dfa := subset.RulesToDFA(rules)
-	if err := yamlscannergen.DFAToFile("internal/parsergen/frontend/bison/parser/scanner.yaml", dfa); err != nil {
-		panic(err)
-	}
 	if err := golangscannergen.DFAToFile("internal/parsergen/frontend/bison/parser/scanner.go", dfa, golangscannergen.Config{PackageName: "parser"}); err != nil {
 		panic(err)
 	}
@@ -30,9 +25,6 @@ func main() {
 
 	parser, err := ielr1.GrammarToParser(grammar)
 	if err != nil {
-		panic(err)
-	}
-	if err := yamlparsergen.ParserToFile("internal/parsergen/frontend/bison/parser/parser.yaml", parser); err != nil {
 		panic(err)
 	}
 	if err := golangparsergen.ParserToFile("internal/parsergen/frontend/bison/parser/parser.go", parser, golangparsergen.Config{PackageName: "parser"}); err != nil {
