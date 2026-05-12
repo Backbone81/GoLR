@@ -18,6 +18,8 @@ generate:
 	go run ./internal/parsergen/frontend/bison/spec/export/
 	cp internal/parsergen/frontend/bison/spec/*.go examples/bison/spec
 	cp internal/parsergen/frontend/bison/spec/*.y examples/bison/spec
+	cp internal/parsergen/frontend/bison/spec/*.txt examples/bison/spec
+	cp internal/parsergen/frontend/bison/spec/LICENSES examples/bison/spec
 	cp internal/parsergen/frontend/bison/parser/*.go examples/bison/parser
 	go run ./examples/bison/spec/export/
 	go run ./examples/golang/spec/export/
