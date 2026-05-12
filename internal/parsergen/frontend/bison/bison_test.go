@@ -376,6 +376,522 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 	})
 
+	Context("%left", func() {
+		It("should accept single %left with one token", func() {
+			bisonGrammar := `
+				%left FOO
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityLeft,
+						Precedence:    1,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should accept single %left with multiple tokens", func() {
+			bisonGrammar := `
+				%left FOO BAR BAZ
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityLeft,
+						Precedence:    1,
+					},
+					{
+						Name:          "BAR",
+						Associativity: frontend.AssociativityLeft,
+						Precedence:    1,
+					},
+					{
+						Name:          "BAZ",
+						Associativity: frontend.AssociativityLeft,
+						Precedence:    1,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should assign increasing precedence levels across multiple %left declarations", func() {
+			bisonGrammar := `
+				%left FOO
+				%left BAR
+				%left BAZ
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityLeft,
+						Precedence:    1,
+					},
+					{
+						Name:          "BAR",
+						Associativity: frontend.AssociativityLeft,
+						Precedence:    2,
+					},
+					{
+						Name:          "BAZ",
+						Associativity: frontend.AssociativityLeft,
+						Precedence:    3,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should update associativity and precedence when terminal is already declared via %token", func() {
+			bisonGrammar := `
+				%token FOO
+				%left FOO
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityLeft,
+						Precedence:    1,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+	})
+
+	Context("%right", func() {
+		It("should accept single %right with one token", func() {
+			bisonGrammar := `
+				%right FOO
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityRight,
+						Precedence:    1,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should accept single %right with multiple tokens", func() {
+			bisonGrammar := `
+				%right FOO BAR BAZ
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityRight,
+						Precedence:    1,
+					},
+					{
+						Name:          "BAR",
+						Associativity: frontend.AssociativityRight,
+						Precedence:    1,
+					},
+					{
+						Name:          "BAZ",
+						Associativity: frontend.AssociativityRight,
+						Precedence:    1,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should assign increasing precedence levels across multiple %right declarations", func() {
+			bisonGrammar := `
+				%right FOO
+				%right BAR
+				%right BAZ
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityRight,
+						Precedence:    1,
+					},
+					{
+						Name:          "BAR",
+						Associativity: frontend.AssociativityRight,
+						Precedence:    2,
+					},
+					{
+						Name:          "BAZ",
+						Associativity: frontend.AssociativityRight,
+						Precedence:    3,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should update associativity and precedence when terminal is already declared via %token", func() {
+			bisonGrammar := `
+				%token FOO
+				%right FOO
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityRight,
+						Precedence:    1,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+	})
+
+	Context("%nonassoc", func() {
+		It("should accept single %nonassoc with one token", func() {
+			bisonGrammar := `
+				%nonassoc FOO
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityNone,
+						Precedence:    1,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should accept single %nonassoc with multiple tokens", func() {
+			bisonGrammar := `
+				%nonassoc FOO BAR BAZ
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityNone,
+						Precedence:    1,
+					},
+					{
+						Name:          "BAR",
+						Associativity: frontend.AssociativityNone,
+						Precedence:    1,
+					},
+					{
+						Name:          "BAZ",
+						Associativity: frontend.AssociativityNone,
+						Precedence:    1,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should assign increasing precedence levels across multiple %nonassoc declarations", func() {
+			bisonGrammar := `
+				%nonassoc FOO
+				%nonassoc BAR
+				%nonassoc BAZ
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityNone,
+						Precedence:    1,
+					},
+					{
+						Name:          "BAR",
+						Associativity: frontend.AssociativityNone,
+						Precedence:    2,
+					},
+					{
+						Name:          "BAZ",
+						Associativity: frontend.AssociativityNone,
+						Precedence:    3,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should update associativity and precedence when terminal is already declared via %token", func() {
+			bisonGrammar := `
+				%token FOO
+				%nonassoc FOO
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityNone,
+						Precedence:    1,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+	})
+
+	Context("%precedence", func() {
+		It("should accept single %precedence with one token", func() {
+			bisonGrammar := `
+				%precedence FOO
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityUndeclared,
+						Precedence:    1,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should accept single %precedence with multiple tokens", func() {
+			bisonGrammar := `
+				%precedence FOO BAR BAZ
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityUndeclared,
+						Precedence:    1,
+					},
+					{
+						Name:          "BAR",
+						Associativity: frontend.AssociativityUndeclared,
+						Precedence:    1,
+					},
+					{
+						Name:          "BAZ",
+						Associativity: frontend.AssociativityUndeclared,
+						Precedence:    1,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should assign increasing precedence levels across multiple %precedence declarations", func() {
+			bisonGrammar := `
+				%precedence FOO
+				%precedence BAR
+				%precedence BAZ
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityUndeclared,
+						Precedence:    1,
+					},
+					{
+						Name:          "BAR",
+						Associativity: frontend.AssociativityUndeclared,
+						Precedence:    2,
+					},
+					{
+						Name:          "BAZ",
+						Associativity: frontend.AssociativityUndeclared,
+						Precedence:    3,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should update associativity and precedence when terminal is already declared via %token", func() {
+			bisonGrammar := `
+				%token FOO
+				%precedence FOO
+				%%
+				s:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityUndeclared,
+						Precedence:    1,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+	})
+
 	Context("rules", func() {
 		It("should accept a single terminal", func() {
 			bisonGrammar := `
@@ -653,6 +1169,193 @@ var _ = Describe("Bison Grammar Files", func() {
 							frontend.NewNonterminalRef(2),
 						},
 					},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+	})
+
+	Context("%prec", func() {
+		It("should set PrecedenceTerminalIdx on a production", func() {
+			bisonGrammar := `
+				%token FOO
+				%%
+				s: FOO %prec FOO
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			precedenceTerminalIdx := 0
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{Name: "FOO"},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewTerminalRef(0),
+						},
+						PrecedenceTerminalIdx: &precedenceTerminalIdx,
+					},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should set PrecedenceTerminalIdx only on the production it appears in", func() {
+			bisonGrammar := `
+				%token FOO BAR
+				%%
+				s: FOO %prec FOO | BAR
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			precedenceTerminalIdx := 0
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{Name: "FOO"},
+					{Name: "BAR"},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewTerminalRef(0),
+						},
+						PrecedenceTerminalIdx: &precedenceTerminalIdx,
+					},
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewTerminalRef(1),
+						},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should allow %prec to reference a terminal not used in the production", func() {
+			bisonGrammar := `
+				%token FOO BAR
+				%%
+				s: FOO %prec BAR
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			precedenceTerminalIdx := 1
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{Name: "FOO"},
+					{Name: "BAR"},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewTerminalRef(0),
+						},
+						PrecedenceTerminalIdx: &precedenceTerminalIdx,
+					},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+	})
+
+	Context("%start", func() {
+		It("should set StartNonterminalIdx to the declared start nonterminal", func() {
+			bisonGrammar := `
+				%start b
+				%%
+				a:
+				b:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Nonterminals: []frontend.Symbol{
+					{Name: "a"},
+					{Name: "b"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+					{NonterminalIdx: 1},
+				},
+				StartNonterminalIdx: 1,
+			}))
+		})
+
+		It("should set StartNonterminalIdx when specified in the grammar declaration", func() {
+			bisonGrammar := `
+				%%
+				a:
+				b:
+				%start b;
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Nonterminals: []frontend.Symbol{
+					{Name: "a"},
+					{Name: "b"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+					{NonterminalIdx: 1},
+				},
+				StartNonterminalIdx: 1,
+			}))
+		})
+
+		It("should use the first %start when multiple are declared", func() {
+			bisonGrammar := `
+				%start b
+				%start a
+				%%
+				a:
+				b:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Nonterminals: []frontend.Symbol{
+					{Name: "a"},
+					{Name: "b"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+					{NonterminalIdx: 1},
+				},
+				StartNonterminalIdx: 1,
+			}))
+		})
+
+		It("should default to the first nonterminal when no %start is declared", func() {
+			bisonGrammar := `
+				%%
+				a:
+				b:
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Nonterminals: []frontend.Symbol{
+					{Name: "a"},
+					{Name: "b"},
+				},
+				Productions: []frontend.Production{
+					{NonterminalIdx: 0},
+					{NonterminalIdx: 1},
 				},
 				StartNonterminalIdx: 0,
 			}))
