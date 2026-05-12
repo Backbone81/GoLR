@@ -17,7 +17,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		grammar, err := bison.GrammarFromString(bisonGrammar)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(grammar).To(Equal(frontend.Grammar{
-			Terminals: nil,
+			Terminals: []frontend.Symbol{
+				{
+					Name: "error",
+				},
+			},
 			Nonterminals: []frontend.Symbol{
 				{
 					Name: "s",
@@ -41,7 +45,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		grammar, err := bison.GrammarFromString(bisonGrammar)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(grammar).To(Equal(frontend.Grammar{
-			Terminals: nil,
+			Terminals: []frontend.Symbol{
+				{
+					Name: "error",
+				},
+			},
 			Nonterminals: []frontend.Symbol{
 				{
 					Name: "s",
@@ -68,6 +76,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
 					{
 						Name: "FOO",
 					},
@@ -98,6 +109,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:  "FOO",
 						Alias: `"foo"`,
 					},
@@ -127,6 +141,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
 					{
 						Name:  "FOO",
 						Alias: `_("foo")`,
@@ -159,6 +176,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
 					{
 						Name: "FOO",
 					},
@@ -196,6 +216,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
 					{
 						Name:  "FOO",
 						Alias: `"foo"`,
@@ -237,6 +260,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:  "FOO",
 						Alias: `_("foo")`,
 					},
@@ -275,6 +301,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name: "FOO",
 					},
 					{
@@ -309,6 +338,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
 					{
 						Name:  "FOO",
 						Alias: `"foo"`,
@@ -347,6 +379,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
 					{
 						Name:  "FOO",
 						Alias: `_("foo")`,
@@ -388,6 +423,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityLeft,
 						Precedence:    1,
@@ -413,6 +451,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
 					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityLeft,
@@ -452,6 +493,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityLeft,
 						Precedence:    1,
@@ -489,6 +533,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityLeft,
 						Precedence:    1,
@@ -517,6 +564,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityRight,
 						Precedence:    1,
@@ -542,6 +592,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
 					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityRight,
@@ -581,6 +634,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityRight,
 						Precedence:    1,
@@ -618,6 +674,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityRight,
 						Precedence:    1,
@@ -646,6 +705,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityNone,
 						Precedence:    1,
@@ -671,6 +733,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
 					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityNone,
@@ -710,6 +775,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityNone,
 						Precedence:    1,
@@ -747,6 +815,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityNone,
 						Precedence:    1,
@@ -775,6 +846,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityUndeclared,
 						Precedence:    1,
@@ -800,6 +874,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
 					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityUndeclared,
@@ -839,6 +916,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityUndeclared,
 						Precedence:    1,
@@ -876,6 +956,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:          "FOO",
 						Associativity: frontend.AssociativityUndeclared,
 						Precedence:    1,
@@ -904,6 +987,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name: "FOO",
 					},
 				},
@@ -916,7 +1002,7 @@ var _ = Describe("Bison Grammar Files", func() {
 					{
 						NonterminalIdx: 0,
 						SymbolRefs: []frontend.SymbolRef{
-							frontend.NewTerminalRef(0),
+							frontend.NewTerminalRef(1),
 						},
 					},
 				},
@@ -932,7 +1018,11 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
-				Terminals: nil,
+				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
+				},
 				Nonterminals: []frontend.Symbol{
 					{
 						Name: "s",
@@ -964,6 +1054,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name: "FOO",
 					},
 					{
@@ -985,9 +1078,9 @@ var _ = Describe("Bison Grammar Files", func() {
 					{
 						NonterminalIdx: 0,
 						SymbolRefs: []frontend.SymbolRef{
-							frontend.NewTerminalRef(0),
-							frontend.NewNonterminalRef(1),
 							frontend.NewTerminalRef(1),
+							frontend.NewNonterminalRef(1),
+							frontend.NewTerminalRef(2),
 							frontend.NewNonterminalRef(2),
 						},
 					},
@@ -1004,7 +1097,11 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
-				Terminals: nil,
+				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
+				},
 				Nonterminals: []frontend.Symbol{
 					{
 						Name: "s",
@@ -1051,7 +1148,11 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
-				Terminals: nil,
+				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
+				},
 				Nonterminals: []frontend.Symbol{
 					{
 						Name: "s",
@@ -1095,7 +1196,11 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
-				Terminals: nil,
+				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
+				},
 				Nonterminals: []frontend.Symbol{
 					{
 						Name: "s",
@@ -1145,6 +1250,9 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
+						Name: "error",
+					},
+					{
 						Name:  "FOO",
 						Alias: `"foo"`,
 					},
@@ -1165,7 +1273,7 @@ var _ = Describe("Bison Grammar Files", func() {
 						NonterminalIdx: 0,
 						SymbolRefs: []frontend.SymbolRef{
 							frontend.NewNonterminalRef(1),
-							frontend.NewTerminalRef(0),
+							frontend.NewTerminalRef(1),
 							frontend.NewNonterminalRef(2),
 						},
 					},
@@ -1184,19 +1292,26 @@ var _ = Describe("Bison Grammar Files", func() {
 			`
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
-			precedenceTerminalIdx := 0
+			precedenceTerminalIdx := 1
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
-					{Name: "FOO"},
+					{
+						Name: "error",
+					},
+					{
+						Name: "FOO",
+					},
 				},
 				Nonterminals: []frontend.Symbol{
-					{Name: "s"},
+					{
+						Name: "s",
+					},
 				},
 				Productions: []frontend.Production{
 					{
 						NonterminalIdx: 0,
 						SymbolRefs: []frontend.SymbolRef{
-							frontend.NewTerminalRef(0),
+							frontend.NewTerminalRef(1),
 						},
 						PrecedenceTerminalIdx: &precedenceTerminalIdx,
 					},
@@ -1213,27 +1328,36 @@ var _ = Describe("Bison Grammar Files", func() {
 			`
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
-			precedenceTerminalIdx := 0
+			precedenceTerminalIdx := 1
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
-					{Name: "FOO"},
-					{Name: "BAR"},
+					{
+						Name: "error",
+					},
+					{
+						Name: "FOO",
+					},
+					{
+						Name: "BAR",
+					},
 				},
 				Nonterminals: []frontend.Symbol{
-					{Name: "s"},
+					{
+						Name: "s",
+					},
 				},
 				Productions: []frontend.Production{
 					{
 						NonterminalIdx: 0,
 						SymbolRefs: []frontend.SymbolRef{
-							frontend.NewTerminalRef(0),
+							frontend.NewTerminalRef(1),
 						},
 						PrecedenceTerminalIdx: &precedenceTerminalIdx,
 					},
 					{
 						NonterminalIdx: 0,
 						SymbolRefs: []frontend.SymbolRef{
-							frontend.NewTerminalRef(1),
+							frontend.NewTerminalRef(2),
 						},
 					},
 				},
@@ -1249,11 +1373,18 @@ var _ = Describe("Bison Grammar Files", func() {
 			`
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
-			precedenceTerminalIdx := 1
+			precedenceTerminalIdx := 2
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
-					{Name: "FOO"},
-					{Name: "BAR"},
+					{
+						Name: "error",
+					},
+					{
+						Name: "FOO",
+					},
+					{
+						Name: "BAR",
+					},
 				},
 				Nonterminals: []frontend.Symbol{
 					{Name: "s"},
@@ -1262,7 +1393,7 @@ var _ = Describe("Bison Grammar Files", func() {
 					{
 						NonterminalIdx: 0,
 						SymbolRefs: []frontend.SymbolRef{
-							frontend.NewTerminalRef(0),
+							frontend.NewTerminalRef(1),
 						},
 						PrecedenceTerminalIdx: &precedenceTerminalIdx,
 					},
@@ -1283,9 +1414,18 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
+				},
 				Nonterminals: []frontend.Symbol{
-					{Name: "a"},
-					{Name: "b"},
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
 				},
 				Productions: []frontend.Production{
 					{NonterminalIdx: 0},
@@ -1305,6 +1445,11 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
+				},
 				Nonterminals: []frontend.Symbol{
 					{Name: "a"},
 					{Name: "b"},
@@ -1328,6 +1473,11 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
+				},
 				Nonterminals: []frontend.Symbol{
 					{Name: "a"},
 					{Name: "b"},
@@ -1349,6 +1499,11 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name: "error",
+					},
+				},
 				Nonterminals: []frontend.Symbol{
 					{Name: "a"},
 					{Name: "b"},
@@ -1367,12 +1522,12 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromFile("testdata/bison-3.8.2.y")
 			Expect(err).ToNot(HaveOccurred())
 
-			// All %token declarations
-			Expect(grammar.Terminals).To(HaveLen(58))
+			// All %token declarations + error token
+			Expect(grammar.Terminals).To(HaveLen(58 + 1))
 
-			// All left hand sides of productions + error nonterminal
+			// All left hand sides of productions
 			// Note that grammar_declaration shows up twice and must be counted only once.
-			Expect(grammar.Nonterminals).To(HaveLen(38 + 1))
+			Expect(grammar.Nonterminals).To(HaveLen(38))
 
 			// All productions + alternatives
 			// Note that not all alternatives start in the first column. symbols.1 has an alternative which is indented
@@ -1384,12 +1539,12 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromFile("testdata/go-1.5.4.y")
 			Expect(err).ToNot(HaveOccurred())
 
-			// All %token declarations + %left + char literals
+			// All %token declarations + error token + %left + char literals
 			// Note that some %left declarations are identical to %token and should not be counted twice.
-			Expect(grammar.Terminals).To(HaveLen(46 + 3 + 24))
+			Expect(grammar.Terminals).To(HaveLen(46 + 1 + 3 + 24))
 
-			// All left hand sides of productions + error nonterminal
-			Expect(grammar.Nonterminals).To(HaveLen(127 + 1))
+			// All left hand sides of productions
+			Expect(grammar.Nonterminals).To(HaveLen(127))
 
 			// All productions + alternatives
 			Expect(grammar.Productions).To(HaveLen(127 + 210))
@@ -1399,15 +1554,15 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromFile("testdata/gcc-4.2.4-java.y")
 			Expect(err).ToNot(HaveOccurred())
 
-			// All %token declarations
+			// All %token declarations + error token
 			// Note that there are duplicate %token declarations to assign a tag after declaration. Searching for all
 			// %token declarations would therefore result in duplicate tokens.
-			Expect(grammar.Terminals).To(HaveLen(109))
+			Expect(grammar.Terminals).To(HaveLen(109 + 1))
 
-			// All left hand sides of productions + error nonterminal
+			// All left hand sides of productions
 			// Note that searching for identifiers at the start of the line with a colon at the end will turn up results
 			// in comments which need to be ignored.
-			Expect(grammar.Nonterminals).To(HaveLen(153 + 1))
+			Expect(grammar.Nonterminals).To(HaveLen(153))
 
 			// All productions + alternatives
 			// Note that one alternative is inside of a block comment starting with "Screws up thing". We need to remove
@@ -1419,13 +1574,13 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromFile("testdata/gcc-2.95.3-c.y")
 			Expect(err).ToNot(HaveOccurred())
 
-			// All %token declarations + %left + %right + %nonassoc + char literals
-			Expect(grammar.Terminals).To(HaveLen(47 + 19 + 7 + 2 + 6))
+			// All %token declarations + error token + %left + %right + %nonassoc + char literals
+			Expect(grammar.Terminals).To(HaveLen(47 + 1 + 19 + 7 + 2 + 6))
 
-			// All left hand sides of productions + error nonterminal
+			// All left hand sides of productions
 			// Note that the production for all_iter_stmt_with_decl is commented out and needs to be removed from the
 			// list for a correct count.
-			Expect(grammar.Nonterminals).To(HaveLen(117 + 1))
+			Expect(grammar.Nonterminals).To(HaveLen(117))
 
 			// All productions + alternatives
 			// Note that some alternatives are commented out and need to be removed from the count.
@@ -1436,13 +1591,13 @@ var _ = Describe("Bison Grammar Files", func() {
 			grammar, err := bison.GrammarFromFile("testdata/gcc-2.95.3-objc.y")
 			Expect(err).ToNot(HaveOccurred())
 
-			// All %token declarations + %left + %right + %nonassoc + char literals
-			Expect(grammar.Terminals).To(HaveLen(47 + 19 + 7 + 2 + 6))
+			// All %token declarations + error token + %left + %right + %nonassoc + char literals
+			Expect(grammar.Terminals).To(HaveLen(47 + 1 + 19 + 7 + 2 + 6))
 
-			// All left hand sides of productions + error nonterminal
+			// All left hand sides of productions
 			// Note that the production for all_iter_stmt_with_decl is commented out and needs to be removed from the
 			// list for a correct count.
-			Expect(grammar.Nonterminals).To(HaveLen(162 + 1))
+			Expect(grammar.Nonterminals).To(HaveLen(162))
 
 			// All productions + alternatives
 			// Note that some alternatives are commented out and need to be removed from the count.

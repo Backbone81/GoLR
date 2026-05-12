@@ -22,10 +22,18 @@ type ASTWalker struct {
 }
 
 func NewASTWalker() *ASTWalker {
-	return &ASTWalker{
+	result := ASTWalker{
 		terminalIdxByName:    make(map[string]int),
 		nonterminalIdxByName: make(map[string]int),
 	}
+
+	// We add the special Bison error token as the first terminal to the grammar. This avoids acidentally adding it
+	// as nonterminal.
+	result.grammar.Terminals = append(result.grammar.Terminals, frontend.Symbol{
+		Name: "error",
+	})
+	result.terminalIdxByName["error"] = 0
+	return &result
 }
 
 func (w *ASTWalker) BuildGrammar(node *parser.Node) (frontend.Grammar, error) {
