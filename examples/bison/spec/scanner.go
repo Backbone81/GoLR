@@ -1,15 +1,15 @@
 package spec
 
 import (
-	"golr/pkg/scannergen"
+	"golr/pkg/scannergen/frontend"
 	. "golr/pkg/scannergen/frontend/dsl"
 )
 
 // GetScannerRules returns the rules for generating a scanner for parsing GNU Bison grammar files. The details can be found
 // at https://github.com/akimd/bison/blob/master/src/scan-gram.l, https://github.com/akimd/bison/blob/master/src/scan-code.l,
 // and https://github.com/akimd/bison/blob/master/src/scan-skel.l and https://github.com/akimd/bison/blob/master/src/parse-gram.y.
-func GetScannerRules() []scannergen.Rule {
-	var rules []scannergen.Rule
+func GetScannerRules() []frontend.Rule {
+	var rules []frontend.Rule
 
 	newline := Or(
 		Literal("\n"),

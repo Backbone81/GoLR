@@ -24,3 +24,9 @@ if grep -r '/internal/' examples/; then
   echo "ERROR: examples/ must not reference internal packages"
   exit 1
 fi
+
+# Let's make sure that our cmd folder does not reference any internal package.
+if grep -r '/internal/' cmd/; then
+  echo "ERROR: cmd/ must not reference internal packages"
+  exit 1
+fi

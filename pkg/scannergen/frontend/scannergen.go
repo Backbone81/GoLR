@@ -1,4 +1,4 @@
-package scannergen
+package frontend
 
 import (
 	"golr/internal/scannergen/frontend"

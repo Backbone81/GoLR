@@ -1,16 +1,16 @@
 package spec
 
 import (
+	"golr/pkg/scannergen/frontend"
 	"unicode"
 
-	"golr/pkg/scannergen"
 	. "golr/pkg/scannergen/frontend/dsl"
 )
 
 // GetScannerRules returns the rules for generating a scanner for parsing Go source code. The details can be found
 // at https://go.dev/ref/spec#Source_code_representation and https://go.dev/ref/spec#Lexical_elements.
-func GetScannerRules() []scannergen.Rule {
-	var rules []scannergen.Rule
+func GetScannerRules() []frontend.Rule {
+	var rules []frontend.Rule
 
 	// Characters (https://go.dev/ref/spec#Characters)
 	newline := Or(
