@@ -1,8 +1,8 @@
 package parser
 
 // TokenTransformer provides a transformer which modifies the returned token to be of a different type when some other
-// token comes next. This is needed because the Bison grammar has some situations which require to look at the following
-// token to decide the current one (like ID_COLON is generated for an ID which is followed by a COLON).
+// token comes next. This is needed because the GNU Bison grammar has some situations which require to look at the
+// following token to decide the current one (like ID_COLON is generated for an ID which is followed by a COLON).
 type TokenTransformer struct {
 	Scanner    ParserScanner
 	tokenQueue []TokenSnapshot
@@ -11,6 +11,7 @@ type TokenTransformer struct {
 // TokenTransformer implements ParserScanner.
 var _ ParserScanner = (*TokenTransformer)(nil)
 
+// TokenSnapshot stores all relevant information about a token.
 type TokenSnapshot struct {
 	Token      Token
 	ByteOffset int

@@ -1,7 +1,7 @@
 package parser
 
-// WhitespaceSkipper provides a scanner which is skipping whitespaces and comments. Use this to provide only the relevant
-// tokens to the parser.
+// WhitespaceSkipper provides a scanner which is skipping whitespaces and comments. Use this to provide only the
+// relevant tokens to the parser.
 type WhitespaceSkipper struct {
 	Scanner ParserScanner
 }

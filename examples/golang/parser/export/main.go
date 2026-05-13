@@ -4,7 +4,7 @@ package main
 
 import (
 	"golr/examples/golang/spec"
-	"golr/internal/scannergen/backend/golang"
+	"golr/pkg/scannergen/backend/golang"
 	"golr/pkg/scannergen/backend/json"
 	"golr/pkg/scannergen/backend/yaml"
 	"golr/pkg/scannergen/core/subset"

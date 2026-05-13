@@ -7,27 +7,39 @@ import (
 	"golr/internal/parsergen/frontend/bison/parser"
 )
 
+// ASTWalker is a helper struct which walks the abstract syntax tree of a parsed GNU Bison grammar and extracts all
+// information required to describe the context free grammar therein.
 type ASTWalker struct {
 	grammar frontend.Grammar
 
 	terminalIdxByName    map[string]int
 	nonterminalIdxByName map[string]int
 
-	activePercentStart   bool
+	// activePercentStart keeps track if we are currently inside %start
+	activePercentStart bool
+
+	// startNonterminalName keeps track of the start symbol defined by %start
 	startNonterminalName string
 
-	currentPrecedence    int
+	// currentPrecedence is the current precedence level and is increased for every %left, %right, %nonassoc and
+	// %precedence
+	currentPrecedence int
+
+	// currentAssociativity keeps track if we are currently inside %left, %right or %nonassoc.
 	currentAssociativity frontend.Associativity
-	activePercentPrec    bool
+
+	// activePercentPrec keeps track if we are currently inside %prec
+	activePercentPrec bool
 }
 
+// NewASTWalker creates a new ASTWalker.
 func NewASTWalker() *ASTWalker {
 	result := ASTWalker{
 		terminalIdxByName:    make(map[string]int),
 		nonterminalIdxByName: make(map[string]int),
 	}
 
-	// We add the special Bison error token as the first terminal to the grammar. This avoids acidentally adding it
+	// We add the special GNU Bison error token as the first terminal to the grammar. This avoids acidentally adding it
 	// as nonterminal.
 	result.grammar.Terminals = append(result.grammar.Terminals, frontend.Symbol{
 		Name: "error",
@@ -36,6 +48,8 @@ func NewASTWalker() *ASTWalker {
 	return &result
 }
 
+// BuildGrammar takes the root node of the abstract syntax tree, traverses the tree to build the context free grammar
+// and returns the finished grammar afterward.
 func (w *ASTWalker) BuildGrammar(node *parser.Node) (frontend.Grammar, error) {
 	w.visitInput(node)
 	if w.startNonterminalName != "" {

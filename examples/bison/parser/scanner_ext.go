@@ -1,5 +1,6 @@
 package parser
 
+// ReadEpilogue is an extension of the generated scanner providing functionality to consume the epilogue.
 func (s *Scanner) ReadEpilogue() {
 	s.err = nil
 	s.tokenStart = s.tokenEnd
@@ -12,6 +13,7 @@ func (s *Scanner) ReadEpilogue() {
 	s.token = TokenEpilogue
 }
 
+// ReadTag is an extension to the generated scanner providing functionality to consume tags.
 func (s *Scanner) ReadTag() {
 	s.err = nil
 	var nesting int
@@ -44,6 +46,7 @@ func (s *Scanner) ReadTag() {
 	s.token = InvalidToken
 }
 
+// ReadPrologue is an extension to the generated scanner providing functionality to consume the prologue.
 func (s *Scanner) ReadPrologue() {
 	s.err = nil
 	var previousRune rune
@@ -76,10 +79,12 @@ func (s *Scanner) ReadPrologue() {
 	s.token = InvalidToken
 }
 
+// ReadBracedCode is an extension to the generated scanner providing functionality to consume braced code.
 func (s *Scanner) ReadBracedCode() {
 	s.readBracedContent(TokenBracedCode)
 }
 
+// ReadBracedPredicate is an extension to the generated scanner providing functionality to consume braced predicates.
 func (s *Scanner) ReadBracedPredicate() {
 	s.readBracedContent(TokenBracedPredicate)
 }

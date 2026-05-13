@@ -1,15 +1,15 @@
-// This application exports the go specification as JSON and YAML. This makes the grammar available for other
+// This application exports the GNU Bison specification as JSON, YAML and Go. This makes the grammar available for other
 // programming languages, and it makes it obvious in case the grammar changes by accident.
 package main
 
 import (
 	"golr/examples/bison/spec"
-	golangparsergen "golr/internal/parsergen/backend/golang"
-	jsonparsergen "golr/internal/parsergen/backend/json"
-	yamlparsergen "golr/internal/parsergen/backend/yaml"
-	"golr/internal/parsergen/core/ielr1"
-	"golr/internal/parsergen/frontend/bison"
-	golangscannergen "golr/internal/scannergen/backend/golang"
+	golangparsergen "golr/pkg/parsergen/backend/golang"
+	jsonparsergen "golr/pkg/parsergen/backend/json"
+	yamlparsergen "golr/pkg/parsergen/backend/yaml"
+	"golr/pkg/parsergen/core/ielr1"
+	"golr/pkg/parsergen/frontend/bison"
+	golangscannergen "golr/pkg/scannergen/backend/golang"
 	jsonscannergen "golr/pkg/scannergen/backend/json"
 	yamlscannergen "golr/pkg/scannergen/backend/yaml"
 	"golr/pkg/scannergen/core/subset"
@@ -24,7 +24,13 @@ func main() {
 	if err := yamlscannergen.DFAToFile("examples/bison/parser/scanner.yaml", dfa); err != nil {
 		panic(err)
 	}
-	if err := golangscannergen.DFAToFile("examples/bison/parser/scanner.go", dfa, golangscannergen.Config{PackageName: "parser"}); err != nil {
+	if err := golangscannergen.DFAToFile(
+		"examples/bison/parser/scanner.go",
+		dfa,
+		golangscannergen.Config{
+			PackageName: "parser",
+		},
+	); err != nil {
 		panic(err)
 	}
 
@@ -43,7 +49,13 @@ func main() {
 	if err := yamlparsergen.ParserToFile("examples/bison/parser/parser.yaml", parser); err != nil {
 		panic(err)
 	}
-	if err := golangparsergen.ParserToFile("examples/bison/parser/parser.go", parser, golangparsergen.Config{PackageName: "parser"}); err != nil {
+	if err := golangparsergen.ParserToFile(
+		"examples/bison/parser/parser.go",
+		parser,
+		golangparsergen.Config{
+			PackageName: "parser",
+		},
+	); err != nil {
 		panic(err)
 	}
 }

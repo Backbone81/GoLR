@@ -1,5 +1,5 @@
-// This application exports the go specification as JSON and YAML. This makes the grammar available for other
-// programming languages, and it makes it obvious in case the grammar changes by accident.
+// This application exports the GNU Bison specification as Go code. This makes the grammar available for the frontend
+// to actually process grammar files.
 package main
 
 import (
@@ -14,7 +14,13 @@ import (
 func main() {
 	rules := spec.GetScannerRules()
 	dfa := subset.RulesToDFA(rules)
-	if err := golangscannergen.DFAToFile("internal/parsergen/frontend/bison/parser/scanner.go", dfa, golangscannergen.Config{PackageName: "parser"}); err != nil {
+	if err := golangscannergen.DFAToFile(
+		"internal/parsergen/frontend/bison/parser/scanner.go",
+		dfa,
+		golangscannergen.Config{
+			PackageName: "parser",
+		},
+	); err != nil {
 		panic(err)
 	}
 
@@ -27,7 +33,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if err := golangparsergen.ParserToFile("internal/parsergen/frontend/bison/parser/parser.go", parser, golangparsergen.Config{PackageName: "parser"}); err != nil {
+	if err := golangparsergen.ParserToFile(
+		"internal/parsergen/frontend/bison/parser/parser.go",
+		parser,
+		golangparsergen.Config{
+			PackageName: "parser",
+		},
+	); err != nil {
 		panic(err)
 	}
 }

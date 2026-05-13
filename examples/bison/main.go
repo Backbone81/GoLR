@@ -11,7 +11,11 @@ import (
 )
 
 func main() {
-	filePath := "internal/parsergen/frontend/bison/testdata/gcc-4.2.4-java.y"
+	if len(os.Args) < 2 {
+		panic("provide the file path to a GNU Bison grammar file as parameter")
+	}
+	filePath := os.Args[1]
+
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		panic(err)

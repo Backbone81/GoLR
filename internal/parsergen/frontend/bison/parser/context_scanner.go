@@ -1,6 +1,10 @@
 package parser
 
 // ContextScanner is responsible for collecting blocks of code into one single token.
+// As the GNU Bison tokens can not all be described by regular expressions, this scanner is responsible for detecting
+// the start of those tokens and then consume all characters until the end of that special token.
+// Relevant tokens are tags, prologues, braced codes, braced predicates and the epilogue.
+// This scanner works as a post-processor for the generated scanner.
 type ContextScanner struct {
 	Scanner             *Scanner
 	percentPercentCount int
