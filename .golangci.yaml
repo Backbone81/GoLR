@@ -121,8 +121,11 @@ linters:
     rules:
       - path: _test\.go
         linters:
+          - cyclop
           - dupl
           - funlen
+          - gocognit
+          - gosec
       - path: ^cmd/
         linters:
           - forbidigo

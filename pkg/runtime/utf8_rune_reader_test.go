@@ -232,7 +232,7 @@ func createSingleByteRunes(count int, seed int64) []byte {
 		panic("buffer size mismatch")
 	}
 
-	random := rand.New(rand.NewSource(seed)) //nolint:gosec // weak random number generator is fine here
+	random := rand.New(rand.NewSource(seed))
 	result := make([]byte, count*runeSize)
 	for i := 0; i < count*runeSize; i += runeSize {
 		result[i] = runes[random.Intn(len(runes))]
@@ -247,7 +247,7 @@ func createDoubleByteRunes(count int, seed int64) []byte {
 		panic("buffer size mismatch")
 	}
 
-	random := rand.New(rand.NewSource(seed)) //nolint:gosec // weak random number generator is fine here
+	random := rand.New(rand.NewSource(seed))
 	result := make([]byte, count*runeSize)
 	for i := 0; i < count*runeSize; i += runeSize {
 		offset := random.Intn(len(runes)/runeSize) * runeSize
@@ -264,7 +264,7 @@ func createTripleByteRunes(count int, seed int64) []byte {
 		panic("buffer size mismatch")
 	}
 
-	random := rand.New(rand.NewSource(seed)) //nolint:gosec // weak random number generator is fine here
+	random := rand.New(rand.NewSource(seed))
 	result := make([]byte, count*runeSize)
 	for i := 0; i < count*runeSize; i += runeSize {
 		offset := random.Intn(len(runes)/runeSize) * runeSize
@@ -282,7 +282,7 @@ func createQuadByteRunes(count int, seed int64) []byte {
 		panic("buffer size mismatch")
 	}
 
-	random := rand.New(rand.NewSource(seed)) //nolint:gosec // weak random number generator is fine here
+	random := rand.New(rand.NewSource(seed))
 	result := make([]byte, count*runeSize)
 	for i := 0; i < count*runeSize; i += runeSize {
 		offset := random.Intn(len(runes)/runeSize) * runeSize

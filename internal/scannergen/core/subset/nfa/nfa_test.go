@@ -428,7 +428,6 @@ var _ = Describe("NFA", func() {
 	})
 })
 
-//nolint:funlen,gocognit,cyclop
 func BenchmarkFromRegex(b *testing.B) {
 	b.Run("[a-zA-Z_][a-zA-Z0-9_]*", func(b *testing.B) {
 		expression := dsl.Concat(
