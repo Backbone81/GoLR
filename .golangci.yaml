@@ -4,47 +4,42 @@ version: "2"
 linters:
   default: none
   enable:
-    # - arangolint
+    - arangolint
     - asasalint
     - asciicheck
     - bidichk
     - bodyclose
     - canonicalheader
-    # - clickhouselint
+    - clickhouselint
     - containedctx
     - contextcheck
     - copyloopvar
     - cyclop
     - decorder
-    # - depguard
     - dogsled
     - dupl
     - dupword
     - durationcheck
-    # - embeddedstructfieldcheck
-    # - err113
+    - embeddedstructfieldcheck
     - errcheck
     - errchkjson
     - errname
     - errorlint
     - exhaustive
-    # - exhaustruct
     - exptostd
     - fatcontext
     - forbidigo
     - forcetypeassert
-    # - funcorder
     - funlen
     - ginkgolinter
     - gocheckcompilerdirectives
-    # - gochecknoglobals
-    # - gochecknoinits
+    - gochecknoinits
     - gochecksumtype
     - gocognit
     - goconst
     - gocritic
     - gocyclo
-    # - godoclint
+    - godoclint
     - godot
     - godox
     - goheader
@@ -133,6 +128,7 @@ linters:
       - path: ^cmd/
         linters:
           - forbidigo
+          - gochecknoinits
       - path: ^examples/
         linters:
           - forbidigo

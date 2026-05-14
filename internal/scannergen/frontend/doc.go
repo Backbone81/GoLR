@@ -1,2 +1,2 @@
-// Package frontends contains code for reading regular expressions from various input formats.
+// Package frontend contains code for reading regular expressions from various input formats.
 package frontend

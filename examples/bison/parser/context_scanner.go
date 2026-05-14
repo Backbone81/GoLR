@@ -1,4 +1,3 @@
-//nolint:exhaustive // The ContextScanner will only deal with selected tokens and does not need to be exhaustive.
 package parser
 
 // ContextScanner is responsible for collecting blocks of code into one single token.
@@ -48,7 +47,7 @@ func (c *ContextScanner) Next() bool {
 	}
 
 	result := c.Scanner.Next()
-	switch c.Token() {
+	switch c.Token() { //nolint:exhaustive // We are only interested in a few tokens and don't need to be exhaustive.
 	case TokenPercentPercent:
 		c.percentPercentCount++
 	case TokenTagStart:
