@@ -78,7 +78,7 @@ func (s *OrderedSet[T]) Contains(value T) bool {
 }
 
 // GetByIndex returns the value by its index of the ordered set.
-func (s *OrderedSet[T]) GetByIndex(index int) T {
+func (s *OrderedSet[T]) GetByIndex(index int) T { //nolint:ireturn // This is in fact a concrete type.
 	return s.data[index]
 }
 

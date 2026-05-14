@@ -56,37 +56,31 @@ linters:
     - ineffassign
     - interfacebloat
     - intrange
-    # - iotamixing
-    # - ireturn
+    - iotamixing
+    - ireturn
     # - lll
     - loggercheck
     - maintidx
     - makezero
     - mirror
     - misspell
-    # - mnd
-    # - modernize
+    - modernize
     - musttag
     - nakedret
     - nestif
     - nilerr
     - nilnesserr
     - nilnil
-    # - nlreturn
     - noctx
-    # - noinlineerr
     - nolintlint
     - nonamedreturns
     - nosprintfhostport
-    # - paralleltest
     - perfsprint
     - prealloc
     - predeclared
     - promlinter
     - protogetter
     - reassign
-    # - recvcheck
-    # - revive
     - rowserrcheck
     - sloglint
     - spancheck
@@ -97,20 +91,16 @@ linters:
     - testableexamples
     - testifylint
     - testpackage
-    # - thelper
+    - thelper
     - tparallel
     - unconvert
     - unparam
-    # - unqueryvet
+    - unqueryvet
     - unused
     - usestdlibvars
     - usetesting
-    # - varnamelen
     - wastedassign
     - whitespace
-    # - wrapcheck
-    # - wsl
-    # - wsl_v5
     - zerologlint
   settings:
     goconst:

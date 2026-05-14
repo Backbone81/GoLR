@@ -112,7 +112,7 @@ func (w *ASTWalker) visitPrologueDeclaration(node *parser.Node) {
 		if !ok {
 			continue
 		}
-		switch nonterminal {
+		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalGrammarDeclaration:
 			w.visitGrammarDeclaration(child)
 		}
@@ -139,7 +139,7 @@ func (w *ASTWalker) visitGrammarDeclaration(node *parser.Node) {
 
 		terminal, ok := child.Symbol.Terminal()
 		if ok {
-			switch terminal {
+			switch terminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 			case parser.TokenPercentStart:
 				w.activePercentStart = true
 			}
@@ -224,7 +224,7 @@ func (w *ASTWalker) visitTokenDecls(node *parser.Node) {
 		if !ok {
 			continue
 		}
-		switch nonterminal {
+		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalTokenDecl_1:
 			w.visitTokenDecl_1(child)
 		}
@@ -276,7 +276,7 @@ func (w *ASTWalker) visitTokenDecl(node *parser.Node) {
 		if !ok {
 			continue
 		}
-		switch nonterminal {
+		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalAlias:
 			w.visitAlias(child)
 		}
@@ -300,7 +300,7 @@ func (w *ASTWalker) visitAlias(node *parser.Node) {
 		if !ok {
 			continue
 		}
-		switch nonterminal {
+		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalStringAsId:
 			w.visitStringAsId(child)
 		}
@@ -459,7 +459,7 @@ func (w *ASTWalker) visitRules(node *parser.Node) {
 		if !ok {
 			continue
 		}
-		switch nonterminal {
+		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalRhses_1:
 			w.visitRhses_1(child)
 		}

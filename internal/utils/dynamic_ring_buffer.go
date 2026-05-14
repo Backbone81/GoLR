@@ -61,7 +61,7 @@ func (b *DynamicRingBuffer[T]) Add(item T) {
 
 // Remove removes the next item from the start of the DynamicRingBuffer and returns it.
 // Remove will panic if the DynamicRingBuffer is empty.
-func (b *DynamicRingBuffer[T]) Remove() T {
+func (b *DynamicRingBuffer[T]) Remove() T { //nolint:ireturn // This is in fact a concrete type.
 	if b.count == 0 {
 		panic("Cannot remove item from empty DynamicRingBuffer[T].")
 	}
@@ -87,7 +87,7 @@ func (b *DynamicRingBuffer[T]) RemoveN(n int) {
 // Get returns the item at the given index without removing it from the DynamicRingBuffer. Valid values for the index
 // are 0 to Length()-1. The index 0 is always the same item which Remove would return.
 // Get will panic if an index is accessed which does not belong to an item currently stored.
-func (b *DynamicRingBuffer[T]) Get(index int) T {
+func (b *DynamicRingBuffer[T]) Get(index int) T { //nolint:ireturn // This is in fact a concrete type.
 	if index < 0 || b.count <= index {
 		panic("Index out of range for DynamicRingBuffer[T].")
 	}
