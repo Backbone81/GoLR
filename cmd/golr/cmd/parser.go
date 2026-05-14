@@ -11,6 +11,7 @@ import (
 	bisonfrontend "golr/pkg/parsergen/frontend/bison"
 	jsonfrontend "golr/pkg/parsergen/frontend/json"
 	yamlfrontend "golr/pkg/parsergen/frontend/yaml"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -53,10 +54,19 @@ var parserCmd = &cobra.Command{
 func executeParserFrontend() (frontend.Grammar, error) {
 	switch parserFrontend {
 	case "bison":
+		if parserFrontendFilePath == "-" {
+			return bisonfrontend.ToGrammar(os.Stdin, "pipe")
+		}
 		return bisonfrontend.GrammarFromFile(parserFrontendFilePath)
 	case "json":
+		if parserFrontendFilePath == "-" {
+			return jsonfrontend.ToGrammar(os.Stdin)
+		}
 		return jsonfrontend.GrammarFromFile(parserFrontendFilePath)
 	case "yaml":
+		if parserFrontendFilePath == "-" {
+			return yamlfrontend.ToGrammar(os.Stdin)
+		}
 		return yamlfrontend.GrammarFromFile(parserFrontendFilePath)
 	default:
 		return frontend.Grammar{}, fmt.Errorf("unsupported parser frontend %q", parserFrontend)
@@ -75,12 +85,23 @@ func executeParserCore(grammar frontend.Grammar) (backend.Parser, error) {
 func executeParserBackend(parser backend.Parser) error {
 	switch parserBackend {
 	case "go":
+		if parserBackendFilePath == "-" {
+			return golangbackend.FromParser(os.Stdout, parser, golangbackend.Config{
+				PackageName: parserBackendGoPackageName,
+			})
+		}
 		return golangbackend.ParserToFile(parserBackendFilePath, parser, golangbackend.Config{
 			PackageName: parserBackendGoPackageName,
 		})
 	case "json":
+		if parserBackendFilePath == "-" {
+			return jsonbackend.FromParser(os.Stdout, parser)
+		}
 		return jsonbackend.ParserToFile(parserBackendFilePath, parser)
 	case "yaml":
+		if parserBackendFilePath == "-" {
+			return yamlbackend.FromParser(os.Stdout, parser)
+		}
 		return yamlbackend.ParserToFile(parserBackendFilePath, parser)
 	default:
 		return fmt.Errorf("unsupported parser backend %q", parserBackend)
@@ -100,7 +121,7 @@ func init() {
 		&parserFrontendFilePath,
 		"frontend-file-path",
 		"",
-		"The file path to read the context free grammar from.",
+		"The file path to read the context free grammar from. Can be '-' to read from stdin.",
 	)
 	if err := parserCmd.MarkPersistentFlagRequired("frontend-file-path"); err != nil {
 		panic(err)
@@ -123,7 +144,7 @@ func init() {
 		&parserBackendFilePath,
 		"backend-file-path",
 		"",
-		"The file path to write the parser to.",
+		"The file path to write the parser to. Can be '-' to write to stdout.",
 	)
 	if err := parserCmd.MarkPersistentFlagRequired("backend-file-path"); err != nil {
 		panic(err)

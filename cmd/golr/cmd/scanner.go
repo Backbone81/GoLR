@@ -10,6 +10,7 @@ import (
 	"golr/pkg/scannergen/frontend"
 	jsonfrontend "golr/pkg/scannergen/frontend/json"
 	yamlfrontend "golr/pkg/scannergen/frontend/yaml"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -52,8 +53,14 @@ var scannerCmd = &cobra.Command{
 func executeScannerFrontend() ([]frontend.Rule, error) {
 	switch scannerFrontend {
 	case "json":
+		if scannerFrontendFilePath == "-" {
+			return jsonfrontend.ToRules(os.Stdin)
+		}
 		return jsonfrontend.RulesFromFile(scannerFrontendFilePath)
 	case "yaml":
+		if scannerFrontendFilePath == "-" {
+			return yamlfrontend.ToRules(os.Stdin)
+		}
 		return yamlfrontend.RulesFromFile(scannerFrontendFilePath)
 	default:
 		return nil, fmt.Errorf("unsupported scanner frontend %q", scannerFrontend)
@@ -72,12 +79,23 @@ func executeScannerCore(rules []frontend.Rule) (backend.DFA, error) {
 func executeScannerBackend(dfa backend.DFA) error {
 	switch scannerBackend {
 	case "go":
+		if scannerBackendFilePath == "-" {
+			return golangbackend.FromDFA(os.Stdout, dfa, golangbackend.Config{
+				PackageName: scannerBackendGoPackageName,
+			})
+		}
 		return golangbackend.DFAToFile(scannerBackendFilePath, dfa, golangbackend.Config{
 			PackageName: scannerBackendGoPackageName,
 		})
 	case "json":
+		if scannerBackendFilePath == "-" {
+			return jsonbackend.FromDFA(os.Stdout, dfa)
+		}
 		return jsonbackend.DFAToFile(scannerBackendFilePath, dfa)
 	case "yaml":
+		if scannerBackendFilePath == "-" {
+			return yamlbackend.FromDFA(os.Stdout, dfa)
+		}
 		return yamlbackend.DFAToFile(scannerBackendFilePath, dfa)
 	default:
 		return fmt.Errorf("unsupported scanner backend %q", scannerBackend)
@@ -97,7 +115,7 @@ func init() {
 		&scannerFrontendFilePath,
 		"frontend-file-path",
 		"",
-		"The file path to read the regular expressions from.",
+		"The file path to read the regular expressions from. Can be '-' to read from stdin.",
 	)
 	if err := scannerCmd.MarkPersistentFlagRequired("frontend-file-path"); err != nil {
 		panic(err)
@@ -120,7 +138,7 @@ func init() {
 		&scannerBackendFilePath,
 		"backend-file-path",
 		"",
-		"The file path to write the scanner to.",
+		"The file path to write the scanner to. Can be '-' to write to stdout.",
 	)
 	if err := scannerCmd.MarkPersistentFlagRequired("backend-file-path"); err != nil {
 		panic(err)
