@@ -58,7 +58,7 @@ linters:
     - intrange
     - iotamixing
     - ireturn
-    # - lll
+    - lll
     - loggercheck
     - maintidx
     - makezero

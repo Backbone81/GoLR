@@ -18,6 +18,7 @@ type State struct {
 
 	// DefaultReduceProductionIdx provides the production index for a default reduce action on any lookahead. Is nil
 	// if not set.
+	//nolint:lll // Go tag lines cannot be broken onto multiple lines.
 	DefaultReduceProductionIdx *int `json:"defaultReduceProductionIdx,omitempty" yaml:"defaultReduceProductionIdx,omitempty"`
 }
 

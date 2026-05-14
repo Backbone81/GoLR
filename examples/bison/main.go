@@ -16,7 +16,8 @@ func main() {
 	}
 	filePath := os.Args[1]
 
-	data, err := os.ReadFile(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
+	//nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		panic(err)
 	}

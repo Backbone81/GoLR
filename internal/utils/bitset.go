@@ -190,7 +190,10 @@ func (b *Bitset) Hash() uint64 {
 	hash := fnv.New64a()
 	if chunkCount > 0 {
 		chunksByteSize := chunkCount * int(unsafe.Sizeof(b.chunks[0]))
-		chunksBytes := unsafe.Slice((*byte)(unsafe.Pointer(&b.chunks[0])), chunksByteSize) //nolint:gosec // unsafe is required for better performance
+
+		//nolint:gosec // unsafe is required for better performance
+		chunksBytes := unsafe.Slice((*byte)(unsafe.Pointer(&b.chunks[0])), chunksByteSize)
+
 		if _, err := hash.Write(chunksBytes); err != nil {
 			panic(err)
 		}

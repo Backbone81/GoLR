@@ -28,7 +28,11 @@ func (b *ThompsonsConstruction) Build(regexNode *frontend.Node, ruleIdx int) []S
 }
 
 // buildNFAFromRegexValidated constructs an NFA from a regular expression by applying Thomson's construction.
-func (b *ThompsonsConstruction) buildNFAFromRegexValidated(regexNode *frontend.Node, ruleIdx int, states []State) []State {
+func (b *ThompsonsConstruction) buildNFAFromRegexValidated(
+	regexNode *frontend.Node,
+	ruleIdx int,
+	states []State,
+) []State {
 	startStateIdx := len(states)
 	result := b.buildNFAFromRegex(regexNode, ruleIdx, states)
 	b.MustBeValidNFA(result[startStateIdx:])

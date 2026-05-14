@@ -137,11 +137,13 @@ func (b *SubsetConstruction) getHighestPrioNFAState(nfaStateIdxs utils.OrderedSe
 	highestPrioAcceptingStateIdx := -1
 	for _, nfaStateIdx := range nfaStateIdxs.All() {
 		if b.nfaStates[nfaStateIdx].Accept {
-			if highestPrioAcceptingStateIdx == -1 || b.nfaStates[nfaStateIdx].RuleIdx < b.nfaStates[highestPrioAcceptingStateIdx].RuleIdx {
+			if highestPrioAcceptingStateIdx == -1 ||
+				b.nfaStates[nfaStateIdx].RuleIdx < b.nfaStates[highestPrioAcceptingStateIdx].RuleIdx {
 				highestPrioAcceptingStateIdx = nfaStateIdx
 			}
 		} else {
-			if highestPrioStandardStateIdx == -1 || b.nfaStates[nfaStateIdx].RuleIdx < b.nfaStates[highestPrioStandardStateIdx].RuleIdx {
+			if highestPrioStandardStateIdx == -1 ||
+				b.nfaStates[nfaStateIdx].RuleIdx < b.nfaStates[highestPrioStandardStateIdx].RuleIdx {
 				highestPrioStandardStateIdx = nfaStateIdx
 			}
 		}
@@ -153,7 +155,10 @@ func (b *SubsetConstruction) getHighestPrioNFAState(nfaStateIdxs utils.OrderedSe
 }
 
 // TransitionOnCharacterRange moves from the given states on the character range to the next states.
-func (b *SubsetConstruction) transitionOnCharRange(nfaStateIdxs utils.OrderedSet[int], charRange frontend.CharRange) utils.OrderedSet[int] {
+func (b *SubsetConstruction) transitionOnCharRange(
+	nfaStateIdxs utils.OrderedSet[int],
+	charRange frontend.CharRange,
+) utils.OrderedSet[int] {
 	var result utils.OrderedSet[int]
 	for _, nfaStateIdx := range nfaStateIdxs.All() {
 		for _, transition := range b.nfaStates[nfaStateIdx].Transitions {

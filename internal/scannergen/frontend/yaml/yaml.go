@@ -47,7 +47,8 @@ func FromRules(writer io.Writer, rules []frontend.Rule) (err error) {
 // RulesFromFile reads the scanner rules as YAML document from the given file path. Returns an error if the
 // file can not be read or the YAML document can not be decoded successfully.
 func RulesFromFile(filePath string) (rules []frontend.Rule, err error) { //nolint:nonamedreturns // Required for defer
-	file, err := os.Open(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
+	//nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
+	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("opening the YAML file %q: %w", filePath, err)
 	}
@@ -63,7 +64,8 @@ func RulesFromFile(filePath string) (rules []frontend.Rule, err error) { //nolin
 // RulesToFile writes the scanner rules as YAML document to the given file path. Returns an error if the file
 // can not be written or the YAML document can not be encoded successfully.
 func RulesToFile(filePath string, rules []frontend.Rule) (err error) {
-	file, err := os.Create(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
+	//nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
+	file, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("creating the YAML file %q: %w", filePath, err)
 	}

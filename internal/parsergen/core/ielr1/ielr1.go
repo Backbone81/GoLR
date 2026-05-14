@@ -234,7 +234,8 @@ func (i *IELR1) writeBisonGrammarProductions(file *os.File) error {
 			}
 		}
 		if production.PrecedenceTerminalIdx != nil {
-			if _, err := fmt.Fprintf(file, " %%prec %s", i.grammar.Terminals[*production.PrecedenceTerminalIdx].Name); err != nil {
+			precedenceTerminal := i.grammar.Terminals[*production.PrecedenceTerminalIdx]
+			if _, err := fmt.Fprintf(file, " %%prec %s", precedenceTerminal.Name); err != nil {
 				return err
 			}
 		}

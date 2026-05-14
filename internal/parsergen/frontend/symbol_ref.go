@@ -33,7 +33,9 @@ func NewTerminalRef(idx int) SymbolRef {
 // NewNonterminalRef creates a new SymbolRef for a nonterminal index.
 func NewNonterminalRef(idx int) SymbolRef {
 	utils.AssertValidIndex(idx, symbolRefMaxIdx)
-	return SymbolRef(symbolRefNonterminalBit | idx) //nolint:gosec // We already have an assertion in place to test for the correct range.
+
+	//nolint:gosec // We already have an assertion in place to test for the correct range.
+	return SymbolRef(symbolRefNonterminalBit | idx)
 }
 
 // IsTerminal reports if the SymbolRef is holding a terminal index.

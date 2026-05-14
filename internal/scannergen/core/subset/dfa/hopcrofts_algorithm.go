@@ -138,12 +138,12 @@ func (b *HopcroftsAlgorithm) splitAllPartitionsOnBehavior(partitions []*Partitio
 	return partitions
 }
 
-// splitPartitionOnBehavior is splitting the given partition if we notice that there are states which do not behave in a similar
-// way. We always take the first state of the partition provided as parameter as the reference state and check all other
-// states against that. States which do not behave the same as the reference state are moved to a new partition which
-// is returned as result. The partition provided as parameter is modified to have the states removed which were moved
-// to the new partition. If all states of the partition behave identical to the reference state, nil is returned
-// as a result to signal that splitting the partition was not necessary.
+// splitPartitionOnBehavior is splitting the given partition if we notice that there are states which do not behave in a
+// similar way. We always take the first state of the partition provided as parameter as the reference state and check
+// all other states against that. States which do not behave the same as the reference state are moved to a new
+// partition which is returned as result. The partition provided as parameter is modified to have the states removed
+// which were moved to the new partition. If all states of the partition behave identical to the reference state, nil is
+// returned as a result to signal that splitting the partition was not necessary.
 func (b *HopcroftsAlgorithm) splitPartitionOnBehavior(partition *Partition) *Partition {
 	var newPartition Partition
 	referenceState := partition.StateIdxs.GetByIndex(0)
@@ -213,7 +213,8 @@ func (b *HopcroftsAlgorithm) splitAllPartitionsByName(partitions []*Partition) [
 	return partitions
 }
 
-// splitPartitionByRuleIdx is splitting the given partition if we notice that there are states which have a different rule.
+// splitPartitionByRuleIdx is splitting the given partition if we notice that there are states which have a different
+// rule.
 // We always take the first state of the partition provided as parameter as the reference state and check all other
 // states against that. States which have a different rule as the reference state are moved to a new partition which
 // is returned as result. The partition provided as parameter is modified to have the states removed which were moved

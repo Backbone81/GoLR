@@ -5,8 +5,8 @@ import (
 	"unicode"
 )
 
-// GoIdentifier creates a camel case name which is suitable as a Go identifier for functions or variables. Is used for code
-// generation.
+// GoIdentifier creates a camel case name which is suitable as a Go identifier for functions or variables. Is used for
+// code generation.
 func GoIdentifier(text string) string {
 	words := strings.FieldsFunc(text, func(r rune) bool {
 		return r == '_' || r == ' ' || r == '\t'

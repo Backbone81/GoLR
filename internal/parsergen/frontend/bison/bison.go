@@ -45,8 +45,11 @@ func ToGrammar(reader io.Reader, filePath string) (frontend.Grammar, error) {
 
 // GrammarFromFile reads the context free grammar as GNU Bison grammar document from the given file path. Returns an
 // error if the file can not be read or the grammar document can not be parsed successfully.
-func GrammarFromFile(filePath string) (grammar frontend.Grammar, err error) { //nolint:nonamedreturns // Required for defer
-	file, err := os.Open(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
+//
+//nolint:nonamedreturns // Required for defer
+func GrammarFromFile(filePath string) (grammar frontend.Grammar, err error) {
+	//nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
+	file, err := os.Open(filePath)
 	if err != nil {
 		return frontend.Grammar{}, fmt.Errorf("opening the Bison file %q: %w", filePath, err)
 	}
