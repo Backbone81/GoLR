@@ -3,6 +3,7 @@ package json
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -37,24 +38,32 @@ func FromRules(writer io.Writer, rules []frontend.Rule) error {
 
 // RulesFromFile reads the scanner rules as JSON document from the given file path. Returns an error if the
 // file can not be read or the JSON document can not be decoded successfully.
-func RulesFromFile(filePath string) ([]frontend.Rule, error) {
+func RulesFromFile(filePath string) (rules []frontend.Rule, err error) { //nolint:nonamedreturns // Required for defer
 	file, err := os.Open(filePath) //nolint:gosec // The caller is responsible for making sure the path is safe.
 	if err != nil {
-		return []frontend.Rule{}, fmt.Errorf("opening the JSON file %q: %w", filePath, err)
+		return nil, fmt.Errorf("opening the JSON file %q: %w", filePath, err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("closing file: %w", closeErr))
+		}
+	}()
 
 	return ToRules(file)
 }
 
 // RulesToFile writes the scanner rules as JSON document to the given file path. Returns an error if the file
 // can not be written or the JSON document can not be encoded successfully.
-func RulesToFile(filePath string, rules []frontend.Rule) error {
+func RulesToFile(filePath string, rules []frontend.Rule) (err error) {
 	file, err := os.Create(filePath) //nolint:gosec // The caller is responsible for making sure the path is safe.
 	if err != nil {
 		return fmt.Errorf("creating the JSON file %q: %w", filePath, err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("closing file: %w", closeErr))
+		}
+	}()
 
 	return FromRules(file, rules)
 }

@@ -2,6 +2,7 @@ package yaml
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -38,24 +39,32 @@ func FromDFA(writer io.Writer, dfa backend.DFA) error {
 
 // DFAFromFile reads the deterministic finite automaton as YAML document from the given file path. Returns an error if the
 // file can not be read or the YAML document can not be decoded successfully.
-func DFAFromFile(filePath string) (backend.DFA, error) {
+func DFAFromFile(filePath string) (dfa backend.DFA, err error) { //nolint:nonamedreturns // Required for defer
 	file, err := os.Open(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
 	if err != nil {
 		return backend.DFA{}, fmt.Errorf("opening the YAML file %q: %w", filePath, err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("closing file: %w", closeErr))
+		}
+	}()
 
 	return ToDFA(file)
 }
 
 // DFAToFile writes the deterministic finite automaton as YAML document to the given file path. Returns an error if the file
 // can not be written or the YAML document can not be encoded successfully.
-func DFAToFile(filePath string, inputDFA backend.DFA) error {
+func DFAToFile(filePath string, inputDFA backend.DFA) (err error) {
 	file, err := os.Create(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
 	if err != nil {
 		return fmt.Errorf("creating the YAML file %q: %w", filePath, err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("closing file: %w", closeErr))
+		}
+	}()
 
 	return FromDFA(file, inputDFA)
 }

@@ -69,12 +69,16 @@ func FromParser(writer io.Writer, parser backend.Parser, config Config) error {
 
 // ParserToFile writes the parser as Go source code to the given file path. Returns an error if the file can not be
 // written or the Go source code can not be encoded successfully.
-func ParserToFile(filePath string, parser backend.Parser, config Config) error {
+func ParserToFile(filePath string, parser backend.Parser, config Config) (err error) {
 	file, err := os.Create(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
 	if err != nil {
 		return fmt.Errorf("creating the Go file %q: %w", filePath, err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("closing file: %w", closeErr))
+		}
+	}()
 
 	return FromParser(file, parser, config)
 }

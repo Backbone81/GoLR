@@ -2,6 +2,7 @@ package yaml
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -27,11 +28,15 @@ func ToGrammar(reader io.Reader) (frontend.Grammar, error) {
 
 // FromGrammar writes the context free grammar as YAML document to the given writer. Returns an error if the YAML
 // document can not be encoded successfully.
-func FromGrammar(writer io.Writer, grammar frontend.Grammar) error {
+func FromGrammar(writer io.Writer, grammar frontend.Grammar) (err error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Frontends: YAML: FromGrammar").End()
 
 	encoder := yaml.NewEncoder(writer)
-	defer encoder.Close()
+	defer func() {
+		if closeErr := encoder.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("closing YAML encoder: %w", closeErr))
+		}
+	}()
 
 	if err := encoder.Encode(grammar); err != nil {
 		return fmt.Errorf("encoding grammar to YAML: %w", err)
@@ -41,24 +46,32 @@ func FromGrammar(writer io.Writer, grammar frontend.Grammar) error {
 
 // GrammarFromFile reads the context free grammar as YAML document from the given file path. Returns an error if the
 // file can not be read or the YAML document can not be decoded successfully.
-func GrammarFromFile(filePath string) (frontend.Grammar, error) {
+func GrammarFromFile(filePath string) (grammar frontend.Grammar, err error) { //nolint:nonamedreturns // Required for defer
 	file, err := os.Open(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
 	if err != nil {
 		return frontend.Grammar{}, fmt.Errorf("opening the YAML file %q: %w", filePath, err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("closing file: %w", closeErr))
+		}
+	}()
 
 	return ToGrammar(file)
 }
 
 // GrammarToFile writes the context free grammar as YAML document to the given file path. Returns an error if the file
 // can not be written or the YAML document can not be encoded successfully.
-func GrammarToFile(filePath string, grammar frontend.Grammar) error {
+func GrammarToFile(filePath string, grammar frontend.Grammar) (err error) {
 	file, err := os.Create(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
 	if err != nil {
 		return fmt.Errorf("creating the YAML file %q: %w", filePath, err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("closing file: %w", closeErr))
+		}
+	}()
 
 	return FromGrammar(file, grammar)
 }

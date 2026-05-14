@@ -57,29 +57,7 @@ func (k *Kind) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	switch value {
-	case "Any":
-		*k = KindAny
-	case "CharClass":
-		*k = KindCharClass
-	case "Concat":
-		*k = KindConcat
-	case "Literal":
-		*k = KindLiteral
-	case "OneOrMore":
-		*k = KindOneOrMore
-	case "Optional":
-		*k = KindOptional
-	case "Or":
-		*k = KindOr
-	case "Repetition":
-		*k = KindRepetition
-	case "ZeroOrMore":
-		*k = KindZeroOrMore
-	default:
-		return errors.New("unknown kind")
-	}
-	return nil
+	return k.setKindByString(value)
 }
 
 func (k Kind) MarshalYAML() ([]byte, error) {
@@ -92,7 +70,11 @@ func (k *Kind) UnmarshalYAML(data []byte) error {
 		return err
 	}
 
-	switch value {
+	return k.setKindByString(value)
+}
+
+func (k *Kind) setKindByString(text string) error {
+	switch text {
 	case "Any":
 		*k = KindAny
 	case "CharClass":

@@ -117,6 +117,9 @@ linters:
     # - wsl
     # - wsl_v5
     - zerologlint
+  settings:
+    goconst:
+      min-occurrences: 5
   exclusions:
     rules:
       - path: _test\.go
@@ -125,6 +128,7 @@ linters:
           - dupl
           - funlen
           - gocognit
+          - goconst
           - gosec
       - path: ^cmd/
         linters:

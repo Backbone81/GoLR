@@ -2,6 +2,7 @@ package yaml
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -38,24 +39,32 @@ func FromParser(writer io.Writer, parser backend.Parser) error {
 
 // ParserFromFile reads the parser as YAML document from the given file path. Returns an error if the file can not be
 // read or the YAML document can not be decoded successfully.
-func ParserFromFile(filePath string) (backend.Parser, error) {
+func ParserFromFile(filePath string) (parser backend.Parser, err error) { //nolint:nonamedreturns // Required for defer
 	file, err := os.Open(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
 	if err != nil {
 		return backend.Parser{}, fmt.Errorf("opening the YAML file %q: %w", filePath, err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("closing file: %w", closeErr))
+		}
+	}()
 
 	return ToParser(file)
 }
 
 // ParserToFile writes the parser as YAML document to the given file path. Returns an error if the file can not be
 // written or the YAML document can not be encoded successfully.
-func ParserToFile(filePath string, parser backend.Parser) error {
+func ParserToFile(filePath string, parser backend.Parser) (err error) {
 	file, err := os.Create(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
 	if err != nil {
 		return fmt.Errorf("creating the YAML file %q: %w", filePath, err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("closing file: %w", closeErr))
+		}
+	}()
 
 	return FromParser(file, parser)
 }
