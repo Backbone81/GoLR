@@ -2,11 +2,13 @@ package bison
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var ErrVersionParseError = errors.New("could not parse bison version")
@@ -18,8 +20,9 @@ type BisonVersion struct {
 }
 
 func Version() (BisonVersion, error) {
-	stdout, _, err := execute("--version")
+	stdout, stderr, err := execute("--version")
 	if err != nil {
+		fmt.Println(stderr)
 		return BisonVersion{}, err
 	}
 
@@ -96,14 +99,18 @@ func build(grammarFilePath string, automatonFilePath string, parserType string) 
 		args = append(args, "--header=/dev/null")
 	}
 	args = append(args, grammarFilePath)
-	if _, _, err := execute(args...); err != nil {
+	if _, stderr, err := execute(args...); err != nil {
+		fmt.Println(stderr)
 		return err
 	}
 	return nil
 }
 
 func execute(args ...string) (string, string, error) {
-	cmd := exec.Command("bison", args...)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "bison", args...) //nolint:gosec // The variables are fine and controlled by ourselves.
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

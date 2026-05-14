@@ -10,14 +10,14 @@ import (
 // the Symbols are the right hand side of the production.
 type Production struct {
 	// NonterminalIdx is the nonterminal index which makes up the left hand side of the production.
-	NonterminalIdx int `json:"nonterminalIdx" yaml:"nonterminal_idx"`
+	NonterminalIdx int `json:"nonterminalIdx" yaml:"nonterminalIdx"`
 
 	// SymbolRefs is the list of symbols which make up the right hand side of the production.
-	SymbolRefs []SymbolRef `json:"symbolRefs" yaml:"symbol_refs"`
+	SymbolRefs []SymbolRef `json:"symbolRefs" yaml:"symbolRefs"`
 
 	// PrecedenceTerminalIdx provides the terminal index to use for deriving the precedence for this production.
 	// If this is nil, the default behavior is used which is the precedence of the rightmost terminal.
-	PrecedenceTerminalIdx *int `json:"precedenceTerminalIdx,omitempty" yaml:"precedence_terminal_idx,omitempty"`
+	PrecedenceTerminalIdx *int `json:"precedenceTerminalIdx,omitempty" yaml:"precedenceTerminalIdx,omitempty"`
 }
 
 // Production implements fmt.Stringer.

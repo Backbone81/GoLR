@@ -55,7 +55,7 @@ func (c Core) String() string {
 }
 
 type coreMarshal struct {
-	ProductionIdx int `json:"productionIdx" yaml:"production_idx"`
+	ProductionIdx int `json:"productionIdx" yaml:"productionIdx"`
 	Position      int `json:"position"      yaml:"position"`
 }
 

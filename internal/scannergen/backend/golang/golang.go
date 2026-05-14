@@ -66,7 +66,7 @@ func FromDFA(writer io.Writer, dfa backend.DFA, config Config) error {
 // DFAToFile writes the DFA as Go source code to the given file path. Returns an error if the file can not be
 // written or the Go source code can not be encoded successfully.
 func DFAToFile(filePath string, dfa backend.DFA, config Config) error {
-	file, err := os.Create(filePath)
+	file, err := os.Create(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
 	if err != nil {
 		return fmt.Errorf("creating the Go file %q: %w", filePath, err)
 	}

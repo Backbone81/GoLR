@@ -6,7 +6,7 @@ import (
 )
 
 func LoadBisonXMLReportFromFile(filePath string) (BisonXMLReport, error) {
-	data, err := os.ReadFile(filePath)
+	data, err := os.ReadFile(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
 	if err != nil {
 		return BisonXMLReport{}, err
 	}

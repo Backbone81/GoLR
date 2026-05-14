@@ -99,7 +99,7 @@ func (s *OrderedSet[T]) Hash() uint64 {
 		// We are converting the slice of values into a slice of bytes for calculating the hash. We do this with unsafe
 		// pointer arithmetic to avoid rewriting data only for the hash, which we already have at hand.
 		dataByteSize := len(s.data) * int(unsafe.Sizeof(s.data[0]))
-		dataBytes := unsafe.Slice((*byte)(unsafe.Pointer(&s.data[0])), dataByteSize)
+		dataBytes := unsafe.Slice((*byte)(unsafe.Pointer(&s.data[0])), dataByteSize) //nolint:gosec // unsafe is required for better performance
 		if _, err := hash.Write(dataBytes); err != nil {
 			panic(err)
 		}

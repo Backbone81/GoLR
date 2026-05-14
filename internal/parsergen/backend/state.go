@@ -8,17 +8,17 @@ import (
 // State represents a LR(1) state. The structure of this state is derived from definition 3.1 of IELR(1).
 type State struct {
 	// KernelItems provides a set of all kernel items.
-	KernelItems CoreSet `json:"kernelItems" yaml:"kernel_items"`
+	KernelItems CoreSet `json:"kernelItems" yaml:"kernelItems"`
 
 	// TransitionActions provides a set of all transition actions.
-	TransitionActions TransitionActionSet `json:"transitionActions" yaml:"transition_actions"`
+	TransitionActions TransitionActionSet `json:"transitionActions" yaml:"transitionActions"`
 
 	// ReduceActions provides a set of all reduce actions.
-	ReduceActions ReduceActionSet `json:"reduceActions" yaml:"reduce_actions"`
+	ReduceActions ReduceActionSet `json:"reduceActions" yaml:"reduceActions"`
 
 	// DefaultReduceProductionIdx provides the production index for a default reduce action on any lookahead. Is nil
 	// if not set.
-	DefaultReduceProductionIdx *int `json:"defaultReduceProductionIdx,omitempty" yaml:"default_reduce_production_idx,omitempty"`
+	DefaultReduceProductionIdx *int `json:"defaultReduceProductionIdx,omitempty" yaml:"defaultReduceProductionIdx,omitempty"`
 }
 
 // State implements fmt.Stringer.

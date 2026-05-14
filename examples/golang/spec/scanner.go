@@ -4,13 +4,13 @@ import (
 	"unicode"
 
 	"golr/pkg/scannergen/frontend"
-	. "golr/pkg/scannergen/frontend/dsl"
+	. "golr/pkg/scannergen/frontend/dsl" //nolint:staticcheck // The DSL is intended to be used as dot import.
 )
 
 // GetScannerRules returns the rules for generating a scanner for parsing Go source code. The details can be found
 // at https://go.dev/ref/spec#Source_code_representation and https://go.dev/ref/spec#Lexical_elements.
 func GetScannerRules() []frontend.Rule {
-	var rules []frontend.Rule
+	var rules []frontend.Rule //nolint:prealloc // No need to preallocate. This is not time-critical.
 
 	// Characters (https://go.dev/ref/spec#Characters)
 	newline := Or(

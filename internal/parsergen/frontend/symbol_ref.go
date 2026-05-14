@@ -27,13 +27,13 @@ const (
 // NewTerminalRef creates a new SymbolRef for a terminal index.
 func NewTerminalRef(idx int) SymbolRef {
 	utils.AssertValidIndex(idx, symbolRefMaxIdx)
-	return SymbolRef(idx)
+	return SymbolRef(idx) //nolint:gosec // We already have an assertion in place to test for the correct range.
 }
 
 // NewNonterminalRef creates a new SymbolRef for a nonterminal index.
 func NewNonterminalRef(idx int) SymbolRef {
 	utils.AssertValidIndex(idx, symbolRefMaxIdx)
-	return SymbolRef(symbolRefNonterminalBit | idx)
+	return SymbolRef(symbolRefNonterminalBit | idx) //nolint:gosec // We already have an assertion in place to test for the correct range.
 }
 
 // IsTerminal reports if the SymbolRef is holding a terminal index.

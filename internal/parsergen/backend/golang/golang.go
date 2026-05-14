@@ -70,7 +70,7 @@ func FromParser(writer io.Writer, parser backend.Parser, config Config) error {
 // ParserToFile writes the parser as Go source code to the given file path. Returns an error if the file can not be
 // written or the Go source code can not be encoded successfully.
 func ParserToFile(filePath string, parser backend.Parser, config Config) error {
-	file, err := os.Create(filePath)
+	file, err := os.Create(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
 	if err != nil {
 		return fmt.Errorf("creating the Go file %q: %w", filePath, err)
 	}
@@ -138,7 +138,7 @@ func buildStateActions(grammar frontend.Grammar, state backend.State) ([]StateAc
 
 func buildDefaultReduce(grammar frontend.Grammar, state backend.State) (*StateAction, error) {
 	if state.DefaultReduceProductionIdx == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // The nil value is our sentinel value and therefore fine here.
 	}
 
 	var action StateAction

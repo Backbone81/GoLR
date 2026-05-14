@@ -67,8 +67,8 @@ func UnicodeCategory(tables ...*unicode.RangeTable) []frontend.CharRange {
 		}
 		for _, r32 := range table.R32 {
 			result = append(result, CharRange(
-				rune(r32.Lo),
-				rune(r32.Hi),
+				rune(r32.Lo), //nolint:gosec // Integer overflow conversion is expected behavior
+				rune(r32.Hi), //nolint:gosec // Integer overflow conversion is expected behavior
 			))
 		}
 	}

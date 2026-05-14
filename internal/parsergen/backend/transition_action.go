@@ -30,9 +30,6 @@ func NewTransitionAction(symbolRef frontend.SymbolRef, stateIdx int) TransitionA
 }
 
 const (
-	transitionActionSymbolBits = 16
-	transitionActionMaxSymbol  = (1 << transitionActionSymbolBits) - 1
-
 	transitionActionStateBits = 16
 	transitionActionMaxState  = (1 << transitionActionStateBits) - 1
 	transitionActionStateMask = transitionActionMaxState
@@ -58,8 +55,8 @@ func (a TransitionAction) String() string {
 
 // transitionActionMarshal is a helper struct which is only used for marshaling.
 type transitionActionMarshal struct {
-	SymbolRef frontend.SymbolRef `json:"symbolRef" yaml:"symbol_ref"`
-	StateIdx  int                `json:"stateIdx"  yaml:"state_idx"`
+	SymbolRef frontend.SymbolRef `json:"symbolRef" yaml:"symbolRef"`
+	StateIdx  int                `json:"stateIdx"  yaml:"stateIdx"`
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.

@@ -7,8 +7,6 @@ import (
 	"golr/internal/utils"
 )
 
-// TODO: Add tests for the ordered set.
-
 func BenchmarkOrderedSet_Add(b *testing.B) {
 	for values := 2; values <= 64; values *= 2 {
 		b.Run(fmt.Sprintf("Adding %d values ascending", values), func(b *testing.B) {

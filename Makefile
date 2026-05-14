@@ -10,6 +10,13 @@ lint:
 		--rm \
 		--volume ${PWD}:/app \
 		--workdir /app \
+		--user $$(id -u):$$(id -g) \
+		--volume $$(go env GOCACHE):/.cache/go-build \
+		--env GOCACHE=/.cache/go-build \
+		--volume $$(go env GOMODCACHE):/.cache/mod \
+		--env GOMODCACHE=/.cache/mod \
+		--volume ~/.cache/golangci-lint:/.cache/golangci-lint \
+		--env GOLANGCI_LINT_CACHE=/.cache/golangci-lint \
 		golangci/golangci-lint:v2.12.2 \
 		golangci-lint run --fix $(PACKAGE)
 

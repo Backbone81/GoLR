@@ -10,8 +10,8 @@ import (
 // ReduceAction is a reduce action of an LR(1) item consisting of a lookahead set of terminals and a production index
 // to reduce for. The values for the production must be in the range of [0, 65535].
 type ReduceAction struct {
-	LookaheadSet  LookaheadSet `json:"lookaheadSet"  yaml:"lookahead_set"`
-	ProductionIdx int          `json:"productionIdx" yaml:"production_idx"`
+	LookaheadSet  LookaheadSet `json:"lookaheadSet"  yaml:"lookaheadSet"`
+	ProductionIdx int          `json:"productionIdx" yaml:"productionIdx"`
 }
 
 const (

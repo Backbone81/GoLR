@@ -19,7 +19,7 @@ type Grammar struct {
 	Productions []Production `json:"productions" yaml:"productions"`
 
 	// StartNonterminalIdx is the nonterminal index which marks the start of the grammar.
-	StartNonterminalIdx int `json:"startNonterminalIdx" yaml:"start_nonterminal_idx"`
+	StartNonterminalIdx int `json:"startNonterminalIdx" yaml:"startNonterminalIdx"`
 }
 
 // Validate checks if the grammar is correct. If the validation fails, an error with the details about the failure is

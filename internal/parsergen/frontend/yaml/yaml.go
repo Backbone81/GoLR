@@ -42,7 +42,7 @@ func FromGrammar(writer io.Writer, grammar frontend.Grammar) error {
 // GrammarFromFile reads the context free grammar as YAML document from the given file path. Returns an error if the
 // file can not be read or the YAML document can not be decoded successfully.
 func GrammarFromFile(filePath string) (frontend.Grammar, error) {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
 	if err != nil {
 		return frontend.Grammar{}, fmt.Errorf("opening the YAML file %q: %w", filePath, err)
 	}
@@ -54,7 +54,7 @@ func GrammarFromFile(filePath string) (frontend.Grammar, error) {
 // GrammarToFile writes the context free grammar as YAML document to the given file path. Returns an error if the file
 // can not be written or the YAML document can not be encoded successfully.
 func GrammarToFile(filePath string, grammar frontend.Grammar) error {
-	file, err := os.Create(filePath)
+	file, err := os.Create(filePath) //nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
 	if err != nil {
 		return fmt.Errorf("creating the YAML file %q: %w", filePath, err)
 	}

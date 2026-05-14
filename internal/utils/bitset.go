@@ -110,7 +110,7 @@ func (b *Bitset) Merge(other *Bitset) {
 // as long as the set bits are located at locations which both bitsets share.
 func (b *Bitset) Equal(other Bitset) bool {
 	// make sure the same chunks are equal
-	for i := 0; i < min(len(b.chunks), len(other.chunks)); i++ {
+	for i := range min(len(b.chunks), len(other.chunks)) {
 		if b.chunks[i] != other.chunks[i] {
 			return false
 		}
@@ -190,7 +190,7 @@ func (b *Bitset) Hash() uint64 {
 	hash := fnv.New64a()
 	if chunkCount > 0 {
 		chunksByteSize := chunkCount * int(unsafe.Sizeof(b.chunks[0]))
-		chunksBytes := unsafe.Slice((*byte)(unsafe.Pointer(&b.chunks[0])), chunksByteSize)
+		chunksBytes := unsafe.Slice((*byte)(unsafe.Pointer(&b.chunks[0])), chunksByteSize) //nolint:gosec // unsafe is required for better performance
 		if _, err := hash.Write(chunksBytes); err != nil {
 			panic(err)
 		}
