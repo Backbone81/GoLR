@@ -102,6 +102,9 @@ func init() {
 		"",
 		"The file path to read the context free grammar from.",
 	)
+	if err := parserCmd.MarkPersistentFlagRequired("frontend-file-path"); err != nil {
+		panic(err)
+	}
 
 	parserCmd.PersistentFlags().StringVar(
 		&parserCore,
@@ -122,6 +125,9 @@ func init() {
 		"",
 		"The file path to write the parser to.",
 	)
+	if err := parserCmd.MarkPersistentFlagRequired("backend-file-path"); err != nil {
+		panic(err)
+	}
 
 	parserCmd.PersistentFlags().StringVar(
 		&parserBackendGoPackageName,

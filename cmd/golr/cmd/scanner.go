@@ -99,6 +99,9 @@ func init() {
 		"",
 		"The file path to read the regular expressions from.",
 	)
+	if err := scannerCmd.MarkPersistentFlagRequired("frontend-file-path"); err != nil {
+		panic(err)
+	}
 
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerCore,
@@ -119,6 +122,9 @@ func init() {
 		"",
 		"The file path to write the scanner to.",
 	)
+	if err := scannerCmd.MarkPersistentFlagRequired("backend-file-path"); err != nil {
+		panic(err)
+	}
 
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerBackendGoPackageName,
