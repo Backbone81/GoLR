@@ -1,3 +1,4 @@
+//nolint:exhaustive // The ContextScanner will only deal with selected tokens and does not need to be exhaustive.
 package parser
 
 // ContextScanner is responsible for collecting blocks of code into one single token.

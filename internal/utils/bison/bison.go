@@ -22,8 +22,7 @@ type BisonVersion struct {
 func Version() (BisonVersion, error) {
 	stdout, stderr, err := execute("--version")
 	if err != nil {
-		fmt.Println(stderr)
-		return BisonVersion{}, err
+		return BisonVersion{}, errors.Join(err, errors.New(stderr))
 	}
 
 	lines := strings.Split(stdout, "\n")
@@ -100,8 +99,7 @@ func build(grammarFilePath string, automatonFilePath string, parserType string) 
 	}
 	args = append(args, grammarFilePath)
 	if _, stderr, err := execute(args...); err != nil {
-		fmt.Println(stderr)
-		return err
+		return errors.Join(err, errors.New(stderr))
 	}
 	return nil
 }
@@ -117,9 +115,10 @@ func execute(args ...string) (string, string, error) {
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
-		fmt.Println(stdout.String())
-		fmt.Println(stderr.String())
-		return stdout.String(), stderr.String(), fmt.Errorf("executing bison: %w", err)
+		err = fmt.Errorf("executing bison: %w", err)
+		err = errors.Join(err, errors.New(stdout.String()))
+		err = errors.Join(err, errors.New(stderr.String()))
+		return stdout.String(), stderr.String(), err
 	}
 	return stdout.String(), stderr.String(), nil
 }

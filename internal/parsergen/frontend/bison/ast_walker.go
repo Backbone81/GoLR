@@ -1,3 +1,4 @@
+//nolint:exhaustive // The ASTWalker will only descend selected nonterminals and does not need to be exhaustive.
 package bison
 
 import (

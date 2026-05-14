@@ -167,6 +167,8 @@ func (i *IELR1) writeBisonAssociativityAndPrecedence(file *os.File) error {
 			if _, err := fmt.Fprintf(file, "%%nonassoc"); err != nil {
 				return err
 			}
+		case frontend.AssociativityUndeclared:
+			// Nothing to output for undeclared associativity as that is the default situation.
 		default:
 			if _, err := fmt.Fprintf(file, "%%precedence"); err != nil {
 				return err

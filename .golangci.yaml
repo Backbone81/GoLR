@@ -133,6 +133,9 @@ linters:
       - path: ^cmd/
         linters:
           - forbidigo
+      - path: ^examples/
+        linters:
+          - forbidigo
 formatters:
   enable:
     - gci
