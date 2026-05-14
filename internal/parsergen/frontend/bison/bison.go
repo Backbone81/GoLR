@@ -3,13 +3,14 @@ package bison
 import (
 	"context"
 	"fmt"
-	"golr/internal/parsergen/frontend"
-	bisonparser "golr/internal/parsergen/frontend/bison/parser"
-	"golr/pkg/runtime"
 	"io"
 	"os"
 	"runtime/trace"
 	"strings"
+
+	"golr/internal/parsergen/frontend"
+	bisonparser "golr/internal/parsergen/frontend/bison/parser"
+	"golr/pkg/runtime"
 )
 
 // ToGrammar reads the context free grammar as GNU Bison grammar document from the given reader. Returns an error if the

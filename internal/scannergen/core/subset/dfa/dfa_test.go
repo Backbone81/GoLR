@@ -129,7 +129,6 @@ var _ = Describe("DFA", func() {
 	})
 })
 
-//nolint:funlen
 func BenchmarkFromNFA(b *testing.B) {
 	b.Run("[a-zA-Z_][a-zA-Z0-9_]*", func(b *testing.B) {
 		expression := dsl.Concat(

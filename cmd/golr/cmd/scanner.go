@@ -2,6 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
+	"github.com/spf13/cobra"
+
 	"golr/pkg/scannergen/backend"
 	golangbackend "golr/pkg/scannergen/backend/golang"
 	jsonbackend "golr/pkg/scannergen/backend/json"
@@ -10,9 +14,6 @@ import (
 	"golr/pkg/scannergen/frontend"
 	jsonfrontend "golr/pkg/scannergen/frontend/json"
 	yamlfrontend "golr/pkg/scannergen/frontend/yaml"
-	"os"
-
-	"github.com/spf13/cobra"
 )
 
 var (

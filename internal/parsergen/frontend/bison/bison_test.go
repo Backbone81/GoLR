@@ -1,11 +1,11 @@
 package bison_test
 
 import (
-	"golr/internal/parsergen/frontend"
-	"golr/internal/parsergen/frontend/bison"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"golr/internal/parsergen/frontend"
+	"golr/internal/parsergen/frontend/bison"
 )
 
 var _ = Describe("Bison Grammar Files", func() {

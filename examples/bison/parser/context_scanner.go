@@ -10,7 +10,7 @@ type ContextScanner struct {
 	percentPercentCount int
 }
 
-// ContextScanner implements ParserScanner
+// ContextScanner implements ParserScanner.
 var _ ParserScanner = (*ContextScanner)(nil)
 
 func (c *ContextScanner) Err() error {

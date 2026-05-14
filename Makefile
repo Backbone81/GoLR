@@ -10,7 +10,7 @@ lint:
 		--rm \
 		--volume ${PWD}:/app \
 		--workdir /app \
-		golangci/golangci-lint:v2.11.4 \
+		golangci/golangci-lint:v2.12.2 \
 		golangci-lint run --fix $(PACKAGE)
 
 .PHONY: generate

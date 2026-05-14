@@ -4,42 +4,53 @@ version: "2"
 linters:
   default: none
   enable:
+    # - arangolint
     - asasalint
     - asciicheck
     - bidichk
     - bodyclose
     - canonicalheader
+    # - clickhouselint
     - containedctx
     - contextcheck
     - copyloopvar
     - cyclop
     - decorder
+    # - depguard
     - dogsled
     - dupl
     - dupword
     - durationcheck
+    # - embeddedstructfieldcheck
+    # - err113
     - errcheck
     - errchkjson
     - errname
     - errorlint
     - exhaustive
+    # - exhaustruct
     - exptostd
     - fatcontext
     - forbidigo
     - forcetypeassert
+    # - funcorder
     - funlen
     - ginkgolinter
     - gocheckcompilerdirectives
+    # - gochecknoglobals
+    # - gochecknoinits
     - gochecksumtype
     - gocognit
     - goconst
     - gocritic
     - gocyclo
+    # - godoclint
     - godot
     - godox
     - goheader
     - gomoddirectives
     - gomodguard
+    # - gomodguard_v2
     - goprintffuncname
     - gosec
     - gosmopolitan
@@ -51,27 +62,37 @@ linters:
     - ineffassign
     - interfacebloat
     - intrange
+    # - iotamixing
+    # - ireturn
+    # - lll
     - loggercheck
     - maintidx
     - makezero
     - mirror
     - misspell
+    # - mnd
+    # - modernize
     - musttag
     - nakedret
     - nestif
     - nilerr
     - nilnesserr
     - nilnil
+    # - nlreturn
     - noctx
+    # - noinlineerr
     - nolintlint
     - nonamedreturns
     - nosprintfhostport
+    # - paralleltest
     - perfsprint
     - prealloc
     - predeclared
     - promlinter
     - protogetter
     - reassign
+    # - recvcheck
+    # - revive
     - rowserrcheck
     - sloglint
     - spancheck
@@ -82,20 +103,27 @@ linters:
     - testableexamples
     - testifylint
     - testpackage
+    # - thelper
     - tparallel
     - unconvert
     - unparam
+    # - unqueryvet
     - unused
     - usestdlibvars
     - usetesting
+    # - varnamelen
     - wastedassign
     - whitespace
+    # - wrapcheck
+    # - wsl
+    # - wsl_v5
     - zerologlint
   exclusions:
     rules:
       - path: _test\.go
         linters:
           - dupl
+          - funlen
       - path: ^cmd/
         linters:
           - forbidigo

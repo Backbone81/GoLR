@@ -1,9 +1,9 @@
 package spec
 
 import (
-	"golr/pkg/scannergen/frontend"
 	"unicode"
 
+	"golr/pkg/scannergen/frontend"
 	. "golr/pkg/scannergen/frontend/dsl"
 )
 

@@ -3,6 +3,7 @@ package bison
 import (
 	"errors"
 	"fmt"
+
 	"golr/internal/parsergen/frontend"
 	"golr/internal/parsergen/frontend/bison/parser"
 )
