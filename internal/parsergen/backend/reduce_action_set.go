@@ -31,7 +31,7 @@ func (s *ReduceActionSet) String() string {
 		if i > 0 {
 			builder.WriteString(", ")
 		}
-		builder.WriteString(fmt.Sprintf("%s", &s.actions[i]))
+		fmt.Fprintf(&builder, "%s", &s.actions[i])
 	}
 	builder.WriteString("}")
 	return builder.String()
