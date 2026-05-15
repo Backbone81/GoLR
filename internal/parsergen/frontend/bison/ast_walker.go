@@ -529,26 +529,9 @@ func (w *ASTWalker) visitSymbol(node *parser.Node) {
 		panic("unexpected nonterminal")
 	}
 
-	var id string
-	var err error
-	id, err = w.getID(node)
+	id, err := w.getSymbolId(node)
 	if err != nil {
-		id, err = w.getStringAsID(node)
-		if err != nil {
-			id, err = w.getCharLiteralAsID(node)
-			if err != nil {
-				return
-			}
-
-			// char literals are always terminals but need not be pre-declared with %token
-			if _, ok := w.terminalIdxByName[id]; !ok {
-				w.grammar.Terminals = append(w.grammar.Terminals, frontend.Symbol{
-					Name:  fmt.Sprintf("CHAR_%d", int(id[1])),
-					Alias: id,
-				})
-				w.terminalIdxByName[id] = len(w.grammar.Terminals) - 1
-			}
-		}
+		return
 	}
 
 	if w.activePercentPrec {
@@ -587,6 +570,31 @@ func (w *ASTWalker) visitSymbol(node *parser.Node) {
 	production := w.grammar.Productions[len(w.grammar.Productions)-1]
 	production.SymbolRefs = append(production.SymbolRefs, frontend.NewNonterminalRef(nonterminalIdx))
 	w.grammar.Productions[len(w.grammar.Productions)-1] = production
+}
+
+func (w *ASTWalker) getSymbolId(node *parser.Node) (string, error) {
+	if id, err := w.getID(node); err == nil {
+		return id, nil
+	}
+
+	if id, err := w.getStringAsID(node); err == nil {
+		return id, nil
+	}
+
+	id, err := w.getCharLiteralAsID(node)
+	if err != nil {
+		return "", err
+	}
+
+	// char literals are always terminals but need not be pre-declared with %token
+	if _, ok := w.terminalIdxByName[id]; !ok {
+		w.grammar.Terminals = append(w.grammar.Terminals, frontend.Symbol{
+			Name:  fmt.Sprintf("CHAR_%d", int(id[1])),
+			Alias: id,
+		})
+		w.terminalIdxByName[id] = len(w.grammar.Terminals) - 1
+	}
+	return id, nil
 }
 
 func (w *ASTWalker) getID(node *parser.Node) (string, error) {

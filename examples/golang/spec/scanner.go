@@ -9,6 +9,8 @@ import (
 
 // GetScannerRules returns the rules for generating a scanner for parsing Go source code. The details can be found
 // at https://go.dev/ref/spec#Source_code_representation and https://go.dev/ref/spec#Lexical_elements.
+//
+//nolint:funlen,maintidx // The long function is intended, as it fully describes the scanner rules.
 func GetScannerRules() []frontend.Rule {
 	var rules []frontend.Rule //nolint:prealloc // No need to preallocate. This is not time-critical.
 

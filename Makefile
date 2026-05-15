@@ -3,8 +3,15 @@ PACKAGE ?= ./...
 .PHONY: all
 all: build
 
-.PHONY: lint
-lint:
+.PHONY: generate
+generate:
+	scripts/generate.sh
+
+.PHONY: prepare
+prepare: generate
+	go mod tidy
+	go fmt $(PACKAGE)
+	go vet $(PACKAGE)
 	docker run \
 		--tty \
 		--rm \
@@ -19,16 +26,6 @@ lint:
 		--env GOLANGCI_LINT_CACHE=/.cache/golangci-lint \
 		golangci/golangci-lint:v2.12.2 \
 		golangci-lint run --fix $(PACKAGE)
-
-.PHONY: generate
-generate:
-	scripts/generate.sh
-
-.PHONY: prepare
-prepare: generate
-	go mod tidy
-	go fmt $(PACKAGE)
-	go vet $(PACKAGE)
 
 .PHONY: build
 build: prepare

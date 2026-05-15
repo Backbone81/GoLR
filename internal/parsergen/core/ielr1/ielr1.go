@@ -37,6 +37,11 @@ func NewIELR1(augmentedGrammar frontend.Grammar) *IELR1 {
 	}
 }
 
+type PrecedenceGroup struct {
+	Associativity frontend.Associativity
+	TerminalIdxs  []int
+}
+
 func (i *IELR1) BuildParser() (parser backend.Parser, err error) { //nolint:nonamedreturns // Required for defer
 	bisonGrammarFile, err := os.CreateTemp("", "golr-ielr1-*.y")
 	if err != nil {
@@ -127,33 +132,8 @@ func (i *IELR1) writeBisonGrammarTokens(file *os.File) error {
 }
 
 func (i *IELR1) writeBisonAssociativityAndPrecedence(file *os.File) error {
-	type PrecedenceGroup struct {
-		Associativity frontend.Associativity
-		TerminalIdxs  []int
-	}
-
-	precedenceGroupByLevel := make(map[int]*PrecedenceGroup)
-	for idx, terminal := range i.grammar.Terminals {
-		if terminal.Precedence == 0 {
-			// Precedence of 0 means no precedence was set.
-			continue
-		}
-
-		group, ok := precedenceGroupByLevel[terminal.Precedence]
-		if !ok {
-			group = &PrecedenceGroup{
-				Associativity: terminal.Associativity,
-			}
-			precedenceGroupByLevel[terminal.Precedence] = group
-		}
-		group.TerminalIdxs = append(group.TerminalIdxs, idx)
-	}
-
-	levels := slices.Collect(maps.Keys(precedenceGroupByLevel))
-	slices.Sort(levels)
-	for _, level := range levels {
-		group := precedenceGroupByLevel[level]
-
+	precedenceGroups := i.buildPrecedenceGroups()
+	for _, group := range precedenceGroups {
 		switch group.Associativity {
 		case frontend.AssociativityLeft:
 			if _, err := fmt.Fprintf(file, "%%left"); err != nil {
@@ -187,55 +167,121 @@ func (i *IELR1) writeBisonAssociativityAndPrecedence(file *os.File) error {
 	return nil
 }
 
+func (i *IELR1) buildPrecedenceGroups() []*PrecedenceGroup {
+	precedenceGroupByLevel := make(map[int]*PrecedenceGroup, 10)
+	for idx, terminal := range i.grammar.Terminals {
+		if terminal.Precedence == 0 {
+			// Precedence of 0 means no precedence was set.
+			continue
+		}
+
+		group, ok := precedenceGroupByLevel[terminal.Precedence]
+		if !ok {
+			group = &PrecedenceGroup{
+				Associativity: terminal.Associativity,
+			}
+			precedenceGroupByLevel[terminal.Precedence] = group
+		}
+		group.TerminalIdxs = append(group.TerminalIdxs, idx)
+	}
+
+	levels := slices.Collect(maps.Keys(precedenceGroupByLevel))
+	slices.Sort(levels)
+
+	result := make([]*PrecedenceGroup, 0, len(levels))
+	for _, level := range levels {
+		result = append(result, precedenceGroupByLevel[level])
+	}
+	return result
+}
+
 func (i *IELR1) writeBisonGrammarProductions(file *os.File) error {
 	currNonterminalIdx := -1
 	for _, production := range i.grammar.Productions {
 		if currNonterminalIdx != production.NonterminalIdx {
-			if currNonterminalIdx != -1 {
-				if _, err := fmt.Fprintln(file); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintln(file, "  ;"); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintln(file); err != nil {
-					return err
-				}
-			}
-			if _, err := fmt.Fprintf(file, "%s\n", i.grammar.Nonterminals[production.NonterminalIdx].Name); err != nil {
+			if err := i.writeBisonGrammarProductionEnd(file, currNonterminalIdx); err != nil {
 				return err
 			}
-			if _, err := fmt.Fprintf(file, "  :"); err != nil {
+			if err := i.writeBisonGrammarProductionStart(file, production); err != nil {
 				return err
 			}
 			currNonterminalIdx = production.NonterminalIdx
 		} else {
-			if _, err := fmt.Fprintln(file); err != nil {
-				return err
-			}
-			if _, err := fmt.Fprintf(file, "  |"); err != nil {
+			if err := i.writeBisonGrammarProductionAlternative(file); err != nil {
 				return err
 			}
 		}
-		if len(production.SymbolRefs) == 0 {
-			if _, err := fmt.Fprintf(file, " %%empty"); err != nil {
+
+		if err := i.writeBisonGrammarProductionRhs(file, production); err != nil {
+			return err
+		}
+		if err := i.writeBisonGrammarProductionPrecedence(file, production); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (i *IELR1) writeBisonGrammarProductionStart(file *os.File, production frontend.Production) error {
+	if _, err := fmt.Fprintf(file, "%s\n", i.grammar.Nonterminals[production.NonterminalIdx].Name); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(file, "  :"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (i *IELR1) writeBisonGrammarProductionAlternative(file *os.File) error {
+	if _, err := fmt.Fprintln(file); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(file, "  |"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (i *IELR1) writeBisonGrammarProductionEnd(file *os.File, currNonterminalIdx int) error {
+	if currNonterminalIdx != -1 {
+		if _, err := fmt.Fprintln(file); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintln(file, "  ;"); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintln(file); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (i *IELR1) writeBisonGrammarProductionPrecedence(file *os.File, production frontend.Production) error {
+	if production.PrecedenceTerminalIdx != nil {
+		precedenceTerminal := i.grammar.Terminals[*production.PrecedenceTerminalIdx]
+		if _, err := fmt.Fprintf(file, " %%prec %s", precedenceTerminal.Name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (i *IELR1) writeBisonGrammarProductionRhs(file *os.File, production frontend.Production) error {
+	if len(production.SymbolRefs) == 0 {
+		if _, err := fmt.Fprintf(file, " %%empty"); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	for _, symbolRef := range production.SymbolRefs {
+		if symbolRef.IsTerminal() {
+			if _, err := fmt.Fprintf(file, " %s", i.grammar.Terminals[symbolRef.Idx()].Name); err != nil {
 				return err
 			}
-		}
-		for _, symbolRef := range production.SymbolRefs {
-			if symbolRef.IsTerminal() {
-				if _, err := fmt.Fprintf(file, " %s", i.grammar.Terminals[symbolRef.Idx()].Name); err != nil {
-					return err
-				}
-			} else {
-				if _, err := fmt.Fprintf(file, " %s", i.grammar.Nonterminals[symbolRef.Idx()].Name); err != nil {
-					return err
-				}
-			}
-		}
-		if production.PrecedenceTerminalIdx != nil {
-			precedenceTerminal := i.grammar.Terminals[*production.PrecedenceTerminalIdx]
-			if _, err := fmt.Fprintf(file, " %%prec %s", precedenceTerminal.Name); err != nil {
+		} else {
+			if _, err := fmt.Fprintf(file, " %s", i.grammar.Nonterminals[symbolRef.Idx()].Name); err != nil {
 				return err
 			}
 		}

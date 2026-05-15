@@ -11,6 +11,8 @@ import (
 // https://github.com/akimd/bison/blob/master/src/scan-code.l
 // https://github.com/akimd/bison/blob/master/src/scan-skel.l
 // https://github.com/akimd/bison/blob/master/src/parse-gram.y
+//
+//nolint:funlen // The long function is intended, as it fully describes the scanner rules.
 func GetScannerRules() []frontend.Rule {
 	var rules []frontend.Rule //nolint:prealloc // No need to preallocate. This is not time-critical.
 

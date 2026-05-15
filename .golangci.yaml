@@ -105,6 +105,8 @@ linters:
   settings:
     goconst:
       min-occurrences: 5
+    cyclop:
+      max-complexity: 15
   exclusions:
     rules:
       - path: _test\.go

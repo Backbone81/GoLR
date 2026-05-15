@@ -89,6 +89,7 @@ func (s *Scanner) ReadBracedPredicate() {
 	s.readBracedContent(TokenBracedPredicate)
 }
 
+//nolint:cyclop // The complexity is fine. Changes to the code would make it harder to understand.
 func (s *Scanner) readBracedContent(token Token) {
 	s.err = nil
 	var previousRune rune
