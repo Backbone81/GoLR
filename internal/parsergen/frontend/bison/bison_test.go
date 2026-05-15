@@ -1,6 +1,10 @@
 package bison_test
 
 import (
+	"bytes"
+	"os"
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -1519,7 +1523,7 @@ var _ = Describe("Bison Grammar Files", func() {
 
 	Context("well known Bison grammars", func() {
 		It("should correctly parse the Bison 3.8.2 grammar", func() {
-			grammar, err := bison.GrammarFromFile("testdata/bison-3.8.2.y")
+			grammar, err := bison.GrammarFromFile("../../../../testdata/bison-3.8.2.y")
 			Expect(err).ToNot(HaveOccurred())
 
 			// All %token declarations + error token
@@ -1536,7 +1540,7 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should correctly parse the Go 1.5.4 grammar", func() {
-			grammar, err := bison.GrammarFromFile("testdata/go-1.5.4.y")
+			grammar, err := bison.GrammarFromFile("../../../../testdata/go-1.5.4.y")
 			Expect(err).ToNot(HaveOccurred())
 
 			// All %token declarations + error token + %left + char literals
@@ -1551,7 +1555,7 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should correctly parse the GCC 4.2.4 Java grammar", func() {
-			grammar, err := bison.GrammarFromFile("testdata/gcc-4.2.4-java.y")
+			grammar, err := bison.GrammarFromFile("../../../../testdata/gcc-4.2.4-java.y")
 			Expect(err).ToNot(HaveOccurred())
 
 			// All %token declarations + error token
@@ -1571,7 +1575,7 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should correctly parse the GCC 2.95.3 C grammar", func() {
-			grammar, err := bison.GrammarFromFile("testdata/gcc-2.95.3-c.y")
+			grammar, err := bison.GrammarFromFile("../../../../testdata/gcc-2.95.3-c.y")
 			Expect(err).ToNot(HaveOccurred())
 
 			// All %token declarations + error token + %left + %right + %nonassoc + char literals
@@ -1588,7 +1592,7 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should correctly parse the GCC 2.95.3 Objective C grammar", func() {
-			grammar, err := bison.GrammarFromFile("testdata/gcc-2.95.3-objc.y")
+			grammar, err := bison.GrammarFromFile("../../../../testdata/gcc-2.95.3-objc.y")
 			Expect(err).ToNot(HaveOccurred())
 
 			// All %token declarations + error token + %left + %right + %nonassoc + char literals
@@ -1605,7 +1609,7 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should correctly parse the GCC 3.3.6 C++ grammar", func() {
-			grammar, err := bison.GrammarFromFile("testdata/gcc-3.3.6-cpp.y")
+			grammar, err := bison.GrammarFromFile("../../../../testdata/gcc-3.3.6-cpp.y")
 			Expect(err).ToNot(HaveOccurred())
 
 			// All %token declarations + %left + %right + %nonassoc + char literals
@@ -1624,3 +1628,83 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 	})
 })
+
+func BenchmarkToGrammar(b *testing.B) {
+	b.Run("GNU Bison 3.8.2", func(b *testing.B) {
+		data, err := os.ReadFile("../../../../testdata/bison-3.8.2.y")
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		for b.Loop() {
+			if _, err := bison.ToGrammar(bytes.NewReader(data), "in-memory"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("GNU GCC 2.95.3 C", func(b *testing.B) {
+		data, err := os.ReadFile("../../../../testdata/gcc-2.95.3-c.y")
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		for b.Loop() {
+			if _, err := bison.ToGrammar(bytes.NewReader(data), "in-memory"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("GNU GCC 2.95.3 Objective C", func(b *testing.B) {
+		data, err := os.ReadFile("../../../../testdata/gcc-2.95.3-objc.y")
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		for b.Loop() {
+			if _, err := bison.ToGrammar(bytes.NewReader(data), "in-memory"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("GNU GCC 3.3.6 C++", func(b *testing.B) {
+		data, err := os.ReadFile("../../../../testdata/gcc-3.3.6-cpp.y")
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		for b.Loop() {
+			if _, err := bison.ToGrammar(bytes.NewReader(data), "in-memory"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("GNU GCC 4.2.4 Java", func(b *testing.B) {
+		data, err := os.ReadFile("../../../../testdata/gcc-4.2.4-java.y")
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		for b.Loop() {
+			if _, err := bison.ToGrammar(bytes.NewReader(data), "in-memory"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("Go 1.5.4", func(b *testing.B) {
+		data, err := os.ReadFile("../../../../testdata/go-1.5.4.y")
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		for b.Loop() {
+			if _, err := bison.ToGrammar(bytes.NewReader(data), "in-memory"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
