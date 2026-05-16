@@ -99,6 +99,9 @@ func executeParserBackend(parser backend.Parser) error {
 			return jsonbackend.FromParser(os.Stdout, parser)
 		}
 		return jsonbackend.ParserToFile(parserBackendFilePath, parser)
+	case "null":
+		// Nothing to do.
+		return nil
 	case "yaml":
 		if parserBackendFilePath == "-" {
 			return yamlbackend.FromParser(os.Stdout, parser)
@@ -139,7 +142,7 @@ func init() {
 		&parserBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the parser. One of: go, json, yaml.",
+		"The backend to use for writing the parser. One of: go, json, null, yaml.",
 	)
 	parserCmd.PersistentFlags().StringVar(
 		&parserBackendFilePath,

@@ -13,6 +13,11 @@ The architecture of GoLR separates the frontend from the core and the backend. T
 the context free grammar from different input formats. The core constructs the LR(1) parser from the grammar. The
 backend finally outputs the parser into different output formats.
 
+The generated parser constructs an abstract syntax tree which you can then walk and execute semantic actions
+accordingly. Note that semantic actions embedded within grammar definitions are not supported. This is a deliberate
+design decision, as grammar descriptions should be independent of actual implementations to have a clear separation of
+concerns.
+
 For more details about how this project came to be, see the documentation about [motivation](docs/motivation.md).
 
 ## Parser Generator
@@ -47,6 +52,7 @@ These backends are currently supported:
 
 - [Golang](docs/parsergen-backend-golang.md)
 - [JSON](docs/parsergen-backend-json.md)
+- [Null](docs/parsergen-backend-null.md)
 - [YAML](docs/parsergen-backend-yaml.md)
 
 Are you missing a backend for your use case? Use the JSON backend of GoLR to output the parser as JSON and implement
@@ -84,6 +90,7 @@ These backends are currently supported:
 
 - [Golang](docs/scannergen-backend-golang.md)
 - [JSON](docs/scannergen-backend-json.md)
+- [Null](docs/scannergen-backend-null.md)
 - [YAML](docs/scannergen-backend-yaml.md)
 
 Are you missing a backend for your use case? Use the JSON backend of GoLR to output the scanner as JSON and implement

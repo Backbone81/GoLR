@@ -93,6 +93,9 @@ func executeScannerBackend(dfa backend.DFA) error {
 			return jsonbackend.FromDFA(os.Stdout, dfa)
 		}
 		return jsonbackend.DFAToFile(scannerBackendFilePath, dfa)
+	case "null":
+		// Nothing to do.
+		return nil
 	case "yaml":
 		if scannerBackendFilePath == "-" {
 			return yamlbackend.FromDFA(os.Stdout, dfa)
@@ -133,7 +136,7 @@ func init() {
 		&scannerBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the scanner. One of: go, json, yaml.",
+		"The backend to use for writing the scanner. One of: go, json, null, yaml.",
 	)
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerBackendFilePath,

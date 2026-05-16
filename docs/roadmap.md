@@ -6,6 +6,7 @@
 - Make the example for a Go parser work
 - Add a simple example for a calculator
 - Add benchmarks to all documentation.
+- Improve error handling for generated scanner and parser.
 - Add support for C backend
 - Add support for C++ backend
 - Add support for C# backend
