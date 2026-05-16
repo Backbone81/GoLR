@@ -27,7 +27,7 @@ func BenchmarkToGrammar(b *testing.B) {
 		}
 	})
 
-	b.Run("GNU GCC 2.95.3 C", func(b *testing.B) {
+	b.Run("GCC 2.95.3 C", func(b *testing.B) {
 		grammar, err := bison.GrammarFromFile("../../../../testdata/gcc-2.95.3-c.y")
 		if err != nil {
 			b.Fatal(err)
@@ -45,7 +45,7 @@ func BenchmarkToGrammar(b *testing.B) {
 		}
 	})
 
-	b.Run("GNU GCC 2.95.3 Objective C", func(b *testing.B) {
+	b.Run("GCC 2.95.3 Objective C", func(b *testing.B) {
 		grammar, err := bison.GrammarFromFile("../../../../testdata/gcc-2.95.3-objc.y")
 		if err != nil {
 			b.Fatal(err)
@@ -63,7 +63,7 @@ func BenchmarkToGrammar(b *testing.B) {
 		}
 	})
 
-	b.Run("GNU GCC 3.3.6 C++", func(b *testing.B) {
+	b.Run("GCC 3.3.6 C++", func(b *testing.B) {
 		grammar, err := bison.GrammarFromFile("../../../../testdata/gcc-3.3.6-cpp.y")
 		if err != nil {
 			b.Fatal(err)
@@ -81,7 +81,7 @@ func BenchmarkToGrammar(b *testing.B) {
 		}
 	})
 
-	b.Run("GNU GCC 4.2.4 Java", func(b *testing.B) {
+	b.Run("GCC 4.2.4 Java", func(b *testing.B) {
 		grammar, err := bison.GrammarFromFile("../../../../testdata/gcc-4.2.4-java.y")
 		if err != nil {
 			b.Fatal(err)

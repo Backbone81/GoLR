@@ -4,15 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"os"
 	"runtime/trace"
-	"slices"
 	"strconv"
 
 	"golr/internal/parsergen/backend"
 	"golr/internal/parsergen/frontend"
-	"golr/internal/utils/bison"
+	bisonfrontend "golr/internal/parsergen/frontend/bison"
+	bisonutils "golr/internal/utils/bison"
 )
 
 // GrammarToParser calculates a parser from the context free grammar.
@@ -37,11 +36,6 @@ func NewIELR1(augmentedGrammar frontend.Grammar) *IELR1 {
 	}
 }
 
-type PrecedenceGroup struct {
-	Associativity frontend.Associativity
-	TerminalIdxs  []int
-}
-
 func (i *IELR1) BuildParser() (parser backend.Parser, err error) { //nolint:nonamedreturns // Required for defer
 	bisonGrammarFile, err := os.CreateTemp("", "golr-ielr1-*.y")
 	if err != nil {
@@ -53,7 +47,7 @@ func (i *IELR1) BuildParser() (parser backend.Parser, err error) { //nolint:nona
 		}
 	}()
 
-	if err := i.grammarToBisonGrammarFile(bisonGrammarFile); err != nil {
+	if err := bisonfrontend.FromGrammar(bisonGrammarFile, i.grammar); err != nil {
 		return backend.Parser{}, err
 	}
 
@@ -67,11 +61,11 @@ func (i *IELR1) BuildParser() (parser backend.Parser, err error) { //nolint:nona
 		}
 	}()
 
-	if err := bison.BuildIELR1(bisonGrammarFile.Name(), bisonXmlFile.Name()); err != nil {
+	if err := bisonutils.BuildIELR1(bisonGrammarFile.Name(), bisonXmlFile.Name()); err != nil {
 		return backend.Parser{}, err
 	}
 
-	report, err := bison.LoadBisonXMLReportFromFile(bisonXmlFile.Name())
+	report, err := bisonutils.LoadBisonXMLReportFromFile(bisonXmlFile.Name())
 	if err != nil {
 		return backend.Parser{}, err
 	}
@@ -85,211 +79,7 @@ func (i *IELR1) BuildParser() (parser backend.Parser, err error) { //nolint:nona
 	return parser, nil
 }
 
-func (i *IELR1) grammarToBisonGrammarFile(file *os.File) error {
-	if err := i.writeBisonGrammarTokens(file); err != nil {
-		return err
-	}
-	if err := i.writeBisonAssociativityAndPrecedence(file); err != nil {
-		return err
-	}
-
-	if _, err := fmt.Fprintln(file); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintln(file, "%%"); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintln(file); err != nil {
-		return err
-	}
-
-	if err := i.writeBisonGrammarProductions(file); err != nil {
-		return err
-	}
-
-	if _, err := fmt.Fprintln(file); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintln(file, "  ;"); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintln(file); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (i *IELR1) writeBisonGrammarTokens(file *os.File) error {
-	if _, err := fmt.Fprintf(file, "%%token\n"); err != nil {
-		return err
-	}
-	for _, symbol := range i.grammar.Terminals {
-		if _, err := fmt.Fprintf(file, "  %s\n", symbol.Name); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (i *IELR1) writeBisonAssociativityAndPrecedence(file *os.File) error {
-	precedenceGroups := i.buildPrecedenceGroups()
-	for _, group := range precedenceGroups {
-		switch group.Associativity {
-		case frontend.AssociativityLeft:
-			if _, err := fmt.Fprintf(file, "%%left"); err != nil {
-				return err
-			}
-		case frontend.AssociativityRight:
-			if _, err := fmt.Fprintf(file, "%%right"); err != nil {
-				return err
-			}
-		case frontend.AssociativityNone:
-			if _, err := fmt.Fprintf(file, "%%nonassoc"); err != nil {
-				return err
-			}
-		case frontend.AssociativityUndeclared:
-			// Nothing to output for undeclared associativity as that is the default situation.
-		default:
-			if _, err := fmt.Fprintf(file, "%%precedence"); err != nil {
-				return err
-			}
-		}
-
-		for _, idx := range group.TerminalIdxs {
-			if _, err := fmt.Fprintf(file, " %s", i.grammar.Terminals[idx].Name); err != nil {
-				return err
-			}
-		}
-		if _, err := fmt.Fprintln(file); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (i *IELR1) buildPrecedenceGroups() []*PrecedenceGroup {
-	precedenceGroupByLevel := make(map[int]*PrecedenceGroup, 10)
-	for idx, terminal := range i.grammar.Terminals {
-		if terminal.Precedence == 0 {
-			// Precedence of 0 means no precedence was set.
-			continue
-		}
-
-		group, ok := precedenceGroupByLevel[terminal.Precedence]
-		if !ok {
-			group = &PrecedenceGroup{
-				Associativity: terminal.Associativity,
-			}
-			precedenceGroupByLevel[terminal.Precedence] = group
-		}
-		group.TerminalIdxs = append(group.TerminalIdxs, idx)
-	}
-
-	levels := slices.Collect(maps.Keys(precedenceGroupByLevel))
-	slices.Sort(levels)
-
-	result := make([]*PrecedenceGroup, 0, len(levels))
-	for _, level := range levels {
-		result = append(result, precedenceGroupByLevel[level])
-	}
-	return result
-}
-
-func (i *IELR1) writeBisonGrammarProductions(file *os.File) error {
-	currNonterminalIdx := -1
-	for _, production := range i.grammar.Productions {
-		if currNonterminalIdx != production.NonterminalIdx {
-			if err := i.writeBisonGrammarProductionEnd(file, currNonterminalIdx); err != nil {
-				return err
-			}
-			if err := i.writeBisonGrammarProductionStart(file, production); err != nil {
-				return err
-			}
-			currNonterminalIdx = production.NonterminalIdx
-		} else {
-			if err := i.writeBisonGrammarProductionAlternative(file); err != nil {
-				return err
-			}
-		}
-
-		if err := i.writeBisonGrammarProductionRhs(file, production); err != nil {
-			return err
-		}
-		if err := i.writeBisonGrammarProductionPrecedence(file, production); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (i *IELR1) writeBisonGrammarProductionStart(file *os.File, production frontend.Production) error {
-	if _, err := fmt.Fprintf(file, "%s\n", i.grammar.Nonterminals[production.NonterminalIdx].Name); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(file, "  :"); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (i *IELR1) writeBisonGrammarProductionAlternative(file *os.File) error {
-	if _, err := fmt.Fprintln(file); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(file, "  |"); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (i *IELR1) writeBisonGrammarProductionEnd(file *os.File, currNonterminalIdx int) error {
-	if currNonterminalIdx != -1 {
-		if _, err := fmt.Fprintln(file); err != nil {
-			return err
-		}
-		if _, err := fmt.Fprintln(file, "  ;"); err != nil {
-			return err
-		}
-		if _, err := fmt.Fprintln(file); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (i *IELR1) writeBisonGrammarProductionPrecedence(file *os.File, production frontend.Production) error {
-	if production.PrecedenceTerminalIdx != nil {
-		precedenceTerminal := i.grammar.Terminals[*production.PrecedenceTerminalIdx]
-		if _, err := fmt.Fprintf(file, " %%prec %s", precedenceTerminal.Name); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (i *IELR1) writeBisonGrammarProductionRhs(file *os.File, production frontend.Production) error {
-	if len(production.SymbolRefs) == 0 {
-		if _, err := fmt.Fprintf(file, " %%empty"); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	for _, symbolRef := range production.SymbolRefs {
-		if symbolRef.IsTerminal() {
-			if _, err := fmt.Fprintf(file, " %s", i.grammar.Terminals[symbolRef.Idx()].Name); err != nil {
-				return err
-			}
-		} else {
-			if _, err := fmt.Fprintf(file, " %s", i.grammar.Nonterminals[symbolRef.Idx()].Name); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (i *IELR1) buildTerminalList(report bison.BisonXMLReport, parser *backend.Parser) {
+func (i *IELR1) buildTerminalList(report bisonutils.BisonXMLReport, parser *backend.Parser) {
 	for _, terminal := range report.Grammar.Terminals {
 		i.terminalIdxByName[terminal.Name] = len(parser.Grammar.Terminals)
 		parser.Grammar.Terminals = append(parser.Grammar.Terminals, frontend.Symbol{
@@ -298,7 +88,7 @@ func (i *IELR1) buildTerminalList(report bison.BisonXMLReport, parser *backend.P
 	}
 }
 
-func (i *IELR1) buildNonterminalList(report bison.BisonXMLReport, parser *backend.Parser) {
+func (i *IELR1) buildNonterminalList(report bisonutils.BisonXMLReport, parser *backend.Parser) {
 	for _, nonterminal := range report.Grammar.Nonterminals {
 		i.nonterminalIdxByName[nonterminal.Name] = len(parser.Grammar.Nonterminals)
 		parser.Grammar.Nonterminals = append(parser.Grammar.Nonterminals, frontend.Symbol{
@@ -307,7 +97,7 @@ func (i *IELR1) buildNonterminalList(report bison.BisonXMLReport, parser *backen
 	}
 }
 
-func (i *IELR1) buildProductionList(report bison.BisonXMLReport, parser *backend.Parser) {
+func (i *IELR1) buildProductionList(report bisonutils.BisonXMLReport, parser *backend.Parser) {
 	for _, rule := range report.Grammar.Rules {
 		var symbolRefs []frontend.SymbolRef
 		for _, rhs := range rule.Rhs {
@@ -324,7 +114,7 @@ func (i *IELR1) buildProductionList(report bison.BisonXMLReport, parser *backend
 	}
 }
 
-func (i *IELR1) buildStateList(report bison.BisonXMLReport, parser *backend.Parser) error {
+func (i *IELR1) buildStateList(report bisonutils.BisonXMLReport, parser *backend.Parser) error {
 	for _, state := range report.Automaton.States {
 		var newState backend.State
 
