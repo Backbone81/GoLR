@@ -11,7 +11,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"golr/internal/parsergen/frontend"
+	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
 
 // ToGrammar reads the context free grammar as YAML document from the given reader. Returns an error if the YAML

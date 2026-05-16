@@ -10,7 +10,7 @@ import (
 	"runtime/trace"
 	"strings"
 
-	"golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/parsergen/backend"
 )
 
 // ToParser reads the parser as JSON document from the given reader. Returns an error if the JSON document can not be

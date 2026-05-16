@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"golr/internal/utils"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 func BenchmarkOrderedSet_Add(b *testing.B) {

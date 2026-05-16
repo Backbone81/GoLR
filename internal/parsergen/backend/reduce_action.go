@@ -4,7 +4,7 @@ import (
 	"cmp"
 	"fmt"
 
-	"golr/internal/utils"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 // ReduceAction is a reduce action of an LR(1) item consisting of a lookahead set of terminals and a production index

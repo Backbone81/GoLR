@@ -1,7 +1,7 @@
 package frontend
 
 import (
-	"golr/internal/scannergen/frontend"
+	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
 
 // Any is a regular expression matching any character.

@@ -3,9 +3,9 @@
 package main
 
 import (
-	"golr/examples/golang/spec"
-	"golr/pkg/scannergen/frontend/json"
-	"golr/pkg/scannergen/frontend/yaml"
+	"github.com/backbone81/golr/examples/golang/spec"
+	"github.com/backbone81/golr/pkg/scannergen/frontend/json"
+	"github.com/backbone81/golr/pkg/scannergen/frontend/yaml"
 )
 
 func main() {

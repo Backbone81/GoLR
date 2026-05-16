@@ -3,7 +3,7 @@ package dsl
 import (
 	"unicode"
 
-	"golr/internal/scannergen/frontend"
+	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
 
 // Rule constructs a rule for a regular expression with a name.

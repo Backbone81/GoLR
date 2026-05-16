@@ -1,7 +1,7 @@
 package dsl
 
 import (
-	intdsl "golr/internal/scannergen/frontend/dsl"
+	intdsl "github.com/backbone81/golr/internal/scannergen/frontend/dsl"
 )
 
 // Rule constructs a rule for a regular expression with a name.

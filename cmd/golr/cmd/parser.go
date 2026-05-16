@@ -6,15 +6,15 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"golr/pkg/parsergen/backend"
-	golangbackend "golr/pkg/parsergen/backend/golang"
-	jsonbackend "golr/pkg/parsergen/backend/json"
-	yamlbackend "golr/pkg/parsergen/backend/yaml"
-	ielr1core "golr/pkg/parsergen/core/ielr1"
-	"golr/pkg/parsergen/frontend"
-	bisonfrontend "golr/pkg/parsergen/frontend/bison"
-	jsonfrontend "golr/pkg/parsergen/frontend/json"
-	yamlfrontend "golr/pkg/parsergen/frontend/yaml"
+	"github.com/backbone81/golr/pkg/parsergen/backend"
+	golangbackend "github.com/backbone81/golr/pkg/parsergen/backend/golang"
+	jsonbackend "github.com/backbone81/golr/pkg/parsergen/backend/json"
+	yamlbackend "github.com/backbone81/golr/pkg/parsergen/backend/yaml"
+	ielr1core "github.com/backbone81/golr/pkg/parsergen/core/ielr1"
+	"github.com/backbone81/golr/pkg/parsergen/frontend"
+	bisonfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/bison"
+	jsonfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/json"
+	yamlfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/yaml"
 )
 
 var (

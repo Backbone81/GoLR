@@ -8,10 +8,10 @@ import (
 	"runtime/trace"
 	"strconv"
 
-	"golr/internal/parsergen/backend"
-	"golr/internal/parsergen/frontend"
-	bisonfrontend "golr/internal/parsergen/frontend/bison"
-	bisonutils "golr/internal/utils/bison"
+	"github.com/backbone81/golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/parsergen/frontend"
+	bisonfrontend "github.com/backbone81/golr/internal/parsergen/frontend/bison"
+	bisonutils "github.com/backbone81/golr/internal/utils/bison"
 )
 
 // GrammarToParser calculates a parser from the context free grammar.

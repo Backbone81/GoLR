@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"golr/internal/utils"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 var _ = Describe("DynamicRingBuffer", func() {

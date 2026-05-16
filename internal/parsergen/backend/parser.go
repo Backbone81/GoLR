@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"golr/internal/parsergen/frontend"
+	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
 
 // Parser is a parser.

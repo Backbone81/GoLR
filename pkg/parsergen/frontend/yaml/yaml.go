@@ -1,7 +1,7 @@
 package yaml
 
 import (
-	intyaml "golr/internal/parsergen/frontend/yaml"
+	intyaml "github.com/backbone81/golr/internal/parsergen/frontend/yaml"
 )
 
 // ToGrammar reads the context free grammar as YAML document from the given reader. Returns an error if the YAML

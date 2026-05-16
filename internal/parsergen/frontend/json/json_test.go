@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"golr/internal/parsergen/frontend/bison"
-	"golr/internal/parsergen/frontend/json"
+	"github.com/backbone81/golr/internal/parsergen/frontend/bison"
+	"github.com/backbone81/golr/internal/parsergen/frontend/json"
 )
 
 func BenchmarkToGrammar(b *testing.B) {

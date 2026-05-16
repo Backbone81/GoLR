@@ -1,6 +1,6 @@
 package main
 
-import "golr/cmd/golr/cmd"
+import "github.com/backbone81/golr/cmd/golr/cmd"
 
 func main() {
 	cmd.Execute()

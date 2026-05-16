@@ -1,6 +1,6 @@
 package nfa
 
-import "golr/internal/scannergen/frontend"
+import "github.com/backbone81/golr/internal/scannergen/frontend"
 
 func (b *ThompsonsConstruction) fromRepetition(regexNode *frontend.Repetition, ruleIdx int, states []State) []State {
 	// create the start state

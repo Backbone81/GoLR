@@ -1,7 +1,7 @@
 package backend
 
 import (
-	intbackends "golr/internal/parsergen/backend"
+	intbackends "github.com/backbone81/golr/internal/parsergen/backend"
 )
 
 // Core is the core of an LR(1) item consisting of a production index and a position within that production. The values

@@ -10,7 +10,7 @@ import (
 	"runtime/trace"
 	"strings"
 
-	"golr/internal/parsergen/frontend"
+	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
 
 // ToGrammar reads the context free grammar as JSON document from the given reader. Returns an error if the JSON

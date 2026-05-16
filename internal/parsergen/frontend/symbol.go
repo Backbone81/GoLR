@@ -11,7 +11,7 @@ type Symbol struct {
 
 	// Alias is an alternative name for that symbol which might be less technical. For example while the technical name
 	// for a terminal might be OP_PLUS the alias might be "+" to make it easier to read.
-	Alias string `json:"alias" yaml:"alias"`
+	Alias string `json:"alias,omitempty" yaml:"alias,omitempty"`
 
 	// Associativity describes how the terminal is associating with other terminals.
 	Associativity Associativity `json:"associativity,omitempty" yaml:"associativity,omitempty"`

@@ -6,8 +6,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"golr/internal/scannergen/frontend"
-	"golr/internal/scannergen/frontend/dsl"
+	"github.com/backbone81/golr/internal/scannergen/frontend"
+	"github.com/backbone81/golr/internal/scannergen/frontend/dsl"
 )
 
 var _ = Describe("CharRange", func() {

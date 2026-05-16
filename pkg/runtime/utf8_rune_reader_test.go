@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"golr/pkg/runtime"
+	"github.com/backbone81/golr/pkg/runtime"
 )
 
 var _ = Describe("UTF8RuneReader", func() {

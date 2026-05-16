@@ -4,7 +4,7 @@ import (
 	"context"
 	"runtime/trace"
 
-	"golr/internal/scannergen/frontend"
+	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
 
 // State is a single NFA state.
@@ -33,7 +33,7 @@ type Transition struct {
 
 // FromRegex constructs an NFA from a regular expression.
 func FromRegex(regexNode *frontend.Node, ruleIdx int) []State {
-	defer trace.StartRegion(context.TODO(), "golr/internal/scannergen/nfa/FromRegex()").End()
+	defer trace.StartRegion(context.TODO(), "github.com/backbone81/golr/internal/scannergen/nfa/FromRegex()").End()
 
 	return NewThompsonsConstruction().Build(regexNode, ruleIdx)
 }

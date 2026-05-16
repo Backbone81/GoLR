@@ -1,7 +1,7 @@
 package backend
 
 import (
-	"golr/internal/utils"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 // LookaheadSet is a set of terminal indexes.

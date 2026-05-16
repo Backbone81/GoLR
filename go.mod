@@ -1,4 +1,4 @@
-module golr
+module github.com/backbone81/golr
 
 go 1.25
 

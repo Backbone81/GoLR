@@ -13,9 +13,9 @@ import (
 	"strings"
 	"text/template"
 
-	"golr/internal/parsergen/backend"
-	"golr/internal/parsergen/frontend"
-	"golr/internal/utils"
+	"github.com/backbone81/golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/parsergen/frontend"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 //go:embed parser.go.template

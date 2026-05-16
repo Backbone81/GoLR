@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"encoding/json"
 	"fmt"
 	"iter"
 	"slices"
@@ -90,6 +91,22 @@ func (s *ReduceActionSet) All() iter.Seq2[int, ReduceAction] {
 			}
 		}
 	}
+}
+
+// MarshalJSON implements the json.Marshaler interface.
+func (s ReduceActionSet) MarshalJSON() ([]byte, error) {
+	if len(s.actions) == 0 {
+		return json.Marshal(nil)
+	}
+	return json.Marshal(s.actions)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (s *ReduceActionSet) UnmarshalJSON(b []byte) error {
+	if slices.Equal(b, []byte("null")) {
+		return nil
+	}
+	return json.Unmarshal(b, &s.actions)
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.

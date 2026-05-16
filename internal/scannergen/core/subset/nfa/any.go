@@ -3,7 +3,7 @@ package nfa
 import (
 	"unicode"
 
-	"golr/internal/scannergen/frontend"
+	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
 
 func (b *ThompsonsConstruction) fromAny(_ *frontend.Any, ruleIdx int, states []State) []State {

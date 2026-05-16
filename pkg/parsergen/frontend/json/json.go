@@ -1,7 +1,7 @@
 package json
 
 import (
-	intjson "golr/internal/parsergen/frontend/json"
+	intjson "github.com/backbone81/golr/internal/parsergen/frontend/json"
 )
 
 // ToGrammar reads the context free grammar as JSON document from the given reader. Returns an error if the JSON

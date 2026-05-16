@@ -1,6 +1,6 @@
 package yaml
 
-import intyaml "golr/internal/scannergen/frontend/yaml"
+import intyaml "github.com/backbone81/golr/internal/scannergen/frontend/yaml"
 
 var (
 	// ToRules reads the scanner rules as YAML document from the given reader. Returns an error if the YAML

@@ -3,16 +3,16 @@
 package main
 
 import (
-	"golr/examples/bison/spec"
-	golangparsergen "golr/pkg/parsergen/backend/golang"
-	jsonparsergen "golr/pkg/parsergen/backend/json"
-	yamlparsergen "golr/pkg/parsergen/backend/yaml"
-	"golr/pkg/parsergen/core/ielr1"
-	"golr/pkg/parsergen/frontend/bison"
-	golangscannergen "golr/pkg/scannergen/backend/golang"
-	jsonscannergen "golr/pkg/scannergen/backend/json"
-	yamlscannergen "golr/pkg/scannergen/backend/yaml"
-	"golr/pkg/scannergen/core/subset"
+	"github.com/backbone81/golr/examples/bison/spec"
+	golangparsergen "github.com/backbone81/golr/pkg/parsergen/backend/golang"
+	jsonparsergen "github.com/backbone81/golr/pkg/parsergen/backend/json"
+	yamlparsergen "github.com/backbone81/golr/pkg/parsergen/backend/yaml"
+	"github.com/backbone81/golr/pkg/parsergen/core/ielr1"
+	"github.com/backbone81/golr/pkg/parsergen/frontend/bison"
+	golangscannergen "github.com/backbone81/golr/pkg/scannergen/backend/golang"
+	jsonscannergen "github.com/backbone81/golr/pkg/scannergen/backend/json"
+	yamlscannergen "github.com/backbone81/golr/pkg/scannergen/backend/yaml"
+	"github.com/backbone81/golr/pkg/scannergen/core/subset"
 )
 
 func main() {

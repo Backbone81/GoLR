@@ -1,12 +1,13 @@
 package backend
 
 import (
+	"encoding/json"
 	"fmt"
 	"slices"
 
 	"github.com/goccy/go-yaml"
 
-	"golr/internal/utils"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 // Core is the core of an LR(1) item consisting of a production index and a position within that production. The values
@@ -57,6 +58,29 @@ func (c Core) String() string {
 type coreMarshal struct {
 	ProductionIdx int `json:"productionIdx" yaml:"productionIdx"`
 	Position      int `json:"position"      yaml:"position"`
+}
+
+// MarshalJSON implements the json.Marshaler interface.
+func (c Core) MarshalJSON() ([]byte, error) {
+	repr := coreMarshal{
+		ProductionIdx: c.ProductionIdx(),
+		Position:      c.Position(),
+	}
+	return json.Marshal(repr)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (c *Core) UnmarshalJSON(b []byte) error {
+	if slices.Equal(b, []byte("null")) {
+		return nil
+	}
+	var repr coreMarshal
+	err := json.Unmarshal(b, &repr)
+	if err != nil {
+		return err
+	}
+	*c = NewCore(repr.ProductionIdx, repr.Position)
+	return nil
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.

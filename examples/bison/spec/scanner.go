@@ -1,8 +1,9 @@
 package spec
 
 import (
-	"golr/pkg/scannergen/frontend"
-	. "golr/pkg/scannergen/frontend/dsl" //nolint:staticcheck // The DSL is intended to be used as dot import.
+	"github.com/backbone81/golr/pkg/scannergen/frontend"
+	//nolint:staticcheck // The DSL is intended to be used as dot import.
+	. "github.com/backbone81/golr/pkg/scannergen/frontend/dsl"
 )
 
 // GetScannerRules returns the rules for generating a scanner for parsing GNU Bison grammar files. The details can be

@@ -1,6 +1,6 @@
 package yaml
 
-import intyaml "golr/internal/scannergen/backend/yaml"
+import intyaml "github.com/backbone81/golr/internal/scannergen/backend/yaml"
 
 var (
 	// ToDFA reads the deterministic finite automaton as YAML document from the given reader. Returns an error if the

@@ -11,9 +11,9 @@ import (
 	"slices"
 	"strings"
 
-	"golr/internal/parsergen/frontend"
-	bisonparser "golr/internal/parsergen/frontend/bison/parser"
-	"golr/pkg/runtime"
+	"github.com/backbone81/golr/internal/parsergen/frontend"
+	bisonparser "github.com/backbone81/golr/internal/parsergen/frontend/bison/parser"
+	"github.com/backbone81/golr/pkg/runtime"
 )
 
 // ToGrammar reads the context free grammar as GNU Bison grammar document from the given reader. Returns an error if the

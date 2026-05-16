@@ -6,8 +6,8 @@ import (
 	"io"
 	"os"
 
-	"golr/examples/bison/parser"
-	"golr/pkg/runtime"
+	"github.com/backbone81/golr/examples/bison/parser"
+	"github.com/backbone81/golr/pkg/runtime"
 )
 
 func main() {

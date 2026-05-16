@@ -1,12 +1,13 @@
 package frontend
 
 import (
+	"encoding/json"
 	"fmt"
 	"slices"
 
 	"github.com/goccy/go-yaml"
 
-	"golr/internal/utils"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 // SymbolRef is either a terminal index or a nonterminal index. The most significant bit is used to signal a
@@ -68,6 +69,33 @@ func (s SymbolRef) String() string {
 type symbolIdxMarshal struct {
 	Nonterminal bool `json:"nonterminal" yaml:"nonterminal"`
 	Index       int  `json:"index"       yaml:"index"`
+}
+
+// MarshalJSON implements the json.Marshaler interface.
+func (s SymbolRef) MarshalJSON() ([]byte, error) {
+	repr := symbolIdxMarshal{
+		Nonterminal: s.IsNonterminal(),
+		Index:       s.Idx(),
+	}
+	return json.Marshal(repr)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (s *SymbolRef) UnmarshalJSON(b []byte) error {
+	if slices.Equal(b, []byte("null")) {
+		return nil
+	}
+	var repr symbolIdxMarshal
+	err := json.Unmarshal(b, &repr)
+	if err != nil {
+		return err
+	}
+	if repr.Nonterminal {
+		*s = NewNonterminalRef(repr.Index)
+	} else {
+		*s = NewTerminalRef(repr.Index)
+	}
+	return nil
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.

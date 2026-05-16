@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"iter"
@@ -128,6 +129,34 @@ func (b *Bitset) Equal(other Bitset) bool {
 		}
 	}
 	return true
+}
+
+// MarshalJSON implements the json.Marshaler interface.
+func (b Bitset) MarshalJSON() ([]byte, error) {
+	idxs := make([]int, 0, b.Length())
+	for idx := range b.All() {
+		idxs = append(idxs, idx)
+	}
+	if len(idxs) == 0 {
+		return json.Marshal(nil)
+	}
+	return json.Marshal(idxs)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (b *Bitset) UnmarshalJSON(data []byte) error {
+	if slices.Equal(data, []byte("null")) {
+		return nil
+	}
+	var idxs []int
+	err := json.Unmarshal(data, &idxs)
+	if err != nil {
+		return err
+	}
+	for _, idx := range idxs {
+		b.Add(idx)
+	}
+	return nil
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.

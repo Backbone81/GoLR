@@ -1,13 +1,14 @@
 package backend
 
 import (
+	"encoding/json"
 	"fmt"
 	"slices"
 
 	"github.com/goccy/go-yaml"
 
-	"golr/internal/parsergen/frontend"
-	"golr/internal/utils"
+	"github.com/backbone81/golr/internal/parsergen/frontend"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 // TransitionAction is a transition action of an LR(1) item consisting of a symbol index representing a terminal or
@@ -57,6 +58,29 @@ func (a TransitionAction) String() string {
 type transitionActionMarshal struct {
 	SymbolRef frontend.SymbolRef `json:"symbolRef" yaml:"symbolRef"`
 	StateIdx  int                `json:"stateIdx"  yaml:"stateIdx"`
+}
+
+// MarshalJSON implements the json.Marshaler interface.
+func (a TransitionAction) MarshalJSON() ([]byte, error) {
+	repr := transitionActionMarshal{
+		SymbolRef: a.SymbolRef(),
+		StateIdx:  a.StateIdx(),
+	}
+	return json.Marshal(repr)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (a *TransitionAction) UnmarshalJSON(b []byte) error {
+	if slices.Equal(b, []byte("null")) {
+		return nil
+	}
+	var repr transitionActionMarshal
+	err := json.Unmarshal(b, &repr)
+	if err != nil {
+		return err
+	}
+	*a = NewTransitionAction(repr.SymbolRef, repr.StateIdx)
+	return nil
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.

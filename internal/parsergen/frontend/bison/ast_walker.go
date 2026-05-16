@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"golr/internal/parsergen/frontend"
-	"golr/internal/parsergen/frontend/bison/parser"
+	"github.com/backbone81/golr/internal/parsergen/frontend"
+	"github.com/backbone81/golr/internal/parsergen/frontend/bison/parser"
 )
 
 // ASTWalker is a helper struct which walks the abstract syntax tree of a parsed GNU Bison grammar and extracts all

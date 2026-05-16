@@ -4,9 +4,9 @@ import (
 	"io"
 	"testing"
 
-	"golr/internal/parsergen/backend/yaml"
-	"golr/internal/parsergen/core/ielr1"
-	"golr/internal/parsergen/frontend/bison"
+	"github.com/backbone81/golr/internal/parsergen/backend/yaml"
+	"github.com/backbone81/golr/internal/parsergen/core/ielr1"
+	"github.com/backbone81/golr/internal/parsergen/frontend/bison"
 )
 
 func BenchmarkFromParser(b *testing.B) {

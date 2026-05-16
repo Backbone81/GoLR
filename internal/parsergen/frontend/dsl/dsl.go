@@ -1,6 +1,6 @@
 package dsl
 
-import "golr/internal/parsergen/frontend"
+import "github.com/backbone81/golr/internal/parsergen/frontend"
 
 // Grammar describes the context free grammar.
 type Grammar struct {

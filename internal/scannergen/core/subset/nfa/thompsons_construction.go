@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"runtime/trace"
 
-	"golr/internal/scannergen/frontend"
+	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
 
 // ThompsonsConstruction is responsible for building the NFA from regular expressions.
@@ -21,7 +21,10 @@ func NewThompsonsConstruction() *ThompsonsConstruction {
 
 // Build creates a new NFA from the given regular expression.
 func (b *ThompsonsConstruction) Build(regexNode *frontend.Node, ruleIdx int) []State {
-	defer trace.StartRegion(context.TODO(), "golr/internal/scannergen/nfa/ThompsonsConstruction.Build()").End()
+	defer trace.StartRegion(
+		context.TODO(),
+		"github.com/backbone81/golr/internal/scannergen/nfa/ThompsonsConstruction.Build()",
+	).End()
 
 	b.mustBeValidRegex(regexNode)
 	return b.buildNFAFromRegexValidated(regexNode, ruleIdx, []State{})

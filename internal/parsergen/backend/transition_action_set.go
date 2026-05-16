@@ -1,7 +1,7 @@
 package backend
 
 import (
-	"golr/internal/utils"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 // TransitionActionSet is an ordered set of transition actions.

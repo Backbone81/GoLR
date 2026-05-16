@@ -1,7 +1,7 @@
 package backend
 
 import (
-	"golr/internal/scannergen/frontend"
+	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
 
 // State is a single DFA state.

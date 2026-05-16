@@ -10,7 +10,7 @@ import (
 	"runtime/trace"
 	"strings"
 
-	"golr/internal/scannergen/frontend"
+	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
 
 // ToRules reads the scanner rules as JSON document from the given reader. Returns an error if the JSON

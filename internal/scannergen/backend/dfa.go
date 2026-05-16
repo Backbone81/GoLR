@@ -1,6 +1,6 @@
 package backend
 
-import "golr/internal/scannergen/frontend"
+import "github.com/backbone81/golr/internal/scannergen/frontend"
 
 // DFA is a deterministic finite automata.
 type DFA struct {

@@ -1,6 +1,6 @@
 package golang
 
-import "golr/internal/scannergen/backend/golang"
+import "github.com/backbone81/golr/internal/scannergen/backend/golang"
 
 type (
 	Config = golang.Config

@@ -3,12 +3,12 @@
 package main
 
 import (
-	golangparsergen "golr/internal/parsergen/backend/golang"
-	"golr/internal/parsergen/core/ielr1"
-	"golr/internal/parsergen/frontend/bison"
-	"golr/internal/parsergen/frontend/bison/spec"
-	golangscannergen "golr/internal/scannergen/backend/golang"
-	"golr/pkg/scannergen/core/subset"
+	golangparsergen "github.com/backbone81/golr/internal/parsergen/backend/golang"
+	"github.com/backbone81/golr/internal/parsergen/core/ielr1"
+	"github.com/backbone81/golr/internal/parsergen/frontend/bison"
+	"github.com/backbone81/golr/internal/parsergen/frontend/bison/spec"
+	golangscannergen "github.com/backbone81/golr/internal/scannergen/backend/golang"
+	"github.com/backbone81/golr/pkg/scannergen/core/subset"
 )
 
 func main() {

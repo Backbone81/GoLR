@@ -1,6 +1,6 @@
 package backend
 
-import "golr/internal/scannergen/frontend"
+import "github.com/backbone81/golr/internal/scannergen/frontend"
 
 // Transition is a single transition on a character range to the next state.
 type Transition struct {

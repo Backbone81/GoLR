@@ -5,10 +5,10 @@ import (
 	"runtime/trace"
 	"slices"
 
-	"golr/internal/scannergen/backend"
-	thompsonsnfa "golr/internal/scannergen/core/subset/nfa"
-	"golr/internal/scannergen/frontend"
-	"golr/internal/utils"
+	"github.com/backbone81/golr/internal/scannergen/backend"
+	thompsonsnfa "github.com/backbone81/golr/internal/scannergen/core/subset/nfa"
+	"github.com/backbone81/golr/internal/scannergen/frontend"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 // SubsetConstruction is responsible for building the DFA from an NFA.
@@ -48,7 +48,10 @@ func NewSubsetConstruction(inputNFA []thompsonsnfa.State) *SubsetConstruction {
 
 // Build creates a new DFA from the given NFA.
 func (b *SubsetConstruction) Build() []backend.State {
-	defer trace.StartRegion(context.TODO(), "golr/internal/scannergen/dfa/SubsetConstruction.Build()").End()
+	defer trace.StartRegion(
+		context.TODO(),
+		"github.com/backbone81/golr/internal/scannergen/dfa/SubsetConstruction.Build()",
+	).End()
 
 	startNfaStateIdxs := b.EmptyClosure(utils.NewOrderedSet(0))
 	startDfaStateIdx := b.addState(startNfaStateIdxs)

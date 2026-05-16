@@ -11,7 +11,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"golr/internal/scannergen/frontend"
+	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
 
 // ToRules reads the scanner rules as YAML document from the given reader. Returns an error if the YAML

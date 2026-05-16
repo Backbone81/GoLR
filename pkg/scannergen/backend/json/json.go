@@ -1,6 +1,6 @@
 package json
 
-import intjson "golr/internal/scannergen/backend/json"
+import intjson "github.com/backbone81/golr/internal/scannergen/backend/json"
 
 var (
 	// ToDFA reads the deterministic finite automaton as JSON document from the given reader. Returns an error if the

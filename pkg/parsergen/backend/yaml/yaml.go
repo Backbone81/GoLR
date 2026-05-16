@@ -1,7 +1,7 @@
 package yaml
 
 import (
-	intyaml "golr/internal/parsergen/backend/yaml"
+	intyaml "github.com/backbone81/golr/internal/parsergen/backend/yaml"
 )
 
 // FromParser writes the parser as YAML document to the given writer. Returns an error if the YAML document can not be

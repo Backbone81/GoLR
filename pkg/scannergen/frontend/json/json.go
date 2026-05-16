@@ -1,6 +1,6 @@
 package json
 
-import intjson "golr/internal/scannergen/frontend/json"
+import intjson "github.com/backbone81/golr/internal/scannergen/frontend/json"
 
 var (
 	// ToRules reads the scanner rules as JSON document from the given reader. Returns an error if the JSON

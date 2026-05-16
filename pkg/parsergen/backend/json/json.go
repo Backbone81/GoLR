@@ -1,7 +1,7 @@
 package json
 
 import (
-	intjson "golr/internal/parsergen/backend/json"
+	intjson "github.com/backbone81/golr/internal/parsergen/backend/json"
 )
 
 // FromParser writes the parser as JSON document to the given writer. Returns an error if the JSON document can not be

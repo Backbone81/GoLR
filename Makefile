@@ -37,10 +37,10 @@ run: prepare
 
 .PHONY: test
 test: prepare
+	mkdir -p tmp
 	rm -rf tmp/coverage
 	mkdir -p tmp/coverage
 	go test --race -coverpkg=./... -cover $(PACKAGE) -args -test.gocoverdir=$(CURDIR)/tmp/coverage
-	go tool cover -html tmp/coverprofile.out -o tmp/coverprofile.html
 	@echo
 	@echo "========== Correct coverage over all packages =========="
 	go tool covdata percent -i=tmp/coverage
@@ -53,4 +53,5 @@ benchmark: prepare
 
 .PHONY: clean
 clean:
-	rm tmp/*
+	rm -rf tmp
+	rm -f golr

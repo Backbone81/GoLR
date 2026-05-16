@@ -1,6 +1,6 @@
 package frontend
 
-import intfrontend "golr/internal/parsergen/frontend"
+import intfrontend "github.com/backbone81/golr/internal/parsergen/frontend"
 
 type (
 	// Grammar is a context free grammar.

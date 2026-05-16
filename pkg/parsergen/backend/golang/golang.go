@@ -1,6 +1,6 @@
 package golang
 
-import intgolang "golr/internal/parsergen/backend/golang"
+import intgolang "github.com/backbone81/golr/internal/parsergen/backend/golang"
 
 type (
 	Config = intgolang.Config

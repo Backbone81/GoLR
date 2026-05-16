@@ -3,11 +3,11 @@
 package main
 
 import (
-	"golr/examples/golang/spec"
-	"golr/pkg/scannergen/backend/golang"
-	"golr/pkg/scannergen/backend/json"
-	"golr/pkg/scannergen/backend/yaml"
-	"golr/pkg/scannergen/core/subset"
+	"github.com/backbone81/golr/examples/golang/spec"
+	"github.com/backbone81/golr/pkg/scannergen/backend/golang"
+	"github.com/backbone81/golr/pkg/scannergen/backend/json"
+	"github.com/backbone81/golr/pkg/scannergen/backend/yaml"
+	"github.com/backbone81/golr/pkg/scannergen/core/subset"
 )
 
 func main() {

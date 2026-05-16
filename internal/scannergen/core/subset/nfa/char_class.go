@@ -1,6 +1,6 @@
 package nfa
 
-import "golr/internal/scannergen/frontend"
+import "github.com/backbone81/golr/internal/scannergen/frontend"
 
 func (b *ThompsonsConstruction) fromCharClass(regexNode *frontend.CharClass, ruleIdx int, states []State) []State {
 	states = append(states,

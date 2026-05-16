@@ -1,6 +1,6 @@
 package nfa
 
-import "golr/internal/scannergen/frontend"
+import "github.com/backbone81/golr/internal/scannergen/frontend"
 
 func (b *ThompsonsConstruction) fromOptional(regexNode *frontend.Optional, ruleIdx int, states []State) []State {
 	startStateIdx := len(states)

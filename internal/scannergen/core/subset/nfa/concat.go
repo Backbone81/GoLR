@@ -1,6 +1,6 @@
 package nfa
 
-import "golr/internal/scannergen/frontend"
+import "github.com/backbone81/golr/internal/scannergen/frontend"
 
 func (b *ThompsonsConstruction) fromConcat(regexNode *frontend.Concat, ruleIdx int, states []State) []State {
 	for i, child := range regexNode.Children {

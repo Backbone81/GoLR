@@ -12,9 +12,9 @@ import (
 	"runtime/trace"
 	"text/template"
 
-	"golr/internal/scannergen/backend"
-	"golr/internal/scannergen/frontend"
-	"golr/internal/utils"
+	"github.com/backbone81/golr/internal/scannergen/backend"
+	"github.com/backbone81/golr/internal/scannergen/frontend"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 //go:embed scanner.go.template

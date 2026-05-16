@@ -6,8 +6,8 @@ import (
 	"runtime/trace"
 	"slices"
 
-	"golr/internal/scannergen/backend"
-	"golr/internal/utils"
+	"github.com/backbone81/golr/internal/scannergen/backend"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 // HopcroftsAlgorithm is responsible for creating a minimal DFA from a DFA created by the subset construction.
@@ -47,7 +47,10 @@ type Partition struct {
 
 // Build creates a new DFA from the given DFA.
 func (b *HopcroftsAlgorithm) Build(inputDFA []backend.State) []backend.State {
-	defer trace.StartRegion(context.TODO(), "golr/internal/scannergen/dfa/HopcroftsAlgorithm.Build()").End()
+	defer trace.StartRegion(
+		context.TODO(),
+		"github.com/backbone81/golr/internal/scannergen/dfa/HopcroftsAlgorithm.Build()",
+	).End()
 
 	b.inputDFA = inputDFA
 	clear(b.partitionForStateIdx)

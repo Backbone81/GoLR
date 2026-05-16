@@ -1,6 +1,6 @@
 package bison
 
-import intbison "golr/internal/parsergen/frontend/bison"
+import intbison "github.com/backbone81/golr/internal/parsergen/frontend/bison"
 
 var (
 	// ToGrammar reads the context free grammar as GNU Bison grammar document from the given reader. Returns an error

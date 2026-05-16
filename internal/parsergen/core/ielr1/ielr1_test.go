@@ -3,8 +3,8 @@ package ielr1_test
 import (
 	"testing"
 
-	"golr/internal/parsergen/core/ielr1"
-	"golr/internal/parsergen/frontend/bison"
+	"github.com/backbone81/golr/internal/parsergen/core/ielr1"
+	"github.com/backbone81/golr/internal/parsergen/frontend/bison"
 )
 
 func BenchmarkGrammarToParser(b *testing.B) {

@@ -4,8 +4,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	thompsonsnfa "golr/internal/scannergen/core/subset/nfa"
-	"golr/internal/scannergen/frontend"
+	thompsonsnfa "github.com/backbone81/golr/internal/scannergen/core/subset/nfa"
+	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
 
 var _ = Describe("Utility", func() {

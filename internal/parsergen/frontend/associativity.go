@@ -1,6 +1,11 @@
 package frontend
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/goccy/go-yaml"
+)
 
 // Associativity describes how terminals associate with each other.
 type Associativity int
@@ -37,4 +42,44 @@ func (a Associativity) String() string {
 	default:
 		return "unknown"
 	}
+}
+
+func (a Associativity) MarshalJSON() ([]byte, error) {
+	return json.Marshal(a.String())
+}
+
+func (a *Associativity) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	return a.fromString(s)
+}
+
+func (a Associativity) MarshalYAML() ([]byte, error) {
+	return yaml.Marshal(a.String())
+}
+
+func (a *Associativity) UnmarshalYAML(data []byte) error {
+	var s string
+	if err := yaml.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	return a.fromString(s)
+}
+
+func (a *Associativity) fromString(s string) error {
+	switch s {
+	case "undeclared":
+		*a = AssociativityUndeclared
+	case "left":
+		*a = AssociativityLeft
+	case "right":
+		*a = AssociativityRight
+	case "none":
+		*a = AssociativityNone
+	default:
+		return fmt.Errorf("unknown associativity %q", s)
+	}
+	return nil
 }

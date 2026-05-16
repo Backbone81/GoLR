@@ -20,6 +20,113 @@ concerns.
 
 For more details about how this project came to be, see the documentation about [motivation](docs/motivation.md).
 
+## Getting Started
+
+Install the GoLR binary either with your Go toolchain:
+
+```shell
+go install github.com/backbone81/golr/cmd/golr@latest
+```
+
+Or download a prebuilt binary from the releases section and make it available in your shell.
+
+**IMPORTANT: The current [IELR(1)](https://doi.org/10.1016/j.scico.2009.08.001) core uses GNU Bison in the background to do the parser construction, make sure
+that a recent version of GNU Bison v3 is available in your shell.**
+
+This example assumes a context free grammar in a GNU Bison grammar file `grammar.y`. Run GoLR to generate a Go parser
+from it:
+
+```sh
+golr parser \
+  --frontend-file-path grammar.y \
+  --backend-file-path parser/parser.go
+```
+
+This generates a `parser/parser.go` file in the default parser package.
+
+You then need to provide a scanner that produces tokens for the parser. The generated ParserScanner interface documents
+what the parser expects from the scanner. You can use the GoLR scanner generator to generate a scanner for you. Note
+that the scanner tokens need to be defined in the same package as the parser. Otherwise, the parser will reference
+tokens which do not exist.
+
+Once you have a scanner, parsing works like this:
+
+```go
+scanner := parser.NewScanner() // your scanner implementation
+
+p := parser.NewParser()
+rootNode, err := p.Parse(scanner)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+You can then walk the abstract syntax tree from the root node.
+
+## Examples
+
+See the `examples` directory for parsers generated with GoLR.
+
+## Command Line Parameters
+
+The GoLR CLI supports several command line parameters. Use `--help` for a help screen.
+
+The main top level sub-commands are `parser` to generate an LR(1) parser and `scanner` to generate an DFA scanner:
+
+```text
+GoLR is a parser generator for LR(1) grammars.
+
+Usage:
+  golr [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  parser      Generates a LR(1) parser.
+  scanner     Generates a DFA scanner.
+
+Flags:
+  -h, --help   help for golr
+
+Use "golr [command] --help" for more information about a command.
+```
+
+The `parser` sub-command allows selecting frontend, core and backend for the parser:
+
+```text
+Generates a LR(1) parser.
+
+Usage:
+  golr parser [flags]
+
+Flags:
+      --backend string                   The backend to use for writing the parser. One of: go, json, null, yaml. (default "go")
+      --backend-file-path string         The file path to write the parser to. Can be '-' to write to stdout.
+      --backend-go-package-name string   The Go package name to use for the generated Go code. (default "parser")
+      --core string                      The core to use for generating the parser from the context free grammar. One of: ielr1. (default "ielr1")
+      --frontend string                  The frontend to use for reading the context free grammar. One of: bison, json, yaml. (default "bison")
+      --frontend-file-path string        The file path to read the context free grammar from. Can be '-' to read from stdin.
+  -h, --help                             help for parser
+```
+
+The `scanner` sub-command allows for selecting frontend, core and backend for the scanner:
+
+```text
+Generates a DFA scanner.
+
+Usage:
+  golr scanner [flags]
+
+Flags:
+      --backend string                   The backend to use for writing the scanner. One of: go, json, null, yaml. (default "go")
+      --backend-file-path string         The file path to write the scanner to. Can be '-' to write to stdout.
+      --backend-go-package-name string   The Go package name to use for the generated Go code. (default "parser")
+      --core string                      The core to use for generating the scanner from the regular expressions. One of: subset. (default "subset")
+      --frontend string                  The frontend to use for reading the regular expressions. One of: json, yaml. (default "yaml")
+      --frontend-file-path string        The file path to read the regular expressions from. Can be '-' to read from stdin.
+  -h, --help                             help for scanner
+```
+
 ## Parser Generator
 
 The parser generator constructs an LR(1) parser from a context free grammar. Please be aware of the known
@@ -97,10 +204,6 @@ Are you missing a backend for your use case? Use the JSON backend of GoLR to out
 your own backend by loading the JSON and output it in whatever format you need. You do not even need to do that
 in Go. Any programming language which is able to load JSON can be used for such a custom backend. And with outputting
 JSON to stdout, the output of GoLR can be piped into your own backend application for maximum flexibility.
-
-## Examples
-
-See the `examples` directory for parsers generated with GoLR.
 
 ## Roadmap
 

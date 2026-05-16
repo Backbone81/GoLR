@@ -6,10 +6,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"golr/examples/golang/spec"
-	"golr/pkg/scannergen/backend/json"
-	"golr/pkg/scannergen/backend/yaml"
-	"golr/pkg/scannergen/core/subset"
+	"github.com/backbone81/golr/examples/golang/spec"
+	"github.com/backbone81/golr/pkg/scannergen/backend/json"
+	"github.com/backbone81/golr/pkg/scannergen/backend/yaml"
+	"github.com/backbone81/golr/pkg/scannergen/core/subset"
 )
 
 var _ = Describe("Golang Parser", func() {

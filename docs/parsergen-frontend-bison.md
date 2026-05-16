@@ -19,6 +19,51 @@ The GNU Bison grammar parser is tested against a set of well known GNU Bison gra
 languages, to make sure that it works correctly. The well known grammar files include GNU Bison, GCC C, GCC
 Objective C, GCC C++, GCC Java and Go.
 
+## Example
+
+The GNU Bison input looks like this:
+
+```text
+%token NUMBER
+%token LPAREN "("
+%token RPAREN ")"
+
+%right UMINUS
+%left  PLUS MINUS
+%left  STAR SLASH
+%nonassoc LT GT
+%precedence NOT
+
+%start expr
+
+%%
+
+expr
+  : expr PLUS  expr
+  | expr MINUS expr
+  | expr STAR  expr
+  | expr SLASH expr
+  | expr LT    expr
+  | expr GT    expr
+  | NOT expr   %prec NOT
+  | MINUS expr %prec UMINUS
+  | LPAREN expr RPAREN
+  | NUMBER
+  ;
+
+stmts
+  : %empty
+  | stmts stmt
+  ;
+
+stmt
+  : expr
+  ;
+```
+
+See the official [GNU Bison documentation](https://www.gnu.org/software/bison/manual/) for details on the grammar
+syntax.
+
 ## Benchmarks
 
 ```text

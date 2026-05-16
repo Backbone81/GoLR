@@ -11,7 +11,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"golr/internal/scannergen/backend"
+	"github.com/backbone81/golr/internal/scannergen/backend"
 )
 
 // ToDFA reads the deterministic finite automaton as YAML document from the given reader. Returns an error if the YAML

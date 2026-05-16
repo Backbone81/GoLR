@@ -11,7 +11,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/parsergen/backend"
 )
 
 // ToParser reads the parser as YAML document from the given reader. Returns an error if the YAML document can not be

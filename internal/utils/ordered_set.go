@@ -2,6 +2,7 @@ package utils
 
 import (
 	"cmp"
+	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"iter"
@@ -124,6 +125,22 @@ func (s *OrderedSet[T]) All() iter.Seq2[int, T] {
 			}
 		}
 	}
+}
+
+// MarshalJSON implements the json.Marshaler interface.
+func (s OrderedSet[T]) MarshalJSON() ([]byte, error) {
+	if len(s.data) == 0 {
+		return json.Marshal(nil)
+	}
+	return json.Marshal(s.data)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (s *OrderedSet[T]) UnmarshalJSON(b []byte) error {
+	if slices.Equal(b, []byte("null")) {
+		return nil
+	}
+	return json.Unmarshal(b, &s.data)
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.

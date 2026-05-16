@@ -1,7 +1,7 @@
 package dsl
 
 import (
-	intdsl "golr/internal/parsergen/frontend/dsl"
+	intdsl "github.com/backbone81/golr/internal/parsergen/frontend/dsl"
 )
 
 // Grammar describes the context free grammar.

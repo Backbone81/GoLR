@@ -6,14 +6,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"golr/pkg/scannergen/backend"
-	golangbackend "golr/pkg/scannergen/backend/golang"
-	jsonbackend "golr/pkg/scannergen/backend/json"
-	yamlbackend "golr/pkg/scannergen/backend/yaml"
-	subsetcore "golr/pkg/scannergen/core/subset"
-	"golr/pkg/scannergen/frontend"
-	jsonfrontend "golr/pkg/scannergen/frontend/json"
-	yamlfrontend "golr/pkg/scannergen/frontend/yaml"
+	"github.com/backbone81/golr/pkg/scannergen/backend"
+	golangbackend "github.com/backbone81/golr/pkg/scannergen/backend/golang"
+	jsonbackend "github.com/backbone81/golr/pkg/scannergen/backend/json"
+	yamlbackend "github.com/backbone81/golr/pkg/scannergen/backend/yaml"
+	subsetcore "github.com/backbone81/golr/pkg/scannergen/core/subset"
+	"github.com/backbone81/golr/pkg/scannergen/frontend"
+	jsonfrontend "github.com/backbone81/golr/pkg/scannergen/frontend/json"
+	yamlfrontend "github.com/backbone81/golr/pkg/scannergen/frontend/yaml"
 )
 
 var (
