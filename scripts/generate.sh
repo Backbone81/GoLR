@@ -7,6 +7,14 @@ set -ex
 # Generate the internal parsergen GNU Bison frontend parser.
 go run ./internal/parsergen/frontend/bison/spec/export/
 
+# Generate the internal parsergen GoLR frontend parser.
+go run ./internal/parsergen/frontend/golr/spec/export/
+go run ./cmd/golr parser \
+  --frontend bison \
+  --frontend-file-path internal/parsergen/frontend/golr/spec/golr.y \
+  --backend go \
+  --backend-file-path internal/parsergen/frontend/golr/parser/parser.go
+
 # Copy files from the internal parsergen GNU Bison frontend to the examples folder.
 cp internal/parsergen/frontend/bison/spec/*.go examples/bison/spec
 cp internal/parsergen/frontend/bison/spec/*.y examples/bison/spec

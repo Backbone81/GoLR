@@ -29,3 +29,4 @@
 ## Scanner Generator
 
 - Allow scanner to parse case independent (accept lower case and upper case characters if specified in one case only)
+- Check if any is excluding newlines.
