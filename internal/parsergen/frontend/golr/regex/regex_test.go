@@ -1,12 +1,11 @@
 package regex_test
 
 import (
-	"math"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	"github.com/backbone81/golr/internal/parsergen/frontend/golr/regex"
 	"github.com/backbone81/golr/internal/scannergen/frontend/dsl"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Regular Expressions", func() {
@@ -100,9 +99,12 @@ var _ = Describe("Regular Expressions", func() {
 			node, err := regex.Parse([]byte(`/a{2,}/`))
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(node).To(Equal(dsl.Repetition(
-				dsl.Literal("a"),
-				2, math.MaxInt,
+			Expect(node).To(Equal(dsl.Concat(
+				dsl.Repetition(
+					dsl.Literal("a"),
+					2, 2,
+				),
+				dsl.ZeroOrMore(dsl.Literal("a")),
 			)))
 		})
 
@@ -186,7 +188,7 @@ var _ = Describe("Regular Expressions", func() {
 			node, err := regex.Parse([]byte(`/[a\-b]/`))
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(node).To(Equal(dsl.NegCharClass(
+			Expect(node).To(Equal(dsl.CharClass(
 				dsl.CharRange('a', 'a'),
 				dsl.CharRange('-', '-'),
 				dsl.CharRange('b', 'b'),
@@ -194,10 +196,10 @@ var _ = Describe("Regular Expressions", func() {
 		})
 
 		It(`should correctly parse /[ab\]]/`, func() {
-			node, err := regex.Parse([]byte(`/[a\-b]/`))
+			node, err := regex.Parse([]byte(`/[ab\]]/`))
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(node).To(Equal(dsl.NegCharClass(
+			Expect(node).To(Equal(dsl.CharClass(
 				dsl.CharRange('a', 'a'),
 				dsl.CharRange('b', 'b'),
 				dsl.CharRange(']', ']'),
