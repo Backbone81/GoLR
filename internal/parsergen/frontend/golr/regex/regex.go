@@ -244,84 +244,54 @@ func (p *Parser) parseCharRanges() ([]frontend.CharRange, bool, error) {
 	var state int
 	var nextCharRange frontend.CharRange
 	for {
-		switch p.rune() {
-		case '\\':
-		case '-':
-		case ']':
-			return charRanges, p.next(), nil
-		default:
-			switch state {
-			case 0:
+		switch state {
+		case 0:
+			// no character seen
+			switch p.rune() {
+			case '\\':
+				// TODO: parse escape sequence
+			case ']':
+				return charRanges, p.next(), nil
+			default:
 				nextCharRange.Low = p.rune()
 				nextCharRange.High = p.rune()
 				state = 1
-			case 1:
+			}
+		case 1:
+			// first range character seen
+			switch p.rune() {
+			case '\\':
+				// TODO: parse escape sequence
+			case '-':
+				state = 2
+			case ']':
+				charRanges = append(charRanges, nextCharRange)
+				return charRanges, p.next(), nil
+			default:
 				charRanges = append(charRanges, nextCharRange)
 				nextCharRange.Low = p.rune()
 				nextCharRange.High = p.rune()
-			case 2:
+			}
+		case 2:
+			// dash seen
+			switch p.rune() {
+			case '\\':
+				// TODO: parse escape sequence
+			case ']':
+				charRanges = append(charRanges, nextCharRange)
+				return charRanges, p.next(), nil
+			default:
 				nextCharRange.High = p.rune()
+				charRanges = append(charRanges, nextCharRange)
 				state = 0
 			}
+		default:
+			return nil, false, fmt.Errorf("unexpected character class state: %d", state)
 		}
 
 		if !p.next() {
 			return nil, false, errors.New("unexpected end of character class")
 		}
-	}
-
-	for !p.atEOF && p.rune() != ']' {
-		low, err := p.parseClassChar()
-		if err != nil {
-			return nil, err
-		}
-		if !p.atEOF && p.rune() == '-' {
-			p.next() // consume '-'
-			if p.atEOF || p.rune() == ']' {
-				// trailing dash is a literal
-				charRanges = append(charRanges, frontend.CharRange{Low: low, High: low})
-				charRanges = append(charRanges, frontend.CharRange{Low: '-', High: '-'})
-			} else {
-				high, err := p.parseClassChar()
-				if err != nil {
-					return nil, err
-				}
-				if low > high {
-					return nil, fmt.Errorf("character range out of order: %q-%q", low, high)
-				}
-				charRanges = append(charRanges, frontend.CharRange{Low: low, High: high})
-			}
-		} else {
-			charRanges = append(charRanges, frontend.CharRange{Low: low, High: low})
-		}
-	}
-	return charRanges, nil
-}
-
-func (p *Parser) parseClassChar() (rune, error) {
-	if p.atEOF || p.rune() == ']' {
-		return 0, fmt.Errorf("unexpected end of character class")
-	}
-	if p.rune() != '\\' {
-		r := p.rune()
-		p.next()
-		return r, nil
-	}
-	p.next() // consume '\'
-	if p.atEOF {
-		return 0, fmt.Errorf("unexpected end of input after \\ in character class")
-	}
-	r := p.rune()
-	p.next()
-	switch r {
-	case 'n':
-		return '\n', nil
-	case 'r':
-		return '\r', nil
-	case 't':
-		return '\t', nil
-	default:
-		return r, nil
 	}
 }
 
