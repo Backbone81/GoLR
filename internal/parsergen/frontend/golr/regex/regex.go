@@ -186,11 +186,46 @@ func (p *Parser) parseAtom() (*frontend.Node, bool, error) {
 		if err != nil {
 			return nil, false, err
 		}
-		return dsl.Literal(string(escapedChar)), more, nil
+
+		switch escapedChar {
+		case 'd', 'w', 's':
+			return dsl.CharClass(p.shorthandCharRanges(escapedChar)...), more, nil
+		case 'D', 'W', 'S':
+			return dsl.NegCharClass(p.shorthandCharRanges(escapedChar)...), more, nil
+		default:
+			return dsl.Literal(string(escapedChar)), more, nil
+		}
 	case '*', '+', '?', '{', '|', ')', ']', '}', '^', '$':
 		return nil, false, fmt.Errorf("unescaped metacharacter %q", p.rune())
 	default:
 		return dsl.Literal(string(p.rune())), p.next(), nil
+	}
+}
+
+// shorthandCharRanges creates the relevant character ranges for a given character class shorthand. If an unknown
+// shorthand is given, nil is returned.
+func (p *Parser) shorthandCharRanges(r rune) []frontend.CharRange {
+	switch r {
+	case 'd', 'D':
+		return []frontend.CharRange{dsl.CharRange('0', '9')}
+	case 'w', 'W':
+		return []frontend.CharRange{
+			dsl.CharRange('A', 'Z'),
+			dsl.CharRange('a', 'z'),
+			dsl.CharRange('0', '9'),
+			dsl.CharRange('_', '_'),
+		}
+	case 's', 'S':
+		return []frontend.CharRange{
+			dsl.CharRange('\t', '\t'),
+			dsl.CharRange('\n', '\n'),
+			dsl.CharRange('\r', '\r'),
+			dsl.CharRange(' ', ' '),
+			dsl.CharRange('\f', '\f'),
+			dsl.CharRange('\v', '\v'),
+		}
+	default:
+		return nil
 	}
 }
 
@@ -212,6 +247,12 @@ func (p *Parser) parseEscapeSequence() (rune, bool, error) {
 		return '\r', p.next(), nil
 	case 't':
 		return '\t', p.next(), nil
+	case 'v':
+		return '\v', p.next(), nil
+	case 'f':
+		return '\f', p.next(), nil
+	case '0':
+		return 0, p.next(), nil
 	default:
 		return p.rune(), p.next(), nil
 	}
@@ -251,13 +292,15 @@ func (p *Parser) parseCharClass() (*frontend.Node, bool, error) {
 //
 // It expects to be on the first rune of the character, which is either \ for an escape sequence or a literal rune.
 // After the call, if more is true, p.rune() is on the first rune following the character.
-// It returns the unescaped character, an indicator if more runes are available and an error.
-func (p *Parser) parseCharClassChar() (rune, bool, error) {
+// It returns the unescaped character, an indicator if the character is an escaped one, an indicator if more runes
+// are available and an error.
+func (p *Parser) parseCharClassChar() (rune, bool, bool, error) {
 	if p.rune() == '\\' {
-		return p.parseEscapeSequence()
+		r, more, err := p.parseEscapeSequence()
+		return r, true, more, err
 	}
 	r := p.rune()
-	return r, p.next(), nil
+	return r, false, p.next(), nil
 }
 
 // parseCharRanges consumes the character ranges inside a character class until the closing bracket.
@@ -269,12 +312,21 @@ func (p *Parser) parseCharClassChar() (rune, bool, error) {
 func (p *Parser) parseCharRanges() ([]frontend.CharRange, bool, error) {
 	var charRanges []frontend.CharRange
 	for p.rune() != ']' {
-		low, more, err := p.parseCharClassChar()
+		low, escaped, more, err := p.parseCharClassChar()
 		if err != nil {
 			return nil, false, err
 		}
 		if !more {
 			return nil, false, errors.New("unexpected end of character class")
+		}
+		if escaped {
+			switch low {
+			case 'd', 'w', 's':
+				charRanges = append(charRanges, p.shorthandCharRanges(low)...)
+				continue
+			case 'D', 'W', 'S':
+				return nil, false, fmt.Errorf("unsupported character class shorthand %q", low)
+			}
 		}
 		if p.rune() != '-' {
 			charRanges = append(charRanges, dsl.CharRange(low, low))
@@ -290,7 +342,7 @@ func (p *Parser) parseCharRanges() ([]frontend.CharRange, bool, error) {
 			break
 		}
 
-		high, more, err := p.parseCharClassChar()
+		high, _, more, err := p.parseCharClassChar()
 		if err != nil {
 			return nil, false, err
 		}
