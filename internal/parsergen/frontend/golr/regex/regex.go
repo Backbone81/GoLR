@@ -20,27 +20,25 @@ type Parser struct {
 	input    []byte
 	pos      int
 	currRune rune
-	atEOF    bool
 }
 
 func (p *Parser) Parse(input []byte) (*frontend.Node, error) {
 	if len(input) < 2 || input[0] != '/' || input[len(input)-1] != '/' {
-		return nil, fmt.Errorf("regular expression must be enclosed in /")
+		return nil, fmt.Errorf("expected / around regular expression")
 	}
 	p.input = input[1 : len(input)-1]
 	p.pos = 0
-	p.atEOF = false
 	p.currRune = 0
 
 	if !p.next() {
-		return nil, fmt.Errorf("empty regular expression")
+		return nil, fmt.Errorf("unexpected empty regular expression")
 	}
 
-	node, err := p.parseAlternation()
+	node, more, err := p.parseAlternation()
 	if err != nil {
 		return nil, err
 	}
-	if !p.atEOF {
+	if more {
 		return nil, fmt.Errorf("unexpected character %q", p.rune())
 	}
 	return node, nil
@@ -48,15 +46,14 @@ func (p *Parser) Parse(input []byte) (*frontend.Node, error) {
 
 func (p *Parser) next() bool {
 	if p.pos >= len(p.input) {
-		p.atEOF = true
 		return false
 	}
 	if p.input[p.pos] < utf8.RuneSelf {
 		p.currRune = rune(p.input[p.pos])
 		p.pos++
 	} else {
-		r, size := utf8.DecodeRune(p.input[p.pos:])
-		p.currRune = r
+		nextRune, size := utf8.DecodeRune(p.input[p.pos:])
+		p.currRune = nextRune
 		p.pos += size
 	}
 	return true
@@ -66,140 +63,134 @@ func (p *Parser) rune() rune {
 	return p.currRune
 }
 
-// parseAlternation: concatenation ("|" concatenation)*
-func (p *Parser) parseAlternation() (*frontend.Node, error) {
-	first, err := p.parseConcatenation()
-	if err != nil {
-		return nil, err
-	}
-	if p.atEOF || p.rune() != '|' {
-		return first, nil
-	}
-	children := []*frontend.Node{first}
-	for !p.atEOF && p.rune() == '|' {
-		p.next() // consume '|'
-		if p.atEOF {
-			return nil, fmt.Errorf("unexpected end of input after |")
-		}
-		child, err := p.parseConcatenation()
-		if err != nil {
-			return nil, err
-		}
-		children = append(children, child)
-	}
-	return &frontend.Node{
-		Kind: frontend.KindOr,
-		Or:   frontend.Or{Children: children},
-	}, nil
-}
+func (p *Parser) parseAlternation() (*frontend.Node, bool, error) {
+	var children []*frontend.Node
 
-// parseConcatenation: quantified+
-func (p *Parser) parseConcatenation() (*frontend.Node, error) {
-	first, err := p.parseQuantified()
-	if err != nil {
-		return nil, err
-	}
-	children := []*frontend.Node{first}
-	for !p.atEOF && p.rune() != '|' && p.rune() != ')' {
-		child, err := p.parseQuantified()
+	more := true
+	for {
+		child, localMore, err := p.parseConcatenation()
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
+		more = localMore
+
 		children = append(children, child)
+
+		if !more || p.rune() != '|' {
+			break
+		}
+		if !p.next() {
+			return nil, false, errors.New("unexpected end of alternation")
+		}
 	}
 	if len(children) == 1 {
-		return children[0], nil
+		return children[0], more, nil
 	}
-	return &frontend.Node{
-		Kind:   frontend.KindConcat,
-		Concat: frontend.Concat{Children: children},
-	}, nil
+	return dsl.Or(children...), more, nil
 }
 
-// parseQuantified: atom quantifier?
-func (p *Parser) parseQuantified() (*frontend.Node, error) {
-	atom, err := p.parseAtom()
+func (p *Parser) parseConcatenation() (*frontend.Node, bool, error) {
+	var children []*frontend.Node
+
+	more := true
+	for p.rune() != '|' && p.rune() != ')' && more {
+		child, localMore, err := p.parseQuantified()
+		if err != nil {
+			return nil, false, err
+		}
+		more = localMore
+		children = append(children, child)
+	}
+
+	if len(children) == 0 {
+		return nil, false, errors.New("unexpected end of concatenation")
+	}
+	if len(children) == 1 {
+		return children[0], more, nil
+	}
+	return dsl.Concat(children...), more, nil
+}
+
+func (p *Parser) parseQuantified() (*frontend.Node, bool, error) {
+	atom, more, err := p.parseAtom()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	if p.atEOF {
-		return atom, nil
+	if !more {
+		return atom, false, nil
 	}
+
 	switch p.rune() {
 	case '*':
-		p.next()
-		return &frontend.Node{Kind: frontend.KindZeroOrMore, ZeroOrMore: frontend.ZeroOrMore{Child: atom}}, nil
+		return dsl.ZeroOrMore(atom), p.next(), nil
 	case '+':
-		p.next()
-		return &frontend.Node{Kind: frontend.KindOneOrMore, OneOrMore: frontend.OneOrMore{Child: atom}}, nil
+		return dsl.OneOrMore(atom), p.next(), nil
 	case '?':
-		p.next()
-		return &frontend.Node{Kind: frontend.KindOptional, Optional: frontend.Optional{Child: atom}}, nil
+		return dsl.Optional(atom), p.next(), nil
 	case '{':
 		node, more, err := p.parseRepetition(atom)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
-		return node, nil
+		return node, more, nil
+	default:
+		return atom, true, nil
 	}
-	return atom, nil
 }
 
-func (p *Parser) parseAtom() (*frontend.Node, error) {
+func (p *Parser) parseAtom() (*frontend.Node, bool, error) {
 	switch p.rune() {
 	case '.':
-		p.next()
-		return &frontend.Node{Kind: frontend.KindAny}, nil
+		return dsl.Any(), p.next(), nil
 	case '(':
-		p.next() // consume '('
-		node, err := p.parseAlternation()
+		if !p.next() {
+			return nil, false, errors.New("unexpected end of group")
+		}
+
+		node, more, err := p.parseAlternation()
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
-		if p.atEOF || p.rune() != ')' {
-			return nil, fmt.Errorf("expected closing )")
+		if !more || p.rune() != ')' {
+			return nil, false, fmt.Errorf("expected end of group")
 		}
-		p.next() // consume ')'
-		return node, nil
+
+		return node, p.next(), nil
 	case '[':
 		return p.parseCharClass()
 	case '\\':
-		node, more, err := p.parseEscape()
+		escapedChar, more, err := p.parseEscapeSequence()
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
-		return node, nil
+		return dsl.Literal(string(escapedChar)), more, nil
+	case '*', '+', '?', '{', '|', ')', ']', '}', '^', '$':
+		return nil, false, fmt.Errorf("unescaped metacharacter %q", p.rune())
 	default:
-		r := p.rune()
-		if isMeta(r) {
-			return nil, fmt.Errorf("unescaped metacharacter %q", r)
-		}
-		p.next()
-		return &frontend.Node{
-			Kind:    frontend.KindLiteral,
-			Literal: frontend.Literal{Text: string(r)},
-		}, nil
+		return dsl.Literal(string(p.rune())), p.next(), nil
 	}
 }
 
-// parseEscape consumes an escaped character.
+// parseEscapeSequence consumes an escaped character.
 //
 // It expects to be on the backslash of the escape sequence.
 // After the call, we are on the rune following the escaped character.
-// Returns the frontend node representing the escaped character, an indicator if more runes are available and an error.
-func (p *Parser) parseEscape() (*frontend.Node, bool, error) {
+// Returns the unescaped character, an indicator if more runes are available and an error.
+func (p *Parser) parseEscapeSequence() (rune, bool, error) {
+	// We are on '\' right now.
 	if !p.next() {
-		return nil, false, errors.New("unexpected and of escape sequence")
+		return 0, false, errors.New("unexpected end of escape sequence")
 	}
+
 	switch p.rune() {
 	case 'n':
-		return dsl.Literal("\n"), p.next(), nil
+		return '\n', p.next(), nil
 	case 'r':
-		return dsl.Literal("\r"), p.next(), nil
+		return '\r', p.next(), nil
 	case 't':
-		return dsl.Literal("\t"), p.next(), nil
+		return '\t', p.next(), nil
 	default:
-		return dsl.Literal(string(p.rune())), p.next(), nil
+		return p.rune(), p.next(), nil
 	}
 }
 
@@ -209,6 +200,7 @@ func (p *Parser) parseEscape() (*frontend.Node, bool, error) {
 // After the call, we are on the first rune after the closing bracket.
 // It returns the frontend node, an indicator if there are more runes available and an error.
 func (p *Parser) parseCharClass() (*frontend.Node, bool, error) {
+	// We are on '[' right now.
 	if !p.next() {
 		return nil, false, errors.New("unexpected end of character class")
 	}
@@ -225,14 +217,11 @@ func (p *Parser) parseCharClass() (*frontend.Node, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
-	if !more {
-		return nil, false, errors.New("unexpected end of character class")
-	}
 
 	if negate {
-		return dsl.NegCharClass(charRanges), p.next(), nil
+		return dsl.NegCharClass(charRanges...), more, nil
 	}
-	return dsl.CharClass(charRanges), p.next(), nil
+	return dsl.CharClass(charRanges...), more, nil
 }
 
 func (p *Parser) parseCharRanges() ([]frontend.CharRange, bool, error) {
@@ -249,7 +238,19 @@ func (p *Parser) parseCharRanges() ([]frontend.CharRange, bool, error) {
 			// no character seen
 			switch p.rune() {
 			case '\\':
-				// TODO: parse escape sequence
+				escapedChar, more, err := p.parseEscapeSequence()
+				if err != nil {
+					return nil, false, err
+				}
+				if !more {
+					return nil, false, errors.New("unexpected end of character class")
+				}
+				nextCharRange.Low = escapedChar
+				nextCharRange.High = escapedChar
+				state = 1
+
+				// We need to prevent a double advance at the end of the loop.
+				continue
 			case ']':
 				return charRanges, p.next(), nil
 			default:
@@ -261,7 +262,19 @@ func (p *Parser) parseCharRanges() ([]frontend.CharRange, bool, error) {
 			// first range character seen
 			switch p.rune() {
 			case '\\':
-				// TODO: parse escape sequence
+				charRanges = append(charRanges, nextCharRange)
+				escapedChar, more, err := p.parseEscapeSequence()
+				if err != nil {
+					return nil, false, err
+				}
+				if !more {
+					return nil, false, errors.New("unexpected end of character class")
+				}
+				nextCharRange.Low = escapedChar
+				nextCharRange.High = escapedChar
+
+				// We need to prevent a double advance at the end of the loop.
+				continue
 			case '-':
 				state = 2
 			case ']':
@@ -276,9 +289,22 @@ func (p *Parser) parseCharRanges() ([]frontend.CharRange, bool, error) {
 			// dash seen
 			switch p.rune() {
 			case '\\':
-				// TODO: parse escape sequence
+				escapedChar, more, err := p.parseEscapeSequence()
+				if err != nil {
+					return nil, false, err
+				}
+				if !more {
+					return nil, false, errors.New("unexpected end of character class")
+				}
+				nextCharRange.High = escapedChar
+				charRanges = append(charRanges, nextCharRange)
+				state = 0
+
+				// We need to prevent a double advance at the end of the loop.
+				continue
 			case ']':
 				charRanges = append(charRanges, nextCharRange)
+				charRanges = append(charRanges, dsl.CharRange('-', '-'))
 				return charRanges, p.next(), nil
 			default:
 				nextCharRange.High = p.rune()
@@ -301,6 +327,7 @@ func (p *Parser) parseCharRanges() ([]frontend.CharRange, bool, error) {
 // After the call we are on the first rune following the closing curly braces.
 // It returns a frontend node, an indicator if more runes are available and an error.
 func (p *Parser) parseRepetition(child *frontend.Node) (*frontend.Node, bool, error) {
+	// We are on '{' right now.
 	if !p.next() {
 		return nil, false, errors.New("unexpected end of repetition")
 	}
@@ -338,7 +365,7 @@ func (p *Parser) parseRepetition(child *frontend.Node) (*frontend.Node, bool, er
 		return nil, false, errors.New("expected end of repetition")
 	}
 
-	if !hasMin && !hasComma && !hasMax {
+	if !hasMin && !hasMax {
 		return nil, false, errors.New("empty repetition")
 	}
 
@@ -388,12 +415,4 @@ func (p *Parser) parseNumber() (int, bool) {
 		}
 	}
 	return number, true
-}
-
-func isMeta(r rune) bool {
-	switch r {
-	case '.', '*', '+', '?', '|', '(', ')', '[', ']', '{', '}', '^', '$':
-		return true
-	}
-	return false
 }
