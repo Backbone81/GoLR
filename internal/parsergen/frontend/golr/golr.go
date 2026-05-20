@@ -36,10 +36,14 @@ func ToGrammar(reader io.Reader, filePath string) (frontend.Grammar, error) {
 	}
 
 	walker := NewASTWalker()
-	return walker.BuildGrammar(rootNode)
+	_, grammar, err := walker.BuildGrammar(rootNode)
+	if err != nil {
+		return frontend.Grammar{}, err
+	}
+	return grammar, nil
 }
 
-// GrammarFromFile reads the context free grammar as GNU Bison grammar document from the given file path. Returns an
+// GrammarFromFile reads the context free grammar as GoLR grammar document from the given file path. Returns an
 // error if the file can not be read or the grammar document can not be parsed successfully.
 //
 //nolint:nonamedreturns // Required for defer
@@ -58,8 +62,8 @@ func GrammarFromFile(filePath string) (grammar frontend.Grammar, err error) {
 	return ToGrammar(file, filePath)
 }
 
-// GrammarFromString reads the context free grammar as GNU Bison grammar document from the given string. Returns an
+// GrammarFromString reads the context free grammar as GoLR grammar document from the given string. Returns an
 // error if the grammar document can not be parsed successfully.
-func GrammarFromString(bisonGrammar string) (frontend.Grammar, error) {
-	return ToGrammar(strings.NewReader(bisonGrammar), "in-memory")
+func GrammarFromString(golrGrammar string) (frontend.Grammar, error) {
+	return ToGrammar(strings.NewReader(golrGrammar), "in-memory")
 }

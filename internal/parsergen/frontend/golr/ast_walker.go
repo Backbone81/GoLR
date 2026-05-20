@@ -6,14 +6,18 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/backbone81/golr/internal/parsergen/frontend"
+	parsergenfrontend "github.com/backbone81/golr/internal/parsergen/frontend"
 	"github.com/backbone81/golr/internal/parsergen/frontend/golr/parser"
+	"github.com/backbone81/golr/internal/parsergen/frontend/golr/regex"
+	scannergenfrontend "github.com/backbone81/golr/internal/scannergen/frontend"
+	"github.com/backbone81/golr/pkg/scannergen/frontend/dsl"
 )
 
 // ASTWalker is a helper struct which walks the abstract syntax tree of a parsed GoLR grammar and extracts all
 // information required to describe the context free grammar therein.
 type ASTWalker struct {
-	grammar frontend.Grammar
+	rules   []scannergenfrontend.Rule
+	grammar parsergenfrontend.Grammar
 
 	terminalIdxByName    map[string]int
 	terminalIdxByAlias   map[string]int
@@ -28,7 +32,7 @@ type ASTWalker struct {
 	currentPrecedence int
 
 	// currentAssociativity keeps track of the associativity being declared in the current precedence_decl.
-	currentAssociativity frontend.Associativity
+	currentAssociativity parsergenfrontend.Associativity
 
 	// inPrecedenceDecl keeps track if we are currently inside a precedence_decl. Symbols visited via symbol_list
 	// inside a precedence_decl are terminals being assigned the current precedence level and associativity.
@@ -51,18 +55,31 @@ func NewASTWalker() *ASTWalker {
 
 // BuildGrammar takes the root node of the abstract syntax tree, traverses the tree to build the context free grammar
 // and returns the finished grammar afterward.
-func (w *ASTWalker) BuildGrammar(node *parser.Node) (frontend.Grammar, error) {
+func (w *ASTWalker) BuildGrammar(node *parser.Node) ([]scannergenfrontend.Rule, parsergenfrontend.Grammar, error) {
 	if err := w.visitFile(node); err != nil {
-		return frontend.Grammar{}, err
+		return nil, parsergenfrontend.Grammar{}, err
 	}
 	if w.startNonterminalName != "" {
 		idx, ok := w.nonterminalIdxByName[w.startNonterminalName]
 		if !ok {
-			return frontend.Grammar{}, fmt.Errorf("unknown start nonterminal %q", w.startNonterminalName)
+			return nil, parsergenfrontend.Grammar{}, fmt.Errorf("unknown start nonterminal %q", w.startNonterminalName)
 		}
 		w.grammar.StartNonterminalIdx = idx
 	}
-	return w.grammar, nil
+
+	// Validate that every nonterminal referenced on any production right hand side is also defined on a left hand side.
+	definedNonterminals := make(map[int]struct{}, len(w.grammar.Nonterminals))
+	for _, production := range w.grammar.Productions {
+		definedNonterminals[production.NonterminalIdx] = struct{}{}
+	}
+	for idx, nonterminal := range w.grammar.Nonterminals {
+		if _, ok := definedNonterminals[idx]; !ok {
+			return nil,
+				parsergenfrontend.Grammar{},
+				fmt.Errorf("nonterminal %q is referenced but never defined", nonterminal.Name)
+		}
+	}
+	return w.rules, w.grammar, nil
 }
 
 func (w *ASTWalker) visitFile(node *parser.Node) error {
@@ -147,8 +164,9 @@ func (w *ASTWalker) visitScannerDecl(node *parser.Node) error {
 		return fmt.Errorf("terminal %q is declared multiple times", name)
 	}
 
-	w.grammar.Terminals = append(w.grammar.Terminals, frontend.Symbol{Name: name})
+	w.grammar.Terminals = append(w.grammar.Terminals, parsergenfrontend.Symbol{Name: name})
 	w.terminalIdxByName[name] = len(w.grammar.Terminals) - 1
+	w.rules = append(w.rules, scannergenfrontend.Rule{Name: name})
 
 	for _, child := range node.Children {
 		nonterminal, ok := child.Symbol.Nonterminal()
@@ -171,6 +189,11 @@ func (w *ASTWalker) visitScannerDeclRhs(node *parser.Node) error {
 	}
 
 	for _, child := range node.Children {
+		if terminal, ok := child.Symbol.Terminal(); ok && terminal == parser.TokenEmpty {
+			w.rules[len(w.rules)-1].Regex = *dsl.CharClass()
+			continue
+		}
+
 		nonterminal, ok := child.Symbol.Nonterminal()
 		if !ok {
 			continue
@@ -194,19 +217,33 @@ func (w *ASTWalker) visitScannerPattern(node *parser.Node) error {
 		return nil
 	}
 
-	// A STRING pattern doubles as the alias for the terminal, allowing productions to reference it by string.
-	if terminal, ok := node.Children[0].Symbol.Terminal(); !ok || terminal != parser.TokenString {
+	terminal, ok := node.Children[0].Symbol.Terminal()
+	if !ok {
 		return nil
 	}
 
-	alias := string(node.Children[0].Lexeme)
-	idx := len(w.grammar.Terminals) - 1
-	w.grammar.Terminals[idx].Alias = alias
+	switch terminal {
+	case parser.TokenRegex:
+		regexNode, err := regex.Parse(node.Children[0].Lexeme)
+		if err != nil {
+			return fmt.Errorf("invalid regex for terminal: %q: %w", w.grammar.Terminals[len(w.grammar.Terminals)-1].Name, err)
+		}
+		w.rules[len(w.rules)-1].Regex = *regexNode
+	case parser.TokenString:
+		alias := string(node.Children[0].Lexeme)
+		idx := len(w.grammar.Terminals) - 1
+		w.grammar.Terminals[idx].Alias = alias
 
-	if _, ok := w.terminalIdxByAlias[alias]; ok {
-		return fmt.Errorf("alias %s has already been declared", alias)
+		if _, ok := w.terminalIdxByAlias[alias]; ok {
+			return fmt.Errorf("alias %s has already been declared", alias)
+		}
+		w.terminalIdxByAlias[alias] = idx
+
+		// We need to strip the quotes from the alias when we create the literal.
+		w.rules[len(w.rules)-1].Regex = *dsl.Literal(alias[1 : len(alias)-1])
+	default:
+		return nil
 	}
-	w.terminalIdxByAlias[alias] = idx
 	return nil
 }
 
@@ -338,11 +375,11 @@ func (w *ASTWalker) visitAssociativity(node *parser.Node) {
 		}
 		switch terminal {
 		case parser.TokenLeft:
-			w.currentAssociativity = frontend.AssociativityLeft
+			w.currentAssociativity = parsergenfrontend.AssociativityLeft
 		case parser.TokenRight:
-			w.currentAssociativity = frontend.AssociativityRight
+			w.currentAssociativity = parsergenfrontend.AssociativityRight
 		case parser.TokenNone:
-			w.currentAssociativity = frontend.AssociativityNone
+			w.currentAssociativity = parsergenfrontend.AssociativityNone
 		}
 	}
 }
@@ -359,11 +396,16 @@ func (w *ASTWalker) visitRuleDeclList(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalRuleDeclList:
-			w.visitRuleDeclList(child)
+			if err := w.visitRuleDeclList(child); err != nil {
+				return err
+			}
 		case parser.NonterminalProductionDecl:
-			w.visitProductionDecl(child)
+			if err := w.visitProductionDecl(child); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func (w *ASTWalker) visitProductionDecl(node *parser.Node) error {
@@ -373,15 +415,19 @@ func (w *ASTWalker) visitProductionDecl(node *parser.Node) error {
 
 	name, err := w.getNameLexeme(node)
 	if err != nil {
-		return
+		return err
+	}
+
+	if _, ok := w.terminalIdxByName[name]; ok {
+		return fmt.Errorf("left hand side of production %q is already declared as terminal", name)
 	}
 
 	if _, ok := w.nonterminalIdxByName[name]; !ok {
-		w.grammar.Nonterminals = append(w.grammar.Nonterminals, frontend.Symbol{Name: name})
+		w.grammar.Nonterminals = append(w.grammar.Nonterminals, parsergenfrontend.Symbol{Name: name})
 		w.nonterminalIdxByName[name] = len(w.grammar.Nonterminals) - 1
 	}
 
-	w.grammar.Productions = append(w.grammar.Productions, frontend.Production{
+	w.grammar.Productions = append(w.grammar.Productions, parsergenfrontend.Production{
 		NonterminalIdx: w.nonterminalIdxByName[name],
 	})
 
@@ -392,9 +438,12 @@ func (w *ASTWalker) visitProductionDecl(node *parser.Node) error {
 		}
 		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalAlternativeList:
-			w.visitAlternativeList(child)
+			if err := w.visitAlternativeList(child); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func (w *ASTWalker) visitAlternativeList(node *parser.Node) error {
@@ -404,12 +453,16 @@ func (w *ASTWalker) visitAlternativeList(node *parser.Node) error {
 
 	if len(node.Children) == 3 {
 		// alternative_list "|" alternative — recurse left, then create a new production for the right alternative.
-		w.visitAlternativeList(node.Children[0])
-		w.grammar.Productions = append(w.grammar.Productions, frontend.Production{
+		if err := w.visitAlternativeList(node.Children[0]); err != nil {
+			return err
+		}
+		w.grammar.Productions = append(w.grammar.Productions, parsergenfrontend.Production{
 			NonterminalIdx: w.grammar.Productions[len(w.grammar.Productions)-1].NonterminalIdx,
 		})
-		w.visitAlternative(node.Children[2])
-		return
+		if err := w.visitAlternative(node.Children[2]); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	for _, child := range node.Children {
@@ -419,9 +472,12 @@ func (w *ASTWalker) visitAlternativeList(node *parser.Node) error {
 		}
 		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalAlternative:
-			w.visitAlternative(child)
+			if err := w.visitAlternative(child); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func (w *ASTWalker) visitAlternative(node *parser.Node) error {
@@ -438,11 +494,16 @@ func (w *ASTWalker) visitAlternative(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalSymbolList:
-			w.visitSymbolList(child)
+			if err := w.visitSymbolList(child); err != nil {
+				return err
+			}
 		case parser.NonterminalAlternativeAnnotationList:
-			w.visitAlternativeAnnotationList(child)
+			if err := w.visitAlternativeAnnotationList(child); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func (w *ASTWalker) visitAlternativeAnnotationList(node *parser.Node) error {
@@ -457,11 +518,16 @@ func (w *ASTWalker) visitAlternativeAnnotationList(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalAlternativeAnnotationList:
-			w.visitAlternativeAnnotationList(child)
+			if err := w.visitAlternativeAnnotationList(child); err != nil {
+				return err
+			}
 		case parser.NonterminalAlternativeAnnotation:
-			w.visitAlternativeAnnotation(child)
+			if err := w.visitAlternativeAnnotation(child); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func (w *ASTWalker) visitAlternativeAnnotation(node *parser.Node) error {
@@ -480,11 +546,14 @@ func (w *ASTWalker) visitAlternativeAnnotation(node *parser.Node) error {
 		}
 		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalSymbol:
-			w.visitSymbol(child)
+			if err := w.visitSymbol(child); err != nil {
+				return err
+			}
 		}
 	}
 
 	w.inAlternativeAnnotation = inAlternativeAnnotationBackup
+	return nil
 }
 
 func (w *ASTWalker) visitSymbolList(node *parser.Node) error {
@@ -499,11 +568,16 @@ func (w *ASTWalker) visitSymbolList(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalSymbolList:
-			w.visitSymbolList(child)
+			if err := w.visitSymbolList(child); err != nil {
+				return err
+			}
 		case parser.NonterminalSymbol:
-			w.visitSymbol(child)
+			if err := w.visitSymbol(child); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func (w *ASTWalker) visitSymbol(node *parser.Node) error {
@@ -513,45 +587,78 @@ func (w *ASTWalker) visitSymbol(node *parser.Node) error {
 
 	name, err := w.getSymbolName(node)
 	if err != nil {
-		return
+		return err
 	}
 
 	if w.inAlternativeAnnotation {
-		// We are inside @precedence(...) — set the precedence override terminal for the current production.
-		if idx, ok := w.terminalIdxByName[name]; ok {
-			production := w.grammar.Productions[len(w.grammar.Productions)-1]
-			production.PrecedenceTerminalIdx = &idx
-			w.grammar.Productions[len(w.grammar.Productions)-1] = production
-		}
-		return
+		return w.visitSymbolInAlternativeAnnotation(name)
 	}
 
 	if w.inPrecedenceDecl {
-		// We are inside a precedence_decl symbol_list — assign precedence and associativity to this terminal.
-		if idx, ok := w.terminalIdxByName[name]; ok {
-			w.grammar.Terminals[idx].Associativity = w.currentAssociativity
-			w.grammar.Terminals[idx].Precedence = w.currentPrecedence
-		}
-		return
+		return w.visitSymbolInPrecedenceDecl(name)
 	}
 
+	return w.visitSymbolInAlternative(name)
+}
+
+func (w *ASTWalker) visitSymbolInAlternativeAnnotation(name string) error {
+	// We are inside @precedence(...) — set the precedence override terminal for the current production.
+	if idx, ok := w.terminalIdxByName[name]; ok {
+		w.grammar.Productions[len(w.grammar.Productions)-1].PrecedenceTerminalIdx = &idx
+		return nil
+	}
+	if idx, ok := w.terminalIdxByAlias[name]; ok {
+		w.grammar.Productions[len(w.grammar.Productions)-1].PrecedenceTerminalIdx = &idx
+		return nil
+	}
+	return fmt.Errorf("undeclared terminal %s", name)
+}
+
+func (w *ASTWalker) visitSymbolInPrecedenceDecl(name string) error {
+	// We are inside a precedence_decl symbol_list — assign precedence and associativity to this terminal.
+	if idx, ok := w.terminalIdxByName[name]; ok {
+		w.grammar.Terminals[idx].Associativity = w.currentAssociativity
+		w.grammar.Terminals[idx].Precedence = w.currentPrecedence
+		return nil
+	}
+	if idx, ok := w.terminalIdxByAlias[name]; ok {
+		w.grammar.Terminals[idx].Associativity = w.currentAssociativity
+		w.grammar.Terminals[idx].Precedence = w.currentPrecedence
+		return nil
+	}
+	return fmt.Errorf("undeclared terminal %s", name)
+}
+
+func (w *ASTWalker) visitSymbolInAlternative(name string) error {
 	// We are in a production alternative — add the symbol to the current production's RHS.
 	if terminalIdx, ok := w.terminalIdxByName[name]; ok {
 		production := w.grammar.Productions[len(w.grammar.Productions)-1]
-		production.SymbolRefs = append(production.SymbolRefs, frontend.NewTerminalRef(terminalIdx))
+		production.SymbolRefs = append(production.SymbolRefs, parsergenfrontend.NewTerminalRef(terminalIdx))
 		w.grammar.Productions[len(w.grammar.Productions)-1] = production
-		return
+		return nil
+	}
+
+	if terminalIdx, ok := w.terminalIdxByAlias[name]; ok {
+		production := w.grammar.Productions[len(w.grammar.Productions)-1]
+		production.SymbolRefs = append(production.SymbolRefs, parsergenfrontend.NewTerminalRef(terminalIdx))
+		w.grammar.Productions[len(w.grammar.Productions)-1] = production
+		return nil
+	}
+
+	if len(name) > 0 && name[0] == '"' {
+		return fmt.Errorf("undeclared terminal %s", name)
 	}
 
 	if _, ok := w.nonterminalIdxByName[name]; !ok {
-		w.grammar.Nonterminals = append(w.grammar.Nonterminals, frontend.Symbol{Name: name})
+		w.grammar.Nonterminals = append(w.grammar.Nonterminals, parsergenfrontend.Symbol{Name: name})
 		w.nonterminalIdxByName[name] = len(w.grammar.Nonterminals) - 1
 	}
 
 	nonterminalIdx := w.nonterminalIdxByName[name]
 	production := w.grammar.Productions[len(w.grammar.Productions)-1]
-	production.SymbolRefs = append(production.SymbolRefs, frontend.NewNonterminalRef(nonterminalIdx))
+	production.SymbolRefs = append(production.SymbolRefs, parsergenfrontend.NewNonterminalRef(nonterminalIdx))
 	w.grammar.Productions[len(w.grammar.Productions)-1] = production
+	return nil
 }
 
 func (w *ASTWalker) getNameLexeme(node *parser.Node) (string, error) {

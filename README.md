@@ -137,6 +137,7 @@ The parser generator constructs an LR(1) parser from a context free grammar. Ple
 These frontends are currently supported:
 
 - [Bison](docs/parsergen-frontend-bison.md)
+- [GoLR](docs/parsergen-frontend-golr.md)
 - [DSL](docs/parsergen-frontend-dsl.md)
 - [JSON](docs/parsergen-frontend-json.md)
 - [YAML](docs/parsergen-frontend-yaml.md)
@@ -176,6 +177,7 @@ The scanner generator constructs a DFA scanner from regular expressions.
 These frontends are currently supported:
 
 - [DSL](docs/scannergen-frontend-dsl.md)
+- [GoLR](docs/scannergen-frontend-golr.md)
 - [JSON](docs/scannergen-frontend-json.md)
 - [YAML](docs/scannergen-frontend-yaml.md)
 

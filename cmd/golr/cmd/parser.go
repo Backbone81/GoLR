@@ -13,6 +13,7 @@ import (
 	ielr1core "github.com/backbone81/golr/pkg/parsergen/core/ielr1"
 	"github.com/backbone81/golr/pkg/parsergen/frontend"
 	bisonfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/bison"
+	golrfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/golr"
 	jsonfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/json"
 	yamlfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/yaml"
 )
@@ -59,6 +60,11 @@ func executeParserFrontend() (frontend.Grammar, error) {
 			return bisonfrontend.ToGrammar(os.Stdin, "pipe")
 		}
 		return bisonfrontend.GrammarFromFile(parserFrontendFilePath)
+	case "golr":
+		if parserFrontendFilePath == "-" {
+			return golrfrontend.ToGrammar(os.Stdin, "pipe")
+		}
+		return golrfrontend.GrammarFromFile(parserFrontendFilePath)
 	case "json":
 		if parserFrontendFilePath == "-" {
 			return jsonfrontend.ToGrammar(os.Stdin)
@@ -119,7 +125,7 @@ func init() {
 		&parserFrontend,
 		"frontend",
 		"bison",
-		"The frontend to use for reading the context free grammar. One of: bison, json, yaml.",
+		"The frontend to use for reading the context free grammar. One of: bison, golr, json, yaml.",
 	)
 	parserCmd.PersistentFlags().StringVar(
 		&parserFrontendFilePath,

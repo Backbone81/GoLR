@@ -12,6 +12,7 @@ import (
 	yamlbackend "github.com/backbone81/golr/pkg/scannergen/backend/yaml"
 	subsetcore "github.com/backbone81/golr/pkg/scannergen/core/subset"
 	"github.com/backbone81/golr/pkg/scannergen/frontend"
+	golrfrontend "github.com/backbone81/golr/pkg/scannergen/frontend/golr"
 	jsonfrontend "github.com/backbone81/golr/pkg/scannergen/frontend/json"
 	yamlfrontend "github.com/backbone81/golr/pkg/scannergen/frontend/yaml"
 )
@@ -53,6 +54,11 @@ var scannerCmd = &cobra.Command{
 
 func executeScannerFrontend() ([]frontend.Rule, error) {
 	switch scannerFrontend {
+	case "golr":
+		if scannerFrontendFilePath == "-" {
+			return golrfrontend.ToRules(os.Stdin, "pipe")
+		}
+		return golrfrontend.RulesFromFile(scannerFrontendFilePath)
 	case "json":
 		if scannerFrontendFilePath == "-" {
 			return jsonfrontend.ToRules(os.Stdin)
@@ -113,7 +119,7 @@ func init() {
 		&scannerFrontend,
 		"frontend",
 		"yaml",
-		"The frontend to use for reading the regular expressions. One of: json, yaml.",
+		"The frontend to use for reading the regular expressions. One of: golr, json, yaml.",
 	)
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerFrontendFilePath,
