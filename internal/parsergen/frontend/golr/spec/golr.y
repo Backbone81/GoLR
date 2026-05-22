@@ -95,6 +95,7 @@ associativity
     : "@left"
     | "@right"
     | "@none"
+    | "@precedence"
     ;
 
 rule_decl_list

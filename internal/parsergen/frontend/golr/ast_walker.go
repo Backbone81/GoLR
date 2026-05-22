@@ -79,6 +79,10 @@ func (w *ASTWalker) BuildGrammar(node *parser.Node) ([]scannergenfrontend.Rule, 
 				fmt.Errorf("nonterminal %q is referenced but never defined", nonterminal.Name)
 		}
 	}
+
+	if len(w.grammar.Productions) < 1 {
+		return nil, parsergenfrontend.Grammar{}, errors.New("grammar requires at least one production")
+	}
 	return w.rules, w.grammar, nil
 }
 
@@ -380,6 +384,8 @@ func (w *ASTWalker) visitAssociativity(node *parser.Node) {
 			w.currentAssociativity = parsergenfrontend.AssociativityRight
 		case parser.TokenNone:
 			w.currentAssociativity = parsergenfrontend.AssociativityNone
+		case parser.TokenPrecedence:
+			w.currentAssociativity = parsergenfrontend.AssociativityUndeclared
 		}
 	}
 }
