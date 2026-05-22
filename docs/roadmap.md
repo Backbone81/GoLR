@@ -3,6 +3,8 @@
 ## General Topics
 
 - Extend the documentation.
+- Add a GoLR pretty printer.
+- Add a GNU Bison to GoLR grammar converter.
 - Add benchmarks to all documentation.
 - Add an example for parsing simple mathematical expressions.
 - Introduce a proper tutorial for setting up scanner and parser with more details than the getting started.
