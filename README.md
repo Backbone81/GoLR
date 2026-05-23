@@ -81,6 +81,7 @@ Usage:
 
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
+  convert     Converts grammar files between different formats.
   fmt         Pretty prints GoLR grammar files.
   help        Help about any command
   parser      Generates a LR(1) parser.
@@ -142,6 +143,24 @@ Flags:
 
 Note that due to limitations in the current implementation, the pretty printer for GoLR grammar files currently drops
 all comments from the file. This will be fixed in the future.
+
+The `convert` sub-command converts GNU Bison grammar files to GoLR grammar files:
+
+```text
+Converts grammar files between different formats.
+
+Usage:
+  golr convert [flags]
+
+Flags:
+  -h, --help                      help for convert
+      --input-file-path string    The GNU Bison grammar file to convert. Can be '-' to read from stdin.
+      --output-file-path string   The GoLR grammar file to write. Can be '-' to write to stdout. (default "-")
+```
+
+Note that the conversion is incomplete most of the time. GNU Bison grammar files do not describe regular expressions
+of tokens, for example. But the conversion can be a starting point to have a GoLR grammar quickly with only a few
+manual corrections needed.
 
 ## Parser Generator
 

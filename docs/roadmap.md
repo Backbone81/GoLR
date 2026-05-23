@@ -2,8 +2,8 @@
 
 ## General Topics
 
+- GoLR needs to support @precedence on @empty productions for compatibility with GNU Bison languages.
 - Extend the documentation.
-- Add a GNU Bison to GoLR grammar converter.
 - Add benchmarks to all documentation.
 - Add an example for parsing simple mathematical expressions.
 - Introduce a proper tutorial for setting up scanner and parser with more details than the getting started.
