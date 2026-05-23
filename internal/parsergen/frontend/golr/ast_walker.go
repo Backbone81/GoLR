@@ -202,9 +202,13 @@ func (w *ASTWalker) visitScannerDeclRhs(node *parser.Node) error {
 		if !ok {
 			continue
 		}
-		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
+		switch nonterminal {
 		case parser.NonterminalScannerPattern:
 			if err := w.visitScannerPattern(child); err != nil {
+				return err
+			}
+		case parser.NonterminalScannerAnnotationList:
+			if err := w.visitScannerAnnotationList(child); err != nil {
 				return err
 			}
 		}
@@ -247,6 +251,47 @@ func (w *ASTWalker) visitScannerPattern(node *parser.Node) error {
 		w.rules[len(w.rules)-1].Regex = *dsl.Literal(alias[1 : len(alias)-1])
 	default:
 		return nil
+	}
+	return nil
+}
+
+func (w *ASTWalker) visitScannerAnnotationList(node *parser.Node) error {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalScannerAnnotationList {
+		panic("unexpected nonterminal")
+	}
+
+	for _, child := range node.Children {
+		nonterminal, ok := child.Symbol.Nonterminal()
+		if !ok {
+			continue
+		}
+		switch nonterminal {
+		case parser.NonterminalScannerAnnotationList:
+			if err := w.visitScannerAnnotationList(child); err != nil {
+				return err
+			}
+		case parser.NonterminalScannerAnnotation:
+			if err := w.visitScannerAnnotation(child); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (w *ASTWalker) visitScannerAnnotation(node *parser.Node) error {
+	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalScannerAnnotation {
+		panic("unexpected nonterminal")
+	}
+
+	for _, child := range node.Children {
+		terminal, ok := child.Symbol.Terminal()
+		if !ok {
+			continue
+		}
+		if terminal == parser.TokenSkip {
+			w.rules[len(w.rules)-1].Skip = true
+		}
 	}
 	return nil
 }

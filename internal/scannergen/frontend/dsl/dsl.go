@@ -14,6 +14,15 @@ func Rule(name string, node *frontend.Node) frontend.Rule {
 	}
 }
 
+// SkipRule constructs a rule for a regular expression with a name. The rule is marked for being skipped by the parser.
+func SkipRule(name string, node *frontend.Node) frontend.Rule {
+	return frontend.Rule{
+		Name:  name,
+		Skip:  true,
+		Regex: *node,
+	}
+}
+
 // Any constructs a regular expression matching any character.
 func Any() *frontend.Node {
 	return &frontend.Node{

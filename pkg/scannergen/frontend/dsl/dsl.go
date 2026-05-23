@@ -7,6 +7,9 @@ import (
 // Rule constructs a rule for a regular expression with a name.
 var Rule = intdsl.Rule
 
+// SkipRule constructs a rule for a regular expression with a name. The rule is marked for being skipped by the parser.
+var SkipRule = intdsl.SkipRule
+
 // Any constructs a regular expression matching any character.
 // The character must be in the range of valid Unicode characters from 0x00 to [unicode.MaxRune].
 var Any = intdsl.Any

@@ -14,6 +14,7 @@ The YAML input looks like this:
     literal:
       text: "42"
 - name: IDENT
+  skip: true
   regex:
     kind: CharClass
     charClass:

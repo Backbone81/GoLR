@@ -117,6 +117,21 @@ INDENT: @empty;
 Declares a token with no regular expression. This is intended for tokens that are injected by a custom scanning layer 
 on top of the base scanner, such as indentation-sensitive tokens.
 
+### Token Annotations
+
+A pattern declaration may be followed by one or more annotations before the semicolon:
+
+```
+WHITESPACE: /[ \t\n\r]+/ @skip;
+COMMENT: /\/\/.*/ @skip;
+```
+
+| Annotation | Meaning                                                                                                |
+|------------|--------------------------------------------------------------------------------------------------------|
+| `@skip`    | The token is recognized by the scanner but not passed to the parser. Used for whitespace and comments. |
+
+Annotations are not available for `@empty` declarations.
+
 ## `@parser` Section
 
 The parser section describes the context free grammar itself. It optionally contains a start declaration and a

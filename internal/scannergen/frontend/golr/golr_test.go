@@ -56,6 +56,22 @@ var _ = Describe("GoLR Grammar Files", func() {
 			}))
 		})
 
+		It("should set skip with skip annotation", func() {
+			source := `
+                @scanner {
+                    FOO: "foo" @skip;
+                }
+                @parser {
+                    file: @empty;
+                }
+            `
+			rules, err := golr.RulesFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(rules).To(Equal([]frontend.Rule{
+				dsl.SkipRule("FOO", dsl.Literal("foo")),
+			}))
+		})
+
 		It("should build an empty char class node for an empty token", func() {
 			source := `
                 @scanner {

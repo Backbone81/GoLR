@@ -106,6 +106,52 @@ func (t Token) String() string {
 	}
 }
 
+// TokenSkipper wraps a scanner and skips all tokens which were marked for skipping. This is usually used for
+// whitespaces and comments.
+type TokenSkipper struct {
+	Scanner *Scanner
+}
+
+func (s *TokenSkipper) Err() error {
+	return s.Scanner.Err()
+}
+
+func (s *TokenSkipper) Token() Token {
+	return s.Scanner.Token()
+}
+
+func (s *TokenSkipper) ByteOffset() int {
+	return s.Scanner.ByteOffset()
+}
+
+func (s *TokenSkipper) Line() int {
+	return s.Scanner.Line()
+}
+
+func (s *TokenSkipper) Column() int {
+	return s.Scanner.Column()
+}
+
+func (s *TokenSkipper) Lexeme() []byte {
+	return s.Scanner.Lexeme()
+}
+
+func (s *TokenSkipper) Next() bool {
+	for {
+		if !s.Scanner.Next() {
+			return false
+		}
+		switch s.Scanner.Token() {
+		default:
+			return true
+		}
+	}
+}
+
+func (s *TokenSkipper) FilePath() string {
+	return s.Scanner.FilePath()
+}
+
 // Scanner implements the scanner and returns tokens.
 type Scanner struct {
 	runeReader runtime.UTF8RuneReader

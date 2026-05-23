@@ -15,6 +15,7 @@ rules:
     literal:
       text: "42"
 - name: IDENT
+  skip: true
   regex:
     kind: CharClass
     charClass:

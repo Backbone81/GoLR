@@ -20,6 +20,7 @@ The JSON input looks like this:
   },
   {
     "name": "IDENT",
+    "skip": true,
     "regex": {
       "kind": "CharClass",
       "charClass": {
