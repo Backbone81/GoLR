@@ -31,19 +31,22 @@ func (c *CharRange) String() string {
 // printRune is a helper method for creating a readable representation of a character range.
 func (c *CharRange) printRune(r rune) string {
 	switch r {
-	case ' ':
-		return "' '"
 	case '\t':
-		return "\\t"
-	case '\r':
-		return "\\r"
+		return `\t`
 	case '\n':
-		return "\\n"
+		return `\n`
+	case '\r':
+		return `\r`
+	case '\v':
+		return `\v`
+	case '\f':
+		return `\f`
+	case 0:
+		return `\0`
+	case ']', '\\', '-', '^':
+		return `\` + string(r)
 	default:
-		if 32 <= r && r < 127 {
-			return fmt.Sprintf("%c", r)
-		}
-		return fmt.Sprintf("0x%x", r)
+		return string(r)
 	}
 }
 

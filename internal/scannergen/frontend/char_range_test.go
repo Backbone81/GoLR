@@ -22,14 +22,17 @@ var _ = Describe("CharRange", func() {
 	})
 
 	It("should convert to string with special characters", func() {
-		expression := dsl.CharRange(' ', '\t')
-		Expect(expression.String()).To(Equal("' '-\\t"))
+		expression := dsl.CharRange(' ', ' ')
+		Expect(expression.String()).To(Equal(" "))
+
+		expression = dsl.CharRange(' ', '\t')
+		Expect(expression.String()).To(Equal(` -\t`))
 
 		expression = dsl.CharRange('\r', '\n')
-		Expect(expression.String()).To(Equal("\\r-\\n"))
+		Expect(expression.String()).To(Equal(`\r-\n`))
 
 		expression = dsl.CharRange('\u2116', '\u26a0')
-		Expect(expression.String()).To(Equal("0x2116-0x26a0"))
+		Expect(expression.String()).To(Equal("\u2116-\u26a0"))
 	})
 
 	It("should fail validation with out of range runes", func() {

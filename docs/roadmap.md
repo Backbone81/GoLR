@@ -3,7 +3,6 @@
 ## General Topics
 
 - Extend the documentation.
-- Add a GoLR pretty printer.
 - Add a GNU Bison to GoLR grammar converter.
 - Add benchmarks to all documentation.
 - Add an example for parsing simple mathematical expressions.
@@ -32,3 +31,10 @@
 
 - Allow scanner to parse case independent (accept lower case and upper case characters if specified in one case only)
 - Check if any is excluding newlines.
+
+## Formater
+
+- The GoLR formater should retain comments. Right now, comments are dropped because we parse the grammar file into
+  a context-free grammar and regular expressions, then write those out again. As parsing the context-free grammar drops
+  all comments, they are lost for writing out again. We need to look into mechanics to pass on dropped comments to the
+  output.

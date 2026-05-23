@@ -81,6 +81,7 @@ Usage:
 
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
+  fmt         Pretty prints GoLR grammar files.
   help        Help about any command
   parser      Generates a LR(1) parser.
   scanner     Generates a DFA scanner.
@@ -126,6 +127,21 @@ Flags:
       --frontend-file-path string        The file path to read the regular expressions from. Can be '-' to read from stdin.
   -h, --help                             help for scanner
 ```
+
+The `fmt` sub-command allows to pretty print GoLR grammar files:
+
+```text
+Pretty prints GoLR grammar files. All comments will be removed.
+
+Usage:
+  golr fmt [file...] [flags]
+
+Flags:
+  -h, --help   help for fmt
+```
+
+Note that due to limitations in the current implementation, the pretty printer for GoLR grammar files currently drops
+all comments from the file. This will be fixed in the future.
 
 ## Parser Generator
 

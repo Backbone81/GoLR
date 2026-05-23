@@ -3,6 +3,7 @@ package frontend
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 )
 
 // Literal is a regular expression matching its text as a literal.
@@ -12,7 +13,29 @@ type Literal struct {
 
 // String returns a string representation of this regular expression.
 func (l *Literal) String() string {
-	return l.Text
+	var b strings.Builder
+	for _, r := range l.Text {
+		switch r {
+		case '\t':
+			b.WriteString(`\t`)
+		case '\n':
+			b.WriteString(`\n`)
+		case '\r':
+			b.WriteString(`\r`)
+		case '\v':
+			b.WriteString(`\v`)
+		case '\f':
+			b.WriteString(`\f`)
+		case 0:
+			b.WriteString(`\0`)
+		case '.', '*', '+', '?', '(', ')', '|', '[', ']', '{', '}', '\\', '/', '^', '$':
+			b.WriteRune('\\')
+			b.WriteRune(r)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // IsSingleNode reports if this regular expression can be represented as a single node when converted to a string.
