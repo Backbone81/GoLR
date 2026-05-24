@@ -65,6 +65,8 @@ You can then walk the abstract syntax tree from the root node.
 
 ## Examples
 
+See the [Calculator Example](examples/calculator/README.md) for a simple and complete example about how to use GoLR.
+
 See the `examples` directory for parsers generated with GoLR.
 
 ## Command Line Parameters

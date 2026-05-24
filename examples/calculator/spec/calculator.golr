@@ -1,0 +1,54 @@
+/********************************************************************************
+ * This GoLR grammar describes a simple integer arithmetic calculator supporting
+ * +, -, *, / with standard precedence, grouping with parentheses and negative
+ * integers.
+ ********************************************************************************/
+
+// The @scanner section defines all tokens which make up the strings we want to parse.
+@scanner {
+    // We want to ignore all whitespaces. The annotation @skip causes the scanner to ignore those tokens.
+    WHITESPACE: /[ \t\r\n]+/ @skip;
+
+    INTEGER:    /[0-9]+/;
+
+    // These are our operators.
+    PLUS:       "+";
+    MINUS:      "-";
+    MULTIPLY:   "*";
+    DIVIDE:     "/";
+
+    // These delimit grouped sub-expressions, e.g. (1 + 2) * 3.
+    LPAREN:     "(";
+    RPAREN:     ")";
+
+    // UMINUS is never matched by the scanner. It exists solely as a precedence
+    // marker so we can assign higher precedence to the unary minus production
+    // than to binary * and / (see @precedence(UMINUS) below).
+    UMINUS:     @empty;
+}
+
+// The @parser section defines all productions which define the structure of the arithmetic language.
+@parser {
+    // The @precedence section defines associativity and precedence of operator.
+    // Earlier lines in @precedence have higher priority than later lines.
+    // UMINUS must be highest so that -2 * 3 parses as (-2) * 3, not -(2*3).
+    @precedence {
+        @right: UMINUS;
+        @left:  "*" "/";
+        @left:  "+" "-";
+    }
+
+    expression
+        : INTEGER
+        | expression "+" expression
+        | expression "-" expression
+        | expression "*" expression
+        | expression "/" expression
+
+        // @precedence(UMINUS) tells the parser to treat this production as if it
+        // had the precedence of UMINUS, resolving the ambiguity with binary minus.
+        | "-" expression @precedence(UMINUS)
+
+        | "(" expression ")"
+        ;
+}

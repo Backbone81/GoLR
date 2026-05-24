@@ -40,12 +40,13 @@ func GetScannerRules() []frontend.Rule {
 			Or(
 				NegCharClass(CharRange('*', '*')),
 				Concat(
-					Literal("*"),
-					NegCharClass(CharRange('/', '/')),
+					OneOrMore(Literal("*")),
+					NegCharClass(CharRange('*', '*'), CharRange('/', '/')),
 				),
 			),
 		),
-		Literal("*/"),
+		OneOrMore(Literal("*")),
+		Literal("/"),
 	)
 	lineComment := Concat(
 		Literal("//"),

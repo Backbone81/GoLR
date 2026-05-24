@@ -57,18 +57,29 @@ rules:
                   - kind: Concat
                     concat:
                       children:
-                      - kind: Literal
-                        literal:
-                          text: "*"
+                      - kind: OneOrMore
+                        oneOrMore:
+                          child:
+                            kind: Literal
+                            literal:
+                              text: "*"
                       - kind: CharClass
                         charClass:
                           negate: true
                           ranges:
+                          - low: 42
+                            high: 42
                           - low: 47
                             high: 47
+          - kind: OneOrMore
+            oneOrMore:
+              child:
+                kind: Literal
+                literal:
+                  text: "*"
           - kind: Literal
             literal:
-              text: "*/"
+              text: "/"
       - kind: Concat
         concat:
           children:
@@ -1255,6 +1266,14 @@ states:
   transitions:
   - charRange:
       low: 0
+      high: 41
+    stateIdx: 17
+  - charRange:
+      low: 42
+      high: 42
+    stateIdx: 49
+  - charRange:
+      low: 43
       high: 46
     stateIdx: 17
   - charRange:

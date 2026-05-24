@@ -2070,7 +2070,13 @@ func (s *Scanner) state49Comment() error {
 	}
 	nextRune := s.runeReader.Rune()
 	switch {
-	case 0x0 <= nextRune && nextRune <= '.':
+	case 0x0 <= nextRune && nextRune <= ')':
+		s.state = 17
+		return nil
+	case nextRune == '*':
+		s.state = 49
+		return nil
+	case '+' <= nextRune && nextRune <= '.':
 		s.state = 17
 		return nil
 	case nextRune == '/':

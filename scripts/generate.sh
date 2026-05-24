@@ -26,6 +26,8 @@ cp internal/parsergen/frontend/bison/parser/*.go examples/bison/parser
 go run ./examples/bison/spec/export/
 go run ./examples/golang/spec/export/
 go run ./examples/golang/parser/export/
+go run ./cmd/golr scanner --frontend golr --frontend-file-path examples/calculator/spec/calculator.golr --backend go --backend-file-path examples/calculator/parser/scanner.go
+go run ./cmd/golr parser --frontend golr --frontend-file-path examples/calculator/spec/calculator.golr --backend go --backend-file-path examples/calculator/parser/parser.go
 
 # Let's make sure that our examples folder does not reference any internal package.
 if grep -r '/internal/' examples/; then
