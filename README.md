@@ -38,6 +38,7 @@ from it:
 
 ```sh
 golr parser \
+  --frontend bison \
   --frontend-file-path grammar.y \
   --backend-file-path parser/parser.go
 ```
@@ -108,7 +109,7 @@ Flags:
       --backend-file-path string         The file path to write the parser to. Can be '-' to write to stdout.
       --backend-go-package-name string   The Go package name to use for the generated Go code. (default "parser")
       --core string                      The core to use for generating the parser from the context free grammar. One of: ielr1. (default "ielr1")
-      --frontend string                  The frontend to use for reading the context free grammar. One of: bison, json, yaml. (default "bison")
+      --frontend string                  The frontend to use for reading the context free grammar. One of: bison, golr, json, yaml. (default "golr")
       --frontend-file-path string        The file path to read the context free grammar from. Can be '-' to read from stdin.
   -h, --help                             help for parser
 ```
@@ -126,7 +127,7 @@ Flags:
       --backend-file-path string         The file path to write the scanner to. Can be '-' to write to stdout.
       --backend-go-package-name string   The Go package name to use for the generated Go code. (default "parser")
       --core string                      The core to use for generating the scanner from the regular expressions. One of: subset. (default "subset")
-      --frontend string                  The frontend to use for reading the regular expressions. One of: json, yaml. (default "yaml")
+      --frontend string                  The frontend to use for reading the regular expressions. One of: golr, json, yaml. (default "golr")
       --frontend-file-path string        The file path to read the regular expressions from. Can be '-' to read from stdin.
   -h, --help                             help for scanner
 ```

@@ -34,7 +34,7 @@ the start. It strictly separates the frontend from the core and the backend. The
 a context free grammar from any arbitrary format. The core is responsible for producing a parser for a given context
 free grammar. The backend is responsible for outputting the parser to any arbitrary format.
 
-The frontends could support different formats like JSON, YAML, GNU Bison grammar files and ANTLR4 grammar files with a
+The frontends could support different formats like JSON, YAML and GNU Bison grammar files with a
 varying degree of compatibility. Making it easy for users to reuse grammar descriptions they already have.
 
 The core could support different algorithms but should start with a IELR(1) implementation.

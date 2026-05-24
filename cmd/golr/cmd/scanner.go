@@ -118,7 +118,7 @@ func init() {
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerFrontend,
 		"frontend",
-		"yaml",
+		"golr",
 		"The frontend to use for reading the regular expressions. One of: golr, json, yaml.",
 	)
 	scannerCmd.PersistentFlags().StringVar(

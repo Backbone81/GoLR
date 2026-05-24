@@ -19,6 +19,7 @@
 ## Parser Generator
 
 - Improve error handling for generated parser.
+- Improve performance
 - Compare performance with other generators like https://github.com/goccmack/gocc or Hyacc (https://hyacc.sourceforge.net/)
 - The IELR(1) implementation should be native Go and not call out to Bison.
 - Introduce strongly typed wrappers for general purpose AST nodes. That way, users don't rely on children being a 
@@ -28,6 +29,7 @@
 ## Scanner Generator
 
 - Improve error handling for generated scanner.
+- Improve performance
 - Check if any is excluding newlines.
 - Allow scanner to parse case independent (accept lower case and upper case characters if specified in one case only)
 

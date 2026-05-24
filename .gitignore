@@ -35,3 +35,6 @@ bin/
 
 # ignore the golr binary
 /golr
+
+# Added by goreleaser init:
+dist/

@@ -124,7 +124,7 @@ func init() {
 	parserCmd.PersistentFlags().StringVar(
 		&parserFrontend,
 		"frontend",
-		"bison",
+		"golr",
 		"The frontend to use for reading the context free grammar. One of: bison, golr, json, yaml.",
 	)
 	parserCmd.PersistentFlags().StringVar(

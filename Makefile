@@ -55,3 +55,15 @@ benchmark: prepare
 clean:
 	rm -rf tmp
 	rm -f golr
+
+.PHONY: release-test
+release-test:
+	goreleaser check
+	goreleaser healthcheck
+	goreleaser build --snapshot --clean
+	goreleaser release --snapshot --clean --skip=publish
+
+.PHONY: release
+release: release-test
+release: export GITHUB_TOKEN ?= unknown
+	goreleaser release
