@@ -31,6 +31,9 @@
 - Improve error handling for generated scanner.
 - Improve performance
 - Check if any is excluding newlines.
+- Add support for fragments - the possibility to declare rules which do not result in a token but can be referenced in
+  other rules. This helps to re-use common pattern at several places without having to copy&paste the patterns
+  everywhere.
 - Allow scanner to parse case independent (accept lower case and upper case characters if specified in one case only)
 
 ## Formater
