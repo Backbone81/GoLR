@@ -1,0 +1,164 @@
+// This GoLR grammar file provides a language description for the Go programming language. All rules are derived from
+// the official specification at https://go.dev/ref/spec.
+
+@scanner {
+    horizontal_whitespace: /[ \t]/ @fragment;
+    vertical_whitespace:   /[\r\n]/ @fragment;
+    whitespace:            /({horizontal_whitespace}|{vertical_whitespace})+/ @skip;
+
+    // Characters (https://go.dev/ref/spec#Characters)
+    newline:        /\n/ @fragment;
+    unicode_char:   /[^\n]/ @fragment;
+    unicode_letter: /[a-zA-Z]/ @fragment;
+    unicode_digit:  /[0-9]/ @fragment;
+
+    // Letters and digits (https://go.dev/ref/spec#Letters_and_digits)
+    letter:        /{unicode_letter}|_/ @fragment;
+    decimal_digit: /[0-9]/ @fragment;
+    binary_digit:  /0|1/ @fragment;
+    octal_digit:   /[0-7]/ @fragment;
+    hex_digit:     /[0-9A-Fa-f]/ @fragment;
+
+    // Comments (https://go.dev/ref/spec#Comments)
+    line_comment:    /\/\/[^\n]*/ @fragment;
+    general_comment: /\/\*([^*]|\*+[^*\/])*\*+\// @fragment;
+    comment:         /{line_comment}|{general_comment}/ @skip;
+
+    // Keywords (https://go.dev/ref/spec#Keywords)
+    // Note that keywords need to appear before identifiers to ensure that they have higher priority during lexical
+    // analysis.
+    break:       "break";
+    case:        "case";
+    chan:        "chan";
+    const:       "const";
+    continue:    "continue";
+    default:     "default";
+    defer:       "defer";
+    else:        "else";
+    fallthrough: "fallthrough";
+    for:         "for";
+    func:        "func";
+    go:          "go";
+    goto:        "goto";
+    if:          "if";
+    import:      "import";
+    interface:   "interface";
+    map:         "map";
+    package:     "package";
+    range:       "range";
+    return:      "return";
+    select:      "select";
+    struct:      "struct";
+    switch:      "switch";
+    type:        "type";
+    var:         "var";
+
+    // Identifiers (https://go.dev/ref/spec#Identifiers)
+    identifier: /{letter}({letter}|{unicode_digit})*/;
+
+    // Operators and punctuation (https://go.dev/ref/spec#Operators_and_punctuation)
+    add: "+";
+    sub: "-";
+    mul: "*";
+    quo: "/";
+    rem: "%";
+
+    and:         "&";
+    or:          "|";
+    xor:         "^";
+    shift_left:  "<<";
+    shift_right: ">>";
+    and_not:     "&^";
+
+    add_assign: "+=";
+    sub_assign: "-=";
+    mul_assign: "*=";
+    quo_assign: "/=";
+    rem_assign: "%=";
+
+    and_assign:         "&=";
+    or_assign:          "|=";
+    xor_assign:         "^=";
+    shift_left_assign:  "<<=";
+    shift_right_assign: ">>=";
+    and_not_assign:     "&^=";
+
+    logical_and: "&&";
+    logical_or:  "||";
+    arrow:       "<-";
+    increment:   "++";
+    decrement:   "--";
+
+    equal:        "==";
+    less_than:    "<";
+    greater_than: ">";
+    assign:       "=";
+    not:          "!";
+    tilde:        "~";
+
+    not_equal:     "!=";
+    less_equal:    "<=";
+    greater_equal: ">=";
+    define:        ":=";
+    ellipsis:      "...";
+
+    left_paren:   "(";
+    left_bracket: "[";
+    left_brace:   "{";
+    comma:        ",";
+    period:       ".";
+
+    right_paren:   ")";
+    right_bracket: "]";
+    right_brace:   "}";
+    semicolon:     ";";
+    colon:         ":";
+
+    // Integer literals (https://go.dev/ref/spec#Integer_literals)
+    int_lit:      /{int_lit_frag}/;
+    int_lit_frag: /{decimal_lit}|{binary_lit}|{octal_lit}|{hex_lit}/ @fragment;
+    decimal_lit:  /0|[1-9](_?{decimal_digits})?/ @fragment;
+    binary_lit:   /0[bB]_?{binary_digits}/ @fragment;
+    octal_lit:    /0[oO]?_?{octal_digits}/ @fragment;
+    hex_lit:      /0[xX]_?{hex_digits}/ @fragment;
+
+    decimal_digits: /{decimal_digit}(_?{decimal_digit})*/ @fragment;
+    binary_digits:  /{binary_digit}(_?{binary_digit})*/ @fragment;
+    octal_digits:   /{octal_digit}(_?{octal_digit})*/ @fragment;
+    hex_digits:     /{hex_digit}(_?{hex_digit})*/ @fragment;
+
+    // Floating-point literals (https://go.dev/ref/spec#Floating-point_literals)
+    float_lit: /{float_lit_frag}/;
+    float_lit_frag: /{decimal_float_lit}|{hex_float_lit}/ @fragment;
+
+    decimal_float_lit: /{decimal_digits}\.{decimal_digits}?{decimal_exponent}?|{decimal_digits}{decimal_exponent}|\.{decimal_digits}{decimal_exponent}?/ @fragment;
+    decimal_exponent:  /[eE][+-]?{decimal_digits}/ @fragment;
+
+    hex_float_lit: /0[xX]?{hex_mantissa}{hex_exponent}/ @fragment;
+    hex_mantissa:  /_?{hex_digits}\.{hex_digits}?|_?{hex_digits}|\.{hex_digits}/ @fragment;
+    hex_exponent:  /[pP][+-]?{decimal_digits}/ @fragment;
+
+    // Imaginary literals (https://go.dev/ref/spec#Imaginary_literals)
+    imaginary_lit: /({decimal_digits}|{int_lit_frag}|{float_lit_frag})i/;
+
+    // Rune literals (https://go.dev/ref/spec#Rune_literals)
+    rune_lit:         /'({unicode_value}|{byte_value})'/;
+    unicode_value:    /{unicode_char}|{little_u_value}|{big_u_value}|{escaped_char}/ @fragment;
+    byte_value:       /{octal_byte_value}|{hex_byte_value}/ @fragment;
+    octal_byte_value: /\\{octal_digit}{octal_digit}{octal_digit}/ @fragment;
+    hex_byte_value:   /\\x{hex_digit}{hex_digit}/ @fragment;
+    little_u_value:   /\\u{hex_digit}{hex_digit}{hex_digit}{hex_digit}/ @fragment;
+    big_u_value:      /\\U{hex_digit}{hex_digit}{hex_digit}{hex_digit}{hex_digit}{hex_digit}{hex_digit}{hex_digit}/ @fragment;
+    escaped_char:     /\\[abfnrtv\\'"]/ @fragment;
+
+    // String literals (https://go.dev/ref/spec#String_literals)
+    string_lit:             /{raw_string_lit}|{interpreted_string_lit}/;
+    raw_string_lit:         /`([^`]|{newline})*`/ @fragment;
+    interpreted_string_lit: /"([^\n"\\]|{little_u_value}|{big_u_value}|{escaped_char}|{byte_value})*"/ @fragment;
+}
+
+@parser {
+    @start: SourceFile;
+
+    SourceFile: @empty;
+}

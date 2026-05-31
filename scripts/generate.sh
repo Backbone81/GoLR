@@ -26,15 +26,16 @@ cp internal/parsergen/frontend/bison/parser/*.go examples/bison/parser
 go run ./examples/bison/spec/export/
 go run ./cmd/golr scanner --frontend golr --frontend-file-path examples/calculator/spec/calculator.golr --backend go --backend-file-path examples/calculator/parser/scanner.go
 go run ./cmd/golr parser --frontend golr --frontend-file-path examples/calculator/spec/calculator.golr --backend go --backend-file-path examples/calculator/parser/parser.go
+go run ./cmd/golr scanner --frontend golr --frontend-file-path examples/golang/spec/golang.golr --backend go --backend-file-path examples/golang/parser/scanner.go
 
 # Let's make sure that our examples folder does not reference any internal package.
-if grep -r '/internal/' examples/; then
+if grep -r 'github.com/backbone81/golr/internal/' examples/; then
   echo "ERROR: examples/ must not reference internal packages"
   exit 1
 fi
 
 # Let's make sure that our cmd folder does not reference any internal package.
-if grep -r '/internal/' cmd/; then
+if grep -r 'github.com/backbone81/golr/internal/' cmd/; then
   echo "ERROR: cmd/ must not reference internal packages"
   exit 1
 fi
