@@ -14,9 +14,7 @@ the context free grammar from different input formats. The core constructs the L
 backend finally outputs the parser into different output formats.
 
 The generated parser constructs an abstract syntax tree which you can then walk and execute semantic actions
-accordingly. Note that semantic actions embedded within grammar definitions are not supported. This is a deliberate
-design decision, as grammar descriptions should be independent of actual implementations to have a clear separation of
-concerns.
+accordingly.
 
 For more details about how this project came to be, see the documentation about [motivation](docs/motivation.md).
 
