@@ -2,11 +2,12 @@
 
 ## General Topics
 
-- GoLR needs to support @precedence on @empty productions for compatibility with GNU Bison languages.
 - Extend the documentation.
 - Add benchmarks to all documentation.
 - Make the example for a Go parser work.
-- Add an example for parsing ANTLR v4 grammar files.
+- Publish Visual Studio Code extension for syntax highlighting of GoLR files
+- Publish IntelliJ plugin for syntax highlighting of GoLR files
+- Support extended Backus-Naur form for GoLR productions
 - Add support for C backend
 - Add support for C++ backend
 - Add support for C# backend
@@ -31,9 +32,6 @@
 - Improve error handling for generated scanner.
 - Improve performance
 - Check if any is excluding newlines.
-- Add support for fragments - the possibility to declare rules which do not result in a token but can be referenced in
-  other rules. This helps to re-use common pattern at several places without having to copy&paste the patterns
-  everywhere.
 - Allow scanner to parse case independent (accept lower case and upper case characters if specified in one case only)
 
 ## Formater

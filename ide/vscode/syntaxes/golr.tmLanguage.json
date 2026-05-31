@@ -1,0 +1,74 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "GoLR",
+	"scopeName": "source.golr",
+	"fileTypes": ["golr"],
+	"patterns": [
+		{ "include": "#comment-line" },
+		{ "include": "#comment-block" },
+		{ "include": "#annotations" },
+		{ "include": "#regex-pattern" },
+		{ "include": "#string-literal" },
+		{ "include": "#operator" },
+		{ "include": "#punctuation" }
+	],
+	"repository": {
+		"comment-line": {
+			"name": "comment.line.double-slash.golr",
+			"match": "//.*$"
+		},
+		"comment-block": {
+			"name": "comment.block.golr",
+			"begin": "/\\*",
+			"end": "\\*/"
+		},
+		"annotations": {
+			"patterns": [
+				{
+					"comment": "@scanner and @parser are structural section markers",
+					"name": "keyword.other.section.golr",
+					"match": "@(?:scanner|parser)\\b"
+				},
+				{
+					"comment": "All other @ keywords",
+					"name": "keyword.control.golr",
+					"match": "@(?:skip|fragment|empty|start|left|right|none|precedence)\\b"
+				}
+			]
+		},
+		"regex-pattern": {
+			"name": "string.regexp.golr",
+			"begin": "/",
+			"end": "/",
+			"patterns": [
+				{
+					"name": "constant.character.escape.golr",
+					"match": "\\\\."
+				}
+			]
+		},
+		"string-literal": {
+			"name": "string.quoted.double.golr",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.golr",
+					"match": "\\\\."
+				}
+			]
+		},
+		"operator": {
+			"comment": "Alternation operator between production alternatives",
+			"name": "keyword.operator.golr",
+			"match": "\\|"
+		},
+		"punctuation": {
+			"patterns": [
+				{ "name": "punctuation.terminator.statement.golr", "match": ";" },
+				{ "name": "punctuation.section.block.begin.golr", "match": "\\{" },
+				{ "name": "punctuation.section.block.end.golr", "match": "\\}" }
+			]
+		}
+	}
+}

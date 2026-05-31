@@ -354,6 +354,145 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 	})
 
+	Context("Fragments", func() {
+		It("should exclude a fragment token from grammar terminals", func() {
+			source := `
+				@scanner {
+					DIGIT: /[0-9]/ @fragment;
+					NUMBER: /{DIGIT}+/;
+				}
+				@parser {
+					file: NUMBER;
+				}
+			`
+			grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar.Terminals).To(HaveLen(1))
+			Expect(grammar.Terminals[0].Name).To(Equal("NUMBER"))
+		})
+
+		It("should accept a token with a regex referencing a string-literal fragment", func() {
+			source := `
+				@scanner {
+					KW_IF: "if" @fragment;
+					IF: /{KW_IF}/ ;
+				}
+				@parser {
+					file: IF;
+				}
+			`
+			grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar.Terminals).To(HaveLen(1))
+			Expect(grammar.Terminals[0].Name).To(Equal("IF"))
+		})
+
+		It("should accept a token with a regex referencing an @empty fragment", func() {
+			source := `
+				@scanner {
+					NOTHING: @empty @fragment;
+					FOO: /{NOTHING}/;
+				}
+				@parser {
+					file: FOO;
+				}
+			`
+			grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar.Terminals).To(HaveLen(1))
+			Expect(grammar.Terminals[0].Name).To(Equal("FOO"))
+		})
+
+		It("should accept a token referencing a nested fragment", func() {
+			source := `
+				@scanner {
+					DIGIT: /[0-9]/ @fragment;
+					HEX_DIGIT: /[a-f]{DIGIT}/ @fragment;
+					HEX: /{HEX_DIGIT}+/;
+				}
+				@parser {
+					file: HEX;
+				}
+			`
+			grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar.Terminals).To(HaveLen(1))
+			Expect(grammar.Terminals[0].Name).To(Equal("HEX"))
+		})
+
+		It("should accept multiple tokens referencing the same fragment", func() {
+			source := `
+				@scanner {
+					DIGIT: /[0-9]/ @fragment;
+					DEC: /{DIGIT}+/;
+					OCT: /0[0-7]{DIGIT}*/;
+				}
+				@parser {
+					file: DEC | OCT;
+				}
+			`
+			grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar.Terminals).To(HaveLen(2))
+		})
+
+		It("should reject a duplicate fragment declaration", func() {
+			source := `
+				@scanner {
+					DIGIT: /[0-9]/ @fragment;
+					DIGIT: /[0-9]/ @fragment;
+				}
+				@parser {
+					file: @empty;
+				}
+			`
+			_, err := golr.GrammarFromString(source)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should reject a fragment name that collides with a token name", func() {
+			source := `
+				@scanner {
+					DIGIT: /[0-9]/;
+					DIGIT: /[0-9]/ @fragment;
+				}
+				@parser {
+					file: DIGIT;
+				}
+			`
+			_, err := golr.GrammarFromString(source)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should reject a token referencing an unknown fragment", func() {
+			source := `
+				@scanner {
+					NUMBER: /{DIGIT}+/;
+				}
+				@parser {
+					file: NUMBER;
+				}
+			`
+			_, err := golr.GrammarFromString(source)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should reject a cyclic fragment reference", func() {
+			source := `
+				@scanner {
+					A: /{B}/ @fragment;
+					B: /{A}/ @fragment;
+					TOKEN: /{A}/;
+				}
+				@parser {
+					file: TOKEN;
+				}
+			`
+			_, err := golr.GrammarFromString(source)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
 	Context("Productions", func() {
 		It("should accept tokens with regex, literal string and empty on the right hand side", func() {
 			source := `
@@ -593,6 +732,51 @@ var _ = Describe("GoLR Grammar Files", func() {
 							frontend.NewTerminalRef(2),
 						},
 						PrecedenceTerminalIdx: &ptrTo2,
+					},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
+
+		It("should accept precedence on an empty alternative", func() {
+			source := `
+				@scanner {
+					FOO: @empty;
+				}
+				@parser {
+					@precedence {
+						@left: FOO;
+					}
+					file: FOO | @empty @precedence(FOO);
+				}
+			`
+			grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			ptrTo0 := 0
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name:          "FOO",
+						Associativity: frontend.AssociativityLeft,
+						Precedence:    math.MaxInt - 1,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{
+						Name: "file",
+					},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewTerminalRef(0),
+						},
+					},
+					{
+						NonterminalIdx:        0,
+						SymbolRefs:            nil,
+						PrecedenceTerminalIdx: &ptrTo0,
 					},
 				},
 				StartNonterminalIdx: 0,

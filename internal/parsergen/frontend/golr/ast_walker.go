@@ -41,6 +41,13 @@ type ASTWalker struct {
 	// inAlternativeAnnotation keeps track if we are currently inside an alternative_annotation. The symbol visited
 	// inside an alternative_annotation is the terminal used to override the precedence for the current production.
 	inAlternativeAnnotation bool
+
+	// isFragment keeps track if we found a @fragment annotation. This means that we need to move the token declaration
+	// to the fragment list.
+	isFragment bool
+
+	// lexemeByName holds all lexemes of token declarations. This is needed to make fragments work.
+	lexemeByName map[string][]byte
 }
 
 // NewASTWalker creates a new ASTWalker.
@@ -50,6 +57,7 @@ func NewASTWalker() *ASTWalker {
 		terminalIdxByAlias:   make(map[string]int),
 		nonterminalIdxByName: make(map[string]int),
 		currentPrecedence:    math.MaxInt,
+		lexemeByName:         make(map[string][]byte),
 	}
 }
 
@@ -127,6 +135,39 @@ func (w *ASTWalker) visitScannerSection(node *parser.Node) error {
 			}
 		}
 	}
+	return w.resolvePatterns()
+}
+
+func (w *ASTWalker) resolvePatterns() error {
+	// Fragments are lexemes which are not terminals
+	fragments := make(map[string][]byte)
+	for name, lexeme := range w.lexemeByName {
+		if _, ok := w.terminalIdxByName[name]; !ok {
+			fragments[name] = lexeme
+		}
+	}
+
+	for idx, rule := range w.rules {
+		lexeme, ok := w.lexemeByName[rule.Name]
+		if !ok || len(lexeme) == 0 {
+			continue
+		}
+		if lexeme[0] == '"' {
+			alias := string(lexeme)
+			if _, exists := w.terminalIdxByAlias[alias]; exists {
+				return fmt.Errorf("alias %s has already been declared", alias)
+			}
+			w.grammar.Terminals[idx].Alias = alias
+			w.terminalIdxByAlias[alias] = idx
+			w.rules[idx].Regex = *dsl.Literal(alias[1 : len(alias)-1])
+		} else {
+			regexNode, err := regex.Parse(lexeme, fragments)
+			if err != nil {
+				return fmt.Errorf("invalid regex for terminal %q: %w", rule.Name, err)
+			}
+			w.rules[idx].Regex = *regexNode
+		}
+	}
 	return nil
 }
 
@@ -159,14 +200,18 @@ func (w *ASTWalker) visitScannerDecl(node *parser.Node) error {
 		panic("unexpected nonterminal")
 	}
 
+	// We reset the fragment for each declaration.
+	w.isFragment = false
+
 	name, err := w.getNameLexeme(node)
 	if err != nil {
 		return err
 	}
 
-	if _, ok := w.terminalIdxByName[name]; ok {
+	if _, ok := w.lexemeByName[name]; ok {
 		return fmt.Errorf("terminal %q is declared multiple times", name)
 	}
+	w.lexemeByName[name] = nil // prime the lexeme now, so we cannot forget empty declarations
 
 	w.grammar.Terminals = append(w.grammar.Terminals, parsergenfrontend.Symbol{Name: name})
 	w.terminalIdxByName[name] = len(w.grammar.Terminals) - 1
@@ -183,6 +228,13 @@ func (w *ASTWalker) visitScannerDecl(node *parser.Node) error {
 				return err
 			}
 		}
+	}
+
+	// In case @fragment was seen among the annotations, we drop the token from the rules list.
+	if w.isFragment {
+		w.rules = w.rules[:len(w.rules)-1]
+		w.grammar.Terminals = w.grammar.Terminals[:len(w.grammar.Terminals)-1]
+		delete(w.terminalIdxByName, name)
 	}
 	return nil
 }
@@ -225,33 +277,11 @@ func (w *ASTWalker) visitScannerPattern(node *parser.Node) error {
 		return nil
 	}
 
-	terminal, ok := node.Children[0].Symbol.Terminal()
-	if !ok {
+	if _, ok := node.Children[0].Symbol.Terminal(); !ok {
 		return nil
 	}
 
-	switch terminal {
-	case parser.TokenRegex:
-		regexNode, err := regex.Parse(node.Children[0].Lexeme)
-		if err != nil {
-			return fmt.Errorf("invalid regex for terminal: %q: %w", w.grammar.Terminals[len(w.grammar.Terminals)-1].Name, err)
-		}
-		w.rules[len(w.rules)-1].Regex = *regexNode
-	case parser.TokenString:
-		alias := string(node.Children[0].Lexeme)
-		idx := len(w.grammar.Terminals) - 1
-		w.grammar.Terminals[idx].Alias = alias
-
-		if _, ok := w.terminalIdxByAlias[alias]; ok {
-			return fmt.Errorf("alias %s has already been declared", alias)
-		}
-		w.terminalIdxByAlias[alias] = idx
-
-		// We need to strip the quotes from the alias when we create the literal.
-		w.rules[len(w.rules)-1].Regex = *dsl.Literal(alias[1 : len(alias)-1])
-	default:
-		return nil
-	}
+	w.lexemeByName[w.rules[len(w.rules)-1].Name] = node.Children[0].Lexeme
 	return nil
 }
 
@@ -289,8 +319,11 @@ func (w *ASTWalker) visitScannerAnnotation(node *parser.Node) error {
 		if !ok {
 			continue
 		}
-		if terminal == parser.TokenSkip {
+		switch terminal {
+		case parser.TokenSkip:
 			w.rules[len(w.rules)-1].Skip = true
+		case parser.TokenFragment:
+			w.isFragment = true
 		}
 	}
 	return nil
@@ -536,8 +569,7 @@ func (w *ASTWalker) visitAlternative(node *parser.Node) error {
 		panic("unexpected nonterminal")
 	}
 
-	// alternative : symbol_list alternative_annotation_list | "@empty"
-	// The "@empty" alternative leaves the current production with an empty RHS — nothing to do in that case.
+	// alternative : symbol_list alternative_annotation_list | "@empty" alternative_annotation_list
 	for _, child := range node.Children {
 		nonterminal, ok := child.Symbol.Nonterminal()
 		if !ok {

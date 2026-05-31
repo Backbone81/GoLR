@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/backbone81/golr/pkg/parsergen/backend"
+	dotbackend "github.com/backbone81/golr/pkg/parsergen/backend/dot"
 	golangbackend "github.com/backbone81/golr/pkg/parsergen/backend/golang"
 	jsonbackend "github.com/backbone81/golr/pkg/parsergen/backend/json"
 	yamlbackend "github.com/backbone81/golr/pkg/parsergen/backend/yaml"
@@ -91,6 +92,11 @@ func executeParserCore(grammar frontend.Grammar) (backend.Parser, error) {
 
 func executeParserBackend(parser backend.Parser) error {
 	switch parserBackend {
+	case "dot":
+		if parserBackendFilePath == "-" {
+			return dotbackend.FromParser(os.Stdout, parser)
+		}
+		return dotbackend.ParserToFile(parserBackendFilePath, parser)
 	case "go":
 		if parserBackendFilePath == "-" {
 			return golangbackend.FromParser(os.Stdout, parser, golangbackend.Config{
@@ -148,7 +154,7 @@ func init() {
 		&parserBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the parser. One of: go, json, null, yaml.",
+		"The backend to use for writing the parser. One of: dot, go, json, null, yaml.",
 	)
 	parserCmd.PersistentFlags().StringVar(
 		&parserBackendFilePath,

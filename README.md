@@ -105,7 +105,7 @@ Usage:
   golr parser [flags]
 
 Flags:
-      --backend string                   The backend to use for writing the parser. One of: go, json, null, yaml. (default "go")
+      --backend string                   The backend to use for writing the parser. One of: dot, go, json, null, yaml. (default "go")
       --backend-file-path string         The file path to write the parser to. Can be '-' to write to stdout.
       --backend-go-package-name string   The Go package name to use for the generated Go code. (default "parser")
       --core string                      The core to use for generating the parser from the context free grammar. One of: ielr1. (default "ielr1")
@@ -123,7 +123,7 @@ Usage:
   golr scanner [flags]
 
 Flags:
-      --backend string                   The backend to use for writing the scanner. One of: go, json, null, yaml. (default "go")
+      --backend string                   The backend to use for writing the scanner. One of: dot, go, json, null, yaml. (default "go")
       --backend-file-path string         The file path to write the scanner to. Can be '-' to write to stdout.
       --backend-go-package-name string   The Go package name to use for the generated Go code. (default "parser")
       --core string                      The core to use for generating the scanner from the regular expressions. One of: subset. (default "subset")
@@ -196,7 +196,8 @@ These cores are currently supported:
 
 These backends are currently supported:
 
-- [Golang](docs/parsergen-backend-golang.md)
+- [DOT](docs/parsergen-backend-dot.md)
+- [Go](docs/parsergen-backend-golang.md)
 - [JSON](docs/parsergen-backend-json.md)
 - [Null](docs/parsergen-backend-null.md)
 - [YAML](docs/parsergen-backend-yaml.md)
@@ -235,7 +236,8 @@ These cores are currently supported:
 
 These backends are currently supported:
 
-- [Golang](docs/scannergen-backend-golang.md)
+- [DOT](docs/scannergen-backend-dot.md)
+- [Go](docs/scannergen-backend-golang.md)
 - [JSON](docs/scannergen-backend-json.md)
 - [Null](docs/scannergen-backend-null.md)
 - [YAML](docs/scannergen-backend-yaml.md)

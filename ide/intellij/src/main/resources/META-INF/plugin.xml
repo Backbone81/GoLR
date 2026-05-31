@@ -1,0 +1,27 @@
+<idea-plugin>
+    <id>com.backbone81.golr</id>
+    <name>GoLR</name>
+    <vendor url="https://github.com/backbone81/golr">backbone81</vendor>
+    <description><![CDATA[Syntax highlighting for GoLR grammar files (.golr).]]></description>
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileType name="GoLR"
+                  implementationClass="com.backbone81.golr.GolrLanguageFileType"
+                  fieldName="INSTANCE"
+                  language="GoLR"
+                  extensions="golr"/>
+
+        <lang.parserDefinition language="GoLR"
+                               implementationClass="com.backbone81.golr.GolrParserDefinition"/>
+
+        <lang.syntaxHighlighterFactory language="GoLR"
+                                  implementationClass="com.backbone81.golr.GolrSyntaxHighlighterFactory"/>
+
+        <lang.commenter language="GoLR"
+                        implementationClass="com.backbone81.golr.GolrCommenter"/>
+
+        <lang.braceMatcher language="GoLR"
+                           implementationClass="com.backbone81.golr.GolrPairedBraceMatcher"/>
+    </extensions>
+</idea-plugin>

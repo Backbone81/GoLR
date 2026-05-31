@@ -1,0 +1,25 @@
+{
+  "name": "golr",
+  "displayName": "GoLR",
+  "description": "Syntax highlighting for GoLR files.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.120.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "golr",
+      "aliases": ["GoLR", "golr"],
+      "extensions": [".golr"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "golr",
+      "scopeName": "source.golr",
+      "path": "./syntaxes/golr.tmLanguage.json"
+    }]
+  }
+}

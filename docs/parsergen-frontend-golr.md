@@ -7,6 +7,8 @@ The goal for designing this format was to make things as explicit as possible an
 mechanics. We want users which are unfamiliar with the format to quickly understand the grammar. All tokens need to be
 declared and given a technical name. This provides reliable and good names when generating code in the backend.
 
+See the `ide` folder for IDE extensions providing syntax highlighting for GoLR files.
+
 ## Basic Structure
 
 A GoLR grammar file consists of exactly two top-level sections: a scanner section and a parser section.
@@ -77,24 +79,51 @@ NUMBER: /[0-9]+/;
 
 The pattern is a regular expression delimited by `/`. The regex supports the following constructs:
 
-| Construct       | Description                                               |
-|-----------------|-----------------------------------------------------------|
-| `abc`           | Literal characters                                        |
-| `.`             | Any single character                                      |
-| `[abc]`         | Character class                                           |
-| `[a-z]`         | Character range inside a class                            |
-| `[^abc]`        | Negated character class                                   |
-| `\d`            | Digit shorthand — equivalent to `[0-9]`                   |
-| `\w`            | Word character shorthand — equivalent to `[a-zA-Z0-9_]`   |
-| `\s`            | Whitespace shorthand — equivalent to `[ \t\n\r\f\v]`      |
-| `\n \t \r` etc. | Escape sequences for special characters                   |
-| `a\|b`          | Alternation — matches `a` or `b`                          |
-| `a*`            | Zero or more                                              |
-| `a+`            | One or more                                               |
-| `a?`            | Optional                                                  |
-| `a{n}`          | Exactly `n` repetitions                                   |
-| `a{n,m}`        | Between `n` and `m` repetitions                           |
-| `(a)`           | Grouping / subexpression                                  |
+| Construct       | Description                                                                |
+|-----------------|----------------------------------------------------------------------------|
+| `abc`           | Literal characters                                                         |
+| `.`             | Any single character                                                       |
+| `[abc]`         | Character class                                                            |
+| `[a-z]`         | Character range inside a class                                             |
+| `[^abc]`        | Negated character class                                                    |
+| `\d`            | Digit shorthand — equivalent to `[0-9]`                                    |
+| `\w`            | Word character shorthand — equivalent to `[a-zA-Z0-9_]`                    |
+| `\s`            | Whitespace shorthand — equivalent to `[ \t\n\r\f\v]`                       |
+| `\n \t \r` etc. | Escape sequences for special characters                                    |
+| `a\|b`          | Alternation — matches `a` or `b`                                           |
+| `a*`            | Zero or more                                                               |
+| `a+`            | One or more                                                                |
+| `a?`            | Optional                                                                   |
+| `a{n}`          | Exactly `n` repetitions                                                    |
+| `a{n,m}`        | Between `n` and `m` repetitions                                            |
+| `(a)`           | Grouping / subexpression                                                   |
+| `{NAME}`        | Fragment reference — expands to the pattern of the named `@fragment` token |
+| `[[:name:]]`    | POSIX character class (see table below)                                    |
+
+A `{NAME}` construct is recognized as a fragment reference when the first character after `{` is a letter or
+underscore. A `{` followed by a digit or comma is always treated as a repetition quantifier.
+
+POSIX character classes are Unicode-aware. The following named classes are supported:
+
+| Class          | Matches                                                                                             |
+|----------------|-----------------------------------------------------------------------------------------------------|
+| `[[:alnum:]]`  | Unicode letters, letter numbers, and decimal digits (`L`, `Nl`, `Nd`)                               |
+| `[[:alpha:]]`  | Unicode letters and letter numbers (`L`, `Nl`)                                                      |
+| `[[:ascii:]]`  | ASCII characters (`U+0000`–`U+007F`)                                                                |
+| `[[:blank:]]`  | Unicode space separators (`Zs`) plus horizontal tab (`\t`)                                          |
+| `[[:cntrl:]]`  | Unicode control characters (`Cc`)                                                                   |
+| `[[:digit:]]`  | Unicode decimal digit numbers (`Nd`)                                                                |
+| `[[:graph:]]`  | All characters except Unicode separators (`Z`) and other (`C`)                                      |
+| `[[:lower:]]`  | Unicode lowercase letters (`Ll`)                                                                    |
+| `[[:print:]]`  | All characters except Unicode other (`C`)                                                           |
+| `[[:punct:]]`  | Unicode punctuation (`P`) plus `$`, `+`, `<`, `=`, `>`, `^`, `` ` ``, `\|`, `~`                     |
+| `[[:space:]]`  | Unicode separators (`Z`) plus ASCII whitespace controls (`\t`, `\n`, `\v`, `\f`, `\r`)              |
+| `[[:upper:]]`  | Unicode uppercase letters (`Lu`)                                                                    |
+| `[[:word:]]`   | Unicode letters, letter numbers, decimal digits, and connector punctuation (`L`, `Nl`, `Nd`, `Pc`)  |
+| `[[:xdigit:]]` | Hexadecimal digits (`0–9`, `A–F`, `a–f`)                                                            |
+
+POSIX classes may be combined with other character ranges inside a single class: `[a-z[:digit:]]`. Negation applies to 
+the entire class: `[^[:alpha:]]`.
 
 ### String Literal Pattern
 
@@ -124,13 +153,31 @@ A pattern declaration may be followed by one or more annotations before the semi
 ```
 WHITESPACE: /[ \t\n\r]+/ @skip;
 COMMENT: /\/\/.*/ @skip;
+DIGIT: /[0-9]/ @fragment;
 ```
 
-| Annotation | Meaning                                                                                                |
-|------------|--------------------------------------------------------------------------------------------------------|
-| `@skip`    | The token is recognized by the scanner but not passed to the parser. Used for whitespace and comments. |
+| Annotation  | Meaning                                                                                                                                                  |
+|-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `@skip`     | The token is recognized by the scanner but not passed to the parser. Used for whitespace and comments.                                                   |
+| `@fragment` | The token is a named helper pattern and is excluded from the grammar terminals. Its pattern can be referenced in other regular expressions using {NAME}. |
 
-Annotations are not available for `@empty` declarations.
+### Fragment Tokens
+
+A token annotated with `@fragment` is a named helper pattern. It is not included in the list of scanner
+tokens and is invisible to the parser. Its sole purpose is to be referenced inside other regular expressions.
+
+```
+DIGIT: /[0-9]/ @fragment;
+HEX_DIGIT: /[a-f]{DIGIT}/ @fragment;
+HEX_NUMBER: /0x{HEX_DIGIT}+/;
+```
+
+Fragment references use the `{NAME}` syntax inside a regular expression pattern.
+
+Fragments may reference other fragments (the references are resolved recursively).
+
+String-literal tokens may also be used as fragments, in which case the quoted text is used literally when
+the fragment is expanded.
 
 ## `@parser` Section
 
@@ -182,11 +229,11 @@ than levels declared later.** All tokens listed on the same line share the same 
 
 ### Associativity
 
-| Keyword       | Meaning                                                                                                 |
-|---------------|---------------------------------------------------------------------------------------------------------|
-| `@left`       | Left-associative. `a + b + c` parses as `(a + b) + c`.                                                 |
-| `@right`      | Right-associative. `a = b = c` parses as `a = (b = c)`.                                                |
-| `@none`       | Non-associative. `a < b < c` is a parse error.                                                         |
+| Keyword       | Meaning                                                                                                                                                                                                                   |
+|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `@left`       | Left-associative. `a + b + c` parses as `(a + b) + c`.                                                                                                                                                                    |
+| `@right`      | Right-associative. `a = b = c` parses as `a = (b = c)`.                                                                                                                                                                   |
+| `@none`       | Non-associative. `a < b < c` is a parse error.                                                                                                                                                                            |
 | `@precedence` | Precedence-only. The token is assigned a precedence level but no associativity. Useful for unary operators that need a precedence level for `@precedence(...)` annotations but should not resolve conflicts on their own. |
 
 All tokens referenced in the precedence section must be declared in the `@scanner` section. Tokens referenced
@@ -239,4 +286,7 @@ given terminal. The terminal must have been assigned a precedence level in the `
   left-hand side).
 - String aliases must be unique across all token declarations.
 - Token names must be unique across all token declarations.
+- Fragment names share the same namespace as token names — a name may not be declared as both a token and a fragment.
+- Fragment references inside a regular expression (`{NAME}`) must refer to a declared `@fragment` token.
+- Cyclic fragment references (where a fragment directly or indirectly references itself) are not allowed.
 - The grammar must contain at least one production rule.

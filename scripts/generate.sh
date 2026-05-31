@@ -24,8 +24,6 @@ cp internal/parsergen/frontend/bison/parser/*.go examples/bison/parser
 
 # Make sure that all generated code of the examples are actually updated-
 go run ./examples/bison/spec/export/
-go run ./examples/golang/spec/export/
-go run ./examples/golang/parser/export/
 go run ./cmd/golr scanner --frontend golr --frontend-file-path examples/calculator/spec/calculator.golr --backend go --backend-file-path examples/calculator/parser/scanner.go
 go run ./cmd/golr parser --frontend golr --frontend-file-path examples/calculator/spec/calculator.golr --backend go --backend-file-path examples/calculator/parser/parser.go
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/backbone81/golr/internal/scannergen/frontend"
@@ -11,24 +12,37 @@ import (
 )
 
 // Parse parses a regular expression enclosed in / delimiters and returns the corresponding Node tree.
-func Parse(input []byte) (*frontend.Node, error) {
+func Parse(input []byte, fragments map[string][]byte) (*frontend.Node, error) {
 	var p Parser
-	return p.Parse(input)
+	return p.Parse(input, fragments)
 }
 
 type Parser struct {
 	input    []byte
 	pos      int
 	currRune rune
+
+	fragments  map[string][]byte
+	nodeByName map[string]*frontend.Node
+	resolving  map[string]bool
 }
 
-func (p *Parser) Parse(input []byte) (*frontend.Node, error) {
+func (p *Parser) Parse(input []byte, fragments map[string][]byte) (*frontend.Node, error) {
 	if len(input) < 2 || input[0] != '/' || input[len(input)-1] != '/' {
 		return nil, errors.New("expected / around regular expression")
 	}
 	p.input = input[1 : len(input)-1]
 	p.pos = 0
 	p.currRune = 0
+	p.fragments = fragments
+	if p.nodeByName == nil {
+		// Only initialize if not already provided by resolver for shared state.
+		p.nodeByName = make(map[string]*frontend.Node)
+	}
+	if p.resolving == nil {
+		// Only initialize if not already provided by resolver for shared state.
+		p.resolving = make(map[string]bool)
+	}
 
 	if !p.next() {
 		return nil, errors.New("unexpected empty regular expression")
@@ -61,6 +75,25 @@ func (p *Parser) next() bool {
 
 func (p *Parser) rune() rune {
 	return p.currRune
+}
+
+func (p *Parser) peek() (rune, bool) {
+	if p.pos >= len(p.input) {
+		return 0, false
+	}
+	if p.input[p.pos] < utf8.RuneSelf {
+		return rune(p.input[p.pos]), true
+	}
+	nextRune, _ := utf8.DecodeRune(p.input[p.pos:])
+	return nextRune, true
+}
+
+func (p *Parser) isIdentStartRune(r rune) bool {
+	return (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || r == '_'
+}
+
+func (p *Parser) isIdentCharRune(r rune) bool {
+	return p.isIdentStartRune(r) || (r >= '0' && r <= '9')
 }
 
 // parseAlternation consumes an alternation of one or more concatenations separated by |.
@@ -146,6 +179,10 @@ func (p *Parser) parseQuantified() (*frontend.Node, bool, error) {
 	case '?':
 		return dsl.Optional(atom), p.next(), nil
 	case '{':
+		if peekRune, ok := p.peek(); ok && p.isIdentStartRune(peekRune) {
+			// We have a fragment reference here. We leave '{' as start of the next atom.
+			return atom, true, nil
+		}
 		node, more, err := p.parseRepetition(atom)
 		if err != nil {
 			return nil, false, err
@@ -161,6 +198,8 @@ func (p *Parser) parseQuantified() (*frontend.Node, bool, error) {
 // It expects to be on the first rune of the atom.
 // After the call, if more is true, p.rune() is on the first rune following the atom.
 // It returns the frontend node, an indicator if more runes are available and an error.
+//
+//nolint:cyclop // Reducing cyclomatic complexity would reduce readability
 func (p *Parser) parseAtom() (*frontend.Node, bool, error) {
 	switch p.rune() {
 	case '.':
@@ -195,7 +234,9 @@ func (p *Parser) parseAtom() (*frontend.Node, bool, error) {
 		default:
 			return dsl.Literal(string(escapedChar)), more, nil
 		}
-	case '*', '+', '?', '{', '|', ')', ']', '}', '^', '$':
+	case '{':
+		return p.parseFragmentRef()
+	case '*', '+', '?', '|', ')', ']', '}', '^', '$':
 		return nil, false, fmt.Errorf("unescaped metacharacter %q", p.rune())
 	default:
 		return dsl.Literal(string(p.rune())), p.next(), nil
@@ -309,9 +350,23 @@ func (p *Parser) parseCharClassChar() (rune, bool, bool, error) {
 // After the call, if more is true, p.rune() is on the first rune following the closing ].
 // A trailing - before ] is treated as a literal - character.
 // It returns the character ranges, an indicator if more runes are available and an error.
+//
+//nolint:cyclop // Difficult to simplify without sacrificing readability.
 func (p *Parser) parseCharRanges() ([]frontend.CharRange, bool, error) {
 	var charRanges []frontend.CharRange
 	for p.rune() != ']' {
+		if p.rune() == '[' {
+			ranges, more, err := p.parsePosixClass()
+			if err != nil {
+				return nil, false, err
+			}
+			charRanges = append(charRanges, ranges...)
+			if !more {
+				return nil, false, errors.New("unexpected end of character class")
+			}
+			continue
+		}
+
 		low, escaped, more, err := p.parseCharClassChar()
 		if err != nil {
 			return nil, false, err
@@ -355,6 +410,107 @@ func (p *Parser) parseCharRanges() ([]frontend.CharRange, bool, error) {
 		charRanges = append(charRanges, dsl.CharRange(low, high))
 	}
 	return charRanges, p.next(), nil
+}
+
+// parsePosixClass consumes a POSIX character class of the form [:name:].
+//
+// It expects to be on the opening '['.
+// After the call, if more is true, p.rune() is on the first rune following the closing ']'.
+func (p *Parser) parsePosixClass() ([]frontend.CharRange, bool, error) {
+	// We are on '[' right now.
+	if !p.next() {
+		return nil, false, errors.New("unexpected end of POSIX character class")
+	}
+	if p.rune() != ':' {
+		return nil, false, fmt.Errorf("expected ':' after '[' in POSIX character class, got %q", p.rune())
+	}
+	if !p.next() {
+		return nil, false, errors.New("unexpected end of POSIX character class")
+	}
+
+	var name []byte
+	for p.rune() != ':' && p.rune() != ']' {
+		name = append(name, byte(p.rune())) //nolint:gosec // POSIX class names are ASCII
+		if !p.next() {
+			return nil, false, errors.New("unexpected end of POSIX character class")
+		}
+	}
+
+	if p.rune() != ':' {
+		return nil, false, errors.New("expected ':]' to close POSIX character class")
+	}
+	if !p.next() {
+		return nil, false, errors.New("unexpected end of POSIX character class")
+	}
+	if p.rune() != ']' {
+		return nil, false, errors.New("expected ']' to close POSIX character class")
+	}
+
+	ranges, err := posixClassRanges(string(name))
+	if err != nil {
+		return nil, false, err
+	}
+	return ranges, p.next(), nil
+}
+
+// posixClassRanges returns the character ranges for a named POSIX character class.
+//
+//nolint:cyclop // There is no way to simplify this lookup without sacrificing readability.
+func posixClassRanges(name string) ([]frontend.CharRange, error) {
+	switch name {
+	case "alnum":
+		return dsl.UnicodeCategory(unicode.L, unicode.Nl, unicode.Nd), nil
+	case "alpha":
+		return dsl.UnicodeCategory(unicode.L, unicode.Nl), nil
+	case "ascii":
+		return []frontend.CharRange{dsl.CharRange(0x00, 0x7F)}, nil
+	case "blank":
+		return append(dsl.UnicodeCategory(unicode.Zs),
+			dsl.CharRange('\t', '\t'),
+		), nil
+	case "cntrl":
+		return dsl.UnicodeCategory(unicode.Cc), nil
+	case "digit":
+		return dsl.UnicodeCategory(unicode.Nd), nil
+	case "graph":
+		return frontend.NegateCharRanges(dsl.UnicodeCategory(unicode.Z, unicode.C)), nil
+	case "lower":
+		return dsl.UnicodeCategory(unicode.Ll), nil
+	case "print":
+		return frontend.NegateCharRanges(dsl.UnicodeCategory(unicode.C)), nil
+	case "punct":
+		return append(dsl.UnicodeCategory(unicode.Punct),
+			dsl.CharRange('$', '$'),
+			dsl.CharRange('+', '+'),
+			dsl.CharRange('<', '<'),
+			dsl.CharRange('=', '='),
+			dsl.CharRange('>', '>'),
+			dsl.CharRange('^', '^'),
+			dsl.CharRange('`', '`'),
+			dsl.CharRange('|', '|'),
+			dsl.CharRange('~', '~'),
+		), nil
+	case "space":
+		return append(dsl.UnicodeCategory(unicode.Z),
+			dsl.CharRange('\t', '\t'),
+			dsl.CharRange('\r', '\r'),
+			dsl.CharRange('\n', '\n'),
+			dsl.CharRange('\v', '\v'),
+			dsl.CharRange('\f', '\f'),
+		), nil
+	case "upper":
+		return dsl.UnicodeCategory(unicode.Lu), nil
+	case "word":
+		return dsl.UnicodeCategory(unicode.L, unicode.Nl, unicode.Nd, unicode.Pc), nil
+	case "xdigit":
+		return []frontend.CharRange{
+			dsl.CharRange('0', '9'),
+			dsl.CharRange('A', 'F'),
+			dsl.CharRange('a', 'f'),
+		}, nil
+	default:
+		return nil, fmt.Errorf("unknown POSIX character class %q", name)
+	}
 }
 
 // parseRepetition consumes a repetition statement like {3}, {3,}, {,3} or {2,3}.
@@ -474,4 +630,80 @@ func (p *Parser) mergeLiterals(children []*frontend.Node) []*frontend.Node {
 		result = append(result, child)
 	}
 	return result
+}
+
+// parseFragmentRef consumes a fragment reference of the form {NAME}.
+//
+// It expects to be on '{'.
+// After the call, if more is true, p.rune() is on the first rune following '}'.
+func (p *Parser) parseFragmentRef() (*frontend.Node, bool, error) {
+	// We are on '{' right now.
+	if !p.next() {
+		return nil, false, errors.New("unexpected end of fragment reference")
+	}
+
+	var name []byte
+	for p.isIdentCharRune(p.rune()) {
+		name = append(name, byte(p.rune())) //nolint:gosec // fragment names are ASCII characters only
+		if !p.next() {
+			return nil, false, errors.New("unexpected end of fragment reference")
+		}
+	}
+
+	if p.rune() != '}' {
+		return nil, false, fmt.Errorf("invalid character %q in fragment reference", p.rune())
+	}
+
+	node, err := p.resolveFragment(string(name))
+	if err != nil {
+		return nil, false, err
+	}
+	return node, p.next(), nil
+}
+
+// resolveFragment resolves a fragment by name using depth first search with cycle detection.
+// Resolved nodes are cached in nodeByName; resolving tracks the current DFS stack.
+func (p *Parser) resolveFragment(name string) (*frontend.Node, error) {
+	if node, ok := p.nodeByName[name]; ok {
+		// Return cached node
+		return node, nil
+	}
+
+	if p.resolving[name] {
+		return nil, fmt.Errorf("fragment %q has a cyclic reference", name)
+	}
+
+	lexeme, ok := p.fragments[name]
+	if !ok {
+		return nil, fmt.Errorf("unknown fragment %q", name)
+	}
+
+	p.resolving[name] = true
+	defer delete(p.resolving, name)
+
+	var node *frontend.Node
+	switch {
+	case len(lexeme) == 0:
+		// @empty fragment.
+		node = dsl.CharClass()
+	case lexeme[0] == '"':
+		// String literal fragment — strip quotes.
+		alias := string(lexeme)
+		node = dsl.Literal(alias[1 : len(alias)-1])
+	default:
+		// Regex fragment — parse recursively, sharing nodeByName and resolving.
+		sub := Parser{
+			fragments:  p.fragments,
+			nodeByName: p.nodeByName,
+			resolving:  p.resolving,
+		}
+		var err error
+		node, err = sub.Parse(lexeme, p.fragments)
+		if err != nil {
+			return nil, fmt.Errorf("fragment %q: %w", name, err)
+		}
+	}
+
+	p.nodeByName[name] = node
+	return node, nil
 }

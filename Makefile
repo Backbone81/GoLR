@@ -66,4 +66,5 @@ release-test:
 .PHONY: release
 release: release-test
 release: export GITHUB_TOKEN ?= unknown
+release:
 	goreleaser release

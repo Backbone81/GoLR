@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/backbone81/golr/pkg/scannergen/backend"
+	dotbackend "github.com/backbone81/golr/pkg/scannergen/backend/dot"
 	golangbackend "github.com/backbone81/golr/pkg/scannergen/backend/golang"
 	jsonbackend "github.com/backbone81/golr/pkg/scannergen/backend/json"
 	yamlbackend "github.com/backbone81/golr/pkg/scannergen/backend/yaml"
@@ -85,6 +86,11 @@ func executeScannerCore(rules []frontend.Rule) (backend.DFA, error) {
 
 func executeScannerBackend(dfa backend.DFA) error {
 	switch scannerBackend {
+	case "dot":
+		if scannerBackendFilePath == "-" {
+			return dotbackend.FromDFA(os.Stdout, dfa)
+		}
+		return dotbackend.DFAToFile(scannerBackendFilePath, dfa)
 	case "go":
 		if scannerBackendFilePath == "-" {
 			return golangbackend.FromDFA(os.Stdout, dfa, golangbackend.Config{
@@ -142,7 +148,7 @@ func init() {
 		&scannerBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the scanner. One of: go, json, null, yaml.",
+		"The backend to use for writing the scanner. One of: dot, go, json, null, yaml.",
 	)
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerBackendFilePath,

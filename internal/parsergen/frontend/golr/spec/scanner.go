@@ -59,6 +59,7 @@ func GetScannerRules() []frontend.Rule {
 	rules = append(rules, Rule("NONE", Literal("@none")))
 	rules = append(rules, Rule("SKIP", Literal("@skip")))
 	rules = append(rules, Rule("EMPTY", Literal("@empty")))
+	rules = append(rules, Rule("FRAGMENT", Literal("@fragment")))
 	rules = append(rules, Rule("LBRACE", Literal("{")))
 	rules = append(rules, Rule("RBRACE", Literal("}")))
 	rules = append(rules, Rule("LPAREN", Literal("(")))

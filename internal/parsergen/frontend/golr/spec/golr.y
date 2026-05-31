@@ -9,6 +9,7 @@
 %token NONE       "@none"
 %token SKIP       "@skip"
 %token EMPTY      "@empty"
+%token FRAGMENT   "@fragment"
 %token LBRACE     "{"
 %token RBRACE     "}"
 %token LPAREN     "("
@@ -47,7 +48,7 @@ scanner_decl
 
 scanner_decl_rhs
     : scanner_pattern scanner_annotation_list
-    | "@empty"
+    | "@empty" scanner_annotation_list
     ;
 
 scanner_pattern
@@ -62,6 +63,7 @@ scanner_annotation_list
 
 scanner_annotation
     : "@skip"
+    | "@fragment"
     ;
 
 // ================================================================================
@@ -114,7 +116,7 @@ alternative_list
 
 alternative
     : symbol_list alternative_annotation_list
-    | "@empty"
+    | "@empty" alternative_annotation_list
     ;
 
 alternative_annotation_list
