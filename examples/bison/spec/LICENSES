@@ -3,3 +3,5 @@
 This folder contains files of third party software which is covered by their own license.
 
 - bison-3.8.2.y: This file is covered by the GNU General Public License Version 3.
+
+In the context of the GNU General Public License Version 3 these files form an aggregate.

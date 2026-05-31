@@ -8,3 +8,5 @@ This folder contains files of third party software which is covered by their own
 - gcc-3.3.6-cpp.y: This file is covered by the GNU General Public License Version 3.
 - gcc-4.2.4-java.y: This file is covered by the GNU General Public License Version 3.
 - go-1.5.4.y: This file is covered by the BSD-style Go license.
+
+In the context of the GNU General Public License Version 3 these files form an aggregate.
