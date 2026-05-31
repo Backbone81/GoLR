@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/backbone81/golr/internal/parsergen/core/ielr1go"
 	"github.com/spf13/cobra"
 
 	"github.com/backbone81/golr/pkg/parsergen/backend"
@@ -89,6 +90,8 @@ func executeParserCore(grammar frontend.Grammar) (backend.Parser, error) {
 	switch parserCore {
 	case "ielr1", "ielr1-bison":
 		return ielr1bisoncore.GrammarToParser(grammar)
+	case "ielr1-golr":
+		return ielr1go.GrammarToParser(grammar)
 	case "lalr1", "lalr1-bison":
 		return lalr1bisoncore.GrammarToParser(grammar)
 	case "lr1", "lr1-bison":
@@ -155,7 +158,7 @@ func init() {
 		&parserCore,
 		"core",
 		"ielr1",
-		"The core to use for generating the parser from the context free grammar. One of: ielr1, ielr1-bison, lalr1, lalr1-bison, lr1, lr1-bison.",
+		"The core to use for generating the parser from the context free grammar. One of: ielr1, ielr1-golr, ielr1-bison, lalr1, lalr1-bison, lr1, lr1-bison.",
 	)
 
 	parserCmd.PersistentFlags().StringVar(

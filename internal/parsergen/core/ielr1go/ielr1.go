@@ -9,11 +9,11 @@ import (
 )
 
 // GrammarToParser calculates a parser from the context free grammar.
-func GrammarToParser(augmentedGrammar frontend.Grammar) backend.Parser {
+func GrammarToParser(augmentedGrammar frontend.Grammar) (backend.Parser, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: IELR1: GrammarToParser").End()
 
 	builder := NewIELR1(augmentedGrammar)
-	return builder.BuildParser()
+	return builder.BuildParser(), nil
 }
 
 // IELR1 provides an implementation of the IELR(1) algorithm as described by Denny and Malloy in "The IELR(1) algorithm
