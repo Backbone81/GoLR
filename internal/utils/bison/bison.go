@@ -89,6 +89,7 @@ func build(grammarFilePath string, automatonFilePath string, parserType string) 
 
 	args := []string{
 		"--warnings=no-other",
+		"-Werror=conflicts-rr",
 		"--output=/dev/null",
 		"--report-file=/dev/null",
 		"--xml=" + automatonFilePath,
@@ -98,8 +99,8 @@ func build(grammarFilePath string, automatonFilePath string, parserType string) 
 		args = append(args, "--header=/dev/null")
 	}
 	args = append(args, grammarFilePath)
-	if _, stderr, err := execute(args...); err != nil {
-		return errors.Join(err, errors.New(stderr))
+	if _, _, err := execute(args...); err != nil {
+		return err
 	}
 	return nil
 }

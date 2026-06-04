@@ -68,10 +68,10 @@ func grammarToBisonGrammarFile(writer io.Writer, grammar frontend.Grammar) error
 	if err := writeBisonAssociativityAndPrecedence(writer, grammar); err != nil {
 		return err
 	}
-
-	if _, err := fmt.Fprintln(writer); err != nil {
+	if err := writeBisonStartSymbol(writer, grammar); err != nil {
 		return err
 	}
+
 	if _, err := fmt.Fprintln(writer, "%%"); err != nil {
 		return err
 	}
@@ -95,6 +95,20 @@ func grammarToBisonGrammarFile(writer io.Writer, grammar frontend.Grammar) error
 	return nil
 }
 
+func writeBisonStartSymbol(writer io.Writer, grammar frontend.Grammar) error {
+	if _, err := fmt.Fprintf(
+		writer,
+		"%%start %s\n",
+		grammar.Nonterminals[grammar.StartNonterminalIdx].Name,
+	); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintln(writer); err != nil {
+		return err
+	}
+	return nil
+}
+
 func writeBisonGrammarTokens(writer io.Writer, grammar frontend.Grammar) error {
 	if _, err := fmt.Fprintf(writer, "%%token\n"); err != nil {
 		return err
@@ -104,11 +118,18 @@ func writeBisonGrammarTokens(writer io.Writer, grammar frontend.Grammar) error {
 			return err
 		}
 	}
+	if _, err := fmt.Fprintln(writer); err != nil {
+		return err
+	}
 	return nil
 }
 
+//nolint:cyclop // Moving code out would make it more difficult to understand.
 func writeBisonAssociativityAndPrecedence(writer io.Writer, grammar frontend.Grammar) error {
 	precedenceGroups := buildPrecedenceGroups(grammar)
+	if len(precedenceGroups) == 0 {
+		return nil
+	}
 	for _, group := range precedenceGroups {
 		switch group.Associativity {
 		case frontend.AssociativityLeft:
@@ -139,6 +160,9 @@ func writeBisonAssociativityAndPrecedence(writer io.Writer, grammar frontend.Gra
 		if _, err := fmt.Fprintln(writer); err != nil {
 			return err
 		}
+	}
+	if _, err := fmt.Fprintln(writer); err != nil {
+		return err
 	}
 	return nil
 }

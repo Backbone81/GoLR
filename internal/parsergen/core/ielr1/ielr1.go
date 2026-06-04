@@ -135,6 +135,11 @@ func (i *IELR1) buildStateList(report bisonutils.BisonXMLReport, parser *backend
 		}
 
 		for _, reduction := range state.Reductions {
+			if !reduction.Enabled {
+				// Reductions are disabled to resolve shift reduce conflicts. We ignore disabled reductions.
+				continue
+			}
+
 			productionIdx, err := strconv.Atoi(reduction.Rule)
 			if err != nil {
 				if reduction.Rule == "accept" {
