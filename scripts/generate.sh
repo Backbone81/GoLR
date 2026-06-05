@@ -64,6 +64,11 @@ go run ./cmd/golr scanner \
   --frontend-file-path examples/golang/spec/golang.golr \
   --backend go \
   --backend-file-path examples/golang/parser/scanner.go
+go run ./cmd/golr parser \
+  --frontend golr \
+  --frontend-file-path examples/golang/spec/golang.golr \
+  --backend go \
+  --backend-file-path examples/golang/parser/parser.go
 
 # Let's make sure that our examples folder does not reference any internal package.
 if grep -r 'github.com/backbone81/golr/internal/' examples/; then

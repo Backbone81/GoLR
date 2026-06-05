@@ -4,7 +4,6 @@
 
 - Extend the documentation.
 - Add benchmarks to all documentation.
-- Make the example for a Go parser work.
 - Publish Visual Studio Code extension for syntax highlighting of GoLR files
 - Publish IntelliJ plugin for syntax highlighting of GoLR files
 - Support extended Backus-Naur form for GoLR productions
@@ -18,6 +17,7 @@
 - Add support for TypeScript
 - Add the Ruby GNU Bison grammar as a well known grammar for the bison frontend. Note that this grammar is using %rule
   statements which we currently do not support.
+- Reduce shift/reduce conflict of the golang example to 0.
 
 ## Parser Generator
 

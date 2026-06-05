@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -48,6 +49,11 @@ func stdLibSourceFilePaths(ctx context.Context) ([]string, error) {
 	}); err != nil {
 		return nil, err
 	}
+	files = slices.DeleteFunc(files, func(s string) bool {
+		// We exclude files from any testdata directory, because there are lots of files which are intended to trigger
+		// errors during parsing. We don't want to exclude them individually to not break on every new version of Go.
+		return strings.Contains(s, "/testdata/")
+	})
 	return files, nil
 }
 

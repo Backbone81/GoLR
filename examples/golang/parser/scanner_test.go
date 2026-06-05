@@ -5,40 +5,19 @@ import (
 	"go/scanner"
 	"go/token"
 	"os"
-	"path"
 	"path/filepath"
-	"slices"
 	"testing"
 
+	"github.com/backbone81/golr/examples/golang/parser"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/backbone81/golr/examples/golang/parser"
 )
 
-// ignoreFilePaths provides a list of file paths from the Go standard library which we will ignore during our tests.
-var ignoreFilePaths = []string{
-	"cmd/compile/internal/types2/testdata/local/issue68183.go",
-}
-
 var _ = Describe("Golang Scanner", func() {
-	// Expand the relative file paths to absolute file paths.
-	baseDir, err := stdLibSourceDir(context.Background())
-	Expect(err).ToNot(HaveOccurred())
-
-	for i := range ignoreFilePaths {
-		ignoreFilePaths[i] = path.Join(baseDir, ignoreFilePaths[i])
-	}
-
 	Context("should produce identical tokens to the official Go scanner", func() {
 		filePaths, err := stdLibSourceFilePaths(context.Background())
 		Expect(err).ToNot(HaveOccurred())
-
 		for _, filePath := range filePaths {
-			if slices.Contains(ignoreFilePaths, filePath) {
-				continue
-			}
-
 			It("should correctly tokenize "+filePath, func(ctx SpecContext) {
 				source, err := os.ReadFile(filePath)
 				Expect(err).ToNot(HaveOccurred())

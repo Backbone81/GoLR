@@ -1,6 +1,18 @@
 // This GoLR grammar file provides a language description for the Go programming language. All rules are derived from
 // the official specification at https://go.dev/ref/spec.
 
+// Approach for building up the grammar:
+//
+// 1. Literals
+// 2. Expressions
+// 3. Simple Types
+// 4. Function Types
+// 5. Statements
+// 6. Declarations
+// 7. Function Declarations
+//
+// Introduce sentinel tokens for triggering tests for specific parts.
+
 @scanner {
     horizontal_whitespace: /[ \t]/ @fragment;
     vertical_whitespace:   /[\r\n]/ @fragment;
@@ -155,10 +167,927 @@
     string_lit:             /{raw_string_lit}|{interpreted_string_lit}/;
     raw_string_lit:         /`([^`]|{newline})*`/ @fragment;
     interpreted_string_lit: /"([^\n"\\]|{little_u_value}|{big_u_value}|{escaped_char}|{byte_value})*"/ @fragment;
+
+    test_basic_lit: "@TestBasicLit";
+    test_expression: "@TestExpression";
+    test_type: "@TestType";
+    test_statement: "@TestStatement";
+    test_decl: "@TestDecl";
 }
 
 @parser {
     @start: SourceFile;
 
-    SourceFile: @empty;
+    @precedence {
+        @left: "*" "/" "%" "<<" ">>" "&" "&^";
+        @left: "+" "-" "|" "^";
+        @left: "=="  "!="  "<"  "<="  ">"  ">=";
+        @left: "&&";
+        @left: "||";
+    }
+
+    // Source file organization (https://go.dev/ref/spec#Source_file_organization)
+    SourceFile
+        : PackageClause ";" ZeroOrMoreImportDeclSemicolon
+        | PackageClause ";" ZeroOrMoreImportDeclSemicolon OneOrMoreTopLevelDeclSemicolon
+        | "@TestBasicLit" BasicLit
+        | "@TestExpression" Expression
+        | "@TestType" Type
+        | "@TestStatement" Statement
+        | "@TestDecl" TopLevelDecl
+        | @empty
+        ;
+    ZeroOrMoreImportDeclSemicolon
+        : ZeroOrMoreImportDeclSemicolon ImportDecl ";"
+        | @empty
+        ;
+    OneOrMoreTopLevelDeclSemicolon
+        : TopLevelDecl ";"
+        | OneOrMoreTopLevelDeclSemicolon TopLevelDecl ";"
+        ;
+
+    // Package clause (https://go.dev/ref/spec#Package_clause)
+    PackageClause
+        : "package" identifier
+        ;
+
+    // Import declarations (https://go.dev/ref/spec#Import_declarations)
+    ImportDecl
+        : "import" ImportSpec
+        | "import" "(" ZeroOrMoreImportSpecSemicolon ")"
+        ;
+    ImportSpec
+        : string_lit
+        | "." string_lit
+        | identifier string_lit
+        ;
+    ZeroOrMoreImportSpecSemicolon
+        : ZeroOrMoreImportSpecSemicolon ImportSpec ";"
+        | @empty
+        ;
+
+    IdentifierList
+        : identifier
+        | IdentifierList "," identifier
+        ;
+
+    // Operands (https://go.dev/ref/spec#Operands)
+    Operand
+        : Literal
+        | OperandName
+        | "(" Expression ")"
+        ;
+    Literal
+        : BasicLit
+        | CompositeLit
+        | FunctionLit
+        ;
+    BasicLit
+        : int_lit
+        | float_lit
+        | imaginary_lit
+        | rune_lit
+        | string_lit
+        ;
+    OperandName
+        : identifier
+        ;
+
+    // Qualified identifiers (https://go.dev/ref/spec#Qualified_identifiers)
+    QualifiedIdent
+        : identifier "." identifier
+        ;
+
+    // Composite literals (https://go.dev/ref/spec#Composite_literals)
+    CompositeLit
+        : LiteralType LiteralValue
+        | PrimaryExpr LiteralValue
+        ;
+    LiteralType
+        : StructType
+        | ArrayType
+        | "[" "..." "]" Type
+        | SliceType
+        | MapType
+        ;
+    LiteralValue
+        : "{" "}"
+        | "{" ElementList "}"
+        | "{" ElementList "," "}"
+        ;
+    ElementList
+        : KeyedElement
+        | ElementList "," KeyedElement
+        ;
+    KeyedElement
+        : Element
+        | Key ":" Element
+        ;
+    Key
+        : Expression
+        | LiteralValue
+        ;
+    Element
+        : Expression
+        | LiteralValue
+        ;
+
+    // Function literals (https://go.dev/ref/spec#Function_literals)
+    FunctionLit
+        : "func" Signature Block
+        ;
+
+    // Primary expressions (https://go.dev/ref/spec#Primary_expressions)
+    PrimaryExpr
+        : Operand
+        | Conversion
+        | PrimaryExpr Selector
+        | PrimaryExpr Index
+        | PrimaryExpr Slice
+        | PrimaryExpr TypeAssertion
+        | PrimaryExpr Arguments
+        ;
+
+    Selector
+        : "." identifier
+        ;
+    Index
+        : "[" IndexElemList "]"
+        | "[" IndexElemList "," "]"
+        ;
+    // Each element of a generic instantiation argument list is independently either an expression (ordinary index,
+    // or a type that is also an expression such as a name or "*name") or an ArgumentType (a non-expression type such
+    // as "[]int32"), so forms like "foo[bar, []int32]" parse with the type in any position. ArgumentType is used
+    // rather than a full Type because the TypeName and "*name" forms are already reachable through Expression (a name
+    // is an expression, "*name" is a dereference), so admitting them here would reintroduce a reduce/reduce conflict
+    // on the leading token. Those forms still parse through Expression; a later pass resolves the type arguments.
+    IndexElemList
+        : IndexElem
+        | IndexElemList "," IndexElem
+        ;
+    IndexElem
+        : Expression
+        | ArgumentType
+        ;
+    Slice
+        : "[" ":" "]"
+        | "[" Expression ":" "]"
+        | "[" ":" Expression "]"
+        | "[" Expression ":" Expression "]"
+        | "[" ":" Expression ":" Expression "]"
+        | "[" Expression ":" Expression ":" Expression "]"
+        ;
+    TypeAssertion
+        : "." "(" Type ")"
+        ;
+    // The optional leading type covers calls to built-ins such as "make([]T, n)" whose first argument is a type. It is
+    // an ArgumentType rather than a full Type: the TypeName and "TypeName TypeArgs" forms are already reachable through
+    // ExpressionList (a name is an expression), and the "*name" form overlaps the dereference operator, so admitting
+    // them as a leading type would reintroduce a reduce/reduce conflict at the leading identifier. Those excluded forms
+    // still parse through ExpressionList; a later pass validates the argument shape.
+    Arguments
+        : "(" ")"
+        | "(" ExpressionList ")"
+        | "(" ExpressionList "..." ")"
+        | "(" ExpressionList "," ")"
+        | "(" ExpressionList "..." "," ")"
+        | "(" ArgumentType ")"
+        | "(" ArgumentType "..." ")"
+        | "(" ArgumentType "," ")"
+        | "(" ArgumentType "..." "," ")"
+        | "(" ArgumentType "," ExpressionList ")"
+        | "(" ArgumentType "," ExpressionList "..." ")"
+        | "(" ArgumentType "," ExpressionList "," ")"
+        | "(" ArgumentType "," ExpressionList "..." "," ")"
+        ;
+    ArgumentType
+        : ArrayType
+        | SliceType
+        | StructType
+        | InterfaceType
+        | MapType
+        | ChannelType
+        | FunctionType
+        | "*" ArgumentType
+        ;
+    ExpressionList
+        : Expression
+        | ExpressionList "," Expression
+        ;
+
+    // Operators (https://go.dev/ref/spec#Operators)
+    Expression
+        : UnaryExpr
+        | Expression "||" Expression
+        | Expression "&&" Expression
+        | Expression "==" Expression
+        | Expression "!=" Expression
+        | Expression "<" Expression
+        | Expression "<=" Expression
+        | Expression ">" Expression
+        | Expression ">=" Expression
+        | Expression "+" Expression
+        | Expression "-" Expression
+        | Expression "|" Expression
+        | Expression "^" Expression
+        | Expression "*" Expression
+        | Expression "/" Expression
+        | Expression "%" Expression
+        | Expression "<<" Expression
+        | Expression ">>" Expression
+        | Expression "&" Expression
+        | Expression "&^" Expression
+        ;
+    UnaryExpr
+        : PrimaryExpr
+        | "+" UnaryExpr
+        | "-" UnaryExpr
+        | "!" UnaryExpr
+        | "^" UnaryExpr
+        | "*" UnaryExpr
+        | "&" UnaryExpr
+        | "<-" UnaryExpr
+        ;
+
+    // Conversions (https://go.dev/ref/spec#Conversions)
+    Conversion
+        : FunctionType "(" Expression ")"
+        | FunctionType "(" Expression "," ")"
+        | SliceType "(" Expression ")"
+        | SliceType "(" Expression "," ")"
+        | ArrayType "(" Expression ")"
+        | ArrayType "(" Expression "," ")"
+        | MapType "(" Expression ")"
+        | MapType "(" Expression "," ")"
+        | ChannelTypeNoChanReceive "(" Expression ")"
+        | ChannelTypeNoChanReceive "(" Expression "," ")"
+        | StructType "(" Expression ")"
+        | StructType "(" Expression "," ")"
+        | InterfaceType "(" Expression ")"
+        | InterfaceType "(" Expression "," ")"
+        | "(" ConversionType ")" "(" Expression ")"
+        | "(" ConversionType ")" "(" Expression "," ")"
+        ;
+    // The inner type of a parenthesized conversion such as "(*[4]byte)(x)" or "(<-chan int)(c)".
+    // It is restricted to the types which are not also expressions, so that "(" ConversionType ")"
+    // does not overlap a parenthesized expression "(" Expression ")". The named-type and "*name" /
+    // "<-name" conversions are deliberately omitted: they are already reachable through the
+    // expression/Operand path (a name is an expression, "*name" is a dereference, "<-name" is a
+    // receive) and produce an equivalent parse, so admitting them here would reintroduce a
+    // reduce/reduce conflict on the leading identifier.
+    ConversionType
+        : ArrayType
+        | SliceType
+        | StructType
+        | InterfaceType
+        | MapType
+        | ChannelType
+        | FunctionType
+        | "*" ConversionType
+        | "(" ConversionType ")"
+        ;
+
+    // Types (https://go.dev/ref/spec#Types)
+    Type
+        : TypeName
+        | TypeName TypeArgs
+        | TypeLit
+        | "(" Type ")"
+        ;
+    TypeNoChanReceive
+        : TypeName
+        | TypeName TypeArgs
+        | TypeLitNoChanReceive
+        | "(" Type ")"
+        ;
+    TypeName
+        : identifier
+        | QualifiedIdent
+        ;
+    TypeArgs
+        : "[" TypeList "]"
+        ;
+    TypeList
+        : Type
+        | Type ","
+        | Type "," TypeList
+        ;
+    TypeLit
+        : ArrayType
+        | StructType
+        | PointerType
+        | FunctionType
+        | InterfaceType
+        | SliceType
+        | MapType
+        | ChannelType
+        ;
+    TypeLitNoChanReceive
+        : ArrayType
+        | StructType
+        | PointerType
+        | FunctionType
+        | InterfaceType
+        | SliceType
+        | MapType
+        | ChannelTypeNoChanReceive
+        ;
+
+    // Array types (https://go.dev/ref/spec#Array_types)
+    ArrayType
+        : "[" Expression "]" Type
+        ;
+
+    // Slice types (https://go.dev/ref/spec#Slice_types)
+    SliceType
+        : "[" "]" Type
+        ;
+
+    // Struct types (https://go.dev/ref/spec#Struct_types)
+    StructType
+        : "struct" "{" ZeroOrMoreFieldDecl "}"
+        ;
+    FieldDecl
+        : identifier "," IdentifierList Type OptTag
+        | identifier TypeNoLeadingBracket OptTag
+        | identifier BracketField OptTag
+        | identifier OptTag
+        | identifier "." identifier OptTypeArgs OptTag
+        | "*" TypeName OptTypeArgs OptTag
+        ;
+    OptTag
+        : @empty
+        | string_lit
+        ;
+    OptTypeArgs
+        : @empty
+        | TypeArgs
+        ;
+    // The part following the leading identifier of a field that begins with "[". It unifies the
+    // slice/array element types with the generic type-argument list so that the array-versus-
+    // instantiation choice can be deferred to a single lookahead after the closing "]".
+    BracketField
+        : "[" "]" Type
+        | "[" BracketList "]"
+        | "[" BracketList "]" Type
+        ;
+    BracketList
+        : BracketElem
+        | BracketList "," BracketElem
+        ;
+    BracketElem
+        : Expression
+        | StructType
+        | FunctionType
+        | InterfaceType
+        | MapType
+        | ChannelType
+        | SliceType
+        | ArrayType
+        ;
+    TypeNoLeadingBracket
+        : TypeName
+        | TypeName TypeArgs
+        | StructType
+        | PointerType
+        | FunctionType
+        | InterfaceType
+        | MapType
+        | ChannelType
+        | "(" Type ")"
+        ;
+    ZeroOrMoreFieldDecl
+        : ZeroOrMoreFieldDeclSemicolon
+        | ZeroOrMoreFieldDeclSemicolon FieldDecl
+        ;
+    ZeroOrMoreFieldDeclSemicolon
+        : ZeroOrMoreFieldDeclSemicolon FieldDecl ";"
+        | @empty
+        ;
+
+    // Pointer types (https://go.dev/ref/spec#Pointer_types)
+    PointerType
+        : "*" Type
+        ;
+
+    // Function types (https://go.dev/ref/spec#Function_types)
+    FunctionType
+        : "func" Signature
+        ;
+    Signature
+        : Parameters
+        | Parameters Result
+        ;
+    Result
+        : Parameters
+        | TypeNoParen
+        ;
+    TypeNoParen
+        : TypeName
+        | TypeName TypeArgs
+        | TypeLit
+        ;
+    Parameters
+        : "(" ")"
+        | "(" ParameterList ")"
+        | "(" ParameterList "," ")"
+        ;
+    ParameterList
+        : ParameterDecl
+        | ParameterList "," ParameterDecl
+        ;
+    ParameterDecl
+        : identifier
+        | identifier "." identifier OptTypeArgs
+        | identifier TypeNoLeadingBracket
+        | identifier BracketField
+        | identifier "..." Type
+        | TypeLit
+        | "(" Type ")"
+        | "..." Type
+        ;
+
+    // Interface types (https://go.dev/ref/spec#Interface_types)
+    InterfaceType
+        : "interface" "{" "}"
+        | "interface" "{" OneOrMoreInterfaceElem "}"
+        ;
+    InterfaceElem
+        : MethodElem
+        | TypeElem
+        ;
+    MethodElem
+        : identifier Signature
+        ;
+    TypeElem
+        : TypeTerm
+        | TypeElem "|" TypeTerm
+        ;
+    TypeTerm
+        : Type
+        | UnderlyingType
+        ;
+    UnderlyingType
+        : "~" Type
+        ;
+    OneOrMoreInterfaceElem
+        : InterfaceElem
+        | InterfaceElem ";"
+        | InterfaceElem ";" OneOrMoreInterfaceElem
+        ;
+
+    // Map types (https://go.dev/ref/spec#Map_types)
+    MapType
+        : "map" "[" Type "]" Type
+        ;
+
+    // Channel types (https://go.dev/ref/spec#Channel_types)
+    ChannelType
+        : "chan" TypeNoChanReceive
+        | "chan" "<-" Type
+        | "<-" "chan" Type
+        ;
+    ChannelTypeNoChanReceive
+        : "chan" TypeNoChanReceive
+        | "chan" "<-" Type
+        ;
+
+    // Blocks (https://go.dev/ref/spec#Blocks)
+    Block
+        : "{" StatementList "}"
+        ;
+    StatementList
+        : Statement
+        | StatementList ";" Statement
+        ;
+
+    // Statements (https://go.dev/ref/spec#Statements)
+    Statement
+        : Declaration
+        | LabeledStmt
+        | SimpleStmt
+        | GoStmt
+        | ReturnStmt
+        | BreakStmt
+        | ContinueStmt
+        | GotoStmt
+        | "fallthrough"
+        | Block
+        | IfStmt
+        | SwitchStmt
+        | SelectStmt
+        | ForStmt
+        | DeferStmt
+        ;
+
+    SimpleStmt
+        : @empty
+        | Expression
+        | SendStmt
+        | IncDecStmt
+        | Assignment
+        | ShortVarDecl
+        ;
+
+    // Labeled statements (https://go.dev/ref/spec#Labeled_statements)
+    LabeledStmt
+        : identifier ":" Statement
+        ;
+
+    // Send statements (https://go.dev/ref/spec#Send_statements)
+    SendStmt
+        : Expression "<-" Expression
+        ;
+
+    // IncDec statements (https://go.dev/ref/spec#IncDec_statements)
+    IncDecStmt
+        : Expression "++"
+        | Expression "--"
+        ;
+
+    // Assignment statements (https://go.dev/ref/spec#Assignment_statements)
+    Assignment
+        : ExpressionList "=" ExpressionList
+        | ExpressionList "+=" ExpressionList
+        | ExpressionList "-=" ExpressionList
+        | ExpressionList "|=" ExpressionList
+        | ExpressionList "^=" ExpressionList
+        | ExpressionList "*=" ExpressionList
+        | ExpressionList "/=" ExpressionList
+        | ExpressionList "%=" ExpressionList
+        | ExpressionList "<<=" ExpressionList
+        | ExpressionList ">>=" ExpressionList
+        | ExpressionList "&=" ExpressionList
+        | ExpressionList "&^=" ExpressionList
+        ;
+
+    // Control-clause expressions and simple statements (https://go.dev/ref/spec#Composite_literals)
+    //
+    // In the header of an "if", "for", or "switch" statement, a composite literal using the TypeName form of the
+    // literal type ("T{...}") must be parenthesized: its opening brace would otherwise be parsed as the brace that
+    // introduces the statement block. The spec restricts only the TypeName form, so the type-literal forms
+    // ("[]int{...}", "struct{...}{...}", ...) stay valid and "for range []int{...}" keeps working.
+    //
+    // This is modeled with a parallel "no brace" expression and simple-statement hierarchy that mirrors the normal one
+    // exactly except that it omits the "PrimaryExpr LiteralValue" composite-literal alternative. The whole header (init
+    // statement and condition) uses the no-brace forms so the operand prefix shared by the init statement and the
+    // condition does not produce reduce/reduce conflicts. Parentheses re-enter the normal grammar, so a parenthesized
+    // composite literal "(T{...})" remains accepted. A later pass may still reject anything semantically invalid.
+    ExpressionNoBrace
+        : UnaryExprNoBrace
+        | ExpressionNoBrace "||" ExpressionNoBrace
+        | ExpressionNoBrace "&&" ExpressionNoBrace
+        | ExpressionNoBrace "==" ExpressionNoBrace
+        | ExpressionNoBrace "!=" ExpressionNoBrace
+        | ExpressionNoBrace "<" ExpressionNoBrace
+        | ExpressionNoBrace "<=" ExpressionNoBrace
+        | ExpressionNoBrace ">" ExpressionNoBrace
+        | ExpressionNoBrace ">=" ExpressionNoBrace
+        | ExpressionNoBrace "+" ExpressionNoBrace
+        | ExpressionNoBrace "-" ExpressionNoBrace
+        | ExpressionNoBrace "|" ExpressionNoBrace
+        | ExpressionNoBrace "^" ExpressionNoBrace
+        | ExpressionNoBrace "*" ExpressionNoBrace
+        | ExpressionNoBrace "/" ExpressionNoBrace
+        | ExpressionNoBrace "%" ExpressionNoBrace
+        | ExpressionNoBrace "<<" ExpressionNoBrace
+        | ExpressionNoBrace ">>" ExpressionNoBrace
+        | ExpressionNoBrace "&" ExpressionNoBrace
+        | ExpressionNoBrace "&^" ExpressionNoBrace
+        ;
+    UnaryExprNoBrace
+        : PrimaryExprNoBrace
+        | "+" UnaryExprNoBrace
+        | "-" UnaryExprNoBrace
+        | "!" UnaryExprNoBrace
+        | "^" UnaryExprNoBrace
+        | "*" UnaryExprNoBrace
+        | "&" UnaryExprNoBrace
+        | "<-" UnaryExprNoBrace
+        ;
+    PrimaryExprNoBrace
+        : OperandNoBrace
+        | Conversion
+        | PrimaryExprNoBrace Selector
+        | PrimaryExprNoBrace Index
+        | PrimaryExprNoBrace Slice
+        | PrimaryExprNoBrace TypeAssertion
+        | PrimaryExprNoBrace Arguments
+        ;
+    OperandNoBrace
+        : LiteralNoBrace
+        | OperandName
+        | "(" Expression ")"
+        ;
+    LiteralNoBrace
+        : BasicLit
+        | CompositeLitNoBrace
+        | FunctionLit
+        ;
+    CompositeLitNoBrace
+        : LiteralType LiteralValue
+        ;
+    ExpressionListNoBrace
+        : ExpressionNoBrace
+        | ExpressionListNoBrace "," ExpressionNoBrace
+        ;
+    SimpleStmtNoBrace
+        : @empty
+        | ExpressionNoBrace
+        | SendStmtNoBrace
+        | IncDecStmtNoBrace
+        | AssignmentNoBrace
+        | ShortVarDeclNoBrace
+        ;
+    SendStmtNoBrace
+        : ExpressionNoBrace "<-" ExpressionNoBrace
+        ;
+    IncDecStmtNoBrace
+        : ExpressionNoBrace "++"
+        | ExpressionNoBrace "--"
+        ;
+    AssignmentNoBrace
+        : ExpressionListNoBrace "=" ExpressionListNoBrace
+        | ExpressionListNoBrace "+=" ExpressionListNoBrace
+        | ExpressionListNoBrace "-=" ExpressionListNoBrace
+        | ExpressionListNoBrace "|=" ExpressionListNoBrace
+        | ExpressionListNoBrace "^=" ExpressionListNoBrace
+        | ExpressionListNoBrace "*=" ExpressionListNoBrace
+        | ExpressionListNoBrace "/=" ExpressionListNoBrace
+        | ExpressionListNoBrace "%=" ExpressionListNoBrace
+        | ExpressionListNoBrace "<<=" ExpressionListNoBrace
+        | ExpressionListNoBrace ">>=" ExpressionListNoBrace
+        | ExpressionListNoBrace "&=" ExpressionListNoBrace
+        | ExpressionListNoBrace "&^=" ExpressionListNoBrace
+        ;
+    ShortVarDeclNoBrace
+        : ExpressionListNoBrace ":=" ExpressionListNoBrace
+        ;
+
+    // If statements (https://go.dev/ref/spec#If_statements)
+    IfStmt
+        : "if" ExpressionNoBrace Block
+        | "if" ExpressionNoBrace Block "else" IfStmtOrBlock
+        | "if" SimpleStmtNoBrace ";" ExpressionNoBrace Block
+        | "if" SimpleStmtNoBrace ";" ExpressionNoBrace Block "else" IfStmtOrBlock
+        ;
+    IfStmtOrBlock
+        : IfStmt
+        | Block
+        ;
+
+    // Switch statements (https://go.dev/ref/spec#Switch_statements)
+    SwitchStmt
+        : ExprSwitchStmt
+        | TypeSwitchStmt
+        ;
+
+    // Expression switches (https://go.dev/ref/spec#Expression_switches)
+    ExprSwitchStmt
+        : "switch" "{" ZeroOrMoreExprCaseClause "}"
+        | "switch" ExpressionNoBrace "{" ZeroOrMoreExprCaseClause "}"
+        | "switch" SimpleStmtNoBrace ";" "{" ZeroOrMoreExprCaseClause "}"
+        | "switch" SimpleStmtNoBrace ";" ExpressionNoBrace "{" ZeroOrMoreExprCaseClause "}"
+        ;
+    ExprCaseClause
+        : ExprSwitchCase ":" StatementList
+        ;
+    ExprSwitchCase
+        : "case" ExpressionList
+        | "default"
+        ;
+    ZeroOrMoreExprCaseClause
+        : ZeroOrMoreExprCaseClause ExprCaseClause
+        | @empty
+        ;
+
+    // Type switches (https://go.dev/ref/spec#Type_switches)
+    TypeSwitchStmt
+        : "switch" TypeSwitchGuard "{" ZeroOrMoreTypeCaseClause "}"
+        | "switch" SimpleStmtNoBrace ";" TypeSwitchGuard "{" ZeroOrMoreTypeCaseClause "}"
+        ;
+    // The declaring form of a type switch guard ("x := y.(type)") shares its "ExpressionListNoBrace :=" prefix with a
+    // short variable declaration used as the switch init statement ("switch x := y; ..."). Parsing the left-hand side
+    // as an ExpressionListNoBrace (rather than a bare identifier) keeps the leading name reducing the same way for both,
+    // so the choice between "type switch guard" and "short variable declaration" is deferred until the ".(type)" suffix
+    // appears instead of committing to the guard at the ":=". A later pass validates that the left-hand side is a single
+    // identifier.
+    TypeSwitchGuard
+        : PrimaryExprNoBrace "." "(" "type" ")"
+        | ExpressionListNoBrace ":=" PrimaryExprNoBrace "." "(" "type" ")"
+        ;
+    TypeCaseClause
+        : TypeSwitchCase ":" StatementList
+        ;
+    TypeSwitchCase
+        : "case" TypeList
+        | "default"
+        ;
+    ZeroOrMoreTypeCaseClause
+        : ZeroOrMoreTypeCaseClause TypeCaseClause
+        | @empty
+        ;
+
+    // For statements (https://go.dev/ref/spec#For_statements)
+    ForStmt
+        : "for" Block
+        | "for" ExpressionNoBrace Block
+        | "for" ForClause Block
+        | "for" RangeClause Block
+        ;
+
+    // For statements with for clause (https://go.dev/ref/spec#For_clause)
+    ForClause
+        : SimpleStmtNoBrace ";" ";" SimpleStmtNoBrace
+        | SimpleStmtNoBrace ";" ExpressionNoBrace ";" SimpleStmtNoBrace
+        ;
+
+    // For statements with range clause (https://go.dev/ref/spec#For_range)
+    RangeClause
+        : "range" ExpressionNoBrace
+        | ExpressionListNoBrace "=" "range" ExpressionNoBrace
+        | ExpressionListNoBrace ":=" "range" ExpressionNoBrace
+        ;
+
+    // Go statements (https://go.dev/ref/spec#Go_statements)
+    GoStmt
+        : "go" Expression
+        ;
+
+    // Select statements (https://go.dev/ref/spec#Select_statements)
+    SelectStmt
+        : "select" "{" ZeroOrMoreCommClause "}"
+        ;
+    CommClause
+        : CommCase ":" StatementList
+        ;
+    CommCase
+        : "case" SendStmt
+        | "case" RecvStmt
+        | "default"
+        ;
+    RecvStmt
+        : Expression
+        | ExpressionList "=" Expression
+        | ExpressionList ":=" Expression
+        ;
+    ZeroOrMoreCommClause
+        : ZeroOrMoreCommClause CommClause
+        | @empty
+        ;
+
+    // Return statements (https://go.dev/ref/spec#Return_statements)
+    ReturnStmt
+        : "return"
+        | "return" ExpressionList
+        ;
+
+    // Break statements (https://go.dev/ref/spec#Break_statements)
+    BreakStmt
+        : "break"
+        | "break" identifier
+        ;
+
+    // Continue statements (https://go.dev/ref/spec#Continue_statements)
+    ContinueStmt
+        : "continue"
+        | "continue" identifier
+        ;
+
+    // Goto statements (https://go.dev/ref/spec#Goto_statements)
+    GotoStmt
+        : "goto" identifier
+        ;
+
+    // Fallthrough statements (https://go.dev/ref/spec#Fallthrough_statements)
+    FallthroughStmt
+        : "fallthrough"
+        ;
+
+    // Defer statements (https://go.dev/ref/spec#Defer_statements)
+    DeferStmt
+        : "defer" Expression
+        ;
+
+    // Declarations and scope (https://go.dev/ref/spec#Declarations_and_scope)
+    Declaration
+        : ConstDecl
+        | TypeDecl
+        | VarDecl
+        ;
+    TopLevelDecl
+        : Declaration
+        | FunctionDecl
+        | MethodDecl
+        ;
+
+    // Constant declarations (https://go.dev/ref/spec#Constant_declarations)
+    ConstDecl
+        : "const" ConstSpec
+        | "const" "(" ZeroOrMoreConstSpec ")"
+        ;
+    ConstSpec
+        : IdentifierList
+        | IdentifierList "=" ExpressionList
+        | IdentifierList Type "=" ExpressionList
+        ;
+    ZeroOrMoreConstSpec
+        : ZeroOrMoreConstSpec ConstSpec ";"
+        | @empty
+        ;
+
+    // Type declarations (https://go.dev/ref/spec#Type_declarations)
+    TypeDecl
+        : "type" AliasDecl
+        | "type" TypeDef
+        | "type" "(" ZeroOrMoreTypeSpecSemicolon ")"
+        ;
+    ZeroOrMoreTypeSpecSemicolon
+        : ZeroOrMoreTypeSpecSemicolon AliasDecl ";"
+        | ZeroOrMoreTypeSpecSemicolon TypeDef ";"
+        | @empty
+        ;
+
+    // Alias declarations (https://go.dev/ref/spec#Alias_declarations)
+    AliasDecl
+        : identifier "=" Type
+        | identifier TypeParameters "=" Type
+        ;
+
+    // Type definitions (https://go.dev/ref/spec#Type_definitions)
+    TypeDef
+        : identifier Type
+        | identifier TypeParameters Type
+        ;
+
+    // Type parameter declarations (https://go.dev/ref/spec#Type_parameter_declarations)
+    TypeParameters
+        : "[" TypeParamList "]"
+        ;
+    TypeParamList
+        : TypeParamDecl
+        | TypeParamDecl ","
+        | TypeParamDecl "," TypeParamList
+        ;
+    TypeParamDecl
+        : ExpressionList TypeElem
+        | PrimaryExpr "[" "]" Type ZeroOrMoreUnionTypeTerm
+        ;
+    ZeroOrMoreUnionTypeTerm
+        : @empty
+        | ZeroOrMoreUnionTypeTerm "|" TypeTerm
+        ;
+
+    // Function type parameter lists do not face the array-vs-type-parameter ambiguity that "type" declarations do
+    // (a function name is never followed by an array type the way a type name is), so the parameter names can be a plain
+    // IdentifierList instead of the ExpressionList that TypeParameters uses. Because identifiers are not expressions, a
+    // constraint beginning with an operator token parses as a type rather than binding to the preceding name: "[foo *bar]"
+    // reads as the name "foo" with pointer constraint "*bar" instead of the multiplication "foo * bar". This also lets
+    // slice and array constraints ("foo []bar", "foo [3]bar") fall out of the general rule without a dedicated form.
+    FuncTypeParameters
+        : "[" FuncTypeParamList "]"
+        ;
+    FuncTypeParamList
+        : FuncTypeParamDecl
+        | FuncTypeParamDecl ","
+        | FuncTypeParamDecl "," FuncTypeParamList
+        ;
+    FuncTypeParamDecl
+        : IdentifierList TypeElem
+        ;
+
+    // Variable declarations (https://go.dev/ref/spec#Variable_declarations)
+    VarDecl
+        : "var" VarSpec
+        | "var" "(" ZeroOrMoreVarSpecSemicolon ")"
+        ;
+    VarSpec
+        : IdentifierList Type
+        | IdentifierList Type "=" ExpressionList
+        | IdentifierList "=" ExpressionList
+        ;
+    ZeroOrMoreVarSpecSemicolon
+        : ZeroOrMoreVarSpecSemicolon VarSpec ";"
+        | @empty
+        ;
+
+    // Short variable declarations (https://go.dev/ref/spec#Short_variable_declarations)
+    ShortVarDecl
+        : ExpressionList ":=" ExpressionList
+        ;
+
+    // Function declarations (https://go.dev/ref/spec#Function_declarations)
+    FunctionDecl
+        : "func" identifier Signature
+        | "func" identifier Signature Block
+        | "func" identifier FuncTypeParameters Signature
+        | "func" identifier FuncTypeParameters Signature Block
+        ;
+
+    // Method declarations (https://go.dev/ref/spec#Method_declarations)
+    MethodDecl
+        : "func" Parameters identifier Signature
+        | "func" Parameters identifier Signature Block
+        ;
+
 }
