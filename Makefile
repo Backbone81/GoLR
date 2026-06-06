@@ -1,4 +1,4 @@
-PACKAGE ?= ./...
+PACKAGE ?= ./internal/...
 
 .PHONY: all
 all: build
@@ -36,7 +36,7 @@ run: prepare
 	go run ./cmd/golr
 
 .PHONY: test
-test: prepare
+test: test-examples
 	mkdir -p tmp
 	rm -rf tmp/coverage
 	mkdir -p tmp/coverage
@@ -46,6 +46,10 @@ test: prepare
 	go tool covdata percent -i=tmp/coverage
 	go tool covdata textfmt -i=tmp/coverage -o tmp/cover.out
 	go tool cover -html=tmp/cover.out -o tmp/cover.html
+
+.PHONY: test-examples
+test-examples: prepare
+	go test ./examples/...
 
 .PHONY: benchmark
 benchmark: prepare
