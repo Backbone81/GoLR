@@ -258,10 +258,10 @@ func (s *Scanner) {{ stateName $i (index $.DFA.Rules $state.RuleIdx) }}() error 
     nextByte := s.source[s.lexemePeekIdx]
     switch {
         {{- range $state.Transitions }}
-            {{- if eq .CharRange.Low .CharRange.High }}
-    case nextByte == {{ printRune .CharRange.Low }}:
+            {{- if eq .ByteRange.Low .ByteRange.High }}
+    case nextByte == {{ printByte .ByteRange.Low }}:
             {{- else }}
-    case {{ printRune .CharRange.Low }} <= nextByte && nextByte <= {{ printRune .CharRange.High }}:
+    case {{ printByte .ByteRange.Low }} <= nextByte && nextByte <= {{ printByte .ByteRange.High }}:
             {{- end}}
         s.state = {{ .StateIdx }}
         {{- end }}

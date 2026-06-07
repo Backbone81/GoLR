@@ -9,7 +9,6 @@ import (
 	"github.com/backbone81/golr/internal/scannergen/backend"
 	"github.com/backbone81/golr/internal/scannergen/core/subset/dfa"
 	"github.com/backbone81/golr/internal/scannergen/core/subset/nfa"
-	"github.com/backbone81/golr/internal/scannergen/frontend"
 	"github.com/backbone81/golr/internal/scannergen/frontend/dsl"
 )
 
@@ -19,7 +18,7 @@ var _ = Describe("DFA", func() {
 			var n0, n1, n2, n3, n4, n5, n6, n7, n8, n9 nfa.State
 			n0.Transitions = []nfa.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'a',
 						High: 'a',
 					},
@@ -54,7 +53,7 @@ var _ = Describe("DFA", func() {
 			}
 			n4.Transitions = []nfa.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'b',
 						High: 'b',
 					},
@@ -69,7 +68,7 @@ var _ = Describe("DFA", func() {
 			}
 			n6.Transitions = []nfa.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'c',
 						High: 'c',
 					},
@@ -99,7 +98,7 @@ var _ = Describe("DFA", func() {
 			var m0, m1 backend.State
 			m0.Transitions = []backend.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'a',
 						High: 'a',
 					},
@@ -108,14 +107,14 @@ var _ = Describe("DFA", func() {
 			}
 			m1.Transitions = []backend.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'b',
 						High: 'b',
 					},
 					StateIdx: 1,
 				},
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'c',
 						High: 'c',
 					},

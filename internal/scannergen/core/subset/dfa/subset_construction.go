@@ -7,7 +7,6 @@ import (
 
 	"github.com/backbone81/golr/internal/scannergen/backend"
 	thompsonsnfa "github.com/backbone81/golr/internal/scannergen/core/subset/nfa"
-	"github.com/backbone81/golr/internal/scannergen/frontend"
 	"github.com/backbone81/golr/internal/utils"
 )
 
@@ -61,16 +60,16 @@ func (b *SubsetConstruction) Build() []backend.State {
 	for !unprocessedDfaStateIdxs.IsEmpty() {
 		currDfaStateIdx := unprocessedDfaStateIdxs.Remove()
 
-		charRanges := b.GetCharRanges(b.nfaStateIdxsByDfaStateIdx[currDfaStateIdx])
+		charRanges := b.GetByteRanges(b.nfaStateIdxsByDfaStateIdx[currDfaStateIdx])
 		for _, charRange := range charRanges {
-			nfaStateIdxs := b.EmptyClosure(b.transitionOnCharRange(b.nfaStateIdxsByDfaStateIdx[currDfaStateIdx], charRange))
+			nfaStateIdxs := b.EmptyClosure(b.transitionOnByteRange(b.nfaStateIdxsByDfaStateIdx[currDfaStateIdx], charRange))
 			nextDfaStateIdx, found := b.getState(nfaStateIdxs)
 			if !found {
 				nextDfaStateIdx = b.addState(nfaStateIdxs)
 				unprocessedDfaStateIdxs.Add(nextDfaStateIdx)
 			}
 			b.dfaStates[currDfaStateIdx].Transitions = append(b.dfaStates[currDfaStateIdx].Transitions, backend.Transition{
-				CharRange: charRange,
+				ByteRange: charRange,
 				StateIdx:  nextDfaStateIdx,
 			})
 		}
@@ -85,9 +84,9 @@ func (b *SubsetConstruction) sortTransitions() {
 	for _, dfaState := range b.dfaStates {
 		slices.SortStableFunc(dfaState.Transitions, func(a, b backend.Transition) int {
 			switch {
-			case a.CharRange.Low < b.CharRange.Low:
+			case a.ByteRange.Low < b.ByteRange.Low:
 				return -1
-			case a.CharRange.Low > b.CharRange.Low:
+			case a.ByteRange.Low > b.ByteRange.Low:
 				return 1
 			default:
 				return 0
@@ -157,10 +156,10 @@ func (b *SubsetConstruction) getHighestPrioNFAState(nfaStateIdxs utils.OrderedSe
 	return highestPrioStandardStateIdx, false
 }
 
-// TransitionOnCharacterRange moves from the given states on the character range to the next states.
-func (b *SubsetConstruction) transitionOnCharRange(
+// transitionOnByteRange moves from the given states on the byte range to the next states.
+func (b *SubsetConstruction) transitionOnByteRange(
 	nfaStateIdxs utils.OrderedSet[int],
-	charRange frontend.CharRange,
+	byteRange backend.ByteRange,
 ) utils.OrderedSet[int] {
 	var result utils.OrderedSet[int]
 	for _, nfaStateIdx := range nfaStateIdxs.All() {
@@ -168,10 +167,10 @@ func (b *SubsetConstruction) transitionOnCharRange(
 			if transition.Empty {
 				continue
 			}
-			if charRange.Low < transition.CharRange.Low {
+			if byteRange.Low < transition.ByteRange.Low {
 				continue
 			}
-			if charRange.High > transition.CharRange.High {
+			if byteRange.High > transition.ByteRange.High {
 				continue
 			}
 			result.Add(transition.NextStateIdx)
@@ -203,26 +202,26 @@ func (b *SubsetConstruction) EmptyClosure(nfaStateIdxs utils.OrderedSet[int]) ut
 	return nfaStateIdxs
 }
 
-// GetCharRanges returns the character ranges which are responsible for non-empty transitions out of the given
+// GetByteRanges returns the character ranges which are responsible for non-empty transitions out of the given
 // states.
-func (b *SubsetConstruction) GetCharRanges(nfaStateIdxs utils.OrderedSet[int]) []frontend.CharRange {
-	var result []frontend.CharRange
+func (b *SubsetConstruction) GetByteRanges(nfaStateIdxs utils.OrderedSet[int]) []backend.ByteRange {
+	var result []backend.ByteRange
 	for _, nfaStateIdx := range nfaStateIdxs.All() {
 		for _, transition := range b.nfaStates[nfaStateIdx].Transitions {
 			if transition.Empty {
 				continue
 			}
-			result = frontend.SplitCharRanges(result, transition.CharRange.Low)
-			result = frontend.SplitCharRanges(result, transition.CharRange.High+1)
+			result = backend.SplitByteRanges(result, transition.ByteRange.Low)
+			result = backend.SplitByteRanges(result, transition.ByteRange.High+1)
 
-			newCharacterRanges := []frontend.CharRange{transition.CharRange}
+			newByteRanges := []backend.ByteRange{transition.ByteRange}
 			for _, characterRange := range result {
-				newCharacterRanges = frontend.SplitCharRanges(newCharacterRanges, characterRange.Low)
-				newCharacterRanges = frontend.SplitCharRanges(newCharacterRanges, characterRange.High+1)
-				newCharacterRanges = frontend.RemoveCharRanges(newCharacterRanges, characterRange)
+				newByteRanges = backend.SplitByteRanges(newByteRanges, characterRange.Low)
+				newByteRanges = backend.SplitByteRanges(newByteRanges, characterRange.High+1)
+				newByteRanges = backend.RemoveByteRanges(newByteRanges, characterRange)
 			}
 
-			result = append(result, newCharacterRanges...)
+			result = append(result, newByteRanges...)
 		}
 	}
 	return result

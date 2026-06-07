@@ -6,8 +6,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/backbone81/golr/internal/scannergen/backend"
 	thompsonsnfa "github.com/backbone81/golr/internal/scannergen/core/subset/nfa"
-	"github.com/backbone81/golr/internal/scannergen/frontend"
 	"github.com/backbone81/golr/internal/scannergen/frontend/dsl"
 )
 
@@ -22,7 +22,7 @@ var _ = Describe("CharClass", func() {
 			{ // state 0
 				Transitions: []thompsonsnfa.Transition{
 					{
-						CharRange: frontend.CharRange{
+						ByteRange: backend.ByteRange{
 							Low:  'a',
 							High: 'f',
 						},
@@ -48,14 +48,14 @@ var _ = Describe("CharClass", func() {
 			{ // state 0
 				Transitions: []thompsonsnfa.Transition{
 					{
-						CharRange: frontend.CharRange{
+						ByteRange: backend.ByteRange{
 							Low:  'a',
 							High: 'f',
 						},
 						NextStateIdx: 1,
 					},
 					{
-						CharRange: frontend.CharRange{
+						ByteRange: backend.ByteRange{
 							Low:  'x',
 							High: 'z',
 						},
@@ -80,7 +80,7 @@ var _ = Describe("CharClass", func() {
 			{ // state 0
 				Transitions: []thompsonsnfa.Transition{
 					{
-						CharRange: frontend.CharRange{
+						ByteRange: backend.ByteRange{
 							Low:  0,
 							High: 't',
 						},
@@ -106,14 +106,14 @@ var _ = Describe("CharClass", func() {
 			{ // state 0
 				Transitions: []thompsonsnfa.Transition{
 					{
-						CharRange: frontend.CharRange{
+						ByteRange: backend.ByteRange{
 							Low:  0,
 							High: 'a',
 						},
 						NextStateIdx: 1,
 					},
 					{
-						CharRange: frontend.CharRange{
+						ByteRange: backend.ByteRange{
 							Low:  'g',
 							High: 'w',
 						},

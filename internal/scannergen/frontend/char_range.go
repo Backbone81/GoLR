@@ -23,9 +23,8 @@ var _ fmt.Stringer = (*CharRange)(nil)
 func (c *CharRange) String() string {
 	if c.Low != c.High {
 		return fmt.Sprintf("%s-%s", c.printRune(c.Low), c.printRune(c.High))
-	} else {
-		return c.printRune(c.Low)
 	}
+	return c.printRune(c.Low)
 }
 
 // printRune is a helper method for creating a readable representation of a character range.

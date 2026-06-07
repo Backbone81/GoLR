@@ -7,7 +7,6 @@ import (
 	"github.com/backbone81/golr/internal/scannergen/backend"
 	"github.com/backbone81/golr/internal/scannergen/core/subset/dfa"
 	"github.com/backbone81/golr/internal/scannergen/core/subset/nfa"
-	"github.com/backbone81/golr/internal/scannergen/frontend"
 	"github.com/backbone81/golr/internal/utils"
 )
 
@@ -16,7 +15,7 @@ var _ = Describe("SubsetConstruction", func() {
 		var n0, n1, n2, n3, n4, n5, n6, n7, n8, n9 nfa.State
 		n0.Transitions = []nfa.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'a',
 					High: 'a',
 				},
@@ -51,7 +50,7 @@ var _ = Describe("SubsetConstruction", func() {
 		}
 		n4.Transitions = []nfa.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'b',
 					High: 'b',
 				},
@@ -66,7 +65,7 @@ var _ = Describe("SubsetConstruction", func() {
 		}
 		n6.Transitions = []nfa.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'c',
 					High: 'c',
 				},
@@ -96,7 +95,7 @@ var _ = Describe("SubsetConstruction", func() {
 		var d0, d1, d2, d3 backend.State
 		d0.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'a',
 					High: 'a',
 				},
@@ -105,14 +104,14 @@ var _ = Describe("SubsetConstruction", func() {
 		}
 		d1.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'b',
 					High: 'b',
 				},
 				StateIdx: 2,
 			},
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'c',
 					High: 'c',
 				},
@@ -122,14 +121,14 @@ var _ = Describe("SubsetConstruction", func() {
 		d1.Accept = true
 		d2.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'b',
 					High: 'b',
 				},
 				StateIdx: 2,
 			},
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'c',
 					High: 'c',
 				},
@@ -139,14 +138,14 @@ var _ = Describe("SubsetConstruction", func() {
 		d2.Accept = true
 		d3.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'b',
 					High: 'b',
 				},
 				StateIdx: 2,
 			},
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'c',
 					High: 'c',
 				},
@@ -165,7 +164,7 @@ var _ = Describe("SubsetConstruction", func() {
 			var a1, a2, b1, b2 nfa.State
 			a1.Transitions = []nfa.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'a',
 						High: 'a',
 					},
@@ -174,7 +173,7 @@ var _ = Describe("SubsetConstruction", func() {
 			}
 			b1.Transitions = []nfa.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'b',
 						High: 'b',
 					},
@@ -190,7 +189,7 @@ var _ = Describe("SubsetConstruction", func() {
 			var a1, a2, e1, e2 nfa.State
 			a1.Transitions = []nfa.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'a',
 						High: 'a',
 					},
@@ -212,7 +211,7 @@ var _ = Describe("SubsetConstruction", func() {
 			var a1, a2, e1, e2 nfa.State
 			a1.Transitions = []nfa.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'a',
 						High: 'a',
 					},
@@ -259,7 +258,7 @@ var _ = Describe("SubsetConstruction", func() {
 	Context("GetCharRanges", func() {
 		It("should return an empty slice when there are no transitions", func() {
 			var s1 nfa.State
-			characterRanges := dfa.NewSubsetConstruction([]nfa.State{s1}).GetCharRanges(utils.NewOrderedSet(0))
+			characterRanges := dfa.NewSubsetConstruction([]nfa.State{s1}).GetByteRanges(utils.NewOrderedSet(0))
 			Expect(characterRanges).To(BeEmpty())
 		})
 
@@ -271,7 +270,7 @@ var _ = Describe("SubsetConstruction", func() {
 					NextStateIdx: 1,
 				},
 			}
-			characterRanges := dfa.NewSubsetConstruction([]nfa.State{s1, s2}).GetCharRanges(utils.NewOrderedSet(0))
+			characterRanges := dfa.NewSubsetConstruction([]nfa.State{s1, s2}).GetByteRanges(utils.NewOrderedSet(0))
 			Expect(characterRanges).To(BeEmpty())
 		})
 
@@ -279,15 +278,15 @@ var _ = Describe("SubsetConstruction", func() {
 			var s1, s2 nfa.State
 			s1.Transitions = []nfa.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'a',
 						High: 'z',
 					},
 					NextStateIdx: 1,
 				},
 			}
-			characterRanges := dfa.NewSubsetConstruction([]nfa.State{s1, s2}).GetCharRanges(utils.NewOrderedSet(0))
-			Expect(characterRanges).To(Equal([]frontend.CharRange{
+			characterRanges := dfa.NewSubsetConstruction([]nfa.State{s1, s2}).GetByteRanges(utils.NewOrderedSet(0))
+			Expect(characterRanges).To(Equal([]backend.ByteRange{
 				{
 					Low:  'a',
 					High: 'z',
@@ -299,7 +298,7 @@ var _ = Describe("SubsetConstruction", func() {
 			var a1, b1, s2 nfa.State
 			a1.Transitions = []nfa.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'a',
 						High: 'z',
 					},
@@ -308,15 +307,15 @@ var _ = Describe("SubsetConstruction", func() {
 			}
 			b1.Transitions = []nfa.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  '0',
 						High: '9',
 					},
 					NextStateIdx: 2,
 				},
 			}
-			characterRanges := dfa.NewSubsetConstruction([]nfa.State{a1, b1, s2}).GetCharRanges(utils.NewOrderedSet(0, 1))
-			Expect(characterRanges).To(Equal([]frontend.CharRange{
+			characterRanges := dfa.NewSubsetConstruction([]nfa.State{a1, b1, s2}).GetByteRanges(utils.NewOrderedSet(0, 1))
+			Expect(characterRanges).To(Equal([]backend.ByteRange{
 				{
 					Low:  'a',
 					High: 'z',
@@ -332,7 +331,7 @@ var _ = Describe("SubsetConstruction", func() {
 			var a1, b1, s2 nfa.State
 			a1.Transitions = []nfa.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'a',
 						High: 'u',
 					},
@@ -341,15 +340,15 @@ var _ = Describe("SubsetConstruction", func() {
 			}
 			b1.Transitions = []nfa.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'd',
 						High: 'z',
 					},
 					NextStateIdx: 2,
 				},
 			}
-			characterRanges := dfa.NewSubsetConstruction([]nfa.State{a1, b1, s2}).GetCharRanges(utils.NewOrderedSet(0, 1))
-			Expect(characterRanges).To(Equal([]frontend.CharRange{
+			characterRanges := dfa.NewSubsetConstruction([]nfa.State{a1, b1, s2}).GetByteRanges(utils.NewOrderedSet(0, 1))
+			Expect(characterRanges).To(Equal([]backend.ByteRange{
 				{
 					Low:  'a',
 					High: 'c',
@@ -369,7 +368,7 @@ var _ = Describe("SubsetConstruction", func() {
 			var a1, b1, s2 nfa.State
 			a1.Transitions = []nfa.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'a',
 						High: 'z',
 					},
@@ -378,15 +377,15 @@ var _ = Describe("SubsetConstruction", func() {
 			}
 			b1.Transitions = []nfa.Transition{
 				{
-					CharRange: frontend.CharRange{
+					ByteRange: backend.ByteRange{
 						Low:  'a',
 						High: 'z',
 					},
 					NextStateIdx: 2,
 				},
 			}
-			characterRanges := dfa.NewSubsetConstruction([]nfa.State{a1, b1, s2}).GetCharRanges(utils.NewOrderedSet(0, 1))
-			Expect(characterRanges).To(Equal([]frontend.CharRange{
+			characterRanges := dfa.NewSubsetConstruction([]nfa.State{a1, b1, s2}).GetByteRanges(utils.NewOrderedSet(0, 1))
+			Expect(characterRanges).To(Equal([]backend.ByteRange{
 				{
 					Low:  'a',
 					High: 'z',

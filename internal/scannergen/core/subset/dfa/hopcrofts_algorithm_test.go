@@ -6,7 +6,6 @@ import (
 
 	"github.com/backbone81/golr/internal/scannergen/backend"
 	"github.com/backbone81/golr/internal/scannergen/core/subset/dfa"
-	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
 
 var _ = Describe("HopcroftsAlgorithm", func() {
@@ -14,7 +13,7 @@ var _ = Describe("HopcroftsAlgorithm", func() {
 		var s0, s1, s2, s3, s4, s5 backend.State
 		s0.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'f',
 					High: 'f',
 				},
@@ -23,14 +22,14 @@ var _ = Describe("HopcroftsAlgorithm", func() {
 		}
 		s1.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'e',
 					High: 'e',
 				},
 				StateIdx: 2,
 			},
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'i',
 					High: 'i',
 				},
@@ -39,7 +38,7 @@ var _ = Describe("HopcroftsAlgorithm", func() {
 		}
 		s2.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'e',
 					High: 'e',
 				},
@@ -49,7 +48,7 @@ var _ = Describe("HopcroftsAlgorithm", func() {
 		s3.Accept = true
 		s4.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'e',
 					High: 'e',
 				},
@@ -64,7 +63,7 @@ var _ = Describe("HopcroftsAlgorithm", func() {
 		var m0, m1, m2, m3 backend.State
 		m0.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'f',
 					High: 'f',
 				},
@@ -73,14 +72,14 @@ var _ = Describe("HopcroftsAlgorithm", func() {
 		}
 		m1.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'e',
 					High: 'e',
 				},
 				StateIdx: 2,
 			},
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'i',
 					High: 'i',
 				},
@@ -89,7 +88,7 @@ var _ = Describe("HopcroftsAlgorithm", func() {
 		}
 		m2.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'e',
 					High: 'e',
 				},
@@ -105,7 +104,7 @@ var _ = Describe("HopcroftsAlgorithm", func() {
 		var d0, d1, d2, d3 backend.State
 		d0.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'a',
 					High: 'a',
 				},
@@ -114,14 +113,14 @@ var _ = Describe("HopcroftsAlgorithm", func() {
 		}
 		d1.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'b',
 					High: 'b',
 				},
 				StateIdx: 2,
 			},
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'c',
 					High: 'c',
 				},
@@ -131,14 +130,14 @@ var _ = Describe("HopcroftsAlgorithm", func() {
 		d1.Accept = true
 		d2.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'b',
 					High: 'b',
 				},
 				StateIdx: 2,
 			},
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'c',
 					High: 'c',
 				},
@@ -148,14 +147,14 @@ var _ = Describe("HopcroftsAlgorithm", func() {
 		d2.Accept = true
 		d3.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'b',
 					High: 'b',
 				},
 				StateIdx: 2,
 			},
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'c',
 					High: 'c',
 				},
@@ -170,7 +169,7 @@ var _ = Describe("HopcroftsAlgorithm", func() {
 		var m0, m1 backend.State
 		m0.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'a',
 					High: 'a',
 				},
@@ -179,14 +178,14 @@ var _ = Describe("HopcroftsAlgorithm", func() {
 		}
 		m1.Transitions = []backend.Transition{
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'b',
 					High: 'b',
 				},
 				StateIdx: 1,
 			},
 			{
-				CharRange: frontend.CharRange{
+				ByteRange: backend.ByteRange{
 					Low:  'c',
 					High: 'c',
 				},

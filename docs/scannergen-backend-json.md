@@ -49,14 +49,14 @@ The JSON output looks like this:
       "accept": true,
       "transitions": [
         {
-          "charRange": {
+          "byteRange": {
             "low": 48,
             "high": 57
           },
           "stateIdx": 0
         },
         {
-          "charRange": {
+          "byteRange": {
             "low": 97,
             "high": 122
           },

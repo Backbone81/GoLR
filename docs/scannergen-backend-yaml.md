@@ -30,11 +30,11 @@ states:
 - ruleIdx: 1
   accept: true
   transitions:
-  - charRange:
+  - byteRange:
       low: 48
       high: 57
     stateIdx: 0
-  - charRange:
+  - byteRange:
       low: 97
       high: 122
     stateIdx: 1

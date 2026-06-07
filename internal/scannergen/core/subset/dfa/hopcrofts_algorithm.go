@@ -114,7 +114,7 @@ func (b *HopcroftsAlgorithm) buildDFAFromPartitions(partitions []*Partition) []b
 		outputState := &states[partitionIdx]
 		for _, transition := range inputState.Transitions {
 			outputState.Transitions = append(outputState.Transitions, backend.Transition{
-				CharRange: transition.CharRange,
+				ByteRange: transition.ByteRange,
 				StateIdx:  b.partitionForStateIdx[transition.StateIdx].FinalStateIdx,
 			})
 		}
@@ -185,7 +185,7 @@ func (b *HopcroftsAlgorithm) statesAreEquivalent(state *backend.State, reference
 		return false
 	}
 	for _, transition := range state.Transitions {
-		referenceTransition := referenceState.GetTransition(transition.CharRange)
+		referenceTransition := referenceState.GetTransition(transition.ByteRange)
 		if referenceTransition == nil {
 			// the transition does not exist on the reference state, it needs to be split
 			return false

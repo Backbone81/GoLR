@@ -1,6 +1,9 @@
 package nfa
 
-import "github.com/backbone81/golr/internal/scannergen/frontend"
+import (
+	"github.com/backbone81/golr/internal/scannergen/backend"
+	"github.com/backbone81/golr/internal/scannergen/frontend"
+)
 
 func (b *ThompsonsConstruction) fromLiteral(regexNode *frontend.Literal, ruleIdx int, states []State) []State {
 	// add the start state
@@ -18,9 +21,9 @@ func (b *ThompsonsConstruction) fromLiteral(regexNode *frontend.Literal, ruleIdx
 		// add a transition from the previous to the next state
 		states[currStateIdx].Transitions = []Transition{
 			{
-				CharRange: frontend.CharRange{
-					Low:  rune(character),
-					High: rune(character),
+				ByteRange: backend.ByteRange{
+					Low:  character,
+					High: character,
 				},
 				NextStateIdx: currStateIdx + 1,
 			},

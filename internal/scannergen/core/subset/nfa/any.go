@@ -1,6 +1,7 @@
 package nfa
 
 import (
+	"github.com/backbone81/golr/internal/scannergen/backend"
 	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
 
@@ -15,23 +16,23 @@ func (b *ThompsonsConstruction) fromAny(_ *frontend.Any, ruleIdx int, states []S
 			RuleIdx: ruleIdx,
 			Transitions: []Transition{
 				{
-					CharRange:    frontend.CharRange{Low: 0x00, High: '\n' - 1},
+					ByteRange:    backend.ByteRange{Low: 0x00, High: '\n' - 1},
 					NextStateIdx: acceptStateIdx,
 				},
 				{
-					CharRange:    frontend.CharRange{Low: '\n' + 1, High: 0x7F},
+					ByteRange:    backend.ByteRange{Low: '\n' + 1, High: 0x7F},
 					NextStateIdx: acceptStateIdx,
 				},
 				{
-					CharRange:    frontend.CharRange{Low: 0xC2, High: 0xDF},
+					ByteRange:    backend.ByteRange{Low: 0xC2, High: 0xDF},
 					NextStateIdx: continuation1ByteStateIdx,
 				},
 				{
-					CharRange:    frontend.CharRange{Low: 0xE0, High: 0xEF},
+					ByteRange:    backend.ByteRange{Low: 0xE0, High: 0xEF},
 					NextStateIdx: continuation2BytesStateIdx,
 				},
 				{
-					CharRange:    frontend.CharRange{Low: 0xF0, High: 0xF4},
+					ByteRange:    backend.ByteRange{Low: 0xF0, High: 0xF4},
 					NextStateIdx: continuation3BytesStateIdx,
 				},
 			},
@@ -40,7 +41,7 @@ func (b *ThompsonsConstruction) fromAny(_ *frontend.Any, ruleIdx int, states []S
 			RuleIdx: ruleIdx,
 			Transitions: []Transition{
 				{
-					CharRange:    frontend.CharRange{Low: 0x80, High: 0xBF},
+					ByteRange:    backend.ByteRange{Low: 0x80, High: 0xBF},
 					NextStateIdx: acceptStateIdx,
 				},
 			},
@@ -49,7 +50,7 @@ func (b *ThompsonsConstruction) fromAny(_ *frontend.Any, ruleIdx int, states []S
 			RuleIdx: ruleIdx,
 			Transitions: []Transition{
 				{
-					CharRange:    frontend.CharRange{Low: 0x80, High: 0xBF},
+					ByteRange:    backend.ByteRange{Low: 0x80, High: 0xBF},
 					NextStateIdx: continuation1ByteStateIdx,
 				},
 			},
@@ -58,7 +59,7 @@ func (b *ThompsonsConstruction) fromAny(_ *frontend.Any, ruleIdx int, states []S
 			RuleIdx: ruleIdx,
 			Transitions: []Transition{
 				{
-					CharRange:    frontend.CharRange{Low: 0x80, High: 0xBF},
+					ByteRange:    backend.ByteRange{Low: 0x80, High: 0xBF},
 					NextStateIdx: continuation2BytesStateIdx,
 				},
 			},

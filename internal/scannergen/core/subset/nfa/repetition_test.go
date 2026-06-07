@@ -4,8 +4,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/backbone81/golr/internal/scannergen/backend"
 	thompsonsnfa "github.com/backbone81/golr/internal/scannergen/core/subset/nfa"
-	"github.com/backbone81/golr/internal/scannergen/frontend"
 	"github.com/backbone81/golr/internal/scannergen/frontend/dsl"
 )
 
@@ -26,7 +26,7 @@ var _ = Describe("Repetition", func() {
 			{ // state 1
 				Transitions: []thompsonsnfa.Transition{
 					{
-						CharRange: frontend.CharRange{
+						ByteRange: backend.ByteRange{
 							Low:  'a',
 							High: 'a',
 						},
@@ -65,7 +65,7 @@ var _ = Describe("Repetition", func() {
 			{ // state 1
 				Transitions: []thompsonsnfa.Transition{
 					{
-						CharRange: frontend.CharRange{
+						ByteRange: backend.ByteRange{
 							Low:  'a',
 							High: 'a',
 						},
@@ -84,7 +84,7 @@ var _ = Describe("Repetition", func() {
 			{ // state 3
 				Transitions: []thompsonsnfa.Transition{
 					{
-						CharRange: frontend.CharRange{
+						ByteRange: backend.ByteRange{
 							Low:  'a',
 							High: 'a',
 						},
@@ -123,7 +123,7 @@ var _ = Describe("Repetition", func() {
 			{ // state 1
 				Transitions: []thompsonsnfa.Transition{
 					{
-						CharRange: frontend.CharRange{
+						ByteRange: backend.ByteRange{
 							Low:  'a',
 							High: 'a',
 						},
@@ -146,7 +146,7 @@ var _ = Describe("Repetition", func() {
 			{ // state 3
 				Transitions: []thompsonsnfa.Transition{
 					{
-						CharRange: frontend.CharRange{
+						ByteRange: backend.ByteRange{
 							Low:  'a',
 							High: 'a',
 						},

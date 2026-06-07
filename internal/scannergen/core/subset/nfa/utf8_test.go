@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/backbone81/golr/internal/scannergen/backend"
 	"github.com/backbone81/golr/internal/scannergen/core/subset/nfa"
 	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
@@ -24,7 +25,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 0: start
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 'A', High: 'A'},
+							ByteRange:    backend.ByteRange{Low: 'A', High: 'A'},
 							NextStateIdx: -1,
 						},
 					},
@@ -37,7 +38,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 0: start
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 'a', High: 'z'},
+							ByteRange:    backend.ByteRange{Low: 'a', High: 'z'},
 							NextStateIdx: -1,
 						},
 					},
@@ -53,7 +54,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 0: start
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0xC3, High: 0xC3},
+							ByteRange:    backend.ByteRange{Low: 0xC3, High: 0xC3},
 							NextStateIdx: 1,
 						},
 					},
@@ -61,7 +62,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 1: after leading byte 0xC3
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0xA9, High: 0xA9},
+							ByteRange:    backend.ByteRange{Low: 0xA9, High: 0xA9},
 							NextStateIdx: -1,
 						},
 					},
@@ -75,7 +76,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 0: start
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0xC3, High: 0xC3},
+							ByteRange:    backend.ByteRange{Low: 0xC3, High: 0xC3},
 							NextStateIdx: 1,
 						},
 					},
@@ -84,7 +85,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 					RuleIdx: 0,
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0x80, High: 0xBF},
+							ByteRange:    backend.ByteRange{Low: 0x80, High: 0xBF},
 							NextStateIdx: -1,
 						},
 					},
@@ -98,11 +99,11 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 0: start
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0xC2, High: 0xC2},
+							ByteRange:    backend.ByteRange{Low: 0xC2, High: 0xC2},
 							NextStateIdx: 1,
 						},
 						{
-							CharRange:    frontend.CharRange{Low: 0xC3, High: 0xC3},
+							ByteRange:    backend.ByteRange{Low: 0xC3, High: 0xC3},
 							NextStateIdx: 2,
 						},
 					},
@@ -110,7 +111,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 1: after leading byte 0xC2 (low path)
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0x80, High: 0xBF},
+							ByteRange:    backend.ByteRange{Low: 0x80, High: 0xBF},
 							NextStateIdx: -1,
 						},
 					},
@@ -118,7 +119,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 2: after leading byte 0xC3 (high path)
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0x80, High: 0xBF},
+							ByteRange:    backend.ByteRange{Low: 0x80, High: 0xBF},
 							NextStateIdx: -1,
 						},
 					},
@@ -133,15 +134,15 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 0: start
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0xC2, High: 0xC2},
+							ByteRange:    backend.ByteRange{Low: 0xC2, High: 0xC2},
 							NextStateIdx: 1,
 						},
 						{
-							CharRange:    frontend.CharRange{Low: 0xC3, High: 0xC4},
+							ByteRange:    backend.ByteRange{Low: 0xC3, High: 0xC4},
 							NextStateIdx: 2,
 						},
 						{
-							CharRange:    frontend.CharRange{Low: 0xC5, High: 0xC5},
+							ByteRange:    backend.ByteRange{Low: 0xC5, High: 0xC5},
 							NextStateIdx: 3,
 						},
 					},
@@ -149,7 +150,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 1: after 0xC2 (low path, partial continuation 0xA0–0xBF)
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0xA0, High: 0xBF},
+							ByteRange:    backend.ByteRange{Low: 0xA0, High: 0xBF},
 							NextStateIdx: -1,
 						},
 					},
@@ -157,7 +158,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 2: after 0xC3–0xC4 (middle path, full continuation)
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0x80, High: 0xBF},
+							ByteRange:    backend.ByteRange{Low: 0x80, High: 0xBF},
 							NextStateIdx: -1,
 						},
 					},
@@ -165,7 +166,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 3: after 0xC5 (high path, partial continuation 0x80–0x8F)
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0x80, High: 0x8F},
+							ByteRange:    backend.ByteRange{Low: 0x80, High: 0x8F},
 							NextStateIdx: -1,
 						},
 					},
@@ -181,7 +182,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 0: start
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0xE0, High: 0xE0},
+							ByteRange:    backend.ByteRange{Low: 0xE0, High: 0xE0},
 							NextStateIdx: 1,
 						},
 					},
@@ -189,7 +190,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 1: after leading byte 0xE0
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0xA0, High: 0xA0},
+							ByteRange:    backend.ByteRange{Low: 0xA0, High: 0xA0},
 							NextStateIdx: 2,
 						},
 					},
@@ -197,7 +198,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 2: after second byte 0xA0
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0x80, High: 0xBF},
+							ByteRange:    backend.ByteRange{Low: 0x80, High: 0xBF},
 							NextStateIdx: -1,
 						},
 					},
@@ -212,7 +213,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 0: start
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0xE0, High: 0xE0},
+							ByteRange:    backend.ByteRange{Low: 0xE0, High: 0xE0},
 							NextStateIdx: 1,
 						},
 					},
@@ -220,15 +221,15 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 1: after leading byte 0xE0, second byte splits into low/middle/high
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0xA0, High: 0xA0},
+							ByteRange:    backend.ByteRange{Low: 0xA0, High: 0xA0},
 							NextStateIdx: 2,
 						},
 						{
-							CharRange:    frontend.CharRange{Low: 0xA1, High: 0xBE},
+							ByteRange:    backend.ByteRange{Low: 0xA1, High: 0xBE},
 							NextStateIdx: 3,
 						},
 						{
-							CharRange:    frontend.CharRange{Low: 0xBF, High: 0xBF},
+							ByteRange:    backend.ByteRange{Low: 0xBF, High: 0xBF},
 							NextStateIdx: 4,
 						},
 					},
@@ -236,7 +237,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 2: after second byte 0xA0 (low path)
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0x80, High: 0xBF},
+							ByteRange:    backend.ByteRange{Low: 0x80, High: 0xBF},
 							NextStateIdx: -1,
 						},
 					},
@@ -244,7 +245,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 3: after second byte 0xA1–0xBE (middle path)
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0x80, High: 0xBF},
+							ByteRange:    backend.ByteRange{Low: 0x80, High: 0xBF},
 							NextStateIdx: -1,
 						},
 					},
@@ -252,7 +253,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 4: after second byte 0xBF (high path)
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0x80, High: 0xBF},
+							ByteRange:    backend.ByteRange{Low: 0x80, High: 0xBF},
 							NextStateIdx: -1,
 						},
 					},
@@ -268,7 +269,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 0: start
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0xF0, High: 0xF0},
+							ByteRange:    backend.ByteRange{Low: 0xF0, High: 0xF0},
 							NextStateIdx: 1,
 						},
 					},
@@ -276,7 +277,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 1: after leading byte 0xF0
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0x9F, High: 0x9F},
+							ByteRange:    backend.ByteRange{Low: 0x9F, High: 0x9F},
 							NextStateIdx: 2,
 						},
 					},
@@ -284,7 +285,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 2: after second byte 0x9F
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0x98, High: 0x98},
+							ByteRange:    backend.ByteRange{Low: 0x98, High: 0x98},
 							NextStateIdx: 3,
 						},
 					},
@@ -292,7 +293,7 @@ var _ = Describe("BuildUTF8Encoding", func() {
 				{ // state 3: after third byte 0x98
 					Transitions: []nfa.Transition{
 						{
-							CharRange:    frontend.CharRange{Low: 0x80, High: 0x80},
+							ByteRange:    backend.ByteRange{Low: 0x80, High: 0x80},
 							NextStateIdx: -1,
 						},
 					},

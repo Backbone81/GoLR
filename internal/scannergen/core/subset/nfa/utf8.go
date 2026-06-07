@@ -3,6 +3,7 @@ package nfa
 import (
 	"unicode/utf8"
 
+	"github.com/backbone81/golr/internal/scannergen/backend"
 	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
 
@@ -41,7 +42,10 @@ func BuildUTF8Encoding(charRange frontend.CharRange, ruleIdx int, states []State
 	case charRange.High <= MaxUTF8Rune1Byte:
 		// 1-byte (0xxxxxxx): the rune value is its own byte value.
 		states[startStateIdx].Transitions = append(states[startStateIdx].Transitions, Transition{
-			CharRange:    charRange,
+			ByteRange: backend.ByteRange{
+				Low:  byte(charRange.Low),  //nolint:gosec // Cannot overflow because of range check.
+				High: byte(charRange.High), //nolint:gosec // Cannot overflow because of range check.
+			},
 			NextStateIdx: -1,
 		})
 
@@ -97,15 +101,15 @@ func buildUTF8EncodingByte(
 	shift := remainingBytes * 6
 	continuationMask := rune((1 << shift) - 1)
 
-	thisRange := frontend.CharRange{
-		Low:  prefix | (charRange.Low >> shift),
-		High: prefix | (charRange.High >> shift),
+	thisRange := backend.ByteRange{
+		Low:  byte(prefix | (charRange.Low >> shift)),  //nolint:gosec // Cannot overflow because of shift.
+		High: byte(prefix | (charRange.High >> shift)), //nolint:gosec // Cannot overflow because of shift.
 	}
 
 	if remainingBytes == 0 {
 		// Last byte: emit a direct range transition.
 		states[startStateIdx].Transitions = append(states[startStateIdx].Transitions, Transition{
-			CharRange:    thisRange,
+			ByteRange:    thisRange,
 			NextStateIdx: -1,
 		})
 		return states
@@ -118,7 +122,7 @@ func buildUTF8EncodingByte(
 			RuleIdx: ruleIdx,
 		})
 		states[startStateIdx].Transitions = append(states[startStateIdx].Transitions, Transition{
-			CharRange:    thisRange,
+			ByteRange:    thisRange,
 			NextStateIdx: intermediateStateIdx,
 		})
 		remainingCharRange := frontend.CharRange{
@@ -156,7 +160,7 @@ func buildUTF8EncodingByte(
 			RuleIdx: ruleIdx,
 		})
 		states[startStateIdx].Transitions = append(states[startStateIdx].Transitions, Transition{
-			CharRange: frontend.CharRange{
+			ByteRange: backend.ByteRange{
 				Low:  thisRange.Low,
 				High: thisRange.Low,
 			},
@@ -179,7 +183,7 @@ func buildUTF8EncodingByte(
 			RuleIdx: ruleIdx,
 		})
 		states[startStateIdx].Transitions = append(states[startStateIdx].Transitions, Transition{
-			CharRange: frontend.CharRange{
+			ByteRange: backend.ByteRange{
 				Low:  thisRange.Low + 1,
 				High: thisRange.High - 1,
 			},
@@ -202,7 +206,7 @@ func buildUTF8EncodingByte(
 			RuleIdx: ruleIdx,
 		})
 		states[startStateIdx].Transitions = append(states[startStateIdx].Transitions, Transition{
-			CharRange: frontend.CharRange{
+			ByteRange: backend.ByteRange{
 				Low:  thisRange.High,
 				High: thisRange.High,
 			},

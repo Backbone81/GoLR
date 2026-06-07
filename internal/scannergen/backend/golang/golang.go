@@ -21,7 +21,7 @@ import (
 var scannerTemplate string
 
 var parsedTemplate = template.Must(template.New("scanner.go.template").Funcs(template.FuncMap{
-	"printRune": printRune,
+	"printByte": printByte,
 	"tokenName": tokenName,
 	"stateName": stateName,
 }).Parse(scannerTemplate))
@@ -80,10 +80,10 @@ func DFAToFile(filePath string, dfa backend.DFA, config Config) (err error) {
 	return FromDFA(file, dfa, config)
 }
 
-// printRune returns a string for a rune which is safe to use in go source. Standard ASCII characters are printed
+// printByte returns a string for a rune which is safe to use in go source. Standard ASCII characters are printed
 // as is to be human-readable. Special characters which are not printable or any Unicode codepoint is printed as
 // its hexadecimal value. That way the direct coded scanner can be easily inspected and debugged by a human.
-func printRune(r rune) string {
+func printByte(r byte) string {
 	switch r {
 	case ' ':
 		return "' '"

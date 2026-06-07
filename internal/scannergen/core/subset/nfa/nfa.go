@@ -4,6 +4,7 @@ import (
 	"context"
 	"runtime/trace"
 
+	"github.com/backbone81/golr/internal/scannergen/backend"
 	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
 
@@ -24,8 +25,8 @@ type Transition struct {
 	// Empty is true in situations where this is an empty transition.
 	Empty bool
 
-	// CharRange describes the characters on which to use this transition.
-	CharRange frontend.CharRange
+	// ByteRange describes the bytes on which to use this transition.
+	ByteRange backend.ByteRange
 
 	// NextStateIdx is the target state to transition to.
 	NextStateIdx int

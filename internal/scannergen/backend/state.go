@@ -1,9 +1,5 @@
 package backend
 
-import (
-	"github.com/backbone81/golr/internal/scannergen/frontend"
-)
-
 // State is a single DFA state.
 type State struct {
 	// RuleIdx is the index for the rule this state is part of. As the state of a DFA can be part of multiple rules
@@ -17,9 +13,9 @@ type State struct {
 	Transitions []Transition `json:"transitions,omitempty" yaml:"transitions,omitempty"`
 }
 
-func (s *State) GetTransition(charRange frontend.CharRange) *Transition {
+func (s *State) GetTransition(byteRange ByteRange) *Transition {
 	for i := range s.Transitions {
-		if s.Transitions[i].CharRange.Low == charRange.Low && s.Transitions[i].CharRange.High == charRange.High {
+		if s.Transitions[i].ByteRange.Low == byteRange.Low && s.Transitions[i].ByteRange.High == byteRange.High {
 			return &s.Transitions[i]
 		}
 	}
