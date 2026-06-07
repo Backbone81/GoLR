@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/backbone81/golr/examples/calculator/parser"
-	"github.com/backbone81/golr/pkg/runtime"
 )
 
 func main() {
@@ -27,14 +26,11 @@ func main() {
 }
 
 func Evaluate(expression string) (int, error) {
-	// The UTF8 rune reader is responsible for decoding UTF8 encoded runes when they are encoded in more than one byte.
-	runeReader := runtime.NewUTF8RuneReader([]byte(expression))
-
 	// The generated TokenSkipper will skip all whitespaces which the parser is not interested in.
-	scanner := &parser.TokenSkipper{
+	scanner := parser.NewTokenSkipper(
 		// The generated Scanner will convert the input into tokens. The filePath argument is used in error messages.
-		Scanner: parser.NewScanner(runeReader, "expression"),
-	}
+		parser.NewScanner([]byte(expression), "expression"),
+	)
 
 	// The expression is parsed by giving the generated parser the scanner to pull tokens from. We get the root node
 	// of the abstract syntax tree as a result.

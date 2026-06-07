@@ -72,7 +72,7 @@ var _ = Describe("CharClass", func() {
 
 	It("should create the correct NFA with a single character range negated", func() {
 		expression := dsl.NegCharClass(
-			dsl.CharRange('u', 'w'),
+			dsl.CharRange('u', unicode.MaxRune),
 		)
 		gotNfa := thompsonsnfa.FromRegex(expression, 0)
 
@@ -83,13 +83,6 @@ var _ = Describe("CharClass", func() {
 						CharRange: frontend.CharRange{
 							Low:  0,
 							High: 't',
-						},
-						NextStateIdx: 1,
-					},
-					{
-						CharRange: frontend.CharRange{
-							Low:  'x',
-							High: unicode.MaxRune,
 						},
 						NextStateIdx: 1,
 					},
@@ -105,7 +98,7 @@ var _ = Describe("CharClass", func() {
 	It("should create the correct NFA with two character ranges negated", func() {
 		expression := dsl.NegCharClass(
 			dsl.CharRange('b', 'f'),
-			dsl.CharRange('x', 'y'),
+			dsl.CharRange('x', unicode.MaxRune),
 		)
 		gotNfa := thompsonsnfa.FromRegex(expression, 0)
 
@@ -123,13 +116,6 @@ var _ = Describe("CharClass", func() {
 						CharRange: frontend.CharRange{
 							Low:  'g',
 							High: 'w',
-						},
-						NextStateIdx: 1,
-					},
-					{
-						CharRange: frontend.CharRange{
-							Low:  'z',
-							High: unicode.MaxRune,
 						},
 						NextStateIdx: 1,
 					},

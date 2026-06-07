@@ -9,10 +9,6 @@ type WhitespaceSkipper struct {
 // WhitespaceSkipper implements ParserScanner.
 var _ ParserScanner = (*WhitespaceSkipper)(nil)
 
-func (s *WhitespaceSkipper) Err() error {
-	return s.Scanner.Err()
-}
-
 func (s *WhitespaceSkipper) Token() Token {
 	return s.Scanner.Token()
 }

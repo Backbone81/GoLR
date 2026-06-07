@@ -5,31 +5,27 @@ package parser
 import (
 	"errors"
 	"fmt"
-	"github.com/backbone81/golr/pkg/runtime"
-)
-
-var (
-	// ErrInvalidRune is an error which is returned when no transition matches the current rune.
-	ErrInvalidRune = errors.New("invalid rune")
 )
 
 // Token is the data type representing all terminal symbols.
 type Token int
 
 const (
-	TokenWhitespace Token = 0
-	TokenInteger    Token = 1
-	TokenPlus       Token = 2
-	TokenMinus      Token = 3
-	TokenMultiply   Token = 4
-	TokenDivide     Token = 5
-	TokenLparen     Token = 6
-	TokenRparen     Token = 7
-	TokenUminus     Token = 8
-	// InvalidToken is a terminal which does not exist. It is used for situations where no token was found yet.
-	InvalidToken Token = ^Token(0)
-	EndToken     Token = InvalidToken - 1
-	TokenError   Token = InvalidToken - 2
+	// InvalidToken is a terminal which does not exist. It is used for situations where no token was found.
+	InvalidToken Token = iota
+
+	// EndToken is a terminal which does not exist. It is used for situations where the end of the source was reached.
+	EndToken
+
+	TokenWhitespace
+	TokenInteger
+	TokenPlus
+	TokenMinus
+	TokenMultiply
+	TokenDivide
+	TokenLparen
+	TokenRparen
+	TokenUminus
 )
 
 // Token implements fmt.Stringer.
@@ -38,6 +34,10 @@ var _ fmt.Stringer = (*Token)(nil)
 // String returns a string representation of the terminal.
 func (t Token) String() string {
 	switch t {
+	case InvalidToken:
+		return "invalid token"
+	case EndToken:
+		return "end token"
 	case TokenWhitespace:
 		return `WHITESPACE`
 	case TokenInteger:
@@ -56,53 +56,68 @@ func (t Token) String() string {
 		return `RPAREN`
 	case TokenUminus:
 		return `UMINUS`
-	case InvalidToken:
-		return "invalid token"
-	case EndToken:
-		return "end token"
-	case TokenError:
-		return "token error"
 	default:
 		return "unknown"
 	}
 }
 
-// TokenSkipper wraps a scanner and skips all tokens which were marked for skipping. This is usually used for
+// TokenSkipper wraps a scanner and skips all tokens which were marked for skipping. This is usually used for skipping
 // whitespaces and comments.
 type TokenSkipper struct {
-	Scanner *Scanner
+	scanner *Scanner
 }
 
-func (s *TokenSkipper) Err() error {
-	return s.Scanner.Err()
+// NewTokenSkipper creates a new TokenSkipper by wrapping the given Scanner.
+func NewTokenSkipper(scanner *Scanner) *TokenSkipper {
+	return &TokenSkipper{
+		scanner: scanner,
+	}
 }
 
+// Reset updates the scanner with the given source and starts scanning at the given offset. This can be useful for
+// situations where you only want to re-tokenize parts of the source after the source has been changed.
+func (s *TokenSkipper) Reset(source []byte, offset int) {
+	s.scanner.Reset(source, offset)
+}
+
+// Token returns the current token.
 func (s *TokenSkipper) Token() Token {
-	return s.Scanner.Token()
+	return s.scanner.Token()
 }
 
+// ByteOffset returns the start of the token in bytes from the source start.
+// When Next() returned false, it returns the location after the last byte.
 func (s *TokenSkipper) ByteOffset() int {
-	return s.Scanner.ByteOffset()
+	return s.scanner.ByteOffset()
 }
 
+// Line returns the line the token is located on.
 func (s *TokenSkipper) Line() int {
-	return s.Scanner.Line()
+	return s.scanner.Line()
 }
 
+// Column returns the column the token is located on.
 func (s *TokenSkipper) Column() int {
-	return s.Scanner.Column()
+	return s.scanner.Column()
 }
 
+// Lexeme returns the bytes which make up the token.
 func (s *TokenSkipper) Lexeme() []byte {
-	return s.Scanner.Lexeme()
+	return s.scanner.Lexeme()
 }
 
+// FilePath returns the file path of the file being parsed. This information can be useful in error messages.
+func (s *TokenSkipper) FilePath() string {
+	return s.scanner.FilePath()
+}
+
+// Next consumes tokens until it found a token which should not be skipped.
 func (s *TokenSkipper) Next() bool {
 	for {
-		if !s.Scanner.Next() {
+		if !s.scanner.Next() {
 			return false
 		}
-		switch s.Scanner.Token() {
+		switch s.scanner.Token() {
 		case TokenWhitespace:
 			continue
 		default:
@@ -111,41 +126,45 @@ func (s *TokenSkipper) Next() bool {
 	}
 }
 
-func (s *TokenSkipper) FilePath() string {
-	return s.Scanner.FilePath()
-}
-
-// Scanner implements the scanner and returns tokens.
+// Scanner reads source code and returns tokens.
 type Scanner struct {
-	runeReader runtime.UTF8RuneReader
-	tokenStart runtime.UTF8RuneReader
-	tokenEnd   runtime.UTF8RuneReader
+	source []byte
+
+	lexemeStartIdx int
+	lexemeEndIdx   int
+	lexemePeekIdx  int
+
+	line   int
+	column int
 
 	state int
 	token Token
 
-	err      error
 	filePath string
 }
 
-// NewScanner creates a new instance of the scanner with the given rune reader. The filePath parameter is used to
+// NewScanner creates a new instance of the scanner with the given source. The filePath parameter is used to
 // return information about which file has an error. You can provide any string you want if you don't have a file.
-func NewScanner(runeReader runtime.UTF8RuneReader, filePath string) *Scanner {
-	// consume the first rune here, as the start state does not call Next() on its own
-	_ = runeReader.Next()
-	return &Scanner{
-		runeReader: runeReader,
-		tokenStart: runeReader,
-		tokenEnd:   runeReader,
-		token:      InvalidToken,
-		filePath:   filePath,
+func NewScanner(source []byte, filePath string) *Scanner {
+	scanner := Scanner{
+		filePath: filePath,
 	}
+	scanner.Reset(source, 0)
+	return &scanner
 }
 
-// Err returns the error which occurred on the last call to Next().
-// It will return io.EOF after Next() has returned false.
-func (s *Scanner) Err() error {
-	return s.err
+// Reset updates the scanner with the given source and starts scanning at the given offset. This can be useful for
+// situations where you only want to re-tokenize parts of the source after the source has been changed.
+func (s *Scanner) Reset(source []byte, offset int) {
+	s.source = source
+
+	s.lexemeStartIdx = 0
+	s.lexemeEndIdx = offset
+
+	s.line = 1
+	s.column = 1
+
+	s.token = InvalidToken
 }
 
 // Token returns the current token.
@@ -154,24 +173,24 @@ func (s *Scanner) Token() Token {
 }
 
 // ByteOffset returns the start of the token in bytes from the source start.
-// It returns the location after the last byte after the call to Next() returned false.
+// When Next() returned false, it returns the location after the last byte.
 func (s *Scanner) ByteOffset() int {
-	return s.tokenStart.ByteOffset()
+	return s.lexemeStartIdx
 }
 
 // Line returns the line the token is located on.
 func (s *Scanner) Line() int {
-	return s.tokenStart.Line()
+	return s.line
 }
 
 // Column returns the column the token is located on.
 func (s *Scanner) Column() int {
-	return s.tokenStart.Column()
+	return s.column
 }
 
 // Lexeme returns the bytes which make up the token.
 func (s *Scanner) Lexeme() []byte {
-	return s.tokenStart.Lexeme(s.tokenStart.ByteOffset(), s.tokenEnd.ByteOffset())
+	return s.source[s.lexemeStartIdx:s.lexemeEndIdx]
 }
 
 // FilePath returns the file path of the file being parsed. This information can be useful in error messages.
@@ -181,23 +200,50 @@ func (s *Scanner) FilePath() string {
 
 // Next consumes characters until it found the next token.
 func (s *Scanner) Next() bool {
-	s.err = nil
-	s.tokenStart = s.tokenEnd
-	s.runeReader = s.tokenEnd
+	s.updateLineAndColumn(s.source[s.lexemeStartIdx:s.lexemeEndIdx])
+	s.lexemeStartIdx = s.lexemeEndIdx
 	s.state = 0
 
-	for s.err == nil {
-		s.err = s.dispatchState()
+	for s.lexemePeekIdx = s.lexemeEndIdx; s.lexemePeekIdx < len(s.source); s.lexemePeekIdx++ {
+		if err := s.dispatchState(); err != nil {
+			break
+		}
+	}
+	if s.lexemePeekIdx == len(s.source) {
+		// We need to capture the last character of the source.
+		s.dispatchEOF()
 	}
 
-	if s.tokenStart.ByteOffset() != s.tokenEnd.ByteOffset() {
-		s.err = nil
+	if s.lexemeStartIdx < s.lexemeEndIdx {
+		// We found a token.
 		return true
 	}
-	s.token = EndToken
-	return false
+
+	if len(s.source) <= s.lexemeStartIdx {
+		// We have reached the end of the source.
+		s.token = EndToken
+		return false
+	}
+
+	// We found some characters which do not form a token. We need to emit an invalid token for them.
+	s.token = InvalidToken
+	s.lexemeEndIdx = s.lexemePeekIdx + 1
+	return true
 }
 
+// updateLineAndColumn updates the current line and column information by scanning the given source for newlines.
+func (s *Scanner) updateLineAndColumn(source []byte) {
+	for _, currByte := range source {
+		if currByte == '\n' {
+			s.line++
+			s.column = 1
+		} else {
+			s.column++
+		}
+	}
+}
+
+// dispatchState calls the code corresponding to the current scanner state.
 func (s *Scanner) dispatchState() error {
 	switch s.state {
 	case 0:
@@ -223,174 +269,151 @@ func (s *Scanner) dispatchState() error {
 	}
 }
 
-func (s *Scanner) state0Whitespace() error {
+func (s *Scanner) dispatchEOF() {
+	switch s.state {
+	case 1:
+		s.token = TokenWhitespace
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 2:
+		s.token = TokenInteger
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 3:
+		s.token = TokenPlus
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 4:
+		s.token = TokenMinus
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 5:
+		s.token = TokenMultiply
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 6:
+		s.token = TokenDivide
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 7:
+		s.token = TokenLparen
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 8:
+		s.token = TokenRparen
+		s.lexemeEndIdx = s.lexemePeekIdx
+	}
+}
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+var (
+	// errInvalidByte is an error which is returned when no transition matches the current byte.
+	errInvalidByte = errors.New("invalid byte")
+)
+
+func (s *Scanner) state0Whitespace() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '\t':
+	case nextByte == '\t':
 		s.state = 1
-		return nil
-	case nextRune == '\n':
+	case nextByte == '\n':
 		s.state = 1
-		return nil
-	case nextRune == '\r':
+	case nextByte == '\r':
 		s.state = 1
-		return nil
-	case nextRune == ' ':
+	case nextByte == ' ':
 		s.state = 1
-		return nil
-	case nextRune == '(':
+	case nextByte == '(':
 		s.state = 7
-		return nil
-	case nextRune == ')':
+	case nextByte == ')':
 		s.state = 8
-		return nil
-	case nextRune == '*':
+	case nextByte == '*':
 		s.state = 5
-		return nil
-	case nextRune == '+':
+	case nextByte == '+':
 		s.state = 3
-		return nil
-	case nextRune == '-':
+	case nextByte == '-':
 		s.state = 4
-		return nil
-	case nextRune == '/':
+	case nextByte == '/':
 		s.state = 6
-		return nil
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 2
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state1Whitespace() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenWhitespace
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '\t':
+	case nextByte == '\t':
 		s.state = 1
-		return nil
-	case nextRune == '\n':
+	case nextByte == '\n':
 		s.state = 1
-		return nil
-	case nextRune == '\r':
+	case nextByte == '\r':
 		s.state = 1
-		return nil
-	case nextRune == ' ':
+	case nextByte == ' ':
 		s.state = 1
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state2Integer() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenInteger
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 2
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state3Plus() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenPlus
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
 func (s *Scanner) state4Minus() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenMinus
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
 func (s *Scanner) state5Multiply() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenMultiply
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
 func (s *Scanner) state6Divide() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenDivide
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
 func (s *Scanner) state7Lparen() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenLparen
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
 func (s *Scanner) state8Rparen() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenRparen
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }

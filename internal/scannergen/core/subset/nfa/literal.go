@@ -9,7 +9,7 @@ func (b *ThompsonsConstruction) fromLiteral(regexNode *frontend.Literal, ruleIdx
 	})
 	currStateIdx := len(states) - 1
 
-	for _, character := range regexNode.Text {
+	for _, character := range []byte(regexNode.Text) {
 		// add the next state
 		states = append(states, State{
 			RuleIdx: ruleIdx,
@@ -19,8 +19,8 @@ func (b *ThompsonsConstruction) fromLiteral(regexNode *frontend.Literal, ruleIdx
 		states[currStateIdx].Transitions = []Transition{
 			{
 				CharRange: frontend.CharRange{
-					Low:  character,
-					High: character,
+					Low:  rune(character),
+					High: rune(character),
 				},
 				NextStateIdx: currStateIdx + 1,
 			},

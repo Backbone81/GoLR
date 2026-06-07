@@ -16,6 +16,12 @@ type SemicolonInserter struct {
 	bufferedResult  bool
 }
 
+func (s *SemicolonInserter) Reset(source []byte, offset int) {
+	s.Scanner.Reset(source, offset)
+	s.insertSemicolon = false
+	s.bufferedTokens = s.bufferedTokens[:0]
+}
+
 func (s *SemicolonInserter) Next() bool {
 	previousLine := s.Scanner.Line()
 	if s.Scanner.Token() == TokenStringLit && s.Scanner.Lexeme()[0] == '`' {
@@ -68,10 +74,6 @@ func isSemicolonTrigger(tok Token) bool {
 		return true
 	}
 	return false
-}
-
-func (s *SemicolonInserter) Err() error {
-	return s.Scanner.Err()
 }
 
 func (s *SemicolonInserter) Token() Token {

@@ -20,13 +20,6 @@ type TokenSnapshot struct {
 	Lexeme     []byte
 }
 
-func (t *TokenTransformer) Err() error {
-	if len(t.tokenQueue) == 0 {
-		return t.Scanner.Err()
-	}
-	return nil
-}
-
 func (t *TokenTransformer) Token() Token {
 	return t.tokenQueue[0].Token
 }

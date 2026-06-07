@@ -13,7 +13,6 @@ import (
 
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	bisonparser "github.com/backbone81/golr/internal/parsergen/frontend/bison/parser"
-	"github.com/backbone81/golr/pkg/runtime"
 )
 
 // ToGrammar reads the context free grammar as GNU Bison grammar document from the given reader. Returns an error if the
@@ -26,11 +25,10 @@ func ToGrammar(reader io.Reader, filePath string) (frontend.Grammar, error) {
 		return frontend.Grammar{}, err
 	}
 
-	runeReader := runtime.NewUTF8RuneReader(data)
 	scanner := bisonparser.TokenTransformer{
 		Scanner: &bisonparser.WhitespaceSkipper{
 			Scanner: &bisonparser.ContextScanner{
-				Scanner: bisonparser.NewScanner(runeReader, filePath),
+				Scanner: bisonparser.NewScanner(data, filePath),
 			},
 		},
 	}

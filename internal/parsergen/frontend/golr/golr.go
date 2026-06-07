@@ -13,7 +13,6 @@ import (
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	golrparser "github.com/backbone81/golr/internal/parsergen/frontend/golr/parser"
 	frontend2 "github.com/backbone81/golr/internal/scannergen/frontend"
-	"github.com/backbone81/golr/pkg/runtime"
 )
 
 // ToGrammar reads the context free grammar as GoLR grammar document from the given reader. Returns an error if the
@@ -26,9 +25,8 @@ func ToGrammar(reader io.Reader, filePath string) (frontend.Grammar, error) {
 		return frontend.Grammar{}, err
 	}
 
-	runeReader := runtime.NewUTF8RuneReader(data)
 	scanner := golrparser.WhitespaceSkipper{
-		Scanner: golrparser.NewScanner(runeReader, filePath),
+		Scanner: golrparser.NewScanner(data, filePath),
 	}
 
 	parser := golrparser.NewParser()

@@ -14,35 +14,11 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/backbone81/golr/examples/golang/parser"
-	"github.com/backbone81/golr/pkg/runtime"
 )
 
 // ignoreFilePaths provides a list of file paths from the Go standard library which we will ignore during our tests.
-// These files contain Unicode characters which our scanner does not deal with correctly right now. Remove this
-// ignore list when the scanner is fixed.
 var ignoreFilePaths = []string{
 	"cmd/compile/internal/types2/testdata/local/issue68183.go",
-	"crypto/internal/fips140/mldsa/cast.go",
-	"crypto/internal/fips140/mldsa/field.go",
-	"crypto/internal/fips140/mldsa/field_test.go",
-	"crypto/internal/fips140/mldsa/mldsa.go",
-	"crypto/internal/fips140/mldsa/mldsa_test.go",
-	"crypto/internal/fips140/mldsa/semiexpanded.go",
-	"crypto/internal/fips140/mlkem/field_test.go",
-	"crypto/internal/fips140/mlkem/mlkem1024.go",
-	"crypto/internal/fips140/mlkem/mlkem768.go",
-	"crypto/internal/fips140/rsa/keygen.go",
-	"encoding/json/encode_test.go",
-	"encoding/json/v2_encode_test.go",
-	"internal/strconv/ftoadbox.go",
-	"math/big/arith.go",
-	"math/cmplx/polar.go",
-	"math/cmplx/rect.go",
-	"math/rand/rand_test.go",
-	"math/rand/v2/rand_test.go",
-	"reflect/all_test.go",
-	"runtime/os3_solaris.go",
-	"runtime/os_plan9.go",
 }
 
 var _ = Describe("Golang Scanner", func() {
@@ -72,11 +48,8 @@ var _ = Describe("Golang Scanner", func() {
 				var goScanner scanner.Scanner
 				goScanner.Init(file, source, nil, 0)
 
-				runeReader := runtime.NewUTF8RuneReader(source)
 				golrScanner := parser.SemicolonInserter{
-					Scanner: &parser.TokenSkipper{
-						Scanner: parser.NewScanner(runeReader, "in-memory"),
-					},
+					Scanner: parser.NewTokenSkipper(parser.NewScanner(source, "in-memory")),
 				}
 
 				var line []int
@@ -101,8 +74,8 @@ var _ = Describe("Golang Scanner", func() {
 				}
 
 				for i := range goScannerTokens {
-					Expect(goScannerTokens[i].String()).To(
-						Equal(golrScannerTokens[i].String()),
+					Expect(golrScannerTokens[i].String()).To(
+						Equal(goScannerTokens[i].String()),
 						"Line %d, Go: %s, GoLR: %s",
 						line[i],
 						goScannerTokens[max(0, i-5):min(len(goScannerTokens), i+5)],
@@ -310,14 +283,12 @@ func BenchmarkGolangScanner(b *testing.B) {
 	})
 
 	b.Run("GoLR Generated Scanner", func(b *testing.B) {
+		myScanner := parser.SemicolonInserter{
+			Scanner: parser.NewTokenSkipper(parser.NewScanner(nil, "in-memory")),
+		}
 		for b.Loop() {
-			runeReader := runtime.NewUTF8RuneReader(source)
-			scanner := parser.SemicolonInserter{
-				Scanner: &parser.TokenSkipper{
-					Scanner: parser.NewScanner(runeReader, "in-memory"),
-				},
-			}
-			for scanner.Next() {
+			myScanner.Reset(source, 0)
+			for myScanner.Next() {
 				// Read all tokens
 			}
 		}

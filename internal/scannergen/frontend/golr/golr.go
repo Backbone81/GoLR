@@ -12,7 +12,6 @@ import (
 	"github.com/backbone81/golr/internal/parsergen/frontend/golr"
 	golrparser "github.com/backbone81/golr/internal/parsergen/frontend/golr/parser"
 	"github.com/backbone81/golr/internal/scannergen/frontend"
-	"github.com/backbone81/golr/pkg/runtime"
 )
 
 // ToRules reads the scanner rules as GoLR grammar document from the given reader. Returns an error if the GoLR
@@ -25,9 +24,8 @@ func ToRules(reader io.Reader, filePath string) ([]frontend.Rule, error) {
 		return nil, err
 	}
 
-	runeReader := runtime.NewUTF8RuneReader(data)
 	scanner := golrparser.WhitespaceSkipper{
-		Scanner: golrparser.NewScanner(runeReader, filePath),
+		Scanner: golrparser.NewScanner(data, filePath),
 	}
 
 	parser := golrparser.NewParser()

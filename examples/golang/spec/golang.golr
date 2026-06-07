@@ -9,8 +9,8 @@
     // Characters (https://go.dev/ref/spec#Characters)
     newline:        /\n/ @fragment;
     unicode_char:   /[^\n]/ @fragment;
-    unicode_letter: /[a-zA-Z]/ @fragment;
-    unicode_digit:  /[0-9]/ @fragment;
+    unicode_letter: /[[:alpha:]]/ @fragment;
+    unicode_digit:  /[[:digit:]]/ @fragment;
 
     // Letters and digits (https://go.dev/ref/spec#Letters_and_digits)
     letter:        /{unicode_letter}|_/ @fragment;

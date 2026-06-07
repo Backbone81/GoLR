@@ -12,7 +12,6 @@ import (
 
 	"github.com/backbone81/golr/internal/parsergen/frontend/golr"
 	golrparser "github.com/backbone81/golr/internal/parsergen/frontend/golr/parser"
-	"github.com/backbone81/golr/pkg/runtime"
 )
 
 // GoLR parses the GoLR grammar from the given reader and writes the formatted version to the given writer.
@@ -24,9 +23,8 @@ func GoLR(reader io.Reader, writer io.Writer, filePath string) error {
 		return err
 	}
 
-	runeReader := runtime.NewUTF8RuneReader(data)
 	scanner := golrparser.WhitespaceSkipper{
-		Scanner: golrparser.NewScanner(runeReader, filePath),
+		Scanner: golrparser.NewScanner(data, filePath),
 	}
 
 	parser := golrparser.NewParser()

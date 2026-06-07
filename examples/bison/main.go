@@ -1,13 +1,10 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/backbone81/golr/examples/bison/parser"
-	"github.com/backbone81/golr/pkg/runtime"
 )
 
 func main() {
@@ -27,11 +24,10 @@ func main() {
 }
 
 func printTokens(filePath string, data []byte) {
-	runeReader := runtime.NewUTF8RuneReader(data)
 	scanner := parser.TokenTransformer{
 		Scanner: &parser.WhitespaceSkipper{
 			Scanner: &parser.ContextScanner{
-				Scanner: parser.NewScanner(runeReader, filePath),
+				Scanner: parser.NewScanner(data, filePath),
 			},
 		},
 	}
@@ -41,20 +37,16 @@ func printTokens(filePath string, data []byte) {
 		tokenCounter++
 		fmt.Printf("%d:%d:%s %q\n", scanner.Line(), scanner.Column(), scanner.Token(), scanner.Lexeme())
 	}
-	if scanner.Err() != nil && !errors.Is(scanner.Err(), io.EOF) {
-		panic(fmt.Sprintf("%s:%d:%d: %s\n", filePath, scanner.Line(), scanner.Column(), scanner.Err()))
-	}
 
 	fmt.Println()
 	fmt.Printf("%d tokens\n", tokenCounter)
 }
 
 func printAbstractSyntaxTree(filePath string, data []byte) {
-	runeReader := runtime.NewUTF8RuneReader(data)
 	scanner := parser.TokenTransformer{
 		Scanner: &parser.WhitespaceSkipper{
 			Scanner: &parser.ContextScanner{
-				Scanner: parser.NewScanner(runeReader, filePath),
+				Scanner: parser.NewScanner(data, filePath),
 			},
 		},
 	}

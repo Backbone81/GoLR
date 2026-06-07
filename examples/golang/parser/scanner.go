@@ -5,103 +5,99 @@ package parser
 import (
 	"errors"
 	"fmt"
-	"github.com/backbone81/golr/pkg/runtime"
-)
-
-var (
-	// ErrInvalidRune is an error which is returned when no transition matches the current rune.
-	ErrInvalidRune = errors.New("invalid rune")
 )
 
 // Token is the data type representing all terminal symbols.
 type Token int
 
 const (
-	TokenWhitespace       Token = 0
-	TokenComment          Token = 1
-	TokenBreak            Token = 2
-	TokenCase             Token = 3
-	TokenChan             Token = 4
-	TokenConst            Token = 5
-	TokenContinue         Token = 6
-	TokenDefault          Token = 7
-	TokenDefer            Token = 8
-	TokenElse             Token = 9
-	TokenFallthrough      Token = 10
-	TokenFor              Token = 11
-	TokenFunc             Token = 12
-	TokenGo               Token = 13
-	TokenGoto             Token = 14
-	TokenIf               Token = 15
-	TokenImport           Token = 16
-	TokenInterface        Token = 17
-	TokenMap              Token = 18
-	TokenPackage          Token = 19
-	TokenRange            Token = 20
-	TokenReturn           Token = 21
-	TokenSelect           Token = 22
-	TokenStruct           Token = 23
-	TokenSwitch           Token = 24
-	TokenType             Token = 25
-	TokenVar              Token = 26
-	TokenIdentifier       Token = 27
-	TokenAdd              Token = 28
-	TokenSub              Token = 29
-	TokenMul              Token = 30
-	TokenQuo              Token = 31
-	TokenRem              Token = 32
-	TokenAnd              Token = 33
-	TokenOr               Token = 34
-	TokenXor              Token = 35
-	TokenShiftLeft        Token = 36
-	TokenShiftRight       Token = 37
-	TokenAndNot           Token = 38
-	TokenAddAssign        Token = 39
-	TokenSubAssign        Token = 40
-	TokenMulAssign        Token = 41
-	TokenQuoAssign        Token = 42
-	TokenRemAssign        Token = 43
-	TokenAndAssign        Token = 44
-	TokenOrAssign         Token = 45
-	TokenXorAssign        Token = 46
-	TokenShiftLeftAssign  Token = 47
-	TokenShiftRightAssign Token = 48
-	TokenAndNotAssign     Token = 49
-	TokenLogicalAnd       Token = 50
-	TokenLogicalOr        Token = 51
-	TokenArrow            Token = 52
-	TokenIncrement        Token = 53
-	TokenDecrement        Token = 54
-	TokenEqual            Token = 55
-	TokenLessThan         Token = 56
-	TokenGreaterThan      Token = 57
-	TokenAssign           Token = 58
-	TokenNot              Token = 59
-	TokenTilde            Token = 60
-	TokenNotEqual         Token = 61
-	TokenLessEqual        Token = 62
-	TokenGreaterEqual     Token = 63
-	TokenDefine           Token = 64
-	TokenEllipsis         Token = 65
-	TokenLeftParen        Token = 66
-	TokenLeftBracket      Token = 67
-	TokenLeftBrace        Token = 68
-	TokenComma            Token = 69
-	TokenPeriod           Token = 70
-	TokenRightParen       Token = 71
-	TokenRightBracket     Token = 72
-	TokenRightBrace       Token = 73
-	TokenSemicolon        Token = 74
-	TokenColon            Token = 75
-	TokenIntLit           Token = 76
-	TokenFloatLit         Token = 77
-	TokenImaginaryLit     Token = 78
-	TokenRuneLit          Token = 79
-	TokenStringLit        Token = 80
-	// InvalidToken is a terminal which does not exist. It is used for situations where no token was found yet.
-	InvalidToken Token = ^Token(0)
-	EndToken     Token = InvalidToken - 1
-	TokenError   Token = InvalidToken - 2
+	// InvalidToken is a terminal which does not exist. It is used for situations where no token was found.
+	InvalidToken Token = iota
+
+	// EndToken is a terminal which does not exist. It is used for situations where the end of the source was reached.
+	EndToken
+
+	TokenWhitespace
+	TokenComment
+	TokenBreak
+	TokenCase
+	TokenChan
+	TokenConst
+	TokenContinue
+	TokenDefault
+	TokenDefer
+	TokenElse
+	TokenFallthrough
+	TokenFor
+	TokenFunc
+	TokenGo
+	TokenGoto
+	TokenIf
+	TokenImport
+	TokenInterface
+	TokenMap
+	TokenPackage
+	TokenRange
+	TokenReturn
+	TokenSelect
+	TokenStruct
+	TokenSwitch
+	TokenType
+	TokenVar
+	TokenIdentifier
+	TokenAdd
+	TokenSub
+	TokenMul
+	TokenQuo
+	TokenRem
+	TokenAnd
+	TokenOr
+	TokenXor
+	TokenShiftLeft
+	TokenShiftRight
+	TokenAndNot
+	TokenAddAssign
+	TokenSubAssign
+	TokenMulAssign
+	TokenQuoAssign
+	TokenRemAssign
+	TokenAndAssign
+	TokenOrAssign
+	TokenXorAssign
+	TokenShiftLeftAssign
+	TokenShiftRightAssign
+	TokenAndNotAssign
+	TokenLogicalAnd
+	TokenLogicalOr
+	TokenArrow
+	TokenIncrement
+	TokenDecrement
+	TokenEqual
+	TokenLessThan
+	TokenGreaterThan
+	TokenAssign
+	TokenNot
+	TokenTilde
+	TokenNotEqual
+	TokenLessEqual
+	TokenGreaterEqual
+	TokenDefine
+	TokenEllipsis
+	TokenLeftParen
+	TokenLeftBracket
+	TokenLeftBrace
+	TokenComma
+	TokenPeriod
+	TokenRightParen
+	TokenRightBracket
+	TokenRightBrace
+	TokenSemicolon
+	TokenColon
+	TokenIntLit
+	TokenFloatLit
+	TokenImaginaryLit
+	TokenRuneLit
+	TokenStringLit
 )
 
 // Token implements fmt.Stringer.
@@ -110,6 +106,10 @@ var _ fmt.Stringer = (*Token)(nil)
 // String returns a string representation of the terminal.
 func (t Token) String() string {
 	switch t {
+	case InvalidToken:
+		return "invalid token"
+	case EndToken:
+		return "end token"
 	case TokenWhitespace:
 		return `whitespace`
 	case TokenComment:
@@ -272,53 +272,68 @@ func (t Token) String() string {
 		return `rune_lit`
 	case TokenStringLit:
 		return `string_lit`
-	case InvalidToken:
-		return "invalid token"
-	case EndToken:
-		return "end token"
-	case TokenError:
-		return "token error"
 	default:
 		return "unknown"
 	}
 }
 
-// TokenSkipper wraps a scanner and skips all tokens which were marked for skipping. This is usually used for
+// TokenSkipper wraps a scanner and skips all tokens which were marked for skipping. This is usually used for skipping
 // whitespaces and comments.
 type TokenSkipper struct {
-	Scanner *Scanner
+	scanner *Scanner
 }
 
-func (s *TokenSkipper) Err() error {
-	return s.Scanner.Err()
+// NewTokenSkipper creates a new TokenSkipper by wrapping the given Scanner.
+func NewTokenSkipper(scanner *Scanner) *TokenSkipper {
+	return &TokenSkipper{
+		scanner: scanner,
+	}
 }
 
+// Reset updates the scanner with the given source and starts scanning at the given offset. This can be useful for
+// situations where you only want to re-tokenize parts of the source after the source has been changed.
+func (s *TokenSkipper) Reset(source []byte, offset int) {
+	s.scanner.Reset(source, offset)
+}
+
+// Token returns the current token.
 func (s *TokenSkipper) Token() Token {
-	return s.Scanner.Token()
+	return s.scanner.Token()
 }
 
+// ByteOffset returns the start of the token in bytes from the source start.
+// When Next() returned false, it returns the location after the last byte.
 func (s *TokenSkipper) ByteOffset() int {
-	return s.Scanner.ByteOffset()
+	return s.scanner.ByteOffset()
 }
 
+// Line returns the line the token is located on.
 func (s *TokenSkipper) Line() int {
-	return s.Scanner.Line()
+	return s.scanner.Line()
 }
 
+// Column returns the column the token is located on.
 func (s *TokenSkipper) Column() int {
-	return s.Scanner.Column()
+	return s.scanner.Column()
 }
 
+// Lexeme returns the bytes which make up the token.
 func (s *TokenSkipper) Lexeme() []byte {
-	return s.Scanner.Lexeme()
+	return s.scanner.Lexeme()
 }
 
+// FilePath returns the file path of the file being parsed. This information can be useful in error messages.
+func (s *TokenSkipper) FilePath() string {
+	return s.scanner.FilePath()
+}
+
+// Next consumes tokens until it found a token which should not be skipped.
 func (s *TokenSkipper) Next() bool {
 	for {
-		if !s.Scanner.Next() {
+		if !s.scanner.Next() {
 			return false
 		}
-		switch s.Scanner.Token() {
+		switch s.scanner.Token() {
 		case TokenWhitespace:
 			continue
 		case TokenComment:
@@ -329,41 +344,45 @@ func (s *TokenSkipper) Next() bool {
 	}
 }
 
-func (s *TokenSkipper) FilePath() string {
-	return s.Scanner.FilePath()
-}
-
-// Scanner implements the scanner and returns tokens.
+// Scanner reads source code and returns tokens.
 type Scanner struct {
-	runeReader runtime.UTF8RuneReader
-	tokenStart runtime.UTF8RuneReader
-	tokenEnd   runtime.UTF8RuneReader
+	source []byte
+
+	lexemeStartIdx int
+	lexemeEndIdx   int
+	lexemePeekIdx  int
+
+	line   int
+	column int
 
 	state int
 	token Token
 
-	err      error
 	filePath string
 }
 
-// NewScanner creates a new instance of the scanner with the given rune reader. The filePath parameter is used to
+// NewScanner creates a new instance of the scanner with the given source. The filePath parameter is used to
 // return information about which file has an error. You can provide any string you want if you don't have a file.
-func NewScanner(runeReader runtime.UTF8RuneReader, filePath string) *Scanner {
-	// consume the first rune here, as the start state does not call Next() on its own
-	_ = runeReader.Next()
-	return &Scanner{
-		runeReader: runeReader,
-		tokenStart: runeReader,
-		tokenEnd:   runeReader,
-		token:      InvalidToken,
-		filePath:   filePath,
+func NewScanner(source []byte, filePath string) *Scanner {
+	scanner := Scanner{
+		filePath: filePath,
 	}
+	scanner.Reset(source, 0)
+	return &scanner
 }
 
-// Err returns the error which occurred on the last call to Next().
-// It will return io.EOF after Next() has returned false.
-func (s *Scanner) Err() error {
-	return s.err
+// Reset updates the scanner with the given source and starts scanning at the given offset. This can be useful for
+// situations where you only want to re-tokenize parts of the source after the source has been changed.
+func (s *Scanner) Reset(source []byte, offset int) {
+	s.source = source
+
+	s.lexemeStartIdx = 0
+	s.lexemeEndIdx = offset
+
+	s.line = 1
+	s.column = 1
+
+	s.token = InvalidToken
 }
 
 // Token returns the current token.
@@ -372,24 +391,24 @@ func (s *Scanner) Token() Token {
 }
 
 // ByteOffset returns the start of the token in bytes from the source start.
-// It returns the location after the last byte after the call to Next() returned false.
+// When Next() returned false, it returns the location after the last byte.
 func (s *Scanner) ByteOffset() int {
-	return s.tokenStart.ByteOffset()
+	return s.lexemeStartIdx
 }
 
 // Line returns the line the token is located on.
 func (s *Scanner) Line() int {
-	return s.tokenStart.Line()
+	return s.line
 }
 
 // Column returns the column the token is located on.
 func (s *Scanner) Column() int {
-	return s.tokenStart.Column()
+	return s.column
 }
 
 // Lexeme returns the bytes which make up the token.
 func (s *Scanner) Lexeme() []byte {
-	return s.tokenStart.Lexeme(s.tokenStart.ByteOffset(), s.tokenEnd.ByteOffset())
+	return s.source[s.lexemeStartIdx:s.lexemeEndIdx]
 }
 
 // FilePath returns the file path of the file being parsed. This information can be useful in error messages.
@@ -399,23 +418,50 @@ func (s *Scanner) FilePath() string {
 
 // Next consumes characters until it found the next token.
 func (s *Scanner) Next() bool {
-	s.err = nil
-	s.tokenStart = s.tokenEnd
-	s.runeReader = s.tokenEnd
+	s.updateLineAndColumn(s.source[s.lexemeStartIdx:s.lexemeEndIdx])
+	s.lexemeStartIdx = s.lexemeEndIdx
 	s.state = 0
 
-	for s.err == nil {
-		s.err = s.dispatchState()
+	for s.lexemePeekIdx = s.lexemeEndIdx; s.lexemePeekIdx < len(s.source); s.lexemePeekIdx++ {
+		if err := s.dispatchState(); err != nil {
+			break
+		}
+	}
+	if s.lexemePeekIdx == len(s.source) {
+		// We need to capture the last character of the source.
+		s.dispatchEOF()
 	}
 
-	if s.tokenStart.ByteOffset() != s.tokenEnd.ByteOffset() {
-		s.err = nil
+	if s.lexemeStartIdx < s.lexemeEndIdx {
+		// We found a token.
 		return true
 	}
-	s.token = EndToken
-	return false
+
+	if len(s.source) <= s.lexemeStartIdx {
+		// We have reached the end of the source.
+		s.token = EndToken
+		return false
+	}
+
+	// We found some characters which do not form a token. We need to emit an invalid token for them.
+	s.token = InvalidToken
+	s.lexemeEndIdx = s.lexemePeekIdx + 1
+	return true
 }
 
+// updateLineAndColumn updates the current line and column information by scanning the given source for newlines.
+func (s *Scanner) updateLineAndColumn(source []byte) {
+	for _, currByte := range source {
+		if currByte == '\n' {
+			s.line++
+			s.column = 1
+		} else {
+			s.column++
+		}
+	}
+}
+
+// dispatchState calls the code corresponding to the current scanner state.
 func (s *Scanner) dispatchState() error {
 	switch s.state {
 	case 0:
@@ -453,189 +499,189 @@ func (s *Scanner) dispatchState() error {
 	case 16:
 		return s.state16Identifier()
 	case 17:
-		return s.state17Add()
+		return s.state17Identifier()
 	case 18:
-		return s.state18Sub()
+		return s.state18Identifier()
 	case 19:
-		return s.state19Mul()
+		return s.state19Identifier()
 	case 20:
-		return s.state20Rem()
+		return s.state20Identifier()
 	case 21:
-		return s.state21And()
+		return s.state21Identifier()
 	case 22:
-		return s.state22Or()
+		return s.state22Identifier()
 	case 23:
-		return s.state23Xor()
+		return s.state23Identifier()
 	case 24:
-		return s.state24LessThan()
+		return s.state24Identifier()
 	case 25:
-		return s.state25GreaterThan()
+		return s.state25Identifier()
 	case 26:
-		return s.state26Assign()
+		return s.state26Identifier()
 	case 27:
-		return s.state27Not()
+		return s.state27Identifier()
 	case 28:
-		return s.state28Tilde()
+		return s.state28Identifier()
 	case 29:
-		return s.state29Colon()
+		return s.state29Identifier()
 	case 30:
-		return s.state30Period()
+		return s.state30Identifier()
 	case 31:
-		return s.state31LeftParen()
+		return s.state31Identifier()
 	case 32:
-		return s.state32LeftBracket()
+		return s.state32Identifier()
 	case 33:
-		return s.state33LeftBrace()
+		return s.state33Identifier()
 	case 34:
-		return s.state34Comma()
+		return s.state34Identifier()
 	case 35:
-		return s.state35RightParen()
+		return s.state35Identifier()
 	case 36:
-		return s.state36RightBracket()
+		return s.state36Identifier()
 	case 37:
-		return s.state37RightBrace()
+		return s.state37Identifier()
 	case 38:
-		return s.state38Semicolon()
+		return s.state38Identifier()
 	case 39:
-		return s.state39IntLit()
+		return s.state39Identifier()
 	case 40:
-		return s.state40IntLit()
+		return s.state40Identifier()
 	case 41:
-		return s.state41RuneLit()
+		return s.state41Identifier()
 	case 42:
-		return s.state42StringLit()
+		return s.state42Identifier()
 	case 43:
-		return s.state43StringLit()
+		return s.state43Identifier()
 	case 44:
-		return s.state44Comment()
+		return s.state44Identifier()
 	case 45:
-		return s.state45Comment()
+		return s.state45Identifier()
 	case 46:
-		return s.state46QuoAssign()
+		return s.state46Add()
 	case 47:
-		return s.state47Identifier()
+		return s.state47Sub()
 	case 48:
-		return s.state48Identifier()
+		return s.state48Mul()
 	case 49:
-		return s.state49Identifier()
+		return s.state49Rem()
 	case 50:
-		return s.state50Identifier()
+		return s.state50And()
 	case 51:
-		return s.state51Identifier()
+		return s.state51Or()
 	case 52:
-		return s.state52Identifier()
+		return s.state52Xor()
 	case 53:
-		return s.state53Identifier()
+		return s.state53LessThan()
 	case 54:
-		return s.state54Identifier()
+		return s.state54GreaterThan()
 	case 55:
-		return s.state55Identifier()
+		return s.state55Assign()
 	case 56:
-		return s.state56Go()
+		return s.state56Not()
 	case 57:
-		return s.state57If()
+		return s.state57Tilde()
 	case 58:
-		return s.state58Identifier()
+		return s.state58Colon()
 	case 59:
-		return s.state59Identifier()
+		return s.state59Period()
 	case 60:
-		return s.state60Identifier()
+		return s.state60LeftParen()
 	case 61:
-		return s.state61Identifier()
+		return s.state61LeftBracket()
 	case 62:
-		return s.state62Identifier()
+		return s.state62LeftBrace()
 	case 63:
-		return s.state63Identifier()
+		return s.state63Comma()
 	case 64:
-		return s.state64Identifier()
+		return s.state64RightParen()
 	case 65:
-		return s.state65Identifier()
+		return s.state65RightBracket()
 	case 66:
-		return s.state66Identifier()
+		return s.state66RightBrace()
 	case 67:
-		return s.state67Identifier()
+		return s.state67Semicolon()
 	case 68:
-		return s.state68Identifier()
+		return s.state68IntLit()
 	case 69:
-		return s.state69AddAssign()
+		return s.state69IntLit()
 	case 70:
-		return s.state70Increment()
+		return s.state70RuneLit()
 	case 71:
-		return s.state71SubAssign()
+		return s.state71StringLit()
 	case 72:
-		return s.state72Decrement()
+		return s.state72StringLit()
 	case 73:
-		return s.state73MulAssign()
+		return s.state73Comment()
 	case 74:
-		return s.state74RemAssign()
+		return s.state74Comment()
 	case 75:
-		return s.state75AndNot()
+		return s.state75QuoAssign()
 	case 76:
-		return s.state76AndAssign()
+		return s.state76Identifier()
 	case 77:
-		return s.state77LogicalAnd()
+		return s.state77Identifier()
 	case 78:
-		return s.state78OrAssign()
+		return s.state78Identifier()
 	case 79:
-		return s.state79LogicalOr()
+		return s.state79Identifier()
 	case 80:
-		return s.state80XorAssign()
+		return s.state80Identifier()
 	case 81:
-		return s.state81ShiftLeft()
+		return s.state81Identifier()
 	case 82:
-		return s.state82Arrow()
+		return s.state82Identifier()
 	case 83:
-		return s.state83LessEqual()
+		return s.state83Identifier()
 	case 84:
-		return s.state84ShiftRight()
+		return s.state84Identifier()
 	case 85:
-		return s.state85GreaterEqual()
+		return s.state85Identifier()
 	case 86:
-		return s.state86Equal()
+		return s.state86Identifier()
 	case 87:
-		return s.state87NotEqual()
+		return s.state87Identifier()
 	case 88:
-		return s.state88Define()
+		return s.state88Identifier()
 	case 89:
-		return s.state89Ellipsis()
+		return s.state89Identifier()
 	case 90:
-		return s.state90FloatLit()
+		return s.state90Identifier()
 	case 91:
-		return s.state91IntLit()
+		return s.state91Identifier()
 	case 92:
-		return s.state92IntLit()
+		return s.state92Identifier()
 	case 93:
-		return s.state93IntLit()
+		return s.state93Go()
 	case 94:
-		return s.state94IntLit()
+		return s.state94If()
 	case 95:
-		return s.state95IntLit()
+		return s.state95Identifier()
 	case 96:
-		return s.state96FloatLit()
+		return s.state96Identifier()
 	case 97:
-		return s.state97FloatLit()
+		return s.state97Identifier()
 	case 98:
-		return s.state98FloatLit()
+		return s.state98Identifier()
 	case 99:
-		return s.state99FloatLit()
+		return s.state99Identifier()
 	case 100:
-		return s.state100ImaginaryLit()
+		return s.state100Identifier()
 	case 101:
-		return s.state101IntLit()
+		return s.state101Identifier()
 	case 102:
-		return s.state102FloatLit()
+		return s.state102Identifier()
 	case 103:
-		return s.state103FloatLit()
+		return s.state103Identifier()
 	case 104:
-		return s.state104RuneLit()
+		return s.state104Identifier()
 	case 105:
-		return s.state105RuneLit()
+		return s.state105Identifier()
 	case 106:
-		return s.state106StringLit()
+		return s.state106Identifier()
 	case 107:
-		return s.state107StringLit()
+		return s.state107Identifier()
 	case 108:
-		return s.state108Comment()
+		return s.state108Identifier()
 	case 109:
 		return s.state109Identifier()
 	case 110:
@@ -651,7 +697,7 @@ func (s *Scanner) dispatchState() error {
 	case 115:
 		return s.state115Identifier()
 	case 116:
-		return s.state116For()
+		return s.state116Identifier()
 	case 117:
 		return s.state117Identifier()
 	case 118:
@@ -661,7 +707,7 @@ func (s *Scanner) dispatchState() error {
 	case 120:
 		return s.state120Identifier()
 	case 121:
-		return s.state121Map()
+		return s.state121Identifier()
 	case 122:
 		return s.state122Identifier()
 	case 123:
@@ -677,85 +723,85 @@ func (s *Scanner) dispatchState() error {
 	case 128:
 		return s.state128Identifier()
 	case 129:
-		return s.state129Var()
+		return s.state129Identifier()
 	case 130:
-		return s.state130AndNotAssign()
+		return s.state130Identifier()
 	case 131:
-		return s.state131ShiftLeftAssign()
+		return s.state131Identifier()
 	case 132:
-		return s.state132ShiftRightAssign()
+		return s.state132Identifier()
 	case 133:
-		return s.state133Ellipsis()
+		return s.state133Identifier()
 	case 134:
-		return s.state134FloatLit()
+		return s.state134Identifier()
 	case 135:
-		return s.state135IntLit()
+		return s.state135Identifier()
 	case 136:
-		return s.state136IntLit()
+		return s.state136Identifier()
 	case 137:
-		return s.state137FloatLit()
+		return s.state137Identifier()
 	case 138:
-		return s.state138IntLit()
+		return s.state138Identifier()
 	case 139:
-		return s.state139IntLit()
+		return s.state139Identifier()
 	case 140:
-		return s.state140IntLit()
+		return s.state140Identifier()
 	case 141:
-		return s.state141FloatLit()
+		return s.state141Identifier()
 	case 142:
-		return s.state142IntLit()
+		return s.state142Identifier()
 	case 143:
-		return s.state143IntLit()
+		return s.state143Identifier()
 	case 144:
-		return s.state144FloatLit()
+		return s.state144Identifier()
 	case 145:
-		return s.state145FloatLit()
+		return s.state145Identifier()
 	case 146:
-		return s.state146FloatLit()
+		return s.state146Identifier()
 	case 147:
-		return s.state147FloatLit()
+		return s.state147Identifier()
 	case 148:
-		return s.state148FloatLit()
+		return s.state148Identifier()
 	case 149:
-		return s.state149FloatLit()
+		return s.state149Identifier()
 	case 150:
-		return s.state150FloatLit()
+		return s.state150Identifier()
 	case 151:
-		return s.state151FloatLit()
+		return s.state151Identifier()
 	case 152:
-		return s.state152FloatLit()
+		return s.state152Identifier()
 	case 153:
-		return s.state153FloatLit()
+		return s.state153Identifier()
 	case 154:
-		return s.state154FloatLit()
+		return s.state154Identifier()
 	case 155:
-		return s.state155RuneLit()
+		return s.state155Identifier()
 	case 156:
-		return s.state156RuneLit()
+		return s.state156Identifier()
 	case 157:
-		return s.state157RuneLit()
+		return s.state157Identifier()
 	case 158:
-		return s.state158RuneLit()
+		return s.state158Identifier()
 	case 159:
-		return s.state159RuneLit()
+		return s.state159Identifier()
 	case 160:
-		return s.state160RuneLit()
+		return s.state160Identifier()
 	case 161:
-		return s.state161StringLit()
+		return s.state161Identifier()
 	case 162:
-		return s.state162StringLit()
+		return s.state162Identifier()
 	case 163:
-		return s.state163StringLit()
+		return s.state163Identifier()
 	case 164:
-		return s.state164StringLit()
+		return s.state164Identifier()
 	case 165:
-		return s.state165Comment()
+		return s.state165Identifier()
 	case 166:
 		return s.state166Identifier()
 	case 167:
-		return s.state167Case()
+		return s.state167Identifier()
 	case 168:
-		return s.state168Chan()
+		return s.state168Identifier()
 	case 169:
 		return s.state169Identifier()
 	case 170:
@@ -765,13 +811,13 @@ func (s *Scanner) dispatchState() error {
 	case 172:
 		return s.state172Identifier()
 	case 173:
-		return s.state173Else()
+		return s.state173Identifier()
 	case 174:
 		return s.state174Identifier()
 	case 175:
-		return s.state175Func()
+		return s.state175Identifier()
 	case 176:
-		return s.state176Goto()
+		return s.state176Identifier()
 	case 177:
 		return s.state177Identifier()
 	case 178:
@@ -789,47 +835,47 @@ func (s *Scanner) dispatchState() error {
 	case 184:
 		return s.state184Identifier()
 	case 185:
-		return s.state185Type()
+		return s.state185Identifier()
 	case 186:
-		return s.state186FloatLit()
+		return s.state186Identifier()
 	case 187:
-		return s.state187FloatLit()
+		return s.state187Identifier()
 	case 188:
-		return s.state188FloatLit()
+		return s.state188Identifier()
 	case 189:
-		return s.state189FloatLit()
+		return s.state189Identifier()
 	case 190:
-		return s.state190FloatLit()
+		return s.state190Identifier()
 	case 191:
-		return s.state191FloatLit()
+		return s.state191Identifier()
 	case 192:
-		return s.state192FloatLit()
+		return s.state192Identifier()
 	case 193:
-		return s.state193RuneLit()
+		return s.state193Identifier()
 	case 194:
-		return s.state194RuneLit()
+		return s.state194Identifier()
 	case 195:
-		return s.state195RuneLit()
+		return s.state195Identifier()
 	case 196:
-		return s.state196RuneLit()
+		return s.state196Identifier()
 	case 197:
-		return s.state197StringLit()
+		return s.state197Identifier()
 	case 198:
-		return s.state198StringLit()
+		return s.state198Identifier()
 	case 199:
-		return s.state199StringLit()
+		return s.state199Identifier()
 	case 200:
-		return s.state200StringLit()
+		return s.state200Identifier()
 	case 201:
-		return s.state201Break()
+		return s.state201Identifier()
 	case 202:
-		return s.state202Const()
+		return s.state202Identifier()
 	case 203:
 		return s.state203Identifier()
 	case 204:
 		return s.state204Identifier()
 	case 205:
-		return s.state205Defer()
+		return s.state205Identifier()
 	case 206:
 		return s.state206Identifier()
 	case 207:
@@ -839,7 +885,7 @@ func (s *Scanner) dispatchState() error {
 	case 209:
 		return s.state209Identifier()
 	case 210:
-		return s.state210Range()
+		return s.state210Identifier()
 	case 211:
 		return s.state211Identifier()
 	case 212:
@@ -849,17 +895,17 @@ func (s *Scanner) dispatchState() error {
 	case 214:
 		return s.state214Identifier()
 	case 215:
-		return s.state215FloatLit()
+		return s.state215Identifier()
 	case 216:
-		return s.state216FloatLit()
+		return s.state216Identifier()
 	case 217:
-		return s.state217FloatLit()
+		return s.state217Identifier()
 	case 218:
-		return s.state218FloatLit()
+		return s.state218Identifier()
 	case 219:
-		return s.state219RuneLit()
+		return s.state219Identifier()
 	case 220:
-		return s.state220StringLit()
+		return s.state220Identifier()
 	case 221:
 		return s.state221Identifier()
 	case 222:
@@ -867,41 +913,41 @@ func (s *Scanner) dispatchState() error {
 	case 223:
 		return s.state223Identifier()
 	case 224:
-		return s.state224Import()
+		return s.state224Identifier()
 	case 225:
 		return s.state225Identifier()
 	case 226:
 		return s.state226Identifier()
 	case 227:
-		return s.state227Return()
+		return s.state227Identifier()
 	case 228:
-		return s.state228Select()
+		return s.state228Identifier()
 	case 229:
-		return s.state229Struct()
+		return s.state229Identifier()
 	case 230:
-		return s.state230Switch()
+		return s.state230Identifier()
 	case 231:
-		return s.state231FloatLit()
+		return s.state231Identifier()
 	case 232:
-		return s.state232RuneLit()
+		return s.state232Identifier()
 	case 233:
-		return s.state233StringLit()
+		return s.state233Identifier()
 	case 234:
 		return s.state234Identifier()
 	case 235:
-		return s.state235Default()
+		return s.state235Identifier()
 	case 236:
 		return s.state236Identifier()
 	case 237:
 		return s.state237Identifier()
 	case 238:
-		return s.state238Package()
+		return s.state238Identifier()
 	case 239:
-		return s.state239RuneLit()
+		return s.state239Identifier()
 	case 240:
-		return s.state240StringLit()
+		return s.state240Identifier()
 	case 241:
-		return s.state241Continue()
+		return s.state241Identifier()
 	case 242:
 		return s.state242Identifier()
 	case 243:
@@ -909,7153 +955,21029 @@ func (s *Scanner) dispatchState() error {
 	case 244:
 		return s.state244Identifier()
 	case 245:
-		return s.state245Interface()
+		return s.state245Identifier()
 	case 246:
 		return s.state246Identifier()
 	case 247:
-		return s.state247Fallthrough()
+		return s.state247Identifier()
+	case 248:
+		return s.state248Identifier()
+	case 249:
+		return s.state249Identifier()
+	case 250:
+		return s.state250Identifier()
+	case 251:
+		return s.state251Identifier()
+	case 252:
+		return s.state252Identifier()
+	case 253:
+		return s.state253AddAssign()
+	case 254:
+		return s.state254Increment()
+	case 255:
+		return s.state255SubAssign()
+	case 256:
+		return s.state256Decrement()
+	case 257:
+		return s.state257MulAssign()
+	case 258:
+		return s.state258RemAssign()
+	case 259:
+		return s.state259AndNot()
+	case 260:
+		return s.state260AndAssign()
+	case 261:
+		return s.state261LogicalAnd()
+	case 262:
+		return s.state262OrAssign()
+	case 263:
+		return s.state263LogicalOr()
+	case 264:
+		return s.state264XorAssign()
+	case 265:
+		return s.state265ShiftLeft()
+	case 266:
+		return s.state266Arrow()
+	case 267:
+		return s.state267LessEqual()
+	case 268:
+		return s.state268ShiftRight()
+	case 269:
+		return s.state269GreaterEqual()
+	case 270:
+		return s.state270Equal()
+	case 271:
+		return s.state271NotEqual()
+	case 272:
+		return s.state272Define()
+	case 273:
+		return s.state273Ellipsis()
+	case 274:
+		return s.state274FloatLit()
+	case 275:
+		return s.state275IntLit()
+	case 276:
+		return s.state276IntLit()
+	case 277:
+		return s.state277IntLit()
+	case 278:
+		return s.state278IntLit()
+	case 279:
+		return s.state279IntLit()
+	case 280:
+		return s.state280FloatLit()
+	case 281:
+		return s.state281FloatLit()
+	case 282:
+		return s.state282FloatLit()
+	case 283:
+		return s.state283FloatLit()
+	case 284:
+		return s.state284ImaginaryLit()
+	case 285:
+		return s.state285IntLit()
+	case 286:
+		return s.state286FloatLit()
+	case 287:
+		return s.state287FloatLit()
+	case 288:
+		return s.state288RuneLit()
+	case 289:
+		return s.state289RuneLit()
+	case 290:
+		return s.state290RuneLit()
+	case 291:
+		return s.state291RuneLit()
+	case 292:
+		return s.state292RuneLit()
+	case 293:
+		return s.state293RuneLit()
+	case 294:
+		return s.state294RuneLit()
+	case 295:
+		return s.state295RuneLit()
+	case 296:
+		return s.state296StringLit()
+	case 297:
+		return s.state297StringLit()
+	case 298:
+		return s.state298StringLit()
+	case 299:
+		return s.state299StringLit()
+	case 300:
+		return s.state300StringLit()
+	case 301:
+		return s.state301StringLit()
+	case 302:
+		return s.state302StringLit()
+	case 303:
+		return s.state303StringLit()
+	case 304:
+		return s.state304StringLit()
+	case 305:
+		return s.state305StringLit()
+	case 306:
+		return s.state306StringLit()
+	case 307:
+		return s.state307StringLit()
+	case 308:
+		return s.state308StringLit()
+	case 309:
+		return s.state309StringLit()
+	case 310:
+		return s.state310Comment()
+	case 311:
+		return s.state311Comment()
+	case 312:
+		return s.state312Comment()
+	case 313:
+		return s.state313Comment()
+	case 314:
+		return s.state314Comment()
+	case 315:
+		return s.state315Comment()
+	case 316:
+		return s.state316Comment()
+	case 317:
+		return s.state317Comment()
+	case 318:
+		return s.state318Comment()
+	case 319:
+		return s.state319Comment()
+	case 320:
+		return s.state320Comment()
+	case 321:
+		return s.state321Comment()
+	case 322:
+		return s.state322Comment()
+	case 323:
+		return s.state323Identifier()
+	case 324:
+		return s.state324Identifier()
+	case 325:
+		return s.state325Identifier()
+	case 326:
+		return s.state326Identifier()
+	case 327:
+		return s.state327Identifier()
+	case 328:
+		return s.state328Identifier()
+	case 329:
+		return s.state329Identifier()
+	case 330:
+		return s.state330Identifier()
+	case 331:
+		return s.state331Identifier()
+	case 332:
+		return s.state332Identifier()
+	case 333:
+		return s.state333Identifier()
+	case 334:
+		return s.state334Identifier()
+	case 335:
+		return s.state335Identifier()
+	case 336:
+		return s.state336Identifier()
+	case 337:
+		return s.state337Identifier()
+	case 338:
+		return s.state338Identifier()
+	case 339:
+		return s.state339Identifier()
+	case 340:
+		return s.state340Identifier()
+	case 341:
+		return s.state341Identifier()
+	case 342:
+		return s.state342Identifier()
+	case 343:
+		return s.state343Identifier()
+	case 344:
+		return s.state344Identifier()
+	case 345:
+		return s.state345Identifier()
+	case 346:
+		return s.state346Identifier()
+	case 347:
+		return s.state347Identifier()
+	case 348:
+		return s.state348Identifier()
+	case 349:
+		return s.state349Identifier()
+	case 350:
+		return s.state350Identifier()
+	case 351:
+		return s.state351Identifier()
+	case 352:
+		return s.state352Identifier()
+	case 353:
+		return s.state353Identifier()
+	case 354:
+		return s.state354Identifier()
+	case 355:
+		return s.state355Identifier()
+	case 356:
+		return s.state356Identifier()
+	case 357:
+		return s.state357Identifier()
+	case 358:
+		return s.state358Identifier()
+	case 359:
+		return s.state359Identifier()
+	case 360:
+		return s.state360Identifier()
+	case 361:
+		return s.state361Identifier()
+	case 362:
+		return s.state362Identifier()
+	case 363:
+		return s.state363Identifier()
+	case 364:
+		return s.state364Identifier()
+	case 365:
+		return s.state365Identifier()
+	case 366:
+		return s.state366For()
+	case 367:
+		return s.state367Identifier()
+	case 368:
+		return s.state368Identifier()
+	case 369:
+		return s.state369Identifier()
+	case 370:
+		return s.state370Identifier()
+	case 371:
+		return s.state371Map()
+	case 372:
+		return s.state372Identifier()
+	case 373:
+		return s.state373Identifier()
+	case 374:
+		return s.state374Identifier()
+	case 375:
+		return s.state375Identifier()
+	case 376:
+		return s.state376Identifier()
+	case 377:
+		return s.state377Identifier()
+	case 378:
+		return s.state378Identifier()
+	case 379:
+		return s.state379Var()
+	case 380:
+		return s.state380Identifier()
+	case 381:
+		return s.state381Identifier()
+	case 382:
+		return s.state382Identifier()
+	case 383:
+		return s.state383Identifier()
+	case 384:
+		return s.state384Identifier()
+	case 385:
+		return s.state385Identifier()
+	case 386:
+		return s.state386Identifier()
+	case 387:
+		return s.state387Identifier()
+	case 388:
+		return s.state388Identifier()
+	case 389:
+		return s.state389Identifier()
+	case 390:
+		return s.state390Identifier()
+	case 391:
+		return s.state391Identifier()
+	case 392:
+		return s.state392Identifier()
+	case 393:
+		return s.state393Identifier()
+	case 394:
+		return s.state394Identifier()
+	case 395:
+		return s.state395Identifier()
+	case 396:
+		return s.state396Identifier()
+	case 397:
+		return s.state397Identifier()
+	case 398:
+		return s.state398Identifier()
+	case 399:
+		return s.state399Identifier()
+	case 400:
+		return s.state400Identifier()
+	case 401:
+		return s.state401Identifier()
+	case 402:
+		return s.state402Identifier()
+	case 403:
+		return s.state403Identifier()
+	case 404:
+		return s.state404Identifier()
+	case 405:
+		return s.state405Identifier()
+	case 406:
+		return s.state406Identifier()
+	case 407:
+		return s.state407Identifier()
+	case 408:
+		return s.state408Identifier()
+	case 409:
+		return s.state409Identifier()
+	case 410:
+		return s.state410Identifier()
+	case 411:
+		return s.state411Identifier()
+	case 412:
+		return s.state412Identifier()
+	case 413:
+		return s.state413Identifier()
+	case 414:
+		return s.state414Identifier()
+	case 415:
+		return s.state415Identifier()
+	case 416:
+		return s.state416Identifier()
+	case 417:
+		return s.state417Identifier()
+	case 418:
+		return s.state418Identifier()
+	case 419:
+		return s.state419Identifier()
+	case 420:
+		return s.state420Identifier()
+	case 421:
+		return s.state421Identifier()
+	case 422:
+		return s.state422Identifier()
+	case 423:
+		return s.state423Identifier()
+	case 424:
+		return s.state424Identifier()
+	case 425:
+		return s.state425Identifier()
+	case 426:
+		return s.state426Identifier()
+	case 427:
+		return s.state427Identifier()
+	case 428:
+		return s.state428Identifier()
+	case 429:
+		return s.state429Identifier()
+	case 430:
+		return s.state430Identifier()
+	case 431:
+		return s.state431Identifier()
+	case 432:
+		return s.state432Identifier()
+	case 433:
+		return s.state433Identifier()
+	case 434:
+		return s.state434Identifier()
+	case 435:
+		return s.state435Identifier()
+	case 436:
+		return s.state436Identifier()
+	case 437:
+		return s.state437Identifier()
+	case 438:
+		return s.state438Identifier()
+	case 439:
+		return s.state439Identifier()
+	case 440:
+		return s.state440Identifier()
+	case 441:
+		return s.state441Identifier()
+	case 442:
+		return s.state442Identifier()
+	case 443:
+		return s.state443Identifier()
+	case 444:
+		return s.state444Identifier()
+	case 445:
+		return s.state445Identifier()
+	case 446:
+		return s.state446Identifier()
+	case 447:
+		return s.state447Identifier()
+	case 448:
+		return s.state448Identifier()
+	case 449:
+		return s.state449Identifier()
+	case 450:
+		return s.state450Identifier()
+	case 451:
+		return s.state451Identifier()
+	case 452:
+		return s.state452Identifier()
+	case 453:
+		return s.state453Identifier()
+	case 454:
+		return s.state454Identifier()
+	case 455:
+		return s.state455Identifier()
+	case 456:
+		return s.state456Identifier()
+	case 457:
+		return s.state457Identifier()
+	case 458:
+		return s.state458Identifier()
+	case 459:
+		return s.state459Identifier()
+	case 460:
+		return s.state460Identifier()
+	case 461:
+		return s.state461Identifier()
+	case 462:
+		return s.state462Identifier()
+	case 463:
+		return s.state463Identifier()
+	case 464:
+		return s.state464Identifier()
+	case 465:
+		return s.state465Identifier()
+	case 466:
+		return s.state466Identifier()
+	case 467:
+		return s.state467Identifier()
+	case 468:
+		return s.state468Identifier()
+	case 469:
+		return s.state469Identifier()
+	case 470:
+		return s.state470Identifier()
+	case 471:
+		return s.state471Identifier()
+	case 472:
+		return s.state472Identifier()
+	case 473:
+		return s.state473Identifier()
+	case 474:
+		return s.state474Identifier()
+	case 475:
+		return s.state475Identifier()
+	case 476:
+		return s.state476Identifier()
+	case 477:
+		return s.state477Identifier()
+	case 478:
+		return s.state478Identifier()
+	case 479:
+		return s.state479Identifier()
+	case 480:
+		return s.state480Identifier()
+	case 481:
+		return s.state481Identifier()
+	case 482:
+		return s.state482Identifier()
+	case 483:
+		return s.state483Identifier()
+	case 484:
+		return s.state484Identifier()
+	case 485:
+		return s.state485Identifier()
+	case 486:
+		return s.state486Identifier()
+	case 487:
+		return s.state487Identifier()
+	case 488:
+		return s.state488Identifier()
+	case 489:
+		return s.state489Identifier()
+	case 490:
+		return s.state490Identifier()
+	case 491:
+		return s.state491Identifier()
+	case 492:
+		return s.state492Identifier()
+	case 493:
+		return s.state493Identifier()
+	case 494:
+		return s.state494Identifier()
+	case 495:
+		return s.state495Identifier()
+	case 496:
+		return s.state496Identifier()
+	case 497:
+		return s.state497Identifier()
+	case 498:
+		return s.state498AndNotAssign()
+	case 499:
+		return s.state499ShiftLeftAssign()
+	case 500:
+		return s.state500ShiftRightAssign()
+	case 501:
+		return s.state501Ellipsis()
+	case 502:
+		return s.state502FloatLit()
+	case 503:
+		return s.state503IntLit()
+	case 504:
+		return s.state504IntLit()
+	case 505:
+		return s.state505FloatLit()
+	case 506:
+		return s.state506IntLit()
+	case 507:
+		return s.state507IntLit()
+	case 508:
+		return s.state508IntLit()
+	case 509:
+		return s.state509FloatLit()
+	case 510:
+		return s.state510IntLit()
+	case 511:
+		return s.state511IntLit()
+	case 512:
+		return s.state512FloatLit()
+	case 513:
+		return s.state513FloatLit()
+	case 514:
+		return s.state514FloatLit()
+	case 515:
+		return s.state515FloatLit()
+	case 516:
+		return s.state516FloatLit()
+	case 517:
+		return s.state517FloatLit()
+	case 518:
+		return s.state518FloatLit()
+	case 519:
+		return s.state519FloatLit()
+	case 520:
+		return s.state520FloatLit()
+	case 521:
+		return s.state521FloatLit()
+	case 522:
+		return s.state522FloatLit()
+	case 523:
+		return s.state523RuneLit()
+	case 524:
+		return s.state524RuneLit()
+	case 525:
+		return s.state525RuneLit()
+	case 526:
+		return s.state526RuneLit()
+	case 527:
+		return s.state527RuneLit()
+	case 528:
+		return s.state528RuneLit()
+	case 529:
+		return s.state529StringLit()
+	case 530:
+		return s.state530StringLit()
+	case 531:
+		return s.state531StringLit()
+	case 532:
+		return s.state532StringLit()
+	case 533:
+		return s.state533Comment()
+	case 534:
+		return s.state534Identifier()
+	case 535:
+		return s.state535Identifier()
+	case 536:
+		return s.state536Identifier()
+	case 537:
+		return s.state537Identifier()
+	case 538:
+		return s.state538Identifier()
+	case 539:
+		return s.state539Identifier()
+	case 540:
+		return s.state540Identifier()
+	case 541:
+		return s.state541Identifier()
+	case 542:
+		return s.state542Identifier()
+	case 543:
+		return s.state543Identifier()
+	case 544:
+		return s.state544Identifier()
+	case 545:
+		return s.state545Identifier()
+	case 546:
+		return s.state546Identifier()
+	case 547:
+		return s.state547Identifier()
+	case 548:
+		return s.state548Identifier()
+	case 549:
+		return s.state549Identifier()
+	case 550:
+		return s.state550Identifier()
+	case 551:
+		return s.state551Identifier()
+	case 552:
+		return s.state552Identifier()
+	case 553:
+		return s.state553Identifier()
+	case 554:
+		return s.state554Identifier()
+	case 555:
+		return s.state555Identifier()
+	case 556:
+		return s.state556Identifier()
+	case 557:
+		return s.state557Identifier()
+	case 558:
+		return s.state558Identifier()
+	case 559:
+		return s.state559Identifier()
+	case 560:
+		return s.state560Identifier()
+	case 561:
+		return s.state561Identifier()
+	case 562:
+		return s.state562Case()
+	case 563:
+		return s.state563Chan()
+	case 564:
+		return s.state564Identifier()
+	case 565:
+		return s.state565Identifier()
+	case 566:
+		return s.state566Identifier()
+	case 567:
+		return s.state567Identifier()
+	case 568:
+		return s.state568Else()
+	case 569:
+		return s.state569Identifier()
+	case 570:
+		return s.state570Func()
+	case 571:
+		return s.state571Goto()
+	case 572:
+		return s.state572Identifier()
+	case 573:
+		return s.state573Identifier()
+	case 574:
+		return s.state574Identifier()
+	case 575:
+		return s.state575Identifier()
+	case 576:
+		return s.state576Identifier()
+	case 577:
+		return s.state577Identifier()
+	case 578:
+		return s.state578Identifier()
+	case 579:
+		return s.state579Identifier()
+	case 580:
+		return s.state580Type()
+	case 581:
+		return s.state581FloatLit()
+	case 582:
+		return s.state582FloatLit()
+	case 583:
+		return s.state583FloatLit()
+	case 584:
+		return s.state584FloatLit()
+	case 585:
+		return s.state585FloatLit()
+	case 586:
+		return s.state586FloatLit()
+	case 587:
+		return s.state587FloatLit()
+	case 588:
+		return s.state588RuneLit()
+	case 589:
+		return s.state589RuneLit()
+	case 590:
+		return s.state590RuneLit()
+	case 591:
+		return s.state591RuneLit()
+	case 592:
+		return s.state592StringLit()
+	case 593:
+		return s.state593StringLit()
+	case 594:
+		return s.state594StringLit()
+	case 595:
+		return s.state595StringLit()
+	case 596:
+		return s.state596Break()
+	case 597:
+		return s.state597Const()
+	case 598:
+		return s.state598Identifier()
+	case 599:
+		return s.state599Identifier()
+	case 600:
+		return s.state600Defer()
+	case 601:
+		return s.state601Identifier()
+	case 602:
+		return s.state602Identifier()
+	case 603:
+		return s.state603Identifier()
+	case 604:
+		return s.state604Identifier()
+	case 605:
+		return s.state605Range()
+	case 606:
+		return s.state606Identifier()
+	case 607:
+		return s.state607Identifier()
+	case 608:
+		return s.state608Identifier()
+	case 609:
+		return s.state609Identifier()
+	case 610:
+		return s.state610FloatLit()
+	case 611:
+		return s.state611FloatLit()
+	case 612:
+		return s.state612FloatLit()
+	case 613:
+		return s.state613FloatLit()
+	case 614:
+		return s.state614RuneLit()
+	case 615:
+		return s.state615StringLit()
+	case 616:
+		return s.state616Identifier()
+	case 617:
+		return s.state617Identifier()
+	case 618:
+		return s.state618Identifier()
+	case 619:
+		return s.state619Import()
+	case 620:
+		return s.state620Identifier()
+	case 621:
+		return s.state621Identifier()
+	case 622:
+		return s.state622Return()
+	case 623:
+		return s.state623Select()
+	case 624:
+		return s.state624Struct()
+	case 625:
+		return s.state625Switch()
+	case 626:
+		return s.state626FloatLit()
+	case 627:
+		return s.state627RuneLit()
+	case 628:
+		return s.state628StringLit()
+	case 629:
+		return s.state629Identifier()
+	case 630:
+		return s.state630Default()
+	case 631:
+		return s.state631Identifier()
+	case 632:
+		return s.state632Identifier()
+	case 633:
+		return s.state633Package()
+	case 634:
+		return s.state634RuneLit()
+	case 635:
+		return s.state635StringLit()
+	case 636:
+		return s.state636Continue()
+	case 637:
+		return s.state637Identifier()
+	case 638:
+		return s.state638Identifier()
+	case 639:
+		return s.state639Identifier()
+	case 640:
+		return s.state640Interface()
+	case 641:
+		return s.state641Identifier()
+	case 642:
+		return s.state642Fallthrough()
 	default:
 		return fmt.Errorf("unexpected scanner state %d", s.state)
 	}
 }
 
-func (s *Scanner) state0Whitespace() error {
+func (s *Scanner) dispatchEOF() {
+	switch s.state {
+	case 1:
+		s.token = TokenWhitespace
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 2:
+		s.token = TokenQuo
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 3:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 4:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 5:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 6:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 7:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 8:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 9:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 10:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 11:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 12:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 13:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 14:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 15:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 16:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 46:
+		s.token = TokenAdd
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 47:
+		s.token = TokenSub
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 48:
+		s.token = TokenMul
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 49:
+		s.token = TokenRem
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 50:
+		s.token = TokenAnd
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 51:
+		s.token = TokenOr
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 52:
+		s.token = TokenXor
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 53:
+		s.token = TokenLessThan
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 54:
+		s.token = TokenGreaterThan
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 55:
+		s.token = TokenAssign
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 56:
+		s.token = TokenNot
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 57:
+		s.token = TokenTilde
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 58:
+		s.token = TokenColon
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 59:
+		s.token = TokenPeriod
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 60:
+		s.token = TokenLeftParen
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 61:
+		s.token = TokenLeftBracket
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 62:
+		s.token = TokenLeftBrace
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 63:
+		s.token = TokenComma
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 64:
+		s.token = TokenRightParen
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 65:
+		s.token = TokenRightBracket
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 66:
+		s.token = TokenRightBrace
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 67:
+		s.token = TokenSemicolon
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 68:
+		s.token = TokenIntLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 69:
+		s.token = TokenIntLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 73:
+		s.token = TokenComment
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 75:
+		s.token = TokenQuoAssign
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 76:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 85:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 86:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 87:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 88:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 89:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 90:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 91:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 92:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 93:
+		s.token = TokenGo
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 94:
+		s.token = TokenIf
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 95:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 96:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 97:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 98:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 99:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 100:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 101:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 102:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 103:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 104:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 105:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 253:
+		s.token = TokenAddAssign
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 254:
+		s.token = TokenIncrement
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 255:
+		s.token = TokenSubAssign
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 256:
+		s.token = TokenDecrement
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 257:
+		s.token = TokenMulAssign
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 258:
+		s.token = TokenRemAssign
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 259:
+		s.token = TokenAndNot
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 260:
+		s.token = TokenAndAssign
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 261:
+		s.token = TokenLogicalAnd
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 262:
+		s.token = TokenOrAssign
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 263:
+		s.token = TokenLogicalOr
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 264:
+		s.token = TokenXorAssign
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 265:
+		s.token = TokenShiftLeft
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 266:
+		s.token = TokenArrow
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 267:
+		s.token = TokenLessEqual
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 268:
+		s.token = TokenShiftRight
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 269:
+		s.token = TokenGreaterEqual
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 270:
+		s.token = TokenEqual
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 271:
+		s.token = TokenNotEqual
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 272:
+		s.token = TokenDefine
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 274:
+		s.token = TokenFloatLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 278:
+		s.token = TokenIntLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 281:
+		s.token = TokenFloatLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 284:
+		s.token = TokenImaginaryLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 286:
+		s.token = TokenFloatLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 302:
+		s.token = TokenStringLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 323:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 360:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 361:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 362:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 363:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 364:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 365:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 366:
+		s.token = TokenFor
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 367:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 368:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 369:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 370:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 371:
+		s.token = TokenMap
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 372:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 373:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 374:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 375:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 376:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 377:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 378:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 379:
+		s.token = TokenVar
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 498:
+		s.token = TokenAndNotAssign
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 499:
+		s.token = TokenShiftLeftAssign
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 500:
+		s.token = TokenShiftRightAssign
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 501:
+		s.token = TokenEllipsis
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 504:
+		s.token = TokenIntLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 507:
+		s.token = TokenIntLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 509:
+		s.token = TokenFloatLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 511:
+		s.token = TokenIntLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 514:
+		s.token = TokenFloatLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 518:
+		s.token = TokenFloatLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 520:
+		s.token = TokenFloatLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 522:
+		s.token = TokenFloatLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 523:
+		s.token = TokenRuneLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 526:
+		s.token = TokenRuneLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 533:
+		s.token = TokenComment
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 534:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 562:
+		s.token = TokenCase
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 563:
+		s.token = TokenChan
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 564:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 565:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 566:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 567:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 568:
+		s.token = TokenElse
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 569:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 570:
+		s.token = TokenFunc
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 571:
+		s.token = TokenGoto
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 572:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 573:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 574:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 575:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 576:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 577:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 578:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 579:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 580:
+		s.token = TokenType
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 582:
+		s.token = TokenFloatLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 585:
+		s.token = TokenFloatLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 596:
+		s.token = TokenBreak
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 597:
+		s.token = TokenConst
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 598:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 599:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 600:
+		s.token = TokenDefer
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 601:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 602:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 603:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 604:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 605:
+		s.token = TokenRange
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 606:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 607:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 608:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 609:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 612:
+		s.token = TokenFloatLit
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 616:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 617:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 618:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 619:
+		s.token = TokenImport
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 620:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 621:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 622:
+		s.token = TokenReturn
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 623:
+		s.token = TokenSelect
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 624:
+		s.token = TokenStruct
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 625:
+		s.token = TokenSwitch
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 629:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 630:
+		s.token = TokenDefault
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 631:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 632:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 633:
+		s.token = TokenPackage
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 636:
+		s.token = TokenContinue
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 637:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 638:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 639:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 640:
+		s.token = TokenInterface
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 641:
+		s.token = TokenIdentifier
+		s.lexemeEndIdx = s.lexemePeekIdx
+	case 642:
+		s.token = TokenFallthrough
+		s.lexemeEndIdx = s.lexemePeekIdx
+	}
+}
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+var (
+	// errInvalidByte is an error which is returned when no transition matches the current byte.
+	errInvalidByte = errors.New("invalid byte")
+)
+
+func (s *Scanner) state0Whitespace() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '\t':
+	case nextByte == '\t':
 		s.state = 1
-		return nil
-	case nextRune == '\n':
+	case nextByte == '\n':
 		s.state = 1
-		return nil
-	case nextRune == '\r':
+	case nextByte == '\r':
 		s.state = 1
-		return nil
-	case nextRune == ' ':
+	case nextByte == ' ':
 		s.state = 1
-		return nil
-	case nextRune == '!':
-		s.state = 27
-		return nil
-	case nextRune == '"':
-		s.state = 43
-		return nil
-	case nextRune == '%':
-		s.state = 20
-		return nil
-	case nextRune == '&':
-		s.state = 21
-		return nil
-	case nextRune == '\'':
-		s.state = 41
-		return nil
-	case nextRune == '(':
-		s.state = 31
-		return nil
-	case nextRune == ')':
-		s.state = 35
-		return nil
-	case nextRune == '*':
-		s.state = 19
-		return nil
-	case nextRune == '+':
-		s.state = 17
-		return nil
-	case nextRune == ',':
-		s.state = 34
-		return nil
-	case nextRune == '-':
-		s.state = 18
-		return nil
-	case nextRune == '.':
-		s.state = 30
-		return nil
-	case nextRune == '/':
+	case nextByte == '!':
+		s.state = 56
+	case nextByte == '"':
+		s.state = 72
+	case nextByte == '%':
+		s.state = 49
+	case nextByte == '&':
+		s.state = 50
+	case nextByte == '\'':
+		s.state = 70
+	case nextByte == '(':
+		s.state = 60
+	case nextByte == ')':
+		s.state = 64
+	case nextByte == '*':
+		s.state = 48
+	case nextByte == '+':
+		s.state = 46
+	case nextByte == ',':
+		s.state = 63
+	case nextByte == '-':
+		s.state = 47
+	case nextByte == '.':
+		s.state = 59
+	case nextByte == '/':
 		s.state = 2
-		return nil
-	case nextRune == '0':
-		s.state = 39
-		return nil
-	case '1' <= nextRune && nextRune <= '9':
-		s.state = 40
-		return nil
-	case nextRune == ':':
-		s.state = 29
-		return nil
-	case nextRune == ';':
-		s.state = 38
-		return nil
-	case nextRune == '<':
-		s.state = 24
-		return nil
-	case nextRune == '=':
-		s.state = 26
-		return nil
-	case nextRune == '>':
-		s.state = 25
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case nextByte == '0':
+		s.state = 68
+	case '1' <= nextByte && nextByte <= '9':
+		s.state = 69
+	case nextByte == ':':
+		s.state = 58
+	case nextByte == ';':
+		s.state = 67
+	case nextByte == '<':
+		s.state = 53
+	case nextByte == '=':
+		s.state = 55
+	case nextByte == '>':
+		s.state = 54
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '[':
-		s.state = 32
-		return nil
-	case nextRune == ']':
-		s.state = 36
-		return nil
-	case nextRune == '^':
-		s.state = 23
-		return nil
-	case nextRune == '_':
+	case nextByte == '[':
+		s.state = 61
+	case nextByte == ']':
+		s.state = 65
+	case nextByte == '^':
+		s.state = 52
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case nextRune == '`':
-		s.state = 42
-		return nil
-	case nextRune == 'a':
+	case nextByte == '`':
+		s.state = 71
+	case nextByte == 'a':
 		s.state = 16
-		return nil
-	case nextRune == 'b':
+	case nextByte == 'b':
 		s.state = 3
-		return nil
-	case nextRune == 'c':
+	case nextByte == 'c':
 		s.state = 4
-		return nil
-	case nextRune == 'd':
+	case nextByte == 'd':
 		s.state = 5
-		return nil
-	case nextRune == 'e':
+	case nextByte == 'e':
 		s.state = 6
-		return nil
-	case nextRune == 'f':
+	case nextByte == 'f':
 		s.state = 7
-		return nil
-	case nextRune == 'g':
+	case nextByte == 'g':
 		s.state = 8
-		return nil
-	case nextRune == 'h':
+	case nextByte == 'h':
 		s.state = 16
-		return nil
-	case nextRune == 'i':
+	case nextByte == 'i':
 		s.state = 9
-		return nil
-	case 'j' <= nextRune && nextRune <= 'l':
+	case 'j' <= nextByte && nextByte <= 'l':
 		s.state = 16
-		return nil
-	case nextRune == 'm':
+	case nextByte == 'm':
 		s.state = 10
-		return nil
-	case 'n' <= nextRune && nextRune <= 'o':
+	case 'n' <= nextByte && nextByte <= 'o':
 		s.state = 16
-		return nil
-	case nextRune == 'p':
+	case nextByte == 'p':
 		s.state = 11
-		return nil
-	case nextRune == 'q':
+	case nextByte == 'q':
 		s.state = 16
-		return nil
-	case nextRune == 'r':
+	case nextByte == 'r':
 		s.state = 12
-		return nil
-	case nextRune == 's':
+	case nextByte == 's':
 		s.state = 13
-		return nil
-	case nextRune == 't':
+	case nextByte == 't':
 		s.state = 14
-		return nil
-	case nextRune == 'u':
+	case nextByte == 'u':
 		s.state = 16
-		return nil
-	case nextRune == 'v':
+	case nextByte == 'v':
 		s.state = 15
-		return nil
-	case 'w' <= nextRune && nextRune <= 'z':
+	case 'w' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
-	case nextRune == '{':
-		s.state = 33
-		return nil
-	case nextRune == '|':
+	case nextByte == '{':
+		s.state = 62
+	case nextByte == '|':
+		s.state = 51
+	case nextByte == '}':
+		s.state = 66
+	case nextByte == '~':
+		s.state = 57
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
 		s.state = 22
-		return nil
-	case nextRune == '}':
-		s.state = 37
-		return nil
-	case nextRune == '~':
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
 		s.state = 28
-		return nil
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 30
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 31
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 35
+	case nextByte == 0xe0:
+		s.state = 36
+	case nextByte == 0xe1:
+		s.state = 37
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 42
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 44
+	case nextByte == 0xf0:
+		s.state = 45
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state1Whitespace() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenWhitespace
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '\t':
+	case nextByte == '\t':
 		s.state = 1
-		return nil
-	case nextRune == '\n':
+	case nextByte == '\n':
 		s.state = 1
-		return nil
-	case nextRune == '\r':
+	case nextByte == '\r':
 		s.state = 1
-		return nil
-	case nextRune == ' ':
+	case nextByte == ' ':
 		s.state = 1
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state2Quo() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenQuo
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '*':
-		s.state = 45
-		return nil
-	case nextRune == '/':
-		s.state = 44
-		return nil
-	case nextRune == '=':
-		s.state = 46
-		return nil
+	case nextByte == '*':
+		s.state = 74
+	case nextByte == '/':
+		s.state = 73
+	case nextByte == '=':
+		s.state = 75
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state3Identifier() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'q':
+	case 'a' <= nextByte && nextByte <= 'q':
 		s.state = 16
-		return nil
-	case nextRune == 'r':
-		s.state = 47
-		return nil
-	case 's' <= nextRune && nextRune <= 'z':
+	case nextByte == 'r':
+		s.state = 76
+	case 's' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state4Identifier() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case nextRune == 'a':
-		s.state = 48
-		return nil
-	case 'b' <= nextRune && nextRune <= 'g':
+	case nextByte == 'a':
+		s.state = 85
+	case 'b' <= nextByte && nextByte <= 'g':
 		s.state = 16
-		return nil
-	case nextRune == 'h':
-		s.state = 49
-		return nil
-	case 'i' <= nextRune && nextRune <= 'n':
+	case nextByte == 'h':
+		s.state = 86
+	case 'i' <= nextByte && nextByte <= 'n':
 		s.state = 16
-		return nil
-	case nextRune == 'o':
-		s.state = 50
-		return nil
-	case 'p' <= nextRune && nextRune <= 'z':
+	case nextByte == 'o':
+		s.state = 87
+	case 'p' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state5Identifier() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
+	case 'a' <= nextByte && nextByte <= 'd':
 		s.state = 16
-		return nil
-	case nextRune == 'e':
-		s.state = 51
-		return nil
-	case 'f' <= nextRune && nextRune <= 'z':
+	case nextByte == 'e':
+		s.state = 88
+	case 'f' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state6Identifier() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'k':
+	case 'a' <= nextByte && nextByte <= 'k':
 		s.state = 16
-		return nil
-	case nextRune == 'l':
-		s.state = 52
-		return nil
-	case 'm' <= nextRune && nextRune <= 'z':
+	case nextByte == 'l':
+		s.state = 89
+	case 'm' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state7Identifier() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case nextRune == 'a':
-		s.state = 53
-		return nil
-	case 'b' <= nextRune && nextRune <= 'n':
+	case nextByte == 'a':
+		s.state = 90
+	case 'b' <= nextByte && nextByte <= 'n':
 		s.state = 16
-		return nil
-	case nextRune == 'o':
-		s.state = 54
-		return nil
-	case 'p' <= nextRune && nextRune <= 't':
+	case nextByte == 'o':
+		s.state = 91
+	case 'p' <= nextByte && nextByte <= 't':
 		s.state = 16
-		return nil
-	case nextRune == 'u':
-		s.state = 55
-		return nil
-	case 'v' <= nextRune && nextRune <= 'z':
+	case nextByte == 'u':
+		s.state = 92
+	case 'v' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state8Identifier() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'n':
+	case 'a' <= nextByte && nextByte <= 'n':
 		s.state = 16
-		return nil
-	case nextRune == 'o':
-		s.state = 56
-		return nil
-	case 'p' <= nextRune && nextRune <= 'z':
+	case nextByte == 'o':
+		s.state = 93
+	case 'p' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state9Identifier() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'e':
+	case 'a' <= nextByte && nextByte <= 'e':
 		s.state = 16
-		return nil
-	case nextRune == 'f':
-		s.state = 57
-		return nil
-	case 'g' <= nextRune && nextRune <= 'l':
+	case nextByte == 'f':
+		s.state = 94
+	case 'g' <= nextByte && nextByte <= 'l':
 		s.state = 16
-		return nil
-	case nextRune == 'm':
-		s.state = 58
-		return nil
-	case nextRune == 'n':
-		s.state = 59
-		return nil
-	case 'o' <= nextRune && nextRune <= 'z':
+	case nextByte == 'm':
+		s.state = 95
+	case nextByte == 'n':
+		s.state = 96
+	case 'o' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state10Identifier() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case nextRune == 'a':
-		s.state = 60
-		return nil
-	case 'b' <= nextRune && nextRune <= 'z':
+	case nextByte == 'a':
+		s.state = 97
+	case 'b' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state11Identifier() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case nextRune == 'a':
-		s.state = 61
-		return nil
-	case 'b' <= nextRune && nextRune <= 'z':
+	case nextByte == 'a':
+		s.state = 98
+	case 'b' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state12Identifier() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case nextRune == 'a':
-		s.state = 62
-		return nil
-	case 'b' <= nextRune && nextRune <= 'd':
+	case nextByte == 'a':
+		s.state = 99
+	case 'b' <= nextByte && nextByte <= 'd':
 		s.state = 16
-		return nil
-	case nextRune == 'e':
-		s.state = 63
-		return nil
-	case 'f' <= nextRune && nextRune <= 'z':
+	case nextByte == 'e':
+		s.state = 100
+	case 'f' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state13Identifier() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
+	case 'a' <= nextByte && nextByte <= 'd':
 		s.state = 16
-		return nil
-	case nextRune == 'e':
-		s.state = 64
-		return nil
-	case 'f' <= nextRune && nextRune <= 's':
+	case nextByte == 'e':
+		s.state = 101
+	case 'f' <= nextByte && nextByte <= 's':
 		s.state = 16
-		return nil
-	case nextRune == 't':
-		s.state = 65
-		return nil
-	case 'u' <= nextRune && nextRune <= 'v':
+	case nextByte == 't':
+		s.state = 102
+	case 'u' <= nextByte && nextByte <= 'v':
 		s.state = 16
-		return nil
-	case nextRune == 'w':
-		s.state = 66
-		return nil
-	case 'x' <= nextRune && nextRune <= 'z':
+	case nextByte == 'w':
+		s.state = 103
+	case 'x' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state14Identifier() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'x':
+	case 'a' <= nextByte && nextByte <= 'x':
 		s.state = 16
-		return nil
-	case nextRune == 'y':
-		s.state = 67
-		return nil
-	case nextRune == 'z':
+	case nextByte == 'y':
+		s.state = 104
+	case nextByte == 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state15Identifier() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case nextRune == 'a':
-		s.state = 68
-		return nil
-	case 'b' <= nextRune && nextRune <= 'z':
+	case nextByte == 'a':
+		s.state = 105
+	case 'b' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state16Identifier() error {
-	_ = s.runeReader.Next()
-
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
+	case 'a' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state17Add() error {
-	_ = s.runeReader.Next()
+func (s *Scanner) state17Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0xaa <= nextByte && nextByte <= 0xb5:
+		s.state = 16
+	case 0xba <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
 
+func (s *Scanner) state18Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 16
+	case 0x81 <= nextByte && nextByte <= 0x96:
+		s.state = 16
+	case 0x98 <= nextByte && nextByte <= 0xb6:
+		s.state = 16
+	case 0xb8 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state19Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state20Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x81:
+		s.state = 16
+	case 0x86 <= nextByte && nextByte <= 0x91:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xa4:
+		s.state = 16
+	case 0xac <= nextByte && nextByte <= 0xae:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state21Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0xb0 <= nextByte && nextByte <= 0xb4:
+		s.state = 16
+	case 0xb6 <= nextByte && nextByte <= 0xb7:
+		s.state = 16
+	case 0xba <= nextByte && nextByte <= 0xbd:
+		s.state = 16
+	case nextByte == 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state22Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x86:
+		s.state = 16
+	case 0x88 <= nextByte && nextByte <= 0x8a:
+		s.state = 16
+	case 0x8c <= nextByte && nextByte <= 0x8e:
+		s.state = 16
+	case 0x8f <= nextByte && nextByte <= 0xa1:
+		s.state = 16
+	case 0xa3 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state23Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xb5:
+		s.state = 16
+	case 0xb7 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state24Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x81:
+		s.state = 16
+	case 0x8a <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state25Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb1 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state26Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x96:
+		s.state = 16
+	case 0x99 <= nextByte && nextByte <= 0xa0:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state27Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x88:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state28Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x90 <= nextByte && nextByte <= 0xaa:
+		s.state = 16
+	case 0xaf <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state29Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0xa0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state30Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8a:
+		s.state = 16
+	case 0xae <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb1 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state31Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x93:
+		s.state = 16
+	case 0x95 <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xae:
+		s.state = 16
+	case 0xaf <= nextByte && nextByte <= 0xba:
+		s.state = 16
+	case 0xbb <= nextByte && nextByte <= 0xbc:
+		s.state = 16
+	case nextByte == 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state32Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0x92 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state33Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x8d <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state34Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xb1 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state35Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8a:
+		s.state = 16
+	case 0x8b <= nextByte && nextByte <= 0xaa:
+		s.state = 16
+	case 0xb4 <= nextByte && nextByte <= 0xb5:
+		s.state = 16
+	case 0xba <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state36Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0xa0:
+		s.state = 106
+	case nextByte == 0xa1:
+		s.state = 107
+	case nextByte == 0xa2:
+		s.state = 108
+	case nextByte == 0xa3:
+		s.state = 109
+	case nextByte == 0xa4:
+		s.state = 110
+	case nextByte == 0xa5:
+		s.state = 111
+	case nextByte == 0xa6:
+		s.state = 112
+	case nextByte == 0xa7:
+		s.state = 113
+	case nextByte == 0xa8:
+		s.state = 114
+	case nextByte == 0xa9:
+		s.state = 115
+	case nextByte == 0xaa:
+		s.state = 116
+	case nextByte == 0xab:
+		s.state = 117
+	case nextByte == 0xac:
+		s.state = 118
+	case nextByte == 0xad:
+		s.state = 119
+	case nextByte == 0xae:
+		s.state = 120
+	case nextByte == 0xaf:
+		s.state = 121
+	case nextByte == 0xb0:
+		s.state = 122
+	case nextByte == 0xb1:
+		s.state = 123
+	case nextByte == 0xb2:
+		s.state = 124
+	case nextByte == 0xb3:
+		s.state = 125
+	case nextByte == 0xb4:
+		s.state = 126
+	case nextByte == 0xb5:
+		s.state = 127
+	case nextByte == 0xb6:
+		s.state = 128
+	case nextByte == 0xb7:
+		s.state = 129
+	case nextByte == 0xb8:
+		s.state = 130
+	case nextByte == 0xb9:
+		s.state = 131
+	case nextByte == 0xba:
+		s.state = 132
+	case nextByte == 0xbb:
+		s.state = 133
+	case nextByte == 0xbc:
+		s.state = 19
+	case nextByte == 0xbd:
+		s.state = 134
+	case nextByte == 0xbe:
+		s.state = 135
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state37Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 136
+	case nextByte == 0x81:
+		s.state = 137
+	case nextByte == 0x82:
+		s.state = 138
+	case nextByte == 0x83:
+		s.state = 139
+	case 0x84 <= nextByte && nextByte <= 0x88:
+		s.state = 19
+	case nextByte == 0x89:
+		s.state = 140
+	case nextByte == 0x8a:
+		s.state = 141
+	case nextByte == 0x8b:
+		s.state = 142
+	case nextByte == 0x8c:
+		s.state = 143
+	case nextByte == 0x8d:
+		s.state = 144
+	case nextByte == 0x8e:
+		s.state = 145
+	case nextByte == 0x8f:
+		s.state = 146
+	case nextByte == 0x90:
+		s.state = 147
+	case 0x91 <= nextByte && nextByte <= 0x98:
+		s.state = 19
+	case nextByte == 0x99:
+		s.state = 148
+	case nextByte == 0x9a:
+		s.state = 149
+	case nextByte == 0x9b:
+		s.state = 150
+	case nextByte == 0x9c:
+		s.state = 151
+	case nextByte == 0x9d:
+		s.state = 152
+	case nextByte == 0x9e:
+		s.state = 153
+	case nextByte == 0x9f:
+		s.state = 154
+	case nextByte == 0xa0:
+		s.state = 29
+	case nextByte == 0xa1:
+		s.state = 155
+	case nextByte == 0xa2:
+		s.state = 156
+	case nextByte == 0xa3:
+		s.state = 157
+	case nextByte == 0xa4:
+		s.state = 158
+	case nextByte == 0xa5:
+		s.state = 159
+	case nextByte == 0xa6:
+		s.state = 160
+	case nextByte == 0xa7:
+		s.state = 109
+	case nextByte == 0xa8:
+		s.state = 161
+	case nextByte == 0xa9:
+		s.state = 162
+	case nextByte == 0xaa:
+		s.state = 163
+	case nextByte == 0xab:
+		s.state = 19
+	case nextByte == 0xac:
+		s.state = 164
+	case nextByte == 0xad:
+		s.state = 165
+	case nextByte == 0xae:
+		s.state = 166
+	case nextByte == 0xaf:
+		s.state = 167
+	case nextByte == 0xb0:
+		s.state = 168
+	case nextByte == 0xb1:
+		s.state = 169
+	case nextByte == 0xb2:
+		s.state = 170
+	case nextByte == 0xb3:
+		s.state = 171
+	case nextByte == 0xb4:
+		s.state = 172
+	case nextByte == 0xb5:
+		s.state = 19
+	case nextByte == 0xb6:
+		s.state = 19
+	case nextByte == 0xb8:
+		s.state = 19
+	case 0xb9 <= nextByte && nextByte <= 0xbb:
+		s.state = 19
+	case nextByte == 0xbc:
+		s.state = 173
+	case nextByte == 0xbd:
+		s.state = 174
+	case nextByte == 0xbe:
+		s.state = 175
+	case nextByte == 0xbf:
+		s.state = 176
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state38Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x81:
+		s.state = 177
+	case nextByte == 0x82:
+		s.state = 178
+	case nextByte == 0x84:
+		s.state = 179
+	case nextByte == 0x85:
+		s.state = 180
+	case nextByte == 0x86:
+		s.state = 181
+	case 0x87 <= nextByte && nextByte <= 0xaf:
+		s.state = 19
+	case nextByte == 0xb0:
+		s.state = 172
+	case 0xb1 <= nextByte && nextByte <= 0xb2:
+		s.state = 19
+	case nextByte == 0xb3:
+		s.state = 182
+	case nextByte == 0xb4:
+		s.state = 183
+	case nextByte == 0xb5:
+		s.state = 184
+	case nextByte == 0xb6:
+		s.state = 185
+	case nextByte == 0xb7:
+		s.state = 186
+	case nextByte == 0xb8:
+		s.state = 187
+	case 0xb9 <= nextByte && nextByte <= 0xbe:
+		s.state = 19
+	case nextByte == 0xbf:
+		s.state = 19
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state39Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 188
+	case nextByte == 0x81:
+		s.state = 147
+	case nextByte == 0x82:
+		s.state = 189
+	case nextByte == 0x83:
+		s.state = 190
+	case nextByte == 0x84:
+		s.state = 191
+	case nextByte == 0x85:
+		s.state = 19
+	case nextByte == 0x86:
+		s.state = 192
+	case nextByte == 0x87:
+		s.state = 193
+	case nextByte == 0x90:
+		s.state = 19
+	case 0x91 <= nextByte && nextByte <= 0xbe:
+		s.state = 19
+	case nextByte == 0xbf:
+		s.state = 19
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state40Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 19
+	case 0x81 <= nextByte && nextByte <= 0xb5:
+		s.state = 19
+	case nextByte == 0xb6:
+		s.state = 19
+	case nextByte == 0xb8:
+		s.state = 19
+	case 0xb9 <= nextByte && nextByte <= 0xbe:
+		s.state = 19
+	case nextByte == 0xbf:
+		s.state = 19
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state41Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 19
+	case 0x81 <= nextByte && nextByte <= 0xbe:
+		s.state = 19
+	case nextByte == 0xbf:
+		s.state = 19
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state42Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 19
+	case 0x81 <= nextByte && nextByte <= 0x91:
+		s.state = 19
+	case nextByte == 0x92:
+		s.state = 194
+	case nextByte == 0x93:
+		s.state = 195
+	case nextByte == 0x94:
+		s.state = 19
+	case 0x95 <= nextByte && nextByte <= 0x97:
+		s.state = 19
+	case nextByte == 0x98:
+		s.state = 196
+	case nextByte == 0x99:
+		s.state = 197
+	case nextByte == 0x9a:
+		s.state = 198
+	case nextByte == 0x9b:
+		s.state = 199
+	case nextByte == 0x9c:
+		s.state = 200
+	case nextByte == 0x9d:
+		s.state = 19
+	case nextByte == 0x9e:
+		s.state = 201
+	case nextByte == 0x9f:
+		s.state = 202
+	case nextByte == 0xa0:
+		s.state = 203
+	case nextByte == 0xa1:
+		s.state = 153
+	case nextByte == 0xa2:
+		s.state = 204
+	case nextByte == 0xa3:
+		s.state = 205
+	case nextByte == 0xa4:
+		s.state = 206
+	case nextByte == 0xa5:
+		s.state = 207
+	case nextByte == 0xa6:
+		s.state = 208
+	case nextByte == 0xa7:
+		s.state = 209
+	case nextByte == 0xa8:
+		s.state = 210
+	case nextByte == 0xa9:
+		s.state = 211
+	case nextByte == 0xaa:
+		s.state = 212
+	case nextByte == 0xab:
+		s.state = 213
+	case nextByte == 0xac:
+		s.state = 214
+	case nextByte == 0xad:
+		s.state = 215
+	case nextByte == 0xae:
+		s.state = 19
+	case nextByte == 0xaf:
+		s.state = 216
+	case nextByte == 0xb0:
+		s.state = 19
+	case 0xb1 <= nextByte && nextByte <= 0xbe:
+		s.state = 19
+	case nextByte == 0xbf:
+		s.state = 19
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state43Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 19
+	case 0x81 <= nextByte && nextByte <= 0x9d:
+		s.state = 19
+	case nextByte == 0x9e:
+		s.state = 217
+	case nextByte == 0x9f:
+		s.state = 218
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state44Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0xa4:
+		s.state = 19
+	case 0xa5 <= nextByte && nextByte <= 0xa8:
+		s.state = 19
+	case nextByte == 0xa9:
+		s.state = 219
+	case nextByte == 0xaa:
+		s.state = 19
+	case nextByte == 0xab:
+		s.state = 220
+	case nextByte == 0xac:
+		s.state = 221
+	case nextByte == 0xad:
+		s.state = 222
+	case nextByte == 0xae:
+		s.state = 223
+	case nextByte == 0xaf:
+		s.state = 224
+	case 0xb0 <= nextByte && nextByte <= 0xb3:
+		s.state = 19
+	case nextByte == 0xb4:
+		s.state = 225
+	case nextByte == 0xb5:
+		s.state = 121
+	case nextByte == 0xb6:
+		s.state = 226
+	case nextByte == 0xb7:
+		s.state = 227
+	case nextByte == 0xb9:
+		s.state = 228
+	case nextByte == 0xba:
+		s.state = 19
+	case nextByte == 0xbb:
+		s.state = 229
+	case nextByte == 0xbc:
+		s.state = 230
+	case nextByte == 0xbd:
+		s.state = 231
+	case nextByte == 0xbe:
+		s.state = 232
+	case nextByte == 0xbf:
+		s.state = 233
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state45Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x90:
+		s.state = 234
+	case nextByte == 0x91:
+		s.state = 235
+	case nextByte == 0x92:
+		s.state = 236
+	case nextByte == 0x93:
+		s.state = 237
+	case nextByte == 0x94:
+		s.state = 238
+	case nextByte == 0x96:
+		s.state = 239
+	case nextByte == 0x97:
+		s.state = 240
+	case nextByte == 0x98:
+		s.state = 241
+	case nextByte == 0x9a:
+		s.state = 242
+	case nextByte == 0x9b:
+		s.state = 243
+	case nextByte == 0x9d:
+		s.state = 244
+	case nextByte == 0x9e:
+		s.state = 245
+	case nextByte == 0xa0:
+		s.state = 41
+	case 0xa1 <= nextByte && nextByte <= 0xa9:
+		s.state = 41
+	case nextByte == 0xaa:
+		s.state = 246
+	case nextByte == 0xab:
+		s.state = 247
+	case nextByte == 0xac:
+		s.state = 248
+	case nextByte == 0xad:
+		s.state = 41
+	case nextByte == 0xae:
+		s.state = 249
+	case nextByte == 0xaf:
+		s.state = 250
+	case nextByte == 0xb0:
+		s.state = 41
+	case nextByte == 0xb1:
+		s.state = 251
+	case nextByte == 0xb2:
+		s.state = 252
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state46Add() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenAdd
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '+':
-		s.state = 70
-		return nil
-	case nextRune == '=':
-		s.state = 69
-		return nil
+	case nextByte == '+':
+		s.state = 254
+	case nextByte == '=':
+		s.state = 253
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state18Sub() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state47Sub() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenSub
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '-':
-		s.state = 72
-		return nil
-	case nextRune == '=':
-		s.state = 71
-		return nil
+	case nextByte == '-':
+		s.state = 256
+	case nextByte == '=':
+		s.state = 255
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state19Mul() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state48Mul() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenMul
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '=':
-		s.state = 73
-		return nil
+	case nextByte == '=':
+		s.state = 257
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state20Rem() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state49Rem() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenRem
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '=':
-		s.state = 74
-		return nil
+	case nextByte == '=':
+		s.state = 258
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state21And() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state50And() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenAnd
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '&':
-		s.state = 77
-		return nil
-	case nextRune == '=':
-		s.state = 76
-		return nil
-	case nextRune == '^':
-		s.state = 75
-		return nil
+	case nextByte == '&':
+		s.state = 261
+	case nextByte == '=':
+		s.state = 260
+	case nextByte == '^':
+		s.state = 259
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state22Or() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state51Or() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenOr
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '=':
-		s.state = 78
-		return nil
-	case nextRune == '|':
-		s.state = 79
-		return nil
+	case nextByte == '=':
+		s.state = 262
+	case nextByte == '|':
+		s.state = 263
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state23Xor() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state52Xor() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenXor
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '=':
-		s.state = 80
-		return nil
+	case nextByte == '=':
+		s.state = 264
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state24LessThan() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state53LessThan() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenLessThan
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '-':
-		s.state = 82
-		return nil
-	case nextRune == '<':
-		s.state = 81
-		return nil
-	case nextRune == '=':
-		s.state = 83
-		return nil
+	case nextByte == '-':
+		s.state = 266
+	case nextByte == '<':
+		s.state = 265
+	case nextByte == '=':
+		s.state = 267
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state25GreaterThan() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state54GreaterThan() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenGreaterThan
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '=':
-		s.state = 85
-		return nil
-	case nextRune == '>':
-		s.state = 84
-		return nil
+	case nextByte == '=':
+		s.state = 269
+	case nextByte == '>':
+		s.state = 268
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state26Assign() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state55Assign() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenAssign
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '=':
-		s.state = 86
-		return nil
+	case nextByte == '=':
+		s.state = 270
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state27Not() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state56Not() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenNot
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '=':
-		s.state = 87
-		return nil
+	case nextByte == '=':
+		s.state = 271
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state28Tilde() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state57Tilde() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenTilde
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
-func (s *Scanner) state29Colon() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state58Colon() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenColon
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '=':
-		s.state = 88
-		return nil
+	case nextByte == '=':
+		s.state = 272
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state30Period() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state59Period() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenPeriod
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '.':
-		s.state = 89
-		return nil
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 90
-		return nil
+	case nextByte == '.':
+		s.state = 273
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 274
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state31LeftParen() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state60LeftParen() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenLeftParen
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
-func (s *Scanner) state32LeftBracket() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state61LeftBracket() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenLeftBracket
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
-func (s *Scanner) state33LeftBrace() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state62LeftBrace() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenLeftBrace
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
-func (s *Scanner) state34Comma() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state63Comma() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenComma
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
-func (s *Scanner) state35RightParen() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state64RightParen() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenRightParen
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
-func (s *Scanner) state36RightBracket() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state65RightBracket() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenRightBracket
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
-func (s *Scanner) state37RightBrace() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state66RightBrace() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenRightBrace
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
-func (s *Scanner) state38Semicolon() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state67Semicolon() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenSemicolon
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
-func (s *Scanner) state39IntLit() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state68IntLit() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIntLit
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '.':
-		s.state = 97
-		return nil
-	case '0' <= nextRune && nextRune <= '7':
-		s.state = 94
-		return nil
-	case '8' <= nextRune && nextRune <= '9':
-		s.state = 96
-		return nil
-	case nextRune == 'A':
-		s.state = 99
-		return nil
-	case nextRune == 'B':
-		s.state = 91
-		return nil
-	case 'C' <= nextRune && nextRune <= 'D':
-		s.state = 99
-		return nil
-	case nextRune == 'E':
-		s.state = 98
-		return nil
-	case nextRune == 'F':
-		s.state = 99
-		return nil
-	case nextRune == 'O':
-		s.state = 92
-		return nil
-	case nextRune == 'X':
-		s.state = 95
-		return nil
-	case nextRune == '_':
-		s.state = 93
-		return nil
-	case nextRune == 'a':
-		s.state = 99
-		return nil
-	case nextRune == 'b':
-		s.state = 91
-		return nil
-	case 'c' <= nextRune && nextRune <= 'd':
-		s.state = 99
-		return nil
-	case nextRune == 'e':
-		s.state = 98
-		return nil
-	case nextRune == 'f':
-		s.state = 99
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
-	case nextRune == 'o':
-		s.state = 92
-		return nil
-	case nextRune == 'x':
-		s.state = 95
-		return nil
+	case nextByte == '.':
+		s.state = 281
+	case '0' <= nextByte && nextByte <= '7':
+		s.state = 278
+	case '8' <= nextByte && nextByte <= '9':
+		s.state = 280
+	case nextByte == 'A':
+		s.state = 283
+	case nextByte == 'B':
+		s.state = 275
+	case 'C' <= nextByte && nextByte <= 'D':
+		s.state = 283
+	case nextByte == 'E':
+		s.state = 282
+	case nextByte == 'F':
+		s.state = 283
+	case nextByte == 'O':
+		s.state = 276
+	case nextByte == 'X':
+		s.state = 279
+	case nextByte == '_':
+		s.state = 277
+	case nextByte == 'a':
+		s.state = 283
+	case nextByte == 'b':
+		s.state = 275
+	case 'c' <= nextByte && nextByte <= 'd':
+		s.state = 283
+	case nextByte == 'e':
+		s.state = 282
+	case nextByte == 'f':
+		s.state = 283
+	case nextByte == 'i':
+		s.state = 284
+	case nextByte == 'o':
+		s.state = 276
+	case nextByte == 'x':
+		s.state = 279
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state40IntLit() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state69IntLit() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIntLit
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '.':
-		s.state = 102
-		return nil
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 40
-		return nil
-	case nextRune == 'E':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 101
-		return nil
-	case nextRune == 'e':
-		s.state = 103
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
+	case nextByte == '.':
+		s.state = 286
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 69
+	case nextByte == 'E':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 285
+	case nextByte == 'e':
+		s.state = 287
+	case nextByte == 'i':
+		s.state = 284
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state41RuneLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state70RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case 0x0 <= nextRune && nextRune <= '\t':
-		s.state = 104
-		return nil
-	case 0xb <= nextRune && nextRune <= '[':
-		s.state = 104
-		return nil
-	case nextRune == '\\':
-		s.state = 105
-		return nil
-	case ']' <= nextRune && nextRune <= 0x10ffff:
-		s.state = 104
-		return nil
+	case 0x0 <= nextByte && nextByte <= '\t':
+		s.state = 288
+	case 0xb <= nextByte && nextByte <= '[':
+		s.state = 288
+	case nextByte == '\\':
+		s.state = 289
+	case ']' <= nextByte && nextByte <= 0x7f:
+		s.state = 288
+	case nextByte == 0xc2:
+		s.state = 290
+	case 0xc3 <= nextByte && nextByte <= 0xde:
+		s.state = 290
+	case nextByte == 0xdf:
+		s.state = 290
+	case nextByte == 0xe0:
+		s.state = 291
+	case 0xe1 <= nextByte && nextByte <= 0xee:
+		s.state = 292
+	case nextByte == 0xef:
+		s.state = 292
+	case nextByte == 0xf0:
+		s.state = 293
+	case 0xf1 <= nextByte && nextByte <= 0xf3:
+		s.state = 294
+	case nextByte == 0xf4:
+		s.state = 295
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state42StringLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state71StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case 0x0 <= nextRune && nextRune <= '\t':
-		s.state = 42
-		return nil
-	case nextRune == '\n':
-		s.state = 42
-		return nil
-	case 0xb <= nextRune && nextRune <= '_':
-		s.state = 42
-		return nil
-	case nextRune == '`':
-		s.state = 106
-		return nil
-	case 'a' <= nextRune && nextRune <= 0x10ffff:
-		s.state = 42
-		return nil
+	case 0x0 <= nextByte && nextByte <= '\t':
+		s.state = 71
+	case nextByte == '\n':
+		s.state = 71
+	case 0xb <= nextByte && nextByte <= '_':
+		s.state = 71
+	case nextByte == '`':
+		s.state = 302
+	case 'a' <= nextByte && nextByte <= 0x7f:
+		s.state = 71
+	case nextByte == 0xc2:
+		s.state = 296
+	case 0xc3 <= nextByte && nextByte <= 0xde:
+		s.state = 296
+	case nextByte == 0xdf:
+		s.state = 296
+	case nextByte == 0xe0:
+		s.state = 297
+	case 0xe1 <= nextByte && nextByte <= 0xee:
+		s.state = 298
+	case nextByte == 0xef:
+		s.state = 298
+	case nextByte == 0xf0:
+		s.state = 299
+	case 0xf1 <= nextByte && nextByte <= 0xf3:
+		s.state = 300
+	case nextByte == 0xf4:
+		s.state = 301
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state43StringLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state72StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case 0x0 <= nextRune && nextRune <= '\t':
-		s.state = 43
-		return nil
-	case 0xb <= nextRune && nextRune <= '!':
-		s.state = 43
-		return nil
-	case nextRune == '"':
-		s.state = 106
-		return nil
-	case '#' <= nextRune && nextRune <= '[':
-		s.state = 43
-		return nil
-	case nextRune == '\\':
-		s.state = 107
-		return nil
-	case ']' <= nextRune && nextRune <= 0x10ffff:
-		s.state = 43
-		return nil
+	case 0x0 <= nextByte && nextByte <= '\t':
+		s.state = 72
+	case 0xb <= nextByte && nextByte <= '!':
+		s.state = 72
+	case nextByte == '"':
+		s.state = 302
+	case '#' <= nextByte && nextByte <= '[':
+		s.state = 72
+	case nextByte == '\\':
+		s.state = 309
+	case ']' <= nextByte && nextByte <= 0x7f:
+		s.state = 72
+	case nextByte == 0xc2:
+		s.state = 303
+	case 0xc3 <= nextByte && nextByte <= 0xde:
+		s.state = 303
+	case nextByte == 0xdf:
+		s.state = 303
+	case nextByte == 0xe0:
+		s.state = 304
+	case 0xe1 <= nextByte && nextByte <= 0xee:
+		s.state = 305
+	case nextByte == 0xef:
+		s.state = 305
+	case nextByte == 0xf0:
+		s.state = 306
+	case 0xf1 <= nextByte && nextByte <= 0xf3:
+		s.state = 307
+	case nextByte == 0xf4:
+		s.state = 308
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state44Comment() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state73Comment() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenComment
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case 0x0 <= nextRune && nextRune <= '\t':
-		s.state = 44
-		return nil
-	case 0xb <= nextRune && nextRune <= 0x10ffff:
-		s.state = 44
-		return nil
+	case 0x0 <= nextByte && nextByte <= '\t':
+		s.state = 73
+	case 0xb <= nextByte && nextByte <= 0x7f:
+		s.state = 73
+	case nextByte == 0xc2:
+		s.state = 310
+	case 0xc3 <= nextByte && nextByte <= 0xde:
+		s.state = 310
+	case nextByte == 0xdf:
+		s.state = 310
+	case nextByte == 0xe0:
+		s.state = 311
+	case 0xe1 <= nextByte && nextByte <= 0xee:
+		s.state = 312
+	case nextByte == 0xef:
+		s.state = 312
+	case nextByte == 0xf0:
+		s.state = 313
+	case 0xf1 <= nextByte && nextByte <= 0xf3:
+		s.state = 314
+	case nextByte == 0xf4:
+		s.state = 315
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state45Comment() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state74Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case 0x0 <= nextRune && nextRune <= ')':
-		s.state = 45
-		return nil
-	case nextRune == '*':
-		s.state = 108
-		return nil
-	case '+' <= nextRune && nextRune <= 0x10ffff:
-		s.state = 45
-		return nil
+	case 0x0 <= nextByte && nextByte <= ')':
+		s.state = 74
+	case nextByte == '*':
+		s.state = 322
+	case '+' <= nextByte && nextByte <= 0x7f:
+		s.state = 74
+	case nextByte == 0xc2:
+		s.state = 316
+	case 0xc3 <= nextByte && nextByte <= 0xde:
+		s.state = 316
+	case nextByte == 0xdf:
+		s.state = 316
+	case nextByte == 0xe0:
+		s.state = 317
+	case 0xe1 <= nextByte && nextByte <= 0xee:
+		s.state = 318
+	case nextByte == 0xef:
+		s.state = 318
+	case nextByte == 0xf0:
+		s.state = 319
+	case 0xf1 <= nextByte && nextByte <= 0xf3:
+		s.state = 320
+	case nextByte == 0xf4:
+		s.state = 321
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state46QuoAssign() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state75QuoAssign() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenQuoAssign
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
+	return errInvalidByte
 }
 
-func (s *Scanner) state47Identifier() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state76Identifier() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
+	case 'a' <= nextByte && nextByte <= 'd':
 		s.state = 16
-		return nil
-	case nextRune == 'e':
+	case nextByte == 'e':
+		s.state = 323
+	case 'f' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state77Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8a:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xa9:
+		s.state = 16
+	case 0xae <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb1 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state78Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x93:
+		s.state = 16
+	case 0x95 <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xae:
+		s.state = 16
+	case nextByte == 0xaf:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	case nextByte == 0xba:
+		s.state = 16
+	case 0xbb <= nextByte && nextByte <= 0xbc:
+		s.state = 16
+	case nextByte == 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state79Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case nextByte == 0x8a:
+		s.state = 16
+	case 0x8b <= nextByte && nextByte <= 0xaa:
+		s.state = 16
+	case 0xb4 <= nextByte && nextByte <= 0xb5:
+		s.state = 16
+	case 0xba <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state80Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0xa0:
+		s.state = 106
+	case nextByte == 0xa1:
+		s.state = 107
+	case nextByte == 0xa2:
+		s.state = 108
+	case nextByte == 0xa3:
 		s.state = 109
-		return nil
-	case 'f' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state48Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'r':
-		s.state = 16
-		return nil
-	case nextRune == 's':
+	case nextByte == 0xa4:
 		s.state = 110
-		return nil
-	case 't' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state49Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case nextRune == 'a':
-		s.state = 111
-		return nil
-	case 'b' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state50Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'm':
-		s.state = 16
-		return nil
-	case nextRune == 'n':
+	case nextByte == 0xa5:
+		s.state = 324
+	case nextByte == 0xa6:
 		s.state = 112
-		return nil
-	case 'o' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state51Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'e':
-		s.state = 16
-		return nil
-	case nextRune == 'f':
-		s.state = 113
-		return nil
-	case 'g' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state52Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'r':
-		s.state = 16
-		return nil
-	case nextRune == 's':
+	case nextByte == 0xa7:
+		s.state = 325
+	case nextByte == 0xa8:
 		s.state = 114
-		return nil
-	case 't' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state53Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'k':
-		s.state = 16
-		return nil
-	case nextRune == 'l':
-		s.state = 115
-		return nil
-	case 'm' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state54Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'q':
-		s.state = 16
-		return nil
-	case nextRune == 'r':
+	case nextByte == 0xa9:
+		s.state = 326
+	case nextByte == 0xaa:
 		s.state = 116
-		return nil
-	case 's' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
+	case nextByte == 0xab:
+		s.state = 327
+	case nextByte == 0xac:
+		s.state = 118
+	case nextByte == 0xad:
+		s.state = 328
+	case nextByte == 0xae:
+		s.state = 120
+	case nextByte == 0xaf:
+		s.state = 329
+	case nextByte == 0xb0:
+		s.state = 122
+	case nextByte == 0xb1:
+		s.state = 330
+	case nextByte == 0xb2:
+		s.state = 124
+	case nextByte == 0xb3:
+		s.state = 331
+	case nextByte == 0xb4:
+		s.state = 126
+	case nextByte == 0xb5:
+		s.state = 332
+	case nextByte == 0xb6:
+		s.state = 128
+	case nextByte == 0xb7:
+		s.state = 333
+	case nextByte == 0xb8:
+		s.state = 130
+	case nextByte == 0xb9:
+		s.state = 334
+	case nextByte == 0xba:
+		s.state = 132
+	case nextByte == 0xbb:
+		s.state = 335
+	case nextByte == 0xbc:
+		s.state = 336
+	case nextByte == 0xbd:
+		s.state = 134
+	case nextByte == 0xbe:
+		s.state = 135
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state55Identifier() error {
-	_ = s.runeReader.Next()
+func (s *Scanner) state81Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 136
+	case nextByte == 0x81:
+		s.state = 337
+	case nextByte == 0x82:
+		s.state = 338
+	case nextByte == 0x83:
+		s.state = 139
+	case 0x84 <= nextByte && nextByte <= 0x88:
+		s.state = 19
+	case nextByte == 0x89:
+		s.state = 140
+	case nextByte == 0x8a:
+		s.state = 141
+	case nextByte == 0x8b:
+		s.state = 142
+	case nextByte == 0x8c:
+		s.state = 143
+	case nextByte == 0x8d:
+		s.state = 144
+	case nextByte == 0x8e:
+		s.state = 145
+	case nextByte == 0x8f:
+		s.state = 146
+	case nextByte == 0x90:
+		s.state = 147
+	case 0x91 <= nextByte && nextByte <= 0x98:
+		s.state = 19
+	case nextByte == 0x99:
+		s.state = 148
+	case nextByte == 0x9a:
+		s.state = 149
+	case nextByte == 0x9b:
+		s.state = 150
+	case nextByte == 0x9c:
+		s.state = 151
+	case nextByte == 0x9d:
+		s.state = 152
+	case nextByte == 0x9e:
+		s.state = 153
+	case nextByte == 0x9f:
+		s.state = 339
+	case nextByte == 0xa0:
+		s.state = 340
+	case nextByte == 0xa1:
+		s.state = 155
+	case nextByte == 0xa2:
+		s.state = 156
+	case nextByte == 0xa3:
+		s.state = 157
+	case nextByte == 0xa4:
+		s.state = 158
+	case nextByte == 0xa5:
+		s.state = 341
+	case nextByte == 0xa6:
+		s.state = 160
+	case nextByte == 0xa7:
+		s.state = 342
+	case nextByte == 0xa8:
+		s.state = 161
+	case nextByte == 0xa9:
+		s.state = 162
+	case nextByte == 0xaa:
+		s.state = 343
+	case nextByte == 0xab:
+		s.state = 19
+	case nextByte == 0xac:
+		s.state = 164
+	case nextByte == 0xad:
+		s.state = 344
+	case nextByte == 0xae:
+		s.state = 345
+	case nextByte == 0xaf:
+		s.state = 167
+	case nextByte == 0xb0:
+		s.state = 168
+	case nextByte == 0xb1:
+		s.state = 346
+	case nextByte == 0xb2:
+		s.state = 170
+	case nextByte == 0xb3:
+		s.state = 171
+	case nextByte == 0xb4:
+		s.state = 172
+	case nextByte == 0xb5:
+		s.state = 19
+	case nextByte == 0xb6:
+		s.state = 19
+	case nextByte == 0xb8:
+		s.state = 19
+	case 0xb9 <= nextByte && nextByte <= 0xbb:
+		s.state = 19
+	case nextByte == 0xbc:
+		s.state = 173
+	case nextByte == 0xbd:
+		s.state = 174
+	case nextByte == 0xbe:
+		s.state = 175
+	case nextByte == 0xbf:
+		s.state = 176
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
 
+func (s *Scanner) state82Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 19
+	case 0x81 <= nextByte && nextByte <= 0x91:
+		s.state = 19
+	case nextByte == 0x92:
+		s.state = 194
+	case nextByte == 0x93:
+		s.state = 195
+	case nextByte == 0x94:
+		s.state = 19
+	case 0x95 <= nextByte && nextByte <= 0x97:
+		s.state = 19
+	case nextByte == 0x98:
+		s.state = 347
+	case nextByte == 0x99:
+		s.state = 197
+	case nextByte == 0x9a:
+		s.state = 198
+	case nextByte == 0x9b:
+		s.state = 199
+	case nextByte == 0x9c:
+		s.state = 200
+	case nextByte == 0x9d:
+		s.state = 19
+	case nextByte == 0x9e:
+		s.state = 201
+	case nextByte == 0x9f:
+		s.state = 202
+	case nextByte == 0xa0:
+		s.state = 203
+	case nextByte == 0xa1:
+		s.state = 153
+	case nextByte == 0xa2:
+		s.state = 204
+	case nextByte == 0xa3:
+		s.state = 348
+	case nextByte == 0xa4:
+		s.state = 349
+	case nextByte == 0xa5:
+		s.state = 207
+	case nextByte == 0xa6:
+		s.state = 208
+	case nextByte == 0xa7:
+		s.state = 350
+	case nextByte == 0xa8:
+		s.state = 210
+	case nextByte == 0xa9:
+		s.state = 351
+	case nextByte == 0xaa:
+		s.state = 212
+	case nextByte == 0xab:
+		s.state = 213
+	case nextByte == 0xac:
+		s.state = 214
+	case nextByte == 0xad:
+		s.state = 215
+	case nextByte == 0xae:
+		s.state = 19
+	case nextByte == 0xaf:
+		s.state = 352
+	case nextByte == 0xb0:
+		s.state = 19
+	case 0xb1 <= nextByte && nextByte <= 0xbe:
+		s.state = 19
+	case nextByte == 0xbf:
+		s.state = 19
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state83Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0xa4:
+		s.state = 19
+	case 0xa5 <= nextByte && nextByte <= 0xa8:
+		s.state = 19
+	case nextByte == 0xa9:
+		s.state = 219
+	case nextByte == 0xaa:
+		s.state = 19
+	case nextByte == 0xab:
+		s.state = 220
+	case nextByte == 0xac:
+		s.state = 221
+	case nextByte == 0xad:
+		s.state = 222
+	case nextByte == 0xae:
+		s.state = 223
+	case nextByte == 0xaf:
+		s.state = 224
+	case 0xb0 <= nextByte && nextByte <= 0xb3:
+		s.state = 19
+	case nextByte == 0xb4:
+		s.state = 225
+	case nextByte == 0xb5:
+		s.state = 121
+	case nextByte == 0xb6:
+		s.state = 226
+	case nextByte == 0xb7:
+		s.state = 227
+	case nextByte == 0xb9:
+		s.state = 228
+	case nextByte == 0xba:
+		s.state = 19
+	case nextByte == 0xbb:
+		s.state = 229
+	case nextByte == 0xbc:
+		s.state = 353
+	case nextByte == 0xbd:
+		s.state = 231
+	case nextByte == 0xbe:
+		s.state = 232
+	case nextByte == 0xbf:
+		s.state = 233
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state84Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x90:
+		s.state = 354
+	case nextByte == 0x91:
+		s.state = 355
+	case nextByte == 0x92:
+		s.state = 236
+	case nextByte == 0x93:
+		s.state = 237
+	case nextByte == 0x94:
+		s.state = 238
+	case nextByte == 0x96:
+		s.state = 356
+	case nextByte == 0x97:
+		s.state = 240
+	case nextByte == 0x98:
+		s.state = 241
+	case nextByte == 0x9a:
+		s.state = 242
+	case nextByte == 0x9b:
+		s.state = 243
+	case nextByte == 0x9d:
+		s.state = 357
+	case nextByte == 0x9e:
+		s.state = 358
+	case nextByte == 0x9f:
+		s.state = 359
+	case nextByte == 0xa0:
+		s.state = 41
+	case 0xa1 <= nextByte && nextByte <= 0xa9:
+		s.state = 41
+	case nextByte == 0xaa:
+		s.state = 246
+	case nextByte == 0xab:
+		s.state = 247
+	case nextByte == 0xac:
+		s.state = 248
+	case nextByte == 0xad:
+		s.state = 41
+	case nextByte == 0xae:
+		s.state = 249
+	case nextByte == 0xaf:
+		s.state = 250
+	case nextByte == 0xb0:
+		s.state = 41
+	case nextByte == 0xb1:
+		s.state = 251
+	case nextByte == 0xb2:
+		s.state = 252
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state85Identifier() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'm':
+	case 'a' <= nextByte && nextByte <= 'r':
 		s.state = 16
-		return nil
-	case nextRune == 'n':
-		s.state = 117
-		return nil
-	case 'o' <= nextRune && nextRune <= 'z':
+	case nextByte == 's':
+		s.state = 360
+	case 't' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state56Go() error {
-	_ = s.runeReader.Next()
+func (s *Scanner) state86Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
 
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case nextByte == 'a':
+		s.state = 361
+	case 'b' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state87Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'm':
+		s.state = 16
+	case nextByte == 'n':
+		s.state = 362
+	case 'o' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state88Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'e':
+		s.state = 16
+	case nextByte == 'f':
+		s.state = 363
+	case 'g' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state89Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'r':
+		s.state = 16
+	case nextByte == 's':
+		s.state = 364
+	case 't' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state90Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'k':
+		s.state = 16
+	case nextByte == 'l':
+		s.state = 365
+	case 'm' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state91Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'q':
+		s.state = 16
+	case nextByte == 'r':
+		s.state = 366
+	case 's' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state92Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'm':
+		s.state = 16
+	case nextByte == 'n':
+		s.state = 367
+	case 'o' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state93Go() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenGo
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 's':
+	case 'a' <= nextByte && nextByte <= 's':
 		s.state = 16
-		return nil
-	case nextRune == 't':
-		s.state = 118
-		return nil
-	case 'u' <= nextRune && nextRune <= 'z':
+	case nextByte == 't':
+		s.state = 368
+	case 'u' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state57If() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state94If() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenIf
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
+	case 'a' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state58Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'o':
-		s.state = 16
-		return nil
-	case nextRune == 'p':
-		s.state = 119
-		return nil
-	case 'q' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state59Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 's':
-		s.state = 16
-		return nil
-	case nextRune == 't':
-		s.state = 120
-		return nil
-	case 'u' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state60Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'o':
-		s.state = 16
-		return nil
-	case nextRune == 'p':
-		s.state = 121
-		return nil
-	case 'q' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state61Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'b':
-		s.state = 16
-		return nil
-	case nextRune == 'c':
-		s.state = 122
-		return nil
-	case 'd' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state62Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'm':
-		s.state = 16
-		return nil
-	case nextRune == 'n':
-		s.state = 123
-		return nil
-	case 'o' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state63Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 's':
-		s.state = 16
-		return nil
-	case nextRune == 't':
-		s.state = 124
-		return nil
-	case 'u' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state64Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'k':
-		s.state = 16
-		return nil
-	case nextRune == 'l':
-		s.state = 125
-		return nil
-	case 'm' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state65Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'q':
-		s.state = 16
-		return nil
-	case nextRune == 'r':
-		s.state = 126
-		return nil
-	case 's' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state66Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'h':
-		s.state = 16
-		return nil
-	case nextRune == 'i':
-		s.state = 127
-		return nil
-	case 'j' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state67Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'o':
-		s.state = 16
-		return nil
-	case nextRune == 'p':
-		s.state = 128
-		return nil
-	case 'q' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state68Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'q':
-		s.state = 16
-		return nil
-	case nextRune == 'r':
-		s.state = 129
-		return nil
-	case 's' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state69AddAssign() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenAddAssign
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state70Increment() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIncrement
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state71SubAssign() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenSubAssign
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state72Decrement() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenDecrement
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state73MulAssign() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenMulAssign
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state74RemAssign() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenRemAssign
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state75AndNot() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenAndNot
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '=':
-		s.state = 130
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state76AndAssign() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenAndAssign
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state77LogicalAnd() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenLogicalAnd
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state78OrAssign() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenOrAssign
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state79LogicalOr() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenLogicalOr
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state80XorAssign() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenXorAssign
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state81ShiftLeft() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenShiftLeft
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '=':
-		s.state = 131
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state82Arrow() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenArrow
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state83LessEqual() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenLessEqual
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state84ShiftRight() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenShiftRight
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '=':
-		s.state = 132
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state85GreaterEqual() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenGreaterEqual
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state86Equal() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenEqual
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state87NotEqual() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenNotEqual
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state88Define() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenDefine
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state89Ellipsis() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '.':
-		s.state = 133
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state90FloatLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenFloatLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 90
-		return nil
-	case nextRune == 'E':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 134
-		return nil
-	case nextRune == 'e':
-		s.state = 103
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state91IntLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '.':
-		s.state = 137
-		return nil
-	case nextRune == '0':
-		s.state = 136
-		return nil
-	case nextRune == '1':
-		s.state = 136
-		return nil
-	case '2' <= nextRune && nextRune <= '9':
-		s.state = 99
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 99
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 135
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 99
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state92IntLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '7':
-		s.state = 139
-		return nil
-	case nextRune == '_':
-		s.state = 138
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state93IntLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '7':
-		s.state = 94
-		return nil
-	case '8' <= nextRune && nextRune <= '9':
-		s.state = 96
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 99
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 99
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state94IntLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIntLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '.':
-		s.state = 141
-		return nil
-	case '0' <= nextRune && nextRune <= '7':
-		s.state = 94
-		return nil
-	case '8' <= nextRune && nextRune <= '9':
-		s.state = 96
-		return nil
-	case 'A' <= nextRune && nextRune <= 'D':
-		s.state = 99
-		return nil
-	case nextRune == 'E':
-		s.state = 98
-		return nil
-	case nextRune == 'F':
-		s.state = 99
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 140
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
-		s.state = 99
-		return nil
-	case nextRune == 'e':
-		s.state = 98
-		return nil
-	case nextRune == 'f':
-		s.state = 99
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state95IntLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '.':
-		s.state = 144
-		return nil
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 143
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 143
-		return nil
-	case nextRune == '_':
-		s.state = 142
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 143
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state96FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '.':
-		s.state = 141
-		return nil
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 96
-		return nil
-	case 'A' <= nextRune && nextRune <= 'D':
-		s.state = 99
-		return nil
-	case nextRune == 'E':
-		s.state = 98
-		return nil
-	case nextRune == 'F':
-		s.state = 99
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 145
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
-		s.state = 99
-		return nil
-	case nextRune == 'e':
-		s.state = 98
-		return nil
-	case nextRune == 'f':
-		s.state = 99
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state97FloatLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenFloatLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 146
-		return nil
-	case 'A' <= nextRune && nextRune <= 'D':
-		s.state = 148
-		return nil
-	case nextRune == 'E':
-		s.state = 147
-		return nil
-	case nextRune == 'F':
-		s.state = 148
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
-		s.state = 148
-		return nil
-	case nextRune == 'e':
-		s.state = 147
-		return nil
-	case nextRune == 'f':
-		s.state = 148
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state98FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '+':
-		s.state = 149
-		return nil
-	case nextRune == '-':
-		s.state = 149
-		return nil
-	case nextRune == '.':
-		s.state = 137
-		return nil
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 150
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 99
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 151
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 99
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state99FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '.':
-		s.state = 137
-		return nil
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 99
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 99
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 151
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 99
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state100ImaginaryLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenImaginaryLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state101IntLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
 		s.state = 40
-		return nil
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state102FloatLit() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state95Identifier() error {
 	// We have an accepting state, update our bookkeeping.
-	s.token = TokenFloatLit
-	s.tokenEnd = s.runeReader
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 152
-		return nil
-	case nextRune == 'E':
-		s.state = 153
-		return nil
-	case nextRune == 'e':
-		s.state = 153
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'o':
+		s.state = 16
+	case nextByte == 'p':
+		s.state = 369
+	case 'q' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state103FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '+':
-		s.state = 149
-		return nil
-	case nextRune == '-':
-		s.state = 149
-		return nil
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 154
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state104RuneLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '\'':
-		s.state = 155
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state105RuneLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '"':
-		s.state = 104
-		return nil
-	case nextRune == '\'':
-		s.state = 158
-		return nil
-	case '0' <= nextRune && nextRune <= '7':
-		s.state = 159
-		return nil
-	case nextRune == 'U':
-		s.state = 157
-		return nil
-	case nextRune == '\\':
-		s.state = 104
-		return nil
-	case nextRune == 'a':
-		s.state = 104
-		return nil
-	case nextRune == 'b':
-		s.state = 104
-		return nil
-	case nextRune == 'f':
-		s.state = 104
-		return nil
-	case nextRune == 'n':
-		s.state = 104
-		return nil
-	case nextRune == 'r':
-		s.state = 104
-		return nil
-	case nextRune == 't':
-		s.state = 104
-		return nil
-	case nextRune == 'u':
-		s.state = 156
-		return nil
-	case nextRune == 'v':
-		s.state = 104
-		return nil
-	case nextRune == 'x':
-		s.state = 160
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state106StringLit() error {
-	_ = s.runeReader.Next()
-
+func (s *Scanner) state96Identifier() error {
 	// We have an accepting state, update our bookkeeping.
-	s.token = TokenStringLit
-	s.tokenEnd = s.runeReader
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 's':
+		s.state = 16
+	case nextByte == 't':
+		s.state = 370
+	case 'u' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
 	}
-	return ErrInvalidRune
+	return nil
 }
 
-func (s *Scanner) state107StringLit() error {
-	_ = s.runeReader.Next()
+func (s *Scanner) state97Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '"':
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'o':
+		s.state = 16
+	case nextByte == 'p':
+		s.state = 371
+	case 'q' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
 		s.state = 43
-		return nil
-	case nextRune == '\'':
-		s.state = 43
-		return nil
-	case '0' <= nextRune && nextRune <= '7':
-		s.state = 163
-		return nil
-	case nextRune == 'U':
-		s.state = 162
-		return nil
-	case nextRune == '\\':
-		s.state = 43
-		return nil
-	case nextRune == 'a':
-		s.state = 43
-		return nil
-	case nextRune == 'b':
-		s.state = 43
-		return nil
-	case nextRune == 'f':
-		s.state = 43
-		return nil
-	case nextRune == 'n':
-		s.state = 43
-		return nil
-	case nextRune == 'r':
-		s.state = 43
-		return nil
-	case nextRune == 't':
-		s.state = 43
-		return nil
-	case nextRune == 'u':
-		s.state = 161
-		return nil
-	case nextRune == 'v':
-		s.state = 43
-		return nil
-	case nextRune == 'x':
-		s.state = 164
-		return nil
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state108Comment() error {
-	_ = s.runeReader.Next()
+func (s *Scanner) state98Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case 0x0 <= nextRune && nextRune <= ')':
-		s.state = 45
-		return nil
-	case nextRune == '*':
-		s.state = 108
-		return nil
-	case '+' <= nextRune && nextRune <= '.':
-		s.state = 45
-		return nil
-	case nextRune == '/':
-		s.state = 165
-		return nil
-	case '0' <= nextRune && nextRune <= 0x10ffff:
-		s.state = 45
-		return nil
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'b':
+		s.state = 16
+	case nextByte == 'c':
+		s.state = 372
+	case 'd' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
+}
+
+func (s *Scanner) state99Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'm':
+		s.state = 16
+	case nextByte == 'n':
+		s.state = 373
+	case 'o' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state100Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 's':
+		s.state = 16
+	case nextByte == 't':
+		s.state = 374
+	case 'u' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state101Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'k':
+		s.state = 16
+	case nextByte == 'l':
+		s.state = 375
+	case 'm' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state102Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'q':
+		s.state = 16
+	case nextByte == 'r':
+		s.state = 376
+	case 's' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state103Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'h':
+		s.state = 16
+	case nextByte == 'i':
+		s.state = 377
+	case 'j' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state104Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'o':
+		s.state = 16
+	case nextByte == 'p':
+		s.state = 378
+	case 'q' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state105Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'q':
+		s.state = 16
+	case nextByte == 'r':
+		s.state = 379
+	case 's' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state106Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 16
+	case 0x81 <= nextByte && nextByte <= 0x95:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0xa4:
+		s.state = 16
+	case 0xa8 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state107Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 16
+	case 0x81 <= nextByte && nextByte <= 0x98:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xaa:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state108Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x87:
+		s.state = 16
+	case 0x89 <= nextByte && nextByte <= 0x8e:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
 }
 
 func (s *Scanner) state109Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x89:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case nextRune == 'a':
-		s.state = 166
-		return nil
-	case 'b' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state110Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x84 <= nextByte && nextByte <= 0xb9:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xbd <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
-		s.state = 16
-		return nil
-	case nextRune == 'e':
-		s.state = 167
-		return nil
-	case 'f' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state111Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x90:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x98 <= nextByte && nextByte <= 0xa1:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xb1 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'm':
-		s.state = 16
-		return nil
-	case nextRune == 'n':
-		s.state = 168
-		return nil
-	case 'o' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state112Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case nextByte == 0x80:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x85 <= nextByte && nextByte <= 0x8c:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x8f <= nextByte && nextByte <= 0x90:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'r':
+	case 0x93 <= nextByte && nextByte <= 0xa8:
 		s.state = 16
-		return nil
-	case nextRune == 's':
-		s.state = 169
-		return nil
-	case nextRune == 't':
-		s.state = 170
-		return nil
-	case 'u' <= nextRune && nextRune <= 'z':
+	case 0xaa <= nextByte && nextByte <= 0xb0:
 		s.state = 16
-		return nil
+	case 0xb2 <= nextByte && nextByte <= 0xb6:
+		s.state = 16
+	case 0xb7 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	case 0xbd <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state113Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x8e:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x9c <= nextByte && nextByte <= 0x9d:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x9f <= nextByte && nextByte <= 0xa1:
 		s.state = 16
-		return nil
-	case nextRune == 'a':
-		s.state = 171
-		return nil
-	case 'b' <= nextRune && nextRune <= 'd':
+	case 0xb0 <= nextByte && nextByte <= 0xb1:
 		s.state = 16
-		return nil
-	case nextRune == 'e':
-		s.state = 172
-		return nil
-	case 'f' <= nextRune && nextRune <= 'z':
+	case 0xbc <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state114Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x85:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x86 <= nextByte && nextByte <= 0x8a:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x8f <= nextByte && nextByte <= 0x90:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
+	case 0x93 <= nextByte && nextByte <= 0xa8:
 		s.state = 16
-		return nil
-	case nextRune == 'e':
-		s.state = 173
-		return nil
-	case 'f' <= nextRune && nextRune <= 'z':
+	case 0xaa <= nextByte && nextByte <= 0xb0:
 		s.state = 16
-		return nil
+	case 0xb2 <= nextByte && nextByte <= 0xb3:
+		s.state = 16
+	case 0xb5 <= nextByte && nextByte <= 0xb6:
+		s.state = 16
+	case 0xb8 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state115Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x99 <= nextByte && nextByte <= 0x9c:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x9e <= nextByte && nextByte <= 0xb2:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xb3 <= nextByte && nextByte <= 0xb4:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'k':
-		s.state = 16
-		return nil
-	case nextRune == 'l':
-		s.state = 174
-		return nil
-	case 'm' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state116For() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenFor
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state116Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x85 <= nextByte && nextByte <= 0x8d:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x8f <= nextByte && nextByte <= 0x91:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x93 <= nextByte && nextByte <= 0xa8:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
+	case 0xaa <= nextByte && nextByte <= 0xb0:
 		s.state = 16
-		return nil
+	case 0xb2 <= nextByte && nextByte <= 0xb3:
+		s.state = 16
+	case 0xb5 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	case 0xbd <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state117Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x90:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xa0 <= nextByte && nextByte <= 0xa1:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xb9 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'b':
-		s.state = 16
-		return nil
-	case nextRune == 'c':
-		s.state = 175
-		return nil
-	case 'd' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state118Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x85:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x86 <= nextByte && nextByte <= 0x8c:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x8f <= nextByte && nextByte <= 0x90:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'n':
+	case 0x93 <= nextByte && nextByte <= 0xa8:
 		s.state = 16
-		return nil
-	case nextRune == 'o':
-		s.state = 176
-		return nil
-	case 'p' <= nextRune && nextRune <= 'z':
+	case 0xaa <= nextByte && nextByte <= 0xb0:
 		s.state = 16
-		return nil
+	case 0xb2 <= nextByte && nextByte <= 0xb3:
+		s.state = 16
+	case 0xb5 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	case 0xbd <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state119Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x9c:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x9d <= nextByte && nextByte <= 0x9f:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xa0 <= nextByte && nextByte <= 0xa1:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'n':
+	case 0xb1 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case nextRune == 'o':
-		s.state = 177
-		return nil
-	case 'p' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state120Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x83:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x85 <= nextByte && nextByte <= 0x8a:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x8e <= nextByte && nextByte <= 0x90:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
+	case 0x92 <= nextByte && nextByte <= 0x95:
 		s.state = 16
-		return nil
-	case nextRune == 'e':
-		s.state = 178
-		return nil
-	case 'f' <= nextRune && nextRune <= 'z':
+	case 0x99 <= nextByte && nextByte <= 0x9a:
 		s.state = 16
-		return nil
+	case 0x9c <= nextByte && nextByte <= 0x9e:
+		s.state = 16
+	case 0x9f <= nextByte && nextByte <= 0xa3:
+		s.state = 16
+	case 0xa4 <= nextByte && nextByte <= 0xa8:
+		s.state = 16
+	case 0xa9 <= nextByte && nextByte <= 0xaa:
+		s.state = 16
+	case 0xae <= nextByte && nextByte <= 0xb9:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state121Map() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenMap
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state121Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x90 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state122Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x85:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x86 <= nextByte && nextByte <= 0x8c:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x8e <= nextByte && nextByte <= 0x90:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'j':
+	case 0x92 <= nextByte && nextByte <= 0xa8:
 		s.state = 16
-		return nil
-	case nextRune == 'k':
-		s.state = 179
-		return nil
-	case 'l' <= nextRune && nextRune <= 'z':
+	case 0xaa <= nextByte && nextByte <= 0xb9:
 		s.state = 16
-		return nil
+	case 0xbd <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state123Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x98:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x99 <= nextByte && nextByte <= 0x9a:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x9d <= nextByte && nextByte <= 0xa0:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
+	case 0xa1 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case nextRune == 'g':
-		s.state = 180
-		return nil
-	case 'h' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state124Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case nextByte == 0x80:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x85 <= nextByte && nextByte <= 0x8c:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x8e <= nextByte && nextByte <= 0x90:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 't':
+	case 0x92 <= nextByte && nextByte <= 0xa8:
 		s.state = 16
-		return nil
-	case nextRune == 'u':
-		s.state = 181
-		return nil
-	case 'v' <= nextRune && nextRune <= 'z':
+	case 0xaa <= nextByte && nextByte <= 0xb3:
 		s.state = 16
-		return nil
+	case 0xb5 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	case 0xbd <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state125Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x9d:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x9e <= nextByte && nextByte <= 0xa0:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xa1 <= nextByte && nextByte <= 0xb1:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
+	case 0xb2 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case nextRune == 'e':
-		s.state = 182
-		return nil
-	case 'f' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state126Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x84:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x85 <= nextByte && nextByte <= 0x8c:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x8e <= nextByte && nextByte <= 0x90:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 't':
+	case 0x92 <= nextByte && nextByte <= 0xba:
 		s.state = 16
-		return nil
-	case nextRune == 'u':
-		s.state = 183
-		return nil
-	case 'v' <= nextRune && nextRune <= 'z':
+	case 0xbd <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state127Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x8e:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x94 <= nextByte && nextByte <= 0x96:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x9f <= nextByte && nextByte <= 0xa1:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 's':
+	case 0xba <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case nextRune == 't':
-		s.state = 184
-		return nil
-	case 'u' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state128Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x85 <= nextByte && nextByte <= 0x96:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x9a <= nextByte && nextByte <= 0xb1:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xb3 <= nextByte && nextByte <= 0xbb:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
+	case 0xbd <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case nextRune == 'e':
-		s.state = 185
-		return nil
-	case 'f' <= nextRune && nextRune <= 'z':
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state129Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
 		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state129Var() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenVar
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x81 <= nextByte && nextByte <= 0x86:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state130Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x81 <= nextByte && nextByte <= 0xb0:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xb2 <= nextByte && nextByte <= 0xb3:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state131Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x86:
 		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state130AndNotAssign() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenAndNotAssign
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state131ShiftLeftAssign() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenShiftLeftAssign
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state132ShiftRightAssign() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenShiftRightAssign
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state133Ellipsis() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenEllipsis
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state134FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state132Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 90
-		return nil
+	case 0x81 <= nextByte && nextByte <= 0x82:
+		s.state = 16
+	case 0x84 <= nextByte && nextByte <= 0x86:
+		s.state = 16
+	case 0x87 <= nextByte && nextByte <= 0x8a:
+		s.state = 16
+	case 0x8c <= nextByte && nextByte <= 0xa3:
+		s.state = 16
+	case 0xa5 <= nextByte && nextByte <= 0xa7:
+		s.state = 16
+	case 0xa8 <= nextByte && nextByte <= 0xb0:
+		s.state = 16
+	case 0xb2 <= nextByte && nextByte <= 0xb3:
+		s.state = 16
+	case 0xbd <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state135IntLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state133Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '0':
-		s.state = 136
-		return nil
-	case nextRune == '1':
-		s.state = 136
-		return nil
-	case '2' <= nextRune && nextRune <= '9':
-		s.state = 99
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 99
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 99
-		return nil
+	case nextByte == 0x80:
+		s.state = 16
+	case 0x81 <= nextByte && nextByte <= 0x84:
+		s.state = 16
+	case 0x86 <= nextByte && nextByte <= 0x9c:
+		s.state = 16
+	case 0x9d <= nextByte && nextByte <= 0x9f:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state136IntLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIntLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state134Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '.':
-		s.state = 137
-		return nil
-	case nextRune == '0':
-		s.state = 136
-		return nil
-	case nextRune == '1':
-		s.state = 136
-		return nil
-	case '2' <= nextRune && nextRune <= '9':
-		s.state = 99
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 99
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 135
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 99
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
+	case nextByte == 0x80:
+		s.state = 16
+	case 0x81 <= nextByte && nextByte <= 0x87:
+		s.state = 16
+	case 0x89 <= nextByte && nextByte <= 0xac:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state137FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state135Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 186
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 186
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 186
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
+	case 0x88 <= nextByte && nextByte <= 0x8c:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state138IntLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state136Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '7':
-		s.state = 139
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0xaa:
+		s.state = 16
+	case nextByte == 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state139IntLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIntLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state137Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '7':
-		s.state = 139
-		return nil
-	case nextRune == '_':
-		s.state = 138
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0x91 <= nextByte && nextByte <= 0x95:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0x9d:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xae:
+		s.state = 16
+	case 0xaf <= nextByte && nextByte <= 0xb0:
+		s.state = 16
+	case 0xb5 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state140IntLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state138Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '7':
-		s.state = 94
-		return nil
-	case '8' <= nextRune && nextRune <= '9':
-		s.state = 96
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 99
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 99
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x81:
+		s.state = 16
+	case 0x8e <= nextByte && nextByte <= 0xa0:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state141FloatLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenFloatLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state139Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 187
-		return nil
-	case 'A' <= nextRune && nextRune <= 'D':
-		s.state = 186
-		return nil
-	case nextRune == 'E':
-		s.state = 188
-		return nil
-	case nextRune == 'F':
-		s.state = 186
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
-		s.state = 186
-		return nil
-	case nextRune == 'e':
-		s.state = 188
-		return nil
-	case nextRune == 'f':
-		s.state = 186
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x85:
+		s.state = 16
+	case 0x87 <= nextByte && nextByte <= 0x8d:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0xba:
+		s.state = 16
+	case 0xbc <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state142IntLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state140Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 143
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 143
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 143
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x88:
+		s.state = 16
+	case 0x8a <= nextByte && nextByte <= 0x8d:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x96:
+		s.state = 16
+	case 0x98 <= nextByte && nextByte <= 0x9a:
+		s.state = 16
+	case 0x9b <= nextByte && nextByte <= 0x9d:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state143IntLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIntLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state141Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '.':
-		s.state = 137
-		return nil
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 143
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 143
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 142
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 143
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x88:
+		s.state = 16
+	case 0x8a <= nextByte && nextByte <= 0x8d:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0xb0:
+		s.state = 16
+	case 0xb2 <= nextByte && nextByte <= 0xb5:
+		s.state = 16
+	case 0xb8 <= nextByte && nextByte <= 0xbe:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state144FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state142Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 148
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 148
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 148
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x82:
+		s.state = 16
+	case 0x83 <= nextByte && nextByte <= 0x85:
+		s.state = 16
+	case 0x88 <= nextByte && nextByte <= 0x96:
+		s.state = 16
+	case 0x98 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state145FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state143Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 96
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 99
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 99
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0x92 <= nextByte && nextByte <= 0x95:
+		s.state = 16
+	case 0x98 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state146FloatLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenFloatLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state144Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 146
-		return nil
-	case 'A' <= nextRune && nextRune <= 'D':
-		s.state = 148
-		return nil
-	case nextRune == 'E':
-		s.state = 147
-		return nil
-	case nextRune == 'F':
-		s.state = 148
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 189
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
-		s.state = 148
-		return nil
-	case nextRune == 'e':
-		s.state = 147
-		return nil
-	case nextRune == 'f':
-		s.state = 148
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x9a:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state147FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state145Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '+':
-		s.state = 149
-		return nil
-	case nextRune == '-':
-		s.state = 149
-		return nil
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 190
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 148
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 144
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 148
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x8f:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state148FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state146Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 148
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 148
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 144
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 148
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0xb5:
+		s.state = 16
+	case 0xb8 <= nextByte && nextByte <= 0xbd:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state149FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state147Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 154
-		return nil
+	case 0x81 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state150FloatLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenFloatLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state148Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '.':
-		s.state = 137
-		return nil
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 150
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 99
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 191
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 99
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0xac:
+		s.state = 16
+	case 0xaf <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state151FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state149Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 99
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 99
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 99
-		return nil
+	case 0x81 <= nextByte && nextByte <= 0x9a:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state152FloatLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenFloatLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state150Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 152
-		return nil
-	case nextRune == 'E':
-		s.state = 153
-		return nil
-	case nextRune == '_':
-		s.state = 192
-		return nil
-	case nextRune == 'e':
-		s.state = 153
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0xaa:
+		s.state = 16
+	case 0xae <= nextByte && nextByte <= 0xb0:
+		s.state = 16
+	case 0xb1 <= nextByte && nextByte <= 0xb8:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state153FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state151Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '+':
-		s.state = 149
-		return nil
-	case nextRune == '-':
-		s.state = 149
-		return nil
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 154
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x91:
+		s.state = 16
+	case 0x9f <= nextByte && nextByte <= 0xb1:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state154FloatLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenFloatLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state152Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 154
-		return nil
-	case nextRune == '_':
-		s.state = 149
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x91:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xac:
+		s.state = 16
+	case 0xae <= nextByte && nextByte <= 0xb0:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state155RuneLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenRuneLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	return ErrInvalidRune
-}
-
-func (s *Scanner) state156RuneLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state153Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 193
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 193
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 193
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0xb3:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state157RuneLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state154Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 194
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 194
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 194
-		return nil
+	case 0x97 <= nextByte && nextByte <= 0x9c:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state158RuneLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenRuneLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state155Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextRune == '\'':
-		s.state = 155
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0xb8:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state159RuneLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state156Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '7':
-		s.state = 195
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x84:
+		s.state = 16
+	case 0x87 <= nextByte && nextByte <= 0xa8:
+		s.state = 16
+	case 0xaa <= nextByte && nextByte <= 0xb0:
+		s.state = 16
+	case 0xb1 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state160RuneLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state157Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 196
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 196
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 196
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0xb5:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state161StringLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state158Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 197
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 197
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 197
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x9e:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state162StringLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state159Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 198
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 198
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 198
-		return nil
+	case 0x90 <= nextByte && nextByte <= 0xad:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb4:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state163StringLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state160Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '7':
-		s.state = 199
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0xab:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state164StringLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state161Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 200
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 200
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 200
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x96:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state165Comment() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenComment
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
+func (s *Scanner) state162Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x94:
+		s.state = 16
+	default:
+		return errInvalidByte
 	}
-	return ErrInvalidRune
+	return nil
+}
+
+func (s *Scanner) state163Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0xa7 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state164Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x85:
+		s.state = 16
+	case 0x86 <= nextByte && nextByte <= 0xb3:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state165Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x85 <= nextByte && nextByte <= 0x8c:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
 }
 
 func (s *Scanner) state166Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x83 <= nextByte && nextByte <= 0xa0:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xae <= nextByte && nextByte <= 0xaf:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xba <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'j':
-		s.state = 16
-		return nil
-	case nextRune == 'k':
-		s.state = 201
-		return nil
-	case 'l' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state167Case() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenCase
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state167Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0xa5:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state168Chan() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenChan
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state168Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0xa3:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state169Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x8d <= nextByte && nextByte <= 0x8f:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x9a <= nextByte && nextByte <= 0xbd:
 		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 's':
-		s.state = 16
-		return nil
-	case nextRune == 't':
-		s.state = 202
-		return nil
-	case 'u' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state170Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x88:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x90 <= nextByte && nextByte <= 0xba:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xbd <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'h':
-		s.state = 16
-		return nil
-	case nextRune == 'i':
-		s.state = 203
-		return nil
-	case 'j' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state171Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0xa9 <= nextByte && nextByte <= 0xac:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xae <= nextByte && nextByte <= 0xb3:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xb5 <= nextByte && nextByte <= 0xb6:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 't':
+	case 0xba <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case nextRune == 'u':
-		s.state = 204
-		return nil
-	case 'v' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state172Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case nextByte == 0x80:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x81 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'q':
-		s.state = 16
-		return nil
-	case nextRune == 'r':
-		s.state = 205
-		return nil
-	case 's' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state173Else() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenElse
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state173Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x95:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x98 <= nextByte && nextByte <= 0x9d:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xa0 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state174Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x85:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x88 <= nextByte && nextByte <= 0x8d:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x90 <= nextByte && nextByte <= 0x97:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 's':
+	case 0x99 <= nextByte && nextByte <= 0x9f:
 		s.state = 16
-		return nil
-	case nextRune == 't':
-		s.state = 206
-		return nil
-	case 'u' <= nextRune && nextRune <= 'z':
+	case 0xa0 <= nextByte && nextByte <= 0xbd:
 		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state175Func() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenFunc
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state175Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0xb4:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xb6 <= nextByte && nextByte <= 0xbc:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xbe <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state176Goto() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenGoto
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state176Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x82:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x83 <= nextByte && nextByte <= 0x84:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x86 <= nextByte && nextByte <= 0x8c:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
+	case 0x90 <= nextByte && nextByte <= 0x93:
 		s.state = 16
-		return nil
+	case 0x96 <= nextByte && nextByte <= 0x9b:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xac:
+		s.state = 16
+	case 0xb2 <= nextByte && nextByte <= 0xb4:
+		s.state = 16
+	case 0xb6 <= nextByte && nextByte <= 0xbc:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state177Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0xb1 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'q':
-		s.state = 16
-		return nil
-	case nextRune == 'r':
-		s.state = 207
-		return nil
-	case 's' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state178Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x90 <= nextByte && nextByte <= 0x9c:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'q':
-		s.state = 16
-		return nil
-	case nextRune == 'r':
-		s.state = 208
-		return nil
-	case 's' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state179Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x82 <= nextByte && nextByte <= 0x87:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x8a <= nextByte && nextByte <= 0x93:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x95 <= nextByte && nextByte <= 0x99:
 		s.state = 16
-		return nil
-	case nextRune == 'a':
-		s.state = 209
-		return nil
-	case 'b' <= nextRune && nextRune <= 'z':
+	case 0x9a <= nextByte && nextByte <= 0x9d:
 		s.state = 16
-		return nil
+	case 0xa4 <= nextByte && nextByte <= 0xaa:
+		s.state = 16
+	case 0xab <= nextByte && nextByte <= 0xad:
+		s.state = 16
+	case 0xaf <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	case 0xbc <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state180Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x85 <= nextByte && nextByte <= 0x89:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x8e <= nextByte && nextByte <= 0x9f:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xa0 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
-		s.state = 16
-		return nil
-	case nextRune == 'e':
-		s.state = 210
-		return nil
-	case 'f' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state181Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x82:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case nextByte == 0x83:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == 0x84:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'q':
+	case 0x85 <= nextByte && nextByte <= 0x88:
 		s.state = 16
-		return nil
-	case nextRune == 'r':
-		s.state = 211
-		return nil
-	case 's' <= nextRune && nextRune <= 'z':
+	case 0x89 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state182Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0xa4:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xab <= nextByte && nextByte <= 0xae:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xb2 <= nextByte && nextByte <= 0xb3:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'b':
-		s.state = 16
-		return nil
-	case nextRune == 'c':
-		s.state = 212
-		return nil
-	case 'd' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state183Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0xa5:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xa7 <= nextByte && nextByte <= 0xad:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'b':
-		s.state = 16
-		return nil
-	case nextRune == 'c':
-		s.state = 213
-		return nil
-	case 'd' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state184Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0xa7:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xaf <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state185Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'b':
+	case 0x81 <= nextByte && nextByte <= 0x96:
 		s.state = 16
-		return nil
-	case nextRune == 'c':
-		s.state = 214
-		return nil
-	case 'd' <= nextRune && nextRune <= 'z':
+	case 0xa0 <= nextByte && nextByte <= 0xa6:
 		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state185Type() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenType
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0xa8 <= nextByte && nextByte <= 0xae:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xb0 <= nextByte && nextByte <= 0xb6:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xb8 <= nextByte && nextByte <= 0xbe:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state186Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x86:
 		s.state = 16
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state186FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 186
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 186
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 215
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 186
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state187FloatLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenFloatLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 187
-		return nil
-	case 'A' <= nextRune && nextRune <= 'D':
-		s.state = 186
-		return nil
-	case nextRune == 'E':
-		s.state = 188
-		return nil
-	case nextRune == 'F':
-		s.state = 186
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 216
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
-		s.state = 186
-		return nil
-	case nextRune == 'e':
-		s.state = 188
-		return nil
-	case nextRune == 'f':
-		s.state = 186
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state188FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case nextRune == '+':
-		s.state = 149
-		return nil
-	case nextRune == '-':
-		s.state = 149
-		return nil
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 217
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 186
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 215
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 186
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state189FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 146
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 148
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 148
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state190FloatLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenFloatLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 190
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 148
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 218
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 148
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state191FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 150
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 99
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 99
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state192FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 152
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state193RuneLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 160
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 160
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 160
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state194RuneLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 219
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 219
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 219
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state195RuneLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '7':
-		s.state = 104
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state196RuneLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 104
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 104
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 104
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state197StringLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 164
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 164
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 164
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state198StringLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 220
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 220
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 220
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state199StringLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '7':
-		s.state = 43
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state200StringLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 43
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 43
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 43
-		return nil
-	default:
-		return ErrInvalidRune
-	}
-}
-
-func (s *Scanner) state201Break() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenBreak
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
-	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x88 <= nextByte && nextByte <= 0x8e:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x90 <= nextByte && nextByte <= 0x96:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x98 <= nextByte && nextByte <= 0x9e:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state202Const() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenConst
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state187Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0xaf <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
+}
+
+func (s *Scanner) state188Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x85:
+		s.state = 16
+	case nextByte == 0x86:
+		s.state = 16
+	case 0x87 <= nextByte && nextByte <= 0xa1:
+		s.state = 16
+	case 0xa2 <= nextByte && nextByte <= 0xa9:
+		s.state = 16
+	case 0xaa <= nextByte && nextByte <= 0xb1:
+		s.state = 16
+	case 0xb2 <= nextByte && nextByte <= 0xb5:
+		s.state = 16
+	case 0xb8 <= nextByte && nextByte <= 0xba:
+		s.state = 16
+	case 0xbb <= nextByte && nextByte <= 0xbc:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state189Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x96:
+		s.state = 16
+	case 0x9d <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state190Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xba:
+		s.state = 16
+	case 0xbc <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state191Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x85 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb1 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state192Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8e:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state193Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state194Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8c:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state195Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x90 <= nextByte && nextByte <= 0xbd:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state196Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8c:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	case 0xaa <= nextByte && nextByte <= 0xab:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state197Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xae:
+		s.state = 16
+	case nextByte == 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state198Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9d:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state199Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state200Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x97 <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	case 0xa2 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state201Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x88:
+		s.state = 16
+	case 0x8b <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state202Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8a:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x91:
+		s.state = 16
+	case 0x93 <= nextByte && nextByte <= 0x95:
+		s.state = 16
+	case 0x96 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0xb2 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
 }
 
 func (s *Scanner) state203Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x81:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x83 <= nextByte && nextByte <= 0x85:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x87 <= nextByte && nextByte <= 0x8a:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'm':
+	case 0x8c <= nextByte && nextByte <= 0xa2:
 		s.state = 16
-		return nil
-	case nextRune == 'n':
-		s.state = 221
-		return nil
-	case 'o' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state204Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x82 <= nextByte && nextByte <= 0xb3:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'k':
-		s.state = 16
-		return nil
-	case nextRune == 'l':
-		s.state = 222
-		return nil
-	case 'm' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state205Defer() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenDefer
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state205Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0xb2 <= nextByte && nextByte <= 0xb7:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xbb <= nextByte && nextByte <= 0xbd:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xbe <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state206Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x8a:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x8b <= nextByte && nextByte <= 0xa5:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'g':
-		s.state = 16
-		return nil
-	case nextRune == 'h':
-		s.state = 223
-		return nil
-	case 'i' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state207Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x86:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xa0 <= nextByte && nextByte <= 0xbc:
 		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 's':
-		s.state = 16
-		return nil
-	case nextRune == 't':
-		s.state = 224
-		return nil
-	case 'u' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state208Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x84 <= nextByte && nextByte <= 0xb2:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'e':
-		s.state = 16
-		return nil
-	case nextRune == 'f':
-		s.state = 225
-		return nil
-	case 'g' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state209Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x8f <= nextByte && nextByte <= 0xa0:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xa1 <= nextByte && nextByte <= 0xa4:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xa6 <= nextByte && nextByte <= 0xaf:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
+	case 0xba <= nextByte && nextByte <= 0xbe:
 		s.state = 16
-		return nil
-	case nextRune == 'g':
-		s.state = 226
-		return nil
-	case 'h' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state210Range() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenRange
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state210Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0xa8:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state211Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x82:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x84 <= nextByte && nextByte <= 0x8b:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xa0 <= nextByte && nextByte <= 0xb6:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'm':
+	case 0xba <= nextByte && nextByte <= 0xbe:
 		s.state = 16
-		return nil
-	case nextRune == 'n':
-		s.state = 227
-		return nil
-	case 'o' <= nextRune && nextRune <= 'z':
+	case nextByte == 0xbf:
 		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state212Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0xaf:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xb1 <= nextByte && nextByte <= 0xb5:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xb6 <= nextByte && nextByte <= 0xb9:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 's':
+	case 0xba <= nextByte && nextByte <= 0xbd:
 		s.state = 16
-		return nil
-	case nextRune == 't':
-		s.state = 228
-		return nil
-	case 'u' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state213Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x82:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x9b <= nextByte && nextByte <= 0x9d:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0xa0 <= nextByte && nextByte <= 0xaa:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 's':
+	case 0xb2 <= nextByte && nextByte <= 0xb4:
 		s.state = 16
-		return nil
-	case nextRune == 't':
-		s.state = 229
-		return nil
-	case 'u' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state214Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x81 <= nextByte && nextByte <= 0x86:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x89 <= nextByte && nextByte <= 0x8e:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x91 <= nextByte && nextByte <= 0x96:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'g':
+	case 0xa0 <= nextByte && nextByte <= 0xa6:
 		s.state = 16
-		return nil
-	case nextRune == 'h':
-		s.state = 230
-		return nil
-	case 'i' <= nextRune && nextRune <= 'z':
+	case 0xa8 <= nextByte && nextByte <= 0xae:
 		s.state = 16
-		return nil
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state215FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state215Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 186
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 186
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 186
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x9a:
+		s.state = 16
+	case 0x9c <= nextByte && nextByte <= 0xa9:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state216FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state216Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 187
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 186
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 186
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0xa2:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state217FloatLit() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenFloatLit
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state217Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 217
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 186
-		return nil
-	case nextRune == 'P':
-		s.state = 103
-		return nil
-	case nextRune == '_':
-		s.state = 231
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 186
-		return nil
-	case nextRune == 'i':
-		s.state = 100
-		return nil
-	case nextRune == 'p':
-		s.state = 103
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0xa3:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state218FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state218Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 190
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 148
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 148
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x86:
+		s.state = 16
+	case 0x8b <= nextByte && nextByte <= 0xbb:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state219RuneLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state219Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 232
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 232
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 232
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0xad:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state220StringLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state220Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 233
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 233
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 233
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0x99:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state221Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x86:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x93 <= nextByte && nextByte <= 0x97:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x9d <= nextByte && nextByte <= 0x9f:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 't':
+	case 0xa0 <= nextByte && nextByte <= 0xa8:
 		s.state = 16
-		return nil
-	case nextRune == 'u':
-		s.state = 234
-		return nil
-	case 'v' <= nextRune && nextRune <= 'z':
+	case 0xaa <= nextByte && nextByte <= 0xb6:
 		s.state = 16
-		return nil
+	case 0xb8 <= nextByte && nextByte <= 0xbc:
+		s.state = 16
+	case 0xbe <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state222Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case nextByte == 0x80:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x81 <= nextByte && nextByte <= 0x83:
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case 0x84 <= nextByte && nextByte <= 0x86:
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 's':
+	case 0x87 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case nextRune == 't':
-		s.state = 235
-		return nil
-	case 'u' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state223Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0xb1:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'q':
-		s.state = 16
-		return nil
-	case nextRune == 'r':
-		s.state = 236
-		return nil
-	case 's' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state224Import() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenImport
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state224Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x93 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state225Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0xbd:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case nextRune == 'a':
-		s.state = 237
-		return nil
-	case 'b' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state226Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x8f:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0x92 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
-		s.state = 16
-		return nil
-	case nextRune == 'e':
-		s.state = 238
-		return nil
-	case 'f' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state227Return() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenReturn
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state227Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0x87:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xb0 <= nextByte && nextByte <= 0xbb:
 		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state228Select() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenSelect
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state228Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0xb0 <= nextByte && nextByte <= 0xb4:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 0xb6 <= nextByte && nextByte <= 0xbf:
 		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state229Struct() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenStruct
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state229Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0x80 <= nextByte && nextByte <= 0xbc:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state230Switch() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenSwitch
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state230Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case 0xa1 <= nextByte && nextByte <= 0xba:
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state231FloatLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state231Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 217
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 186
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 186
-		return nil
+	case 0x81 <= nextByte && nextByte <= 0x9a:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state232RuneLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state232Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 239
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 239
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 239
-		return nil
+	case 0x80 <= nextByte && nextByte <= 0xbe:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state233StringLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state233Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 240
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 240
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 240
-		return nil
+	case 0x82 <= nextByte && nextByte <= 0x87:
+		s.state = 16
+	case 0x8a <= nextByte && nextByte <= 0x8f:
+		s.state = 16
+	case 0x92 <= nextByte && nextByte <= 0x97:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0x9c:
+		s.state = 16
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state234Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
-		s.state = 16
-		return nil
-	case nextRune == 'e':
-		s.state = 241
-		return nil
-	case 'f' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
+	case nextByte == 0x80:
+		s.state = 380
+	case nextByte == 0x81:
+		s.state = 381
+	case nextByte == 0x82:
+		s.state = 19
+	case nextByte == 0x83:
+		s.state = 382
+	case nextByte == 0x85:
+		s.state = 413
+	case nextByte == 0x8a:
+		s.state = 383
+	case nextByte == 0x8b:
+		s.state = 384
+	case nextByte == 0x8c:
+		s.state = 385
+	case nextByte == 0x8d:
+		s.state = 386
+	case nextByte == 0x8e:
+		s.state = 198
+	case nextByte == 0x8f:
+		s.state = 387
+	case nextByte == 0x90:
+		s.state = 19
+	case nextByte == 0x91:
+		s.state = 19
+	case nextByte == 0x92:
+		s.state = 388
+	case nextByte == 0x93:
+		s.state = 389
+	case nextByte == 0x94:
+		s.state = 390
+	case nextByte == 0x95:
+		s.state = 391
+	case nextByte == 0x96:
+		s.state = 392
+	case nextByte == 0x98:
+		s.state = 19
+	case 0x99 <= nextByte && nextByte <= 0x9b:
+		s.state = 19
+	case nextByte == 0x9c:
+		s.state = 393
+	case nextByte == 0x9d:
+		s.state = 394
+	case nextByte == 0x9e:
+		s.state = 395
+	case nextByte == 0xa0:
+		s.state = 396
+	case nextByte == 0xa1:
+		s.state = 397
+	case nextByte == 0xa2:
+		s.state = 158
+	case nextByte == 0xa3:
+		s.state = 398
+	case nextByte == 0xa4:
+		s.state = 399
+	case nextByte == 0xa6:
+		s.state = 400
+	case nextByte == 0xa8:
+		s.state = 401
+	case nextByte == 0xa9:
+		s.state = 402
+	case nextByte == 0xaa:
+		s.state = 403
+	case nextByte == 0xab:
+		s.state = 404
+	case nextByte == 0xac:
+		s.state = 157
+	case nextByte == 0xad:
+		s.state = 405
+	case nextByte == 0xae:
+		s.state = 406
+	case nextByte == 0xb0:
+		s.state = 19
+	case nextByte == 0xb1:
+		s.state = 27
+	case nextByte == 0xb2:
+		s.state = 407
+	case nextByte == 0xb3:
+		s.state = 407
+	case nextByte == 0xb4:
+		s.state = 168
+	case nextByte == 0xba:
+		s.state = 408
+	case nextByte == 0xbc:
+		s.state = 409
+	case nextByte == 0xbd:
+		s.state = 410
+	case nextByte == 0xbe:
+		s.state = 411
+	case nextByte == 0xbf:
+		s.state = 412
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state235Default() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenDefault
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state235Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
+	case nextByte == 0x80:
+		s.state = 414
+	case nextByte == 0x81:
+		s.state = 415
+	case nextByte == 0x82:
+		s.state = 416
+	case nextByte == 0x83:
+		s.state = 417
+	case nextByte == 0x84:
+		s.state = 418
+	case nextByte == 0x85:
+		s.state = 419
+	case nextByte == 0x86:
+		s.state = 420
+	case nextByte == 0x87:
+		s.state = 421
+	case nextByte == 0x88:
+		s.state = 422
+	case nextByte == 0x89:
+		s.state = 423
+	case nextByte == 0x8a:
+		s.state = 424
+	case nextByte == 0x8b:
+		s.state = 158
+	case nextByte == 0x8c:
+		s.state = 425
+	case nextByte == 0x8d:
+		s.state = 426
+	case nextByte == 0x90:
+		s.state = 413
+	case nextByte == 0x91:
+		s.state = 427
+	case nextByte == 0x92:
+		s.state = 428
+	case nextByte == 0x93:
+		s.state = 429
+	case 0x94 <= nextByte && nextByte <= 0x95:
+		s.state = 19
+	case nextByte == 0x96:
+		s.state = 430
+	case nextByte == 0x97:
+		s.state = 431
+	case nextByte == 0x98:
+		s.state = 428
+	case nextByte == 0x99:
+		s.state = 432
+	case nextByte == 0x9a:
+		s.state = 433
+	case nextByte == 0x9b:
+		s.state = 19
+	case nextByte == 0x9c:
+		s.state = 434
+	case nextByte == 0x9d:
+		s.state = 131
+	case nextByte == 0xa0:
+		s.state = 435
+	case nextByte == 0xa2:
+		s.state = 29
+	case nextByte == 0xa3:
+		s.state = 436
+	case nextByte == 0xa4:
+		s.state = 437
+	case nextByte == 0xa5:
+		s.state = 438
+	case nextByte == 0xa6:
+		s.state = 439
+	case nextByte == 0xa7:
+		s.state = 440
+	case nextByte == 0xa8:
+		s.state = 441
+	case nextByte == 0xa9:
+		s.state = 442
+	case nextByte == 0xaa:
+		s.state = 443
+	case nextByte == 0xab:
+		s.state = 155
+	case nextByte == 0xb0:
+		s.state = 444
+	case nextByte == 0xb1:
+		s.state = 445
+	case nextByte == 0xb2:
+		s.state = 446
+	case nextByte == 0xb4:
+		s.state = 447
+	case nextByte == 0xb5:
+		s.state = 448
+	case nextByte == 0xb6:
+		s.state = 449
+	case 0xb7 <= nextByte && nextByte <= 0xba:
+		s.state = 19
+	case nextByte == 0xbb:
+		s.state = 450
+	case nextByte == 0xbc:
+		s.state = 451
+	case nextByte == 0xbe:
+		s.state = 193
+	case nextByte == 0xbf:
+		s.state = 19
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state236Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'n':
-		s.state = 16
-		return nil
-	case nextRune == 'o':
-		s.state = 242
-		return nil
-	case 'p' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
+	case nextByte == 0x80:
+		s.state = 172
+	case 0x81 <= nextByte && nextByte <= 0x8d:
+		s.state = 19
+	case nextByte == 0x8e:
+		s.state = 220
+	case nextByte == 0x90:
+		s.state = 19
+	case nextByte == 0x91:
+		s.state = 454
+	case nextByte == 0x92:
+		s.state = 19
+	case 0x93 <= nextByte && nextByte <= 0x94:
+		s.state = 19
+	case nextByte == 0x95:
+		s.state = 452
+	case nextByte == 0xbe:
+		s.state = 121
+	case nextByte == 0xbf:
+		s.state = 453
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state237Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'b':
-		s.state = 16
-		return nil
-	case nextRune == 'c':
-		s.state = 243
-		return nil
-	case 'd' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
+	case nextByte == 0x80:
+		s.state = 19
+	case 0x81 <= nextByte && nextByte <= 0x8f:
+		s.state = 19
+	case nextByte == 0x90:
+		s.state = 428
+	case nextByte == 0x91:
+		s.state = 455
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state238Package() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenPackage
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state238Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
+	case nextByte == 0x90:
+		s.state = 19
+	case 0x91 <= nextByte && nextByte <= 0x98:
+		s.state = 19
+	case nextByte == 0x99:
+		s.state = 131
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state239RuneLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state239Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 193
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 193
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 193
-		return nil
+	case nextByte == 0xa0:
+		s.state = 19
+	case 0xa1 <= nextByte && nextByte <= 0xa7:
+		s.state = 19
+	case nextByte == 0xa8:
+		s.state = 155
+	case nextByte == 0xa9:
+		s.state = 456
+	case nextByte == 0xaa:
+		s.state = 232
+	case nextByte == 0xab:
+		s.state = 457
+	case nextByte == 0xac:
+		s.state = 428
+	case nextByte == 0xad:
+		s.state = 458
+	case nextByte == 0xae:
+		s.state = 446
+	case nextByte == 0xb9:
+		s.state = 19
+	case nextByte == 0xbc:
+		s.state = 19
+	case nextByte == 0xbd:
+		s.state = 459
+	case nextByte == 0xbe:
+		s.state = 460
+	case nextByte == 0xbf:
+		s.state = 461
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state240StringLit() error {
-	_ = s.runeReader.Next()
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state240Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 197
-		return nil
-	case 'A' <= nextRune && nextRune <= 'F':
-		s.state = 197
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 197
-		return nil
+	case nextByte == 0x80:
+		s.state = 172
+	case 0x81 <= nextByte && nextByte <= 0xbe:
+		s.state = 19
+	case nextByte == 0xbf:
+		s.state = 19
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state241Continue() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenContinue
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state241Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
+	case nextByte == 0x80:
+		s.state = 19
+	case 0x81 <= nextByte && nextByte <= 0x9e:
+		s.state = 19
+	case nextByte == 0x9f:
+		s.state = 462
+	case nextByte == 0xa0:
+		s.state = 19
+	case 0xa1 <= nextByte && nextByte <= 0xb2:
+		s.state = 19
+	case nextByte == 0xb3:
+		s.state = 463
+	case nextByte == 0xb4:
+		s.state = 27
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state242Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 't':
-		s.state = 16
-		return nil
-	case nextRune == 'u':
-		s.state = 244
-		return nil
-	case 'v' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
+	case nextByte == 0xbf:
+		s.state = 464
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state243Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'd':
-		s.state = 16
-		return nil
-	case nextRune == 'e':
-		s.state = 245
-		return nil
-	case 'f' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
+	case nextByte == 0x80:
+		s.state = 19
+	case 0x81 <= nextByte && nextByte <= 0x83:
+		s.state = 19
+	case nextByte == 0x84:
+		s.state = 465
+	case nextByte == 0x85:
+		s.state = 466
+	case 0x86 <= nextByte && nextByte <= 0x8a:
+		s.state = 19
+	case nextByte == 0x8b:
+		s.state = 467
+	case nextByte == 0xb0:
+		s.state = 19
+	case nextByte == 0xb1:
+		s.state = 468
+	case nextByte == 0xb2:
+		s.state = 469
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state244Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'f':
-		s.state = 16
-		return nil
-	case nextRune == 'g':
-		s.state = 246
-		return nil
-	case 'h' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
+	case nextByte == 0x90:
+		s.state = 19
+	case nextByte == 0x91:
+		s.state = 470
+	case nextByte == 0x92:
+		s.state = 471
+	case nextByte == 0x93:
+		s.state = 472
+	case nextByte == 0x94:
+		s.state = 473
+	case nextByte == 0x95:
+		s.state = 474
+	case 0x96 <= nextByte && nextByte <= 0x99:
+		s.state = 19
+	case nextByte == 0x9a:
+		s.state = 475
+	case nextByte == 0x9b:
+		s.state = 476
+	case nextByte == 0x9c:
+		s.state = 477
+	case nextByte == 0x9d:
+		s.state = 478
+	case nextByte == 0x9e:
+		s.state = 479
+	case nextByte == 0x9f:
+		s.state = 480
+	case nextByte == 0xbc:
+		s.state = 481
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state245Interface() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenInterface
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+func (s *Scanner) state245Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
+	case nextByte == 0x80:
+		s.state = 193
+	case nextByte == 0x81:
+		s.state = 482
+	case nextByte == 0x84:
+		s.state = 483
+	case nextByte == 0x85:
+		s.state = 484
+	case 0x86 <= nextByte && nextByte <= 0x89:
+		s.state = 19
+	case nextByte == 0x8a:
+		s.state = 485
+	case nextByte == 0x8b:
+		s.state = 435
+	case nextByte == 0x93:
+		s.state = 486
+	case nextByte == 0x9f:
+		s.state = 487
+	case nextByte == 0xa0:
+		s.state = 19
+	case 0xa1 <= nextByte && nextByte <= 0xa2:
+		s.state = 19
+	case nextByte == 0xa3:
+		s.state = 488
+	case nextByte == 0xa4:
+		s.state = 19
+	case nextByte == 0xa5:
+		s.state = 489
+	case 0xa6 <= nextByte && nextByte <= 0xb7:
+		s.state = 19
+	case nextByte == 0xb8:
+		s.state = 490
+	case nextByte == 0xb9:
+		s.state = 491
+	case nextByte == 0xba:
+		s.state = 492
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
 func (s *Scanner) state246Identifier() error {
-	_ = s.runeReader.Next()
-
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenIdentifier
-	s.tokenEnd = s.runeReader
-
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
-		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
-		s.state = 16
-		return nil
-	case nextRune == '_':
-		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'g':
-		s.state = 16
-		return nil
-	case nextRune == 'h':
-		s.state = 247
-		return nil
-	case 'i' <= nextRune && nextRune <= 'z':
-		s.state = 16
-		return nil
+	case nextByte == 0x80:
+		s.state = 19
+	case 0x81 <= nextByte && nextByte <= 0x9a:
+		s.state = 19
+	case nextByte == 0x9b:
+		s.state = 493
+	case nextByte == 0x9c:
+		s.state = 19
+	case 0x9d <= nextByte && nextByte <= 0xbe:
+		s.state = 19
+	case nextByte == 0xbf:
+		s.state = 19
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }
 
-func (s *Scanner) state247Fallthrough() error {
-	_ = s.runeReader.Next()
+func (s *Scanner) state247Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 19
+	case 0x81 <= nextByte && nextByte <= 0x9b:
+		s.state = 19
+	case nextByte == 0x9c:
+		s.state = 494
+	case nextByte == 0x9d:
+		s.state = 19
+	case 0x9e <= nextByte && nextByte <= 0x9f:
+		s.state = 19
+	case nextByte == 0xa0:
+		s.state = 198
+	case 0xa1 <= nextByte && nextByte <= 0xbe:
+		s.state = 19
+	case nextByte == 0xbf:
+		s.state = 19
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
 
+func (s *Scanner) state248Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 19
+	case 0x81 <= nextByte && nextByte <= 0xb9:
+		s.state = 19
+	case nextByte == 0xba:
+		s.state = 495
+	case 0xbb <= nextByte && nextByte <= 0xbe:
+		s.state = 19
+	case nextByte == 0xbf:
+		s.state = 19
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state249Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 19
+	case 0x81 <= nextByte && nextByte <= 0xae:
+		s.state = 19
+	case nextByte == 0xaf:
+		s.state = 496
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state250Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0xa0:
+		s.state = 19
+	case 0xa1 <= nextByte && nextByte <= 0xa7:
+		s.state = 19
+	case nextByte == 0xa8:
+		s.state = 497
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state251Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 19
+	case 0x81 <= nextByte && nextByte <= 0x8c:
+		s.state = 19
+	case nextByte == 0x8d:
+		s.state = 459
+	case 0x8e <= nextByte && nextByte <= 0xbe:
+		s.state = 19
+	case nextByte == 0xbf:
+		s.state = 19
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state252Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 19
+	case 0x81 <= nextByte && nextByte <= 0x8d:
+		s.state = 19
+	case nextByte == 0x8e:
+		s.state = 428
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state253AddAssign() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenAddAssign
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state254Increment() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIncrement
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state255SubAssign() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenSubAssign
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state256Decrement() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenDecrement
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state257MulAssign() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenMulAssign
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state258RemAssign() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenRemAssign
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state259AndNot() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenAndNot
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '=':
+		s.state = 498
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state260AndAssign() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenAndAssign
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state261LogicalAnd() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenLogicalAnd
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state262OrAssign() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenOrAssign
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state263LogicalOr() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenLogicalOr
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state264XorAssign() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenXorAssign
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state265ShiftLeft() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenShiftLeft
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '=':
+		s.state = 499
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state266Arrow() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenArrow
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state267LessEqual() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenLessEqual
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state268ShiftRight() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenShiftRight
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '=':
+		s.state = 500
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state269GreaterEqual() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenGreaterEqual
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state270Equal() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenEqual
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state271NotEqual() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenNotEqual
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state272Define() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenDefine
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state273Ellipsis() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '.':
+		s.state = 501
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state274FloatLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenFloatLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 274
+	case nextByte == 'E':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 502
+	case nextByte == 'e':
+		s.state = 287
+	case nextByte == 'i':
+		s.state = 284
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state275IntLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '.':
+		s.state = 505
+	case nextByte == '0':
+		s.state = 504
+	case nextByte == '1':
+		s.state = 504
+	case '2' <= nextByte && nextByte <= '9':
+		s.state = 283
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 283
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 503
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 283
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state276IntLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '7':
+		s.state = 507
+	case nextByte == '_':
+		s.state = 506
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state277IntLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '7':
+		s.state = 278
+	case '8' <= nextByte && nextByte <= '9':
+		s.state = 280
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 283
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 283
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state278IntLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIntLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '.':
+		s.state = 509
+	case '0' <= nextByte && nextByte <= '7':
+		s.state = 278
+	case '8' <= nextByte && nextByte <= '9':
+		s.state = 280
+	case 'A' <= nextByte && nextByte <= 'D':
+		s.state = 283
+	case nextByte == 'E':
+		s.state = 282
+	case nextByte == 'F':
+		s.state = 283
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 508
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 283
+	case nextByte == 'e':
+		s.state = 282
+	case nextByte == 'f':
+		s.state = 283
+	case nextByte == 'i':
+		s.state = 284
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state279IntLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '.':
+		s.state = 512
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 511
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 511
+	case nextByte == '_':
+		s.state = 510
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 511
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state280FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '.':
+		s.state = 509
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 280
+	case 'A' <= nextByte && nextByte <= 'D':
+		s.state = 283
+	case nextByte == 'E':
+		s.state = 282
+	case nextByte == 'F':
+		s.state = 283
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 513
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 283
+	case nextByte == 'e':
+		s.state = 282
+	case nextByte == 'f':
+		s.state = 283
+	case nextByte == 'i':
+		s.state = 284
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state281FloatLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenFloatLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 514
+	case 'A' <= nextByte && nextByte <= 'D':
+		s.state = 516
+	case nextByte == 'E':
+		s.state = 515
+	case nextByte == 'F':
+		s.state = 516
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 516
+	case nextByte == 'e':
+		s.state = 515
+	case nextByte == 'f':
+		s.state = 516
+	case nextByte == 'i':
+		s.state = 284
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state282FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '+':
+		s.state = 517
+	case nextByte == '-':
+		s.state = 517
+	case nextByte == '.':
+		s.state = 505
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 518
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 283
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 519
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 283
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state283FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '.':
+		s.state = 505
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 283
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 283
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 519
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 283
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state284ImaginaryLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenImaginaryLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state285IntLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 69
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state286FloatLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenFloatLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 520
+	case nextByte == 'E':
+		s.state = 521
+	case nextByte == 'e':
+		s.state = 521
+	case nextByte == 'i':
+		s.state = 284
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state287FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '+':
+		s.state = 517
+	case nextByte == '-':
+		s.state = 517
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 522
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state288RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '\'':
+		s.state = 523
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state289RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '"':
+		s.state = 288
+	case nextByte == '\'':
+		s.state = 526
+	case '0' <= nextByte && nextByte <= '7':
+		s.state = 527
+	case nextByte == 'U':
+		s.state = 525
+	case nextByte == '\\':
+		s.state = 288
+	case nextByte == 'a':
+		s.state = 288
+	case nextByte == 'b':
+		s.state = 288
+	case nextByte == 'f':
+		s.state = 288
+	case nextByte == 'n':
+		s.state = 288
+	case nextByte == 'r':
+		s.state = 288
+	case nextByte == 't':
+		s.state = 288
+	case nextByte == 'u':
+		s.state = 524
+	case nextByte == 'v':
+		s.state = 288
+	case nextByte == 'x':
+		s.state = 528
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state290RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xbf:
+		s.state = 288
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state291RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0xa0:
+		s.state = 290
+	case 0xa1 <= nextByte && nextByte <= 0xbe:
+		s.state = 290
+	case nextByte == 0xbf:
+		s.state = 290
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state292RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 290
+	case 0x81 <= nextByte && nextByte <= 0xbe:
+		s.state = 290
+	case nextByte == 0xbf:
+		s.state = 290
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state293RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x90:
+		s.state = 292
+	case 0x91 <= nextByte && nextByte <= 0xbe:
+		s.state = 292
+	case nextByte == 0xbf:
+		s.state = 292
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state294RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 292
+	case 0x81 <= nextByte && nextByte <= 0xbe:
+		s.state = 292
+	case nextByte == 0xbf:
+		s.state = 292
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state295RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 292
+	case 0x81 <= nextByte && nextByte <= 0x8e:
+		s.state = 292
+	case nextByte == 0x8f:
+		s.state = 292
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state296StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xbf:
+		s.state = 71
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state297StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0xa0:
+		s.state = 296
+	case 0xa1 <= nextByte && nextByte <= 0xbe:
+		s.state = 296
+	case nextByte == 0xbf:
+		s.state = 296
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state298StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 296
+	case 0x81 <= nextByte && nextByte <= 0xbe:
+		s.state = 296
+	case nextByte == 0xbf:
+		s.state = 296
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state299StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x90:
+		s.state = 298
+	case 0x91 <= nextByte && nextByte <= 0xbe:
+		s.state = 298
+	case nextByte == 0xbf:
+		s.state = 298
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state300StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 298
+	case 0x81 <= nextByte && nextByte <= 0xbe:
+		s.state = 298
+	case nextByte == 0xbf:
+		s.state = 298
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state301StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 298
+	case 0x81 <= nextByte && nextByte <= 0x8e:
+		s.state = 298
+	case nextByte == 0x8f:
+		s.state = 298
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state302StringLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenStringLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state303StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xbf:
+		s.state = 72
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state304StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0xa0:
+		s.state = 303
+	case 0xa1 <= nextByte && nextByte <= 0xbe:
+		s.state = 303
+	case nextByte == 0xbf:
+		s.state = 303
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state305StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 303
+	case 0x81 <= nextByte && nextByte <= 0xbe:
+		s.state = 303
+	case nextByte == 0xbf:
+		s.state = 303
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state306StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x90:
+		s.state = 305
+	case 0x91 <= nextByte && nextByte <= 0xbe:
+		s.state = 305
+	case nextByte == 0xbf:
+		s.state = 305
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state307StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 305
+	case 0x81 <= nextByte && nextByte <= 0xbe:
+		s.state = 305
+	case nextByte == 0xbf:
+		s.state = 305
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state308StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 305
+	case 0x81 <= nextByte && nextByte <= 0x8e:
+		s.state = 305
+	case nextByte == 0x8f:
+		s.state = 305
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state309StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '"':
+		s.state = 72
+	case nextByte == '\'':
+		s.state = 72
+	case '0' <= nextByte && nextByte <= '7':
+		s.state = 531
+	case nextByte == 'U':
+		s.state = 530
+	case nextByte == '\\':
+		s.state = 72
+	case nextByte == 'a':
+		s.state = 72
+	case nextByte == 'b':
+		s.state = 72
+	case nextByte == 'f':
+		s.state = 72
+	case nextByte == 'n':
+		s.state = 72
+	case nextByte == 'r':
+		s.state = 72
+	case nextByte == 't':
+		s.state = 72
+	case nextByte == 'u':
+		s.state = 529
+	case nextByte == 'v':
+		s.state = 72
+	case nextByte == 'x':
+		s.state = 532
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state310Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xbf:
+		s.state = 73
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state311Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0xa0:
+		s.state = 310
+	case 0xa1 <= nextByte && nextByte <= 0xbe:
+		s.state = 310
+	case nextByte == 0xbf:
+		s.state = 310
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state312Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 310
+	case 0x81 <= nextByte && nextByte <= 0xbe:
+		s.state = 310
+	case nextByte == 0xbf:
+		s.state = 310
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state313Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x90:
+		s.state = 312
+	case 0x91 <= nextByte && nextByte <= 0xbe:
+		s.state = 312
+	case nextByte == 0xbf:
+		s.state = 312
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state314Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 312
+	case 0x81 <= nextByte && nextByte <= 0xbe:
+		s.state = 312
+	case nextByte == 0xbf:
+		s.state = 312
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state315Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 312
+	case 0x81 <= nextByte && nextByte <= 0x8e:
+		s.state = 312
+	case nextByte == 0x8f:
+		s.state = 312
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state316Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xbf:
+		s.state = 74
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state317Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0xa0:
+		s.state = 316
+	case 0xa1 <= nextByte && nextByte <= 0xbe:
+		s.state = 316
+	case nextByte == 0xbf:
+		s.state = 316
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state318Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 316
+	case 0x81 <= nextByte && nextByte <= 0xbe:
+		s.state = 316
+	case nextByte == 0xbf:
+		s.state = 316
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state319Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x90:
+		s.state = 318
+	case 0x91 <= nextByte && nextByte <= 0xbe:
+		s.state = 318
+	case nextByte == 0xbf:
+		s.state = 318
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state320Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 318
+	case 0x81 <= nextByte && nextByte <= 0xbe:
+		s.state = 318
+	case nextByte == 0xbf:
+		s.state = 318
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state321Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 318
+	case 0x81 <= nextByte && nextByte <= 0x8e:
+		s.state = 318
+	case nextByte == 0x8f:
+		s.state = 318
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state322Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x0 <= nextByte && nextByte <= ')':
+		s.state = 74
+	case nextByte == '*':
+		s.state = 322
+	case '+' <= nextByte && nextByte <= '.':
+		s.state = 74
+	case nextByte == '/':
+		s.state = 533
+	case '0' <= nextByte && nextByte <= 0x7f:
+		s.state = 74
+	case nextByte == 0xc2:
+		s.state = 316
+	case 0xc3 <= nextByte && nextByte <= 0xde:
+		s.state = 316
+	case nextByte == 0xdf:
+		s.state = 316
+	case nextByte == 0xe0:
+		s.state = 317
+	case 0xe1 <= nextByte && nextByte <= 0xee:
+		s.state = 318
+	case nextByte == 0xef:
+		s.state = 318
+	case nextByte == 0xf0:
+		s.state = 319
+	case 0xf1 <= nextByte && nextByte <= 0xf3:
+		s.state = 320
+	case nextByte == 0xf4:
+		s.state = 321
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state323Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case nextByte == 'a':
+		s.state = 534
+	case 'b' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state324Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0x98 <= nextByte && nextByte <= 0xa1:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb1 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state325Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8e:
+		s.state = 16
+	case 0x9c <= nextByte && nextByte <= 0x9d:
+		s.state = 16
+	case 0x9f <= nextByte && nextByte <= 0xa1:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb1:
+		s.state = 16
+	case 0xbc <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state326Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x99 <= nextByte && nextByte <= 0x9c:
+		s.state = 16
+	case 0x9e <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	case 0xb3 <= nextByte && nextByte <= 0xb4:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state327Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xa1:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb9 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state328Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9c:
+		s.state = 16
+	case 0x9d <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xa1:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb1 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state329Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x90 <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state330Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x98:
+		s.state = 16
+	case 0x99 <= nextByte && nextByte <= 0x9a:
+		s.state = 16
+	case 0x9d <= nextByte && nextByte <= 0xa0:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state331Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9d:
+		s.state = 16
+	case 0x9e <= nextByte && nextByte <= 0xa0:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb1:
+		s.state = 16
+	case 0xb2 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state332Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8e:
+		s.state = 16
+	case 0x94 <= nextByte && nextByte <= 0x96:
+		s.state = 16
+	case 0x9f <= nextByte && nextByte <= 0xa1:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xba <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state333Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 16
+	case 0x81 <= nextByte && nextByte <= 0x86:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state334Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x86:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state335Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 16
+	case 0x81 <= nextByte && nextByte <= 0x84:
+		s.state = 16
+	case 0x86 <= nextByte && nextByte <= 0x8f:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0x9c:
+		s.state = 16
+	case 0x9d <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state336Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xa9:
+		s.state = 16
+	case 0xaa <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state337Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case 0x8a <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0x91 <= nextByte && nextByte <= 0x95:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0x9d:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xae:
+		s.state = 16
+	case 0xaf <= nextByte && nextByte <= 0xb0:
+		s.state = 16
+	case 0xb5 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state338Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x81:
+		s.state = 16
+	case 0x8e <= nextByte && nextByte <= 0x8f:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0xa0:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state339Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x97 <= nextByte && nextByte <= 0x9c:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xa9:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state340Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state341Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x86 <= nextByte && nextByte <= 0x8f:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0xad:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb4:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state342Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state343Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0xa7 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state344Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x85 <= nextByte && nextByte <= 0x8c:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state345Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x83 <= nextByte && nextByte <= 0xa0:
+		s.state = 16
+	case 0xae <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	case 0xba <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state346Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case 0x8d <= nextByte && nextByte <= 0x8f:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0xbd:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state347Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8c:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xa9:
+		s.state = 16
+	case 0xaa <= nextByte && nextByte <= 0xab:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state348Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0xb2 <= nextByte && nextByte <= 0xb7:
+		s.state = 16
+	case 0xbb <= nextByte && nextByte <= 0xbd:
+		s.state = 16
+	case 0xbe <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state349Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case nextByte == 0x8a:
+		s.state = 16
+	case 0x8b <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state350Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x8f:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0xa0:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xa4:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	case 0xba <= nextByte && nextByte <= 0xbe:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state351Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x82:
+		s.state = 16
+	case 0x84 <= nextByte && nextByte <= 0x8b:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xb6:
+		s.state = 16
+	case 0xba <= nextByte && nextByte <= 0xbe:
+		s.state = 16
+	case nextByte == 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state352Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xa2:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state353Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xba:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state354Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 380
+	case nextByte == 0x81:
+		s.state = 381
+	case nextByte == 0x82:
+		s.state = 19
+	case nextByte == 0x83:
+		s.state = 382
+	case nextByte == 0x85:
+		s.state = 413
+	case nextByte == 0x8a:
+		s.state = 383
+	case nextByte == 0x8b:
+		s.state = 384
+	case nextByte == 0x8c:
+		s.state = 385
+	case nextByte == 0x8d:
+		s.state = 386
+	case nextByte == 0x8e:
+		s.state = 198
+	case nextByte == 0x8f:
+		s.state = 387
+	case nextByte == 0x90:
+		s.state = 19
+	case nextByte == 0x91:
+		s.state = 19
+	case nextByte == 0x92:
+		s.state = 535
+	case nextByte == 0x93:
+		s.state = 389
+	case nextByte == 0x94:
+		s.state = 390
+	case nextByte == 0x95:
+		s.state = 391
+	case nextByte == 0x96:
+		s.state = 392
+	case nextByte == 0x98:
+		s.state = 19
+	case 0x99 <= nextByte && nextByte <= 0x9b:
+		s.state = 19
+	case nextByte == 0x9c:
+		s.state = 393
+	case nextByte == 0x9d:
+		s.state = 394
+	case nextByte == 0x9e:
+		s.state = 395
+	case nextByte == 0xa0:
+		s.state = 396
+	case nextByte == 0xa1:
+		s.state = 397
+	case nextByte == 0xa2:
+		s.state = 158
+	case nextByte == 0xa3:
+		s.state = 398
+	case nextByte == 0xa4:
+		s.state = 399
+	case nextByte == 0xa6:
+		s.state = 400
+	case nextByte == 0xa8:
+		s.state = 401
+	case nextByte == 0xa9:
+		s.state = 402
+	case nextByte == 0xaa:
+		s.state = 403
+	case nextByte == 0xab:
+		s.state = 404
+	case nextByte == 0xac:
+		s.state = 157
+	case nextByte == 0xad:
+		s.state = 405
+	case nextByte == 0xae:
+		s.state = 406
+	case nextByte == 0xb0:
+		s.state = 19
+	case nextByte == 0xb1:
+		s.state = 27
+	case nextByte == 0xb2:
+		s.state = 407
+	case nextByte == 0xb3:
+		s.state = 407
+	case nextByte == 0xb4:
+		s.state = 536
+	case nextByte == 0xba:
+		s.state = 408
+	case nextByte == 0xbc:
+		s.state = 409
+	case nextByte == 0xbd:
+		s.state = 410
+	case nextByte == 0xbe:
+		s.state = 411
+	case nextByte == 0xbf:
+		s.state = 412
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state355Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 414
+	case nextByte == 0x81:
+		s.state = 537
+	case nextByte == 0x82:
+		s.state = 416
+	case nextByte == 0x83:
+		s.state = 538
+	case nextByte == 0x84:
+		s.state = 539
+	case nextByte == 0x85:
+		s.state = 419
+	case nextByte == 0x86:
+		s.state = 420
+	case nextByte == 0x87:
+		s.state = 540
+	case nextByte == 0x88:
+		s.state = 422
+	case nextByte == 0x89:
+		s.state = 423
+	case nextByte == 0x8a:
+		s.state = 424
+	case nextByte == 0x8b:
+		s.state = 541
+	case nextByte == 0x8c:
+		s.state = 425
+	case nextByte == 0x8d:
+		s.state = 426
+	case nextByte == 0x90:
+		s.state = 413
+	case nextByte == 0x91:
+		s.state = 542
+	case nextByte == 0x92:
+		s.state = 428
+	case nextByte == 0x93:
+		s.state = 543
+	case 0x94 <= nextByte && nextByte <= 0x95:
+		s.state = 19
+	case nextByte == 0x96:
+		s.state = 430
+	case nextByte == 0x97:
+		s.state = 431
+	case nextByte == 0x98:
+		s.state = 428
+	case nextByte == 0x99:
+		s.state = 544
+	case nextByte == 0x9a:
+		s.state = 433
+	case nextByte == 0x9b:
+		s.state = 545
+	case nextByte == 0x9c:
+		s.state = 546
+	case nextByte == 0x9d:
+		s.state = 131
+	case nextByte == 0xa0:
+		s.state = 435
+	case nextByte == 0xa2:
+		s.state = 29
+	case nextByte == 0xa3:
+		s.state = 547
+	case nextByte == 0xa4:
+		s.state = 437
+	case nextByte == 0xa5:
+		s.state = 548
+	case nextByte == 0xa6:
+		s.state = 439
+	case nextByte == 0xa7:
+		s.state = 440
+	case nextByte == 0xa8:
+		s.state = 441
+	case nextByte == 0xa9:
+		s.state = 442
+	case nextByte == 0xaa:
+		s.state = 443
+	case nextByte == 0xab:
+		s.state = 155
+	case nextByte == 0xb0:
+		s.state = 444
+	case nextByte == 0xb1:
+		s.state = 549
+	case nextByte == 0xb2:
+		s.state = 446
+	case nextByte == 0xb4:
+		s.state = 447
+	case nextByte == 0xb5:
+		s.state = 550
+	case nextByte == 0xb6:
+		s.state = 551
+	case 0xb7 <= nextByte && nextByte <= 0xba:
+		s.state = 19
+	case nextByte == 0xbb:
+		s.state = 450
+	case nextByte == 0xbc:
+		s.state = 451
+	case nextByte == 0xbd:
+		s.state = 552
+	case nextByte == 0xbe:
+		s.state = 193
+	case nextByte == 0xbf:
+		s.state = 19
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state356Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0xa0:
+		s.state = 19
+	case 0xa1 <= nextByte && nextByte <= 0xa7:
+		s.state = 19
+	case nextByte == 0xa8:
+		s.state = 155
+	case nextByte == 0xa9:
+		s.state = 553
+	case nextByte == 0xaa:
+		s.state = 232
+	case nextByte == 0xab:
+		s.state = 554
+	case nextByte == 0xac:
+		s.state = 428
+	case nextByte == 0xad:
+		s.state = 555
+	case nextByte == 0xae:
+		s.state = 446
+	case nextByte == 0xb9:
+		s.state = 19
+	case nextByte == 0xbc:
+		s.state = 19
+	case nextByte == 0xbd:
+		s.state = 459
+	case nextByte == 0xbe:
+		s.state = 460
+	case nextByte == 0xbf:
+		s.state = 461
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state357Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x90:
+		s.state = 19
+	case nextByte == 0x91:
+		s.state = 470
+	case nextByte == 0x92:
+		s.state = 471
+	case nextByte == 0x93:
+		s.state = 472
+	case nextByte == 0x94:
+		s.state = 473
+	case nextByte == 0x95:
+		s.state = 474
+	case 0x96 <= nextByte && nextByte <= 0x99:
+		s.state = 19
+	case nextByte == 0x9a:
+		s.state = 475
+	case nextByte == 0x9b:
+		s.state = 476
+	case nextByte == 0x9c:
+		s.state = 477
+	case nextByte == 0x9d:
+		s.state = 478
+	case nextByte == 0x9e:
+		s.state = 479
+	case nextByte == 0x9f:
+		s.state = 556
+	case nextByte == 0xbc:
+		s.state = 481
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state358Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 193
+	case nextByte == 0x81:
+		s.state = 482
+	case nextByte == 0x84:
+		s.state = 483
+	case nextByte == 0x85:
+		s.state = 557
+	case 0x86 <= nextByte && nextByte <= 0x89:
+		s.state = 19
+	case nextByte == 0x8a:
+		s.state = 485
+	case nextByte == 0x8b:
+		s.state = 558
+	case nextByte == 0x93:
+		s.state = 559
+	case nextByte == 0x9f:
+		s.state = 487
+	case nextByte == 0xa0:
+		s.state = 19
+	case 0xa1 <= nextByte && nextByte <= 0xa2:
+		s.state = 19
+	case nextByte == 0xa3:
+		s.state = 488
+	case nextByte == 0xa4:
+		s.state = 19
+	case nextByte == 0xa5:
+		s.state = 560
+	case 0xa6 <= nextByte && nextByte <= 0xb7:
+		s.state = 19
+	case nextByte == 0xb8:
+		s.state = 490
+	case nextByte == 0xb9:
+		s.state = 491
+	case nextByte == 0xba:
+		s.state = 492
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state359Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0xaf:
+		s.state = 561
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state360Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 16
+	case nextByte == 'e':
+		s.state = 562
+	case 'f' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state361Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'm':
+		s.state = 16
+	case nextByte == 'n':
+		s.state = 563
+	case 'o' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state362Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'r':
+		s.state = 16
+	case nextByte == 's':
+		s.state = 564
+	case nextByte == 't':
+		s.state = 565
+	case 'u' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state363Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case nextByte == 'a':
+		s.state = 566
+	case 'b' <= nextByte && nextByte <= 'd':
+		s.state = 16
+	case nextByte == 'e':
+		s.state = 567
+	case 'f' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state364Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 16
+	case nextByte == 'e':
+		s.state = 568
+	case 'f' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state365Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'k':
+		s.state = 16
+	case nextByte == 'l':
+		s.state = 569
+	case 'm' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state366For() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenFor
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state367Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'b':
+		s.state = 16
+	case nextByte == 'c':
+		s.state = 570
+	case 'd' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state368Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'n':
+		s.state = 16
+	case nextByte == 'o':
+		s.state = 571
+	case 'p' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state369Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'n':
+		s.state = 16
+	case nextByte == 'o':
+		s.state = 572
+	case 'p' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state370Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 16
+	case nextByte == 'e':
+		s.state = 573
+	case 'f' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state371Map() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenMap
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state372Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'j':
+		s.state = 16
+	case nextByte == 'k':
+		s.state = 574
+	case 'l' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state373Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 16
+	case nextByte == 'g':
+		s.state = 575
+	case 'h' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state374Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 't':
+		s.state = 16
+	case nextByte == 'u':
+		s.state = 576
+	case 'v' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state375Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 16
+	case nextByte == 'e':
+		s.state = 577
+	case 'f' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state376Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 't':
+		s.state = 16
+	case nextByte == 'u':
+		s.state = 578
+	case 'v' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state377Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 's':
+		s.state = 16
+	case nextByte == 't':
+		s.state = 579
+	case 'u' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state378Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 16
+	case nextByte == 'e':
+		s.state = 580
+	case 'f' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state379Var() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenVar
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state380Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8b:
+		s.state = 16
+	case 0x8d <= nextByte && nextByte <= 0xa6:
+		s.state = 16
+	case 0xa8 <= nextByte && nextByte <= 0xba:
+		s.state = 16
+	case 0xbc <= nextByte && nextByte <= 0xbd:
+		s.state = 16
+	case nextByte == 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state381Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8d:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x9d:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state382Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xba:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state383Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9c:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state384Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state385Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	case 0xad <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state386Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 16
+	case nextByte == 0x81:
+		s.state = 16
+	case 0x82 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case nextByte == 0x8a:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0xb5:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state387Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x83:
+		s.state = 16
+	case 0x88 <= nextByte && nextByte <= 0x8f:
+		s.state = 16
+	case 0x91 <= nextByte && nextByte <= 0x95:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state388Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9d:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state389Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x93:
+		s.state = 16
+	case 0x98 <= nextByte && nextByte <= 0xbb:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state390Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xa7:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state391Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xa3:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xba:
+		s.state = 16
+	case 0xbc <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state392Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8a:
+		s.state = 16
+	case 0x8c <= nextByte && nextByte <= 0x92:
+		s.state = 16
+	case 0x94 <= nextByte && nextByte <= 0x95:
+		s.state = 16
+	case 0x97 <= nextByte && nextByte <= 0xa1:
+		s.state = 16
+	case 0xa3 <= nextByte && nextByte <= 0xb1:
+		s.state = 16
+	case 0xb3 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	case 0xbb <= nextByte && nextByte <= 0xbc:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state393Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xb6:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state394Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x95:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xa7:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state395Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x85:
+		s.state = 16
+	case 0x87 <= nextByte && nextByte <= 0xb0:
+		s.state = 16
+	case 0xb2 <= nextByte && nextByte <= 0xba:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state396Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x85:
+		s.state = 16
+	case 0x88 <= nextByte && nextByte <= 0x8a:
+		s.state = 16
+	case 0x8b <= nextByte && nextByte <= 0xb5:
+		s.state = 16
+	case 0xb7 <= nextByte && nextByte <= 0xb8:
+		s.state = 16
+	case 0xbc <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state397Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x95:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xb6:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state398Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0xa0 <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	case 0xb4 <= nextByte && nextByte <= 0xb5:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state399Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x95:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state400Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xb7:
+		s.state = 16
+	case 0xbe <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state401Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0x91 <= nextByte && nextByte <= 0x93:
+		s.state = 16
+	case 0x95 <= nextByte && nextByte <= 0x97:
+		s.state = 16
+	case 0x99 <= nextByte && nextByte <= 0xb5:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state402Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0xa0 <= nextByte && nextByte <= 0xbc:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state403Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9c:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state404Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x87:
+		s.state = 16
+	case 0x89 <= nextByte && nextByte <= 0xa4:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state405Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x95:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state406Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x91:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state407Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state408Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xa9:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb1:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state409Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9c:
+		s.state = 16
+	case 0xa7 <= nextByte && nextByte <= 0xb0:
+		s.state = 16
+	case 0xb1 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state410Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x85:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state411Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x81:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state412Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x84:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xb6:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state413Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xb4:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state414Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x83 <= nextByte && nextByte <= 0xb7:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state415Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0xb1 <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	case 0xb5 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state416Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x83:
+		s.state = 16
+	case 0x84 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state417Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x90 <= nextByte && nextByte <= 0xa8:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state418Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x83 <= nextByte && nextByte <= 0xa6:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state419Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x84 <= nextByte && nextByte <= 0x87:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	case 0xb6 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state420Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x83:
+		s.state = 16
+	case 0x84 <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state421Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x81 <= nextByte && nextByte <= 0x84:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0x9c:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state422Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x91:
+		s.state = 16
+	case 0x93 <= nextByte && nextByte <= 0xab:
+		s.state = 16
+	case nextByte == 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state423Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state424Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x86:
+		s.state = 16
+	case 0x88 <= nextByte && nextByte <= 0x8a:
+		s.state = 16
+	case 0x8b <= nextByte && nextByte <= 0x8d:
+		s.state = 16
+	case 0x8f <= nextByte && nextByte <= 0x9d:
+		s.state = 16
+	case 0x9f <= nextByte && nextByte <= 0xa8:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state425Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x85 <= nextByte && nextByte <= 0x8c:
+		s.state = 16
+	case 0x8f <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0x93 <= nextByte && nextByte <= 0xa8:
+		s.state = 16
+	case 0xaa <= nextByte && nextByte <= 0xb0:
+		s.state = 16
+	case 0xb2 <= nextByte && nextByte <= 0xb3:
+		s.state = 16
+	case 0xb5 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	case 0xbd <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state426Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0x9d <= nextByte && nextByte <= 0xa1:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state427Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x87 <= nextByte && nextByte <= 0x8a:
+		s.state = 16
+	case 0x9f <= nextByte && nextByte <= 0xa1:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state428Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state429Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x84 <= nextByte && nextByte <= 0x85:
+		s.state = 16
+	case 0x87 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state430Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 16
+	case 0x81 <= nextByte && nextByte <= 0xae:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state431Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x98 <= nextByte && nextByte <= 0x9b:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state432Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x84 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state433Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 16
+	case 0x81 <= nextByte && nextByte <= 0xaa:
+		s.state = 16
+	case 0xb8 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state434Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 16
+	case 0x81 <= nextByte && nextByte <= 0x9a:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state435Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xab:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state436Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	case nextByte == 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state437Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x86:
+		s.state = 16
+	case 0x89 <= nextByte && nextByte <= 0x8c:
+		s.state = 16
+	case 0x8d <= nextByte && nextByte <= 0x93:
+		s.state = 16
+	case 0x95 <= nextByte && nextByte <= 0x96:
+		s.state = 16
+	case 0x98 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case nextByte == 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state438Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x81:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state439Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0xa0 <= nextByte && nextByte <= 0xa7:
+		s.state = 16
+	case 0xaa <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state440Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xa3:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state441Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8b:
+		s.state = 16
+	case 0x8c <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	case 0xba <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state442Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0x9c <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state443Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case 0x9d <= nextByte && nextByte <= 0xb0:
+		s.state = 16
+	case 0xb1 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state444Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x88:
+		s.state = 16
+	case 0x8a <= nextByte && nextByte <= 0xae:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state445Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	case 0xb3 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state446Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8f:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state447Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x86:
+		s.state = 16
+	case 0x88 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case 0x8b <= nextByte && nextByte <= 0xb0:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state448Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x86 <= nextByte && nextByte <= 0xa0:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xa7 <= nextByte && nextByte <= 0xa8:
+		s.state = 16
+	case 0xaa <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state449Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case 0x98 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state450Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xa0:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state451Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x82 <= nextByte && nextByte <= 0x84:
+		s.state = 16
+	case 0x85 <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0x92 <= nextByte && nextByte <= 0xb3:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state452Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x83:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state453Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xb0:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state454Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xae:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state455Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x81 <= nextByte && nextByte <= 0x86:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state456Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9e:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state457Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x90 <= nextByte && nextByte <= 0xad:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state458Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x83:
+		s.state = 16
+	case 0xa3 <= nextByte && nextByte <= 0xb7:
+		s.state = 16
+	case 0xbd <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state459Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8a:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state460Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x93:
+		s.state = 16
+	case 0x94 <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state461Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0xa0 <= nextByte && nextByte <= 0xa1:
+		s.state = 16
+	case 0xa3 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state462Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xb7:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state463Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x95:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state464Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0xb0 <= nextByte && nextByte <= 0xb3:
+		s.state = 16
+	case 0xb5 <= nextByte && nextByte <= 0xbb:
+		s.state = 16
+	case 0xbd <= nextByte && nextByte <= 0xbe:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state465Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xa2:
+		s.state = 16
+	case 0xb2 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state466Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0x91 <= nextByte && nextByte <= 0x92:
+		s.state = 16
+	case 0x95 <= nextByte && nextByte <= 0xa4:
+		s.state = 16
+	case 0xa5 <= nextByte && nextByte <= 0xa7:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state467Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xbb:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state468Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xaa:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbc:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state469Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x88:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state470Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x94:
+		s.state = 16
+	case 0x96 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state471Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9c:
+		s.state = 16
+	case 0x9e <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	case 0xa2 <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xa6 <= nextByte && nextByte <= 0xa9:
+		s.state = 16
+	case 0xaa <= nextByte && nextByte <= 0xac:
+		s.state = 16
+	case 0xae <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	case 0xbb <= nextByte && nextByte <= 0xbd:
+		s.state = 16
+	case 0xbe <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state472Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x83:
+		s.state = 16
+	case 0x85 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state473Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x85:
+		s.state = 16
+	case 0x87 <= nextByte && nextByte <= 0x8a:
+		s.state = 16
+	case 0x8d <= nextByte && nextByte <= 0x94:
+		s.state = 16
+	case 0x96 <= nextByte && nextByte <= 0x9c:
+		s.state = 16
+	case 0x9e <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	case 0xbb <= nextByte && nextByte <= 0xbe:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state474Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x84:
+		s.state = 16
+	case 0x86 <= nextByte && nextByte <= 0x8a:
+		s.state = 16
+	case 0x8b <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0x92 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state475Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xa8 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state476Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 16
+	case 0x82 <= nextByte && nextByte <= 0x9a:
+		s.state = 16
+	case 0x9c <= nextByte && nextByte <= 0xba:
+		s.state = 16
+	case 0xbc <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state477Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x94:
+		s.state = 16
+	case 0x96 <= nextByte && nextByte <= 0xb4:
+		s.state = 16
+	case 0xb6 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state478Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8e:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0xae:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state479Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x88:
+		s.state = 16
+	case 0x8a <= nextByte && nextByte <= 0xa8:
+		s.state = 16
+	case 0xaa <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state480Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x82:
+		s.state = 16
+	case 0x84 <= nextByte && nextByte <= 0x8b:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state481Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9e:
+		s.state = 16
+	case 0xa5 <= nextByte && nextByte <= 0xaa:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state482Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xad:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state483Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xac:
+		s.state = 16
+	case 0xb7 <= nextByte && nextByte <= 0xbd:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state484Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x8e <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state485Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x90:
+		s.state = 16
+	case 0x91 <= nextByte && nextByte <= 0xad:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state486Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x90 <= nextByte && nextByte <= 0xab:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state487Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0xa0 <= nextByte && nextByte <= 0xa6:
+		s.state = 16
+	case 0xa8 <= nextByte && nextByte <= 0xab:
+		s.state = 16
+	case 0xad <= nextByte && nextByte <= 0xae:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbe:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state488Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x84:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state489Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x83:
+		s.state = 16
+	case 0x8b <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state490Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 16
+	case 0x81 <= nextByte && nextByte <= 0x83:
+		s.state = 16
+	case 0x85 <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xa2:
+		s.state = 16
+	case 0xa4 <= nextByte && nextByte <= 0xa7:
+		s.state = 16
+	case 0xa9 <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	case 0xb4 <= nextByte && nextByte <= 0xb7:
+		s.state = 16
+	case 0xb9 <= nextByte && nextByte <= 0xbb:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state491Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x82 <= nextByte && nextByte <= 0x87:
+		s.state = 16
+	case 0x89 <= nextByte && nextByte <= 0x8d:
+		s.state = 16
+	case 0x8e <= nextByte && nextByte <= 0x8f:
+		s.state = 16
+	case 0x91 <= nextByte && nextByte <= 0x92:
+		s.state = 16
+	case 0x94 <= nextByte && nextByte <= 0x97:
+		s.state = 16
+	case 0x99 <= nextByte && nextByte <= 0xa1:
+		s.state = 16
+	case 0xa2 <= nextByte && nextByte <= 0xa4:
+		s.state = 16
+	case 0xa7 <= nextByte && nextByte <= 0xaa:
+		s.state = 16
+	case 0xac <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	case 0xb4 <= nextByte && nextByte <= 0xb7:
+		s.state = 16
+	case 0xb9 <= nextByte && nextByte <= 0xbc:
+		s.state = 16
+	case 0xbe <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state492Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 16
+	case 0x81 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case 0x8b <= nextByte && nextByte <= 0x9b:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xa3:
+		s.state = 16
+	case 0xa5 <= nextByte && nextByte <= 0xa9:
+		s.state = 16
+	case 0xab <= nextByte && nextByte <= 0xbb:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state493Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state494Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state495Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xa1:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state496Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xa0:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state497Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9d:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state498AndNotAssign() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenAndNotAssign
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state499ShiftLeftAssign() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenShiftLeftAssign
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state500ShiftRightAssign() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenShiftRightAssign
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state501Ellipsis() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenEllipsis
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state502FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 274
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state503IntLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '0':
+		s.state = 504
+	case nextByte == '1':
+		s.state = 504
+	case '2' <= nextByte && nextByte <= '9':
+		s.state = 283
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 283
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 283
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state504IntLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIntLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '.':
+		s.state = 505
+	case nextByte == '0':
+		s.state = 504
+	case nextByte == '1':
+		s.state = 504
+	case '2' <= nextByte && nextByte <= '9':
+		s.state = 283
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 283
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 503
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 283
+	case nextByte == 'i':
+		s.state = 284
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state505FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 581
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 581
+	case nextByte == 'P':
+		s.state = 287
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 581
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state506IntLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '7':
+		s.state = 507
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state507IntLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIntLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '7':
+		s.state = 507
+	case nextByte == '_':
+		s.state = 506
+	case nextByte == 'i':
+		s.state = 284
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state508IntLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '7':
+		s.state = 278
+	case '8' <= nextByte && nextByte <= '9':
+		s.state = 280
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 283
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 283
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state509FloatLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenFloatLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 582
+	case 'A' <= nextByte && nextByte <= 'D':
+		s.state = 581
+	case nextByte == 'E':
+		s.state = 583
+	case nextByte == 'F':
+		s.state = 581
+	case nextByte == 'P':
+		s.state = 287
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 581
+	case nextByte == 'e':
+		s.state = 583
+	case nextByte == 'f':
+		s.state = 581
+	case nextByte == 'i':
+		s.state = 284
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state510IntLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 511
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 511
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 511
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state511IntLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIntLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '.':
+		s.state = 505
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 511
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 511
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 510
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 511
+	case nextByte == 'i':
+		s.state = 284
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state512FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 516
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 516
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 516
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state513FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 280
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 283
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 283
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state514FloatLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenFloatLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 514
+	case 'A' <= nextByte && nextByte <= 'D':
+		s.state = 516
+	case nextByte == 'E':
+		s.state = 515
+	case nextByte == 'F':
+		s.state = 516
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 584
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 516
+	case nextByte == 'e':
+		s.state = 515
+	case nextByte == 'f':
+		s.state = 516
+	case nextByte == 'i':
+		s.state = 284
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state515FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '+':
+		s.state = 517
+	case nextByte == '-':
+		s.state = 517
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 585
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 516
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 512
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 516
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state516FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 516
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 516
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 512
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 516
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state517FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 522
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state518FloatLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenFloatLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '.':
+		s.state = 505
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 518
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 283
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 586
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 283
+	case nextByte == 'i':
+		s.state = 284
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state519FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 283
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 283
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 283
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state520FloatLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenFloatLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 520
+	case nextByte == 'E':
+		s.state = 521
+	case nextByte == '_':
+		s.state = 587
+	case nextByte == 'e':
+		s.state = 521
+	case nextByte == 'i':
+		s.state = 284
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state521FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '+':
+		s.state = 517
+	case nextByte == '-':
+		s.state = 517
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 522
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state522FloatLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenFloatLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 522
+	case nextByte == '_':
+		s.state = 517
+	case nextByte == 'i':
+		s.state = 284
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state523RuneLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenRuneLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state524RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 588
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 588
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 588
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state525RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 589
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 589
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 589
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state526RuneLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenRuneLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '\'':
+		s.state = 523
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state527RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '7':
+		s.state = 590
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state528RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 591
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 591
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 591
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state529StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 592
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 592
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 592
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state530StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 593
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 593
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 593
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state531StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '7':
+		s.state = 594
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state532StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 595
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 595
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 595
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state533Comment() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenComment
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state534Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'j':
+		s.state = 16
+	case nextByte == 'k':
+		s.state = 596
+	case 'l' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state535Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9d:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xa9:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state536Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xa3:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state537Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0xa6 <= nextByte && nextByte <= 0xaf:
+		s.state = 16
+	case 0xb1 <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	case 0xb5 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state538Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x90 <= nextByte && nextByte <= 0xa8:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state539Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x83 <= nextByte && nextByte <= 0xa6:
+		s.state = 16
+	case 0xb6 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state540Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x81 <= nextByte && nextByte <= 0x84:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0x9c:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state541Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9e:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state542Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x87 <= nextByte && nextByte <= 0x8a:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0x9f <= nextByte && nextByte <= 0xa1:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state543Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x84 <= nextByte && nextByte <= 0x85:
+		s.state = 16
+	case 0x87 <= nextByte && nextByte <= 0x8f:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state544Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x84 <= nextByte && nextByte <= 0x8f:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state545Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case 0x8a <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state546Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 16
+	case 0x81 <= nextByte && nextByte <= 0x9a:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state547Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xa9:
+		s.state = 16
+	case nextByte == 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state548Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x81:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state549Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x8f:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0xb2:
+		s.state = 16
+	case 0xb3 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state550Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x86 <= nextByte && nextByte <= 0x8f:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0xa0:
+		s.state = 16
+	case 0xa1 <= nextByte && nextByte <= 0xa5:
+		s.state = 16
+	case 0xa7 <= nextByte && nextByte <= 0xa8:
+		s.state = 16
+	case 0xaa <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state551Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case 0x98 <= nextByte && nextByte <= 0x9f:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xa9:
+		s.state = 16
+	case 0xaa <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state552Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state553Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x9e:
+		s.state = 16
+	case 0xa0 <= nextByte && nextByte <= 0xa9:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state554Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0xad:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state555Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x83:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0xa3 <= nextByte && nextByte <= 0xb7:
+		s.state = 16
+	case 0xbd <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state556Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x82:
+		s.state = 16
+	case 0x84 <= nextByte && nextByte <= 0x8b:
+		s.state = 16
+	case 0x8e <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state557Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x89:
+		s.state = 16
+	case 0x8e <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state558Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xab:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state559Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x90 <= nextByte && nextByte <= 0xab:
+		s.state = 16
+	case 0xb0 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state560Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0x83:
+		s.state = 16
+	case 0x8b <= nextByte && nextByte <= 0x8f:
+		s.state = 16
+	case 0x90 <= nextByte && nextByte <= 0x99:
+		s.state = 16
+	case 0x9a <= nextByte && nextByte <= 0xbf:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state561Identifier() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0xb0 <= nextByte && nextByte <= 0xb9:
+		s.state = 16
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state562Case() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenCase
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state563Chan() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenChan
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state564Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 's':
+		s.state = 16
+	case nextByte == 't':
+		s.state = 597
+	case 'u' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state565Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'h':
+		s.state = 16
+	case nextByte == 'i':
+		s.state = 598
+	case 'j' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state566Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 't':
+		s.state = 16
+	case nextByte == 'u':
+		s.state = 599
+	case 'v' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state567Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'q':
+		s.state = 16
+	case nextByte == 'r':
+		s.state = 600
+	case 's' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state568Else() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenElse
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state569Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 's':
+		s.state = 16
+	case nextByte == 't':
+		s.state = 601
+	case 'u' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state570Func() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenFunc
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state571Goto() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenGoto
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state572Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'q':
+		s.state = 16
+	case nextByte == 'r':
+		s.state = 602
+	case 's' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state573Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'q':
+		s.state = 16
+	case nextByte == 'r':
+		s.state = 603
+	case 's' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state574Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case nextByte == 'a':
+		s.state = 604
+	case 'b' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state575Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 16
+	case nextByte == 'e':
+		s.state = 605
+	case 'f' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state576Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'q':
+		s.state = 16
+	case nextByte == 'r':
+		s.state = 606
+	case 's' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state577Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'b':
+		s.state = 16
+	case nextByte == 'c':
+		s.state = 607
+	case 'd' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state578Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'b':
+		s.state = 16
+	case nextByte == 'c':
+		s.state = 608
+	case 'd' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state579Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'b':
+		s.state = 16
+	case nextByte == 'c':
+		s.state = 609
+	case 'd' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state580Type() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenType
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state581FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 581
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 581
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 610
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 581
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state582FloatLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenFloatLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 582
+	case 'A' <= nextByte && nextByte <= 'D':
+		s.state = 581
+	case nextByte == 'E':
+		s.state = 583
+	case nextByte == 'F':
+		s.state = 581
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 611
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 581
+	case nextByte == 'e':
+		s.state = 583
+	case nextByte == 'f':
+		s.state = 581
+	case nextByte == 'i':
+		s.state = 284
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state583FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == '+':
+		s.state = 517
+	case nextByte == '-':
+		s.state = 517
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 612
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 581
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 610
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 581
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state584FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 514
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 516
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 516
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state585FloatLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenFloatLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 585
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 516
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 613
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 516
+	case nextByte == 'i':
+		s.state = 284
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state586FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 518
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 283
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 283
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state587FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 520
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state588RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 528
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 528
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 528
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state589RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 614
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 614
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 614
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state590RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '7':
+		s.state = 288
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state591RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 288
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 288
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 288
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state592StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 532
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 532
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 532
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state593StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 615
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 615
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 615
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state594StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '7':
+		s.state = 72
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state595StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 72
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 72
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 72
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state596Break() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenBreak
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state597Const() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenConst
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state598Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'm':
+		s.state = 16
+	case nextByte == 'n':
+		s.state = 616
+	case 'o' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state599Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'k':
+		s.state = 16
+	case nextByte == 'l':
+		s.state = 617
+	case 'm' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state600Defer() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenDefer
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state601Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'g':
+		s.state = 16
+	case nextByte == 'h':
+		s.state = 618
+	case 'i' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state602Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 's':
+		s.state = 16
+	case nextByte == 't':
+		s.state = 619
+	case 'u' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state603Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'e':
+		s.state = 16
+	case nextByte == 'f':
+		s.state = 620
+	case 'g' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state604Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 16
+	case nextByte == 'g':
+		s.state = 621
+	case 'h' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state605Range() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenRange
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state606Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'm':
+		s.state = 16
+	case nextByte == 'n':
+		s.state = 622
+	case 'o' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state607Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 's':
+		s.state = 16
+	case nextByte == 't':
+		s.state = 623
+	case 'u' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state608Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 's':
+		s.state = 16
+	case nextByte == 't':
+		s.state = 624
+	case 'u' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state609Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'g':
+		s.state = 16
+	case nextByte == 'h':
+		s.state = 625
+	case 'i' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state610FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 581
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 581
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 581
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state611FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 582
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 581
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 581
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state612FloatLit() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenFloatLit
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 612
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 581
+	case nextByte == 'P':
+		s.state = 287
+	case nextByte == '_':
+		s.state = 626
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 581
+	case nextByte == 'i':
+		s.state = 284
+	case nextByte == 'p':
+		s.state = 287
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state613FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 585
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 516
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 516
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state614RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 627
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 627
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 627
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state615StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 628
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 628
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 628
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state616Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 't':
+		s.state = 16
+	case nextByte == 'u':
+		s.state = 629
+	case 'v' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state617Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 's':
+		s.state = 16
+	case nextByte == 't':
+		s.state = 630
+	case 'u' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state618Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'q':
+		s.state = 16
+	case nextByte == 'r':
+		s.state = 631
+	case 's' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state619Import() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenImport
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state620Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case nextByte == 'a':
+		s.state = 632
+	case 'b' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state621Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 16
+	case nextByte == 'e':
+		s.state = 633
+	case 'f' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state622Return() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenReturn
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state623Select() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenSelect
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state624Struct() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenStruct
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state625Switch() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenSwitch
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state626FloatLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 612
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 581
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 581
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state627RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 634
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 634
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 634
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state628StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 635
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 635
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 635
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state629Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 16
+	case nextByte == 'e':
+		s.state = 636
+	case 'f' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state630Default() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenDefault
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state631Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'n':
+		s.state = 16
+	case nextByte == 'o':
+		s.state = 637
+	case 'p' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state632Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'b':
+		s.state = 16
+	case nextByte == 'c':
+		s.state = 638
+	case 'd' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state633Package() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenPackage
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state634RuneLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 588
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 588
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 588
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state635StringLit() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 592
+	case 'A' <= nextByte && nextByte <= 'F':
+		s.state = 592
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 592
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state636Continue() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenContinue
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state637Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 't':
+		s.state = 16
+	case nextByte == 'u':
+		s.state = 639
+	case 'v' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state638Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'd':
+		s.state = 16
+	case nextByte == 'e':
+		s.state = 640
+	case 'f' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state639Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'f':
+		s.state = 16
+	case nextByte == 'g':
+		s.state = 641
+	case 'h' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state640Interface() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenInterface
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state641Identifier() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenIdentifier
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case '0' <= nextByte && nextByte <= '9':
+		s.state = 16
+	case 'A' <= nextByte && nextByte <= 'Z':
+		s.state = 16
+	case nextByte == '_':
+		s.state = 16
+	case 'a' <= nextByte && nextByte <= 'g':
+		s.state = 16
+	case nextByte == 'h':
+		s.state = 642
+	case 'i' <= nextByte && nextByte <= 'z':
+		s.state = 16
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state642Fallthrough() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenFallthrough
-	s.tokenEnd = s.runeReader
+	s.lexemeEndIdx = s.lexemePeekIdx
 
-	if s.runeReader.Err() != nil {
-		return s.runeReader.Err()
-	}
-	nextRune := s.runeReader.Rune()
+	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case '0' <= nextRune && nextRune <= '9':
+	case '0' <= nextByte && nextByte <= '9':
 		s.state = 16
-		return nil
-	case 'A' <= nextRune && nextRune <= 'Z':
+	case 'A' <= nextByte && nextByte <= 'Z':
 		s.state = 16
-		return nil
-	case nextRune == '_':
+	case nextByte == '_':
 		s.state = 16
-		return nil
-	case 'a' <= nextRune && nextRune <= 'z':
+	case 'a' <= nextByte && nextByte <= 'z':
 		s.state = 16
-		return nil
+	case nextByte == 0xc2:
+		s.state = 17
+	case nextByte == 0xc3:
+		s.state = 18
+	case 0xc4 <= nextByte && nextByte <= 0xca:
+		s.state = 19
+	case nextByte == 0xcb:
+		s.state = 20
+	case nextByte == 0xcd:
+		s.state = 21
+	case nextByte == 0xce:
+		s.state = 22
+	case nextByte == 0xcf:
+		s.state = 23
+	case 0xd0 <= nextByte && nextByte <= 0xd1:
+		s.state = 19
+	case nextByte == 0xd2:
+		s.state = 24
+	case nextByte == 0xd3:
+		s.state = 19
+	case nextByte == 0xd4:
+		s.state = 25
+	case nextByte == 0xd5:
+		s.state = 26
+	case nextByte == 0xd6:
+		s.state = 27
+	case nextByte == 0xd7:
+		s.state = 28
+	case nextByte == 0xd8:
+		s.state = 29
+	case nextByte == 0xd9:
+		s.state = 77
+	case nextByte == 0xda:
+		s.state = 19
+	case nextByte == 0xdb:
+		s.state = 78
+	case nextByte == 0xdc:
+		s.state = 32
+	case nextByte == 0xdd:
+		s.state = 33
+	case nextByte == 0xde:
+		s.state = 34
+	case nextByte == 0xdf:
+		s.state = 79
+	case nextByte == 0xe0:
+		s.state = 80
+	case nextByte == 0xe1:
+		s.state = 81
+	case nextByte == 0xe2:
+		s.state = 38
+	case nextByte == 0xe3:
+		s.state = 39
+	case nextByte == 0xe4:
+		s.state = 40
+	case 0xe5 <= nextByte && nextByte <= 0xe9:
+		s.state = 41
+	case nextByte == 0xea:
+		s.state = 82
+	case 0xeb <= nextByte && nextByte <= 0xec:
+		s.state = 41
+	case nextByte == 0xed:
+		s.state = 43
+	case nextByte == 0xef:
+		s.state = 83
+	case nextByte == 0xf0:
+		s.state = 84
 	default:
-		return ErrInvalidRune
+		return errInvalidByte
 	}
+	return nil
 }

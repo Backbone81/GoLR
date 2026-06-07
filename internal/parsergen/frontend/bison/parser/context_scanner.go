@@ -13,10 +13,6 @@ type ContextScanner struct {
 // ContextScanner implements ParserScanner.
 var _ ParserScanner = (*ContextScanner)(nil)
 
-func (c *ContextScanner) Err() error {
-	return c.Scanner.Err()
-}
-
 func (c *ContextScanner) Token() Token {
 	return c.Scanner.Token()
 }

@@ -83,7 +83,6 @@ type Node struct {
 
 // ParserScanner is the interface the scanner for the parser needs to implement.
 type ParserScanner interface {
-    Err() error
     Token() Token
     ByteOffset() int
     Line() int
@@ -147,7 +146,7 @@ var errAccept = errors.New("accept")
 func (p *Parser) Parse(scanner ParserScanner) (*Node, error) {
     p.scanner = scanner
     if !p.scanner.Next() {
-        return nil, p.scanner.Err()
+        return nil, errors.New("Unexpected end of tokens")
     }
 
     p.stateStack = p.stateStack[:0]
