@@ -29,8 +29,6 @@
 
 ## Scanner Generator
 
-- Improve error handling for generated scanner.
-- Improve performance
 - Allow scanner to parse case independent (accept lower case and upper case characters if specified in one case only)
 
 ## Formater
