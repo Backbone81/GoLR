@@ -18,7 +18,7 @@ var _ = Describe("GoLR Grammar Files", func() {
                 file: @empty;
             }
         `
-		rules, err := golr.RulesFromString(source)
+		rules, _, err := golr.RulesFromString(source)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rules).To(BeEmpty())
 	})
@@ -33,7 +33,7 @@ var _ = Describe("GoLR Grammar Files", func() {
                     file: @empty;
                 }
             `
-			rules, err := golr.RulesFromString(source)
+			rules, _, err := golr.RulesFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(rules).To(Equal([]frontend.Rule{
 				dsl.Rule("FOO", dsl.Literal("foo")),
@@ -49,7 +49,7 @@ var _ = Describe("GoLR Grammar Files", func() {
                     file: @empty;
                 }
             `
-			rules, err := golr.RulesFromString(source)
+			rules, _, err := golr.RulesFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(rules).To(Equal([]frontend.Rule{
 				dsl.Rule("FOO", dsl.Literal("foo")),
@@ -65,7 +65,7 @@ var _ = Describe("GoLR Grammar Files", func() {
                     file: @empty;
                 }
             `
-			rules, err := golr.RulesFromString(source)
+			rules, _, err := golr.RulesFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(rules).To(Equal([]frontend.Rule{
 				dsl.SkipRule("FOO", dsl.Literal("foo")),
@@ -81,7 +81,7 @@ var _ = Describe("GoLR Grammar Files", func() {
                     file: @empty;
                 }
             `
-			rules, err := golr.RulesFromString(source)
+			rules, _, err := golr.RulesFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(rules).To(Equal([]frontend.Rule{
 				dsl.Rule("FOO", dsl.CharClass()),
@@ -99,7 +99,7 @@ var _ = Describe("GoLR Grammar Files", func() {
                     file: @empty;
                 }
             `
-			rules, err := golr.RulesFromString(source)
+			rules, _, err := golr.RulesFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(rules).To(Equal([]frontend.Rule{
 				dsl.Rule("FOO", dsl.Literal("foo")),
@@ -117,7 +117,7 @@ var _ = Describe("GoLR Grammar Files", func() {
                     file: @empty;
                 }
             `
-			_, err := golr.RulesFromString(source)
+			_, _, err := golr.RulesFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -131,7 +131,7 @@ var _ = Describe("GoLR Grammar Files", func() {
                     file: @empty;
                 }
             `
-			_, err := golr.RulesFromString(source)
+			_, _, err := golr.RulesFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -145,7 +145,7 @@ var _ = Describe("GoLR Grammar Files", func() {
                     file: @empty;
                 }
             `
-			_, err := golr.RulesFromString(source)
+			_, _, err := golr.RulesFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 	})

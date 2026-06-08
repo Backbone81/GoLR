@@ -19,7 +19,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				file: @empty;
 			}
 		`
-		grammar, err := golr.GrammarFromString(source)
+		_, grammar, err := golr.GrammarFromString(source)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(grammar).To(Equal(frontend.Grammar{
 			Terminals: nil,
@@ -45,7 +45,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 			@parser {
 			}
 		`
-		_, err := golr.GrammarFromString(source)
+		_, _, err := golr.GrammarFromString(source)
 		Expect(err).To(HaveOccurred())
 	})
 
@@ -59,7 +59,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: @empty;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
@@ -91,7 +91,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: @empty;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
@@ -124,7 +124,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: @empty;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
@@ -158,7 +158,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: @empty;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
@@ -198,7 +198,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: @empty;
 				}
 			`
-			_, err := golr.GrammarFromString(source)
+			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -212,7 +212,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: @empty;
 				}
 			`
-			_, err := golr.GrammarFromString(source)
+			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -225,7 +225,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: @empty;
 				}
 			`
-			_, err := golr.GrammarFromString(source)
+			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -249,7 +249,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: @empty;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
@@ -302,7 +302,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: @empty;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
@@ -349,7 +349,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: @empty;
 				}
 			`
-			_, err := golr.GrammarFromString(source)
+			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -365,7 +365,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: NUMBER;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals).To(HaveLen(1))
 			Expect(grammar.Terminals[0].Name).To(Equal("NUMBER"))
@@ -381,7 +381,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: IF;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals).To(HaveLen(1))
 			Expect(grammar.Terminals[0].Name).To(Equal("IF"))
@@ -397,7 +397,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: FOO;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals).To(HaveLen(1))
 			Expect(grammar.Terminals[0].Name).To(Equal("FOO"))
@@ -414,7 +414,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: HEX;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals).To(HaveLen(1))
 			Expect(grammar.Terminals[0].Name).To(Equal("HEX"))
@@ -431,7 +431,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: DEC | OCT;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals).To(HaveLen(2))
 		})
@@ -446,7 +446,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: @empty;
 				}
 			`
-			_, err := golr.GrammarFromString(source)
+			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -460,7 +460,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: DIGIT;
 				}
 			`
-			_, err := golr.GrammarFromString(source)
+			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -473,7 +473,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: NUMBER;
 				}
 			`
-			_, err := golr.GrammarFromString(source)
+			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -488,7 +488,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: TOKEN;
 				}
 			`
-			_, err := golr.GrammarFromString(source)
+			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -505,7 +505,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: FOO "bar" BAZ;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
@@ -548,7 +548,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					content: @empty;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: nil,
@@ -586,7 +586,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					content: @empty;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
@@ -628,7 +628,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					FOO: @empty;
 				}
 			`
-			_, err := golr.GrammarFromString(source)
+			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -640,7 +640,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: content;
 				}
 			`
-			_, err := golr.GrammarFromString(source)
+			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -652,7 +652,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: "foo";
 				}
 			`
-			_, err := golr.GrammarFromString(source)
+			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -676,7 +676,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					line: BAZ @precedence(BAZ);
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			ptrTo0 := 0
 			ptrTo1 := 1
@@ -750,7 +750,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: FOO | @empty @precedence(FOO);
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			ptrTo0 := 0
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -793,7 +793,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: FOO | BAR;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
@@ -836,7 +836,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: FOO | @empty;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
@@ -876,7 +876,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: BAR;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
@@ -919,7 +919,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: "foo" @precedence(BAR);
 				}
 			`
-			_, err := golr.GrammarFromString(source)
+			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -936,7 +936,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: @empty;
 				}
 			`
-			grammar, err := golr.GrammarFromString(source)
+			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: nil,
@@ -971,7 +971,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: @empty;
 				}
 			`
-			_, err := golr.GrammarFromString(source)
+			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 	})

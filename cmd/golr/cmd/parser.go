@@ -63,9 +63,11 @@ func executeParserFrontend() (frontend.Grammar, error) {
 		return bisonfrontend.GrammarFromFile(parserFrontendFilePath)
 	case "golr":
 		if parserFrontendFilePath == "-" {
-			return golrfrontend.ToGrammar(os.Stdin, "pipe")
+			_, grammar, err := golrfrontend.ToGrammar(os.Stdin, "pipe")
+			return grammar, err
 		}
-		return golrfrontend.GrammarFromFile(parserFrontendFilePath)
+		_, grammar, err := golrfrontend.GrammarFromFile(parserFrontendFilePath)
+		return grammar, err
 	case "json":
 		if parserFrontendFilePath == "-" {
 			return jsonfrontend.ToGrammar(os.Stdin)

@@ -1,26 +1,14 @@
 package convert
 
 import (
-	"io"
 	"slices"
 	"strings"
 
 	"github.com/backbone81/golr/internal/parsergen/frontend"
-	bisonfrontend "github.com/backbone81/golr/internal/parsergen/frontend/bison"
-	golrfrontend "github.com/backbone81/golr/internal/parsergen/frontend/golr"
 )
 
-// BisonToGoLR reads a GNU Bison grammar from reader and writes a GoLR grammar to writer.
-func BisonToGoLR(reader io.Reader, writer io.Writer, filePath string) error {
-	grammar, err := bisonfrontend.ToGrammar(reader, filePath)
-	if err != nil {
-		return err
-	}
-	return golrfrontend.FromGrammar(writer, nil, sanitizeBisonGrammar(grammar))
-}
-
-// sanitizeBisonGrammar fixes grammar elements that are valid in GNU Bison but not in GoLR.
-func sanitizeBisonGrammar(grammar frontend.Grammar) frontend.Grammar {
+// BisonGrammar2GoLR modifies grammar elements to make GNU Bison elements valid for GoLR.
+func BisonGrammar2GoLR(grammar frontend.Grammar) frontend.Grammar {
 	// Bison uses _("...") as translatable display names for terminals (e.g. _("identifier")).
 	// These are not valid GoLR scanner patterns — clear them so the output falls back to @empty.
 	for i, terminal := range grammar.Terminals {
@@ -82,22 +70,4 @@ func sanitizeGoLRName(name string, nonterminals []frontend.Symbol) string {
 		}
 		candidate += "_1"
 	}
-}
-
-// BisonToGoLRFile reads a GNU Bison grammar from inputFilePath and writes a GoLR grammar to outputFilePath.
-func BisonToGoLRFile(inputFilePath string, outputFilePath string) error {
-	grammar, err := bisonfrontend.GrammarFromFile(inputFilePath)
-	if err != nil {
-		return err
-	}
-	return golrfrontend.GrammarToFile(outputFilePath, nil, sanitizeBisonGrammar(grammar))
-}
-
-// BisonToGoLRString reads a GNU Bison grammar from bisonGrammar and returns a GoLR grammar as return value.
-func BisonToGoLRString(bisonGrammar string) (string, error) {
-	grammar, err := bisonfrontend.GrammarFromString(bisonGrammar)
-	if err != nil {
-		return "", err
-	}
-	return golrfrontend.GrammarToString(nil, sanitizeBisonGrammar(grammar))
 }

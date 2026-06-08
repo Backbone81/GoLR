@@ -1,16 +1,24 @@
 package cmd
 
 import (
+	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 
+	"github.com/backbone81/golr/pkg/convert"
+	parserfrontend "github.com/backbone81/golr/pkg/parsergen/frontend"
+	bisonfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/bison"
+	golrfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/golr"
+	scannerfrontend "github.com/backbone81/golr/pkg/scannergen/frontend"
 	"github.com/spf13/cobra"
-
-	golrconvert "github.com/backbone81/golr/pkg/convert"
 )
 
 var (
-	convertInputFilePath  string
-	convertOutputFilePath string
+	convertInputFilePath    string
+	convertInputFileFormat  string
+	convertOutputFilePath   string
+	convertOutputFileFormat string
 )
 
 var convertCmd = &cobra.Command{
@@ -19,34 +27,77 @@ var convertCmd = &cobra.Command{
 	Long:         `Converts grammar files between different formats.`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if convertInputFilePath != "-" && convertOutputFilePath != "-" {
-			return golrconvert.BisonToGoLRFile(convertInputFilePath, convertOutputFilePath)
+		rules, grammar, err := executeInput()
+		if err != nil {
+			return err
 		}
-
-		reader := os.Stdin
-		if convertInputFilePath != "-" {
-			//nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
-			inputFile, err := os.Open(convertInputFilePath)
-			if err != nil {
-				return err
-			}
-			defer inputFile.Close() //nolint:errcheck
-			reader = inputFile
+		if err := executeOutput(rules, grammar); err != nil {
+			return err
 		}
-
-		writer := os.Stdout
-		if convertOutputFilePath != "-" {
-			//nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
-			outputFile, err := os.Create(convertOutputFilePath)
-			if err != nil {
-				return err
-			}
-			defer outputFile.Close() //nolint:errcheck
-			writer = outputFile
-		}
-
-		return golrconvert.BisonToGoLR(reader, writer, convertInputFilePath)
+		return nil
 	},
+}
+
+func executeInput() ([]scannerfrontend.Rule, parserfrontend.Grammar, error) {
+	if convertInputFileFormat == "auto" {
+		switch filepath.Ext(convertInputFilePath) {
+		case ".y":
+			convertInputFileFormat = "bison"
+		case ".golr":
+			convertInputFileFormat = "golr"
+		default:
+			return nil, parserfrontend.Grammar{}, fmt.Errorf("input file format cannot be detected from input file path extension")
+		}
+	}
+
+	switch convertInputFileFormat {
+	case "bison":
+		if convertInputFilePath == "-" {
+			grammar, err := bisonfrontend.ToGrammar(os.Stdin, "pipe")
+			return nil, grammar, err
+		}
+		grammar, err := bisonfrontend.GrammarFromFile(convertInputFilePath)
+		return nil, convert.BisonGrammar2GoLR(grammar), err
+	case "golr":
+		if convertInputFilePath == "-" {
+			data, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				return nil, parserfrontend.Grammar{}, err
+			}
+			return golrfrontend.GrammarFromString(string(data))
+		}
+		return golrfrontend.GrammarFromFile(convertInputFilePath)
+	default:
+		return nil, parserfrontend.Grammar{}, fmt.Errorf("unsupported input file format %q", convertInputFileFormat)
+	}
+}
+
+func executeOutput(rules []scannerfrontend.Rule, grammar parserfrontend.Grammar) error {
+	if convertOutputFileFormat == "auto" {
+		switch filepath.Ext(convertOutputFilePath) {
+		case ".y":
+			convertOutputFileFormat = "bison"
+		case ".golr":
+			convertOutputFileFormat = "golr"
+		default:
+			return fmt.Errorf("output file format cannot be detected from output file path extension")
+		}
+	}
+
+	switch convertOutputFileFormat {
+	case "bison":
+		if convertOutputFilePath == "-" {
+			return bisonfrontend.FromGrammar(os.Stdout, grammar)
+		}
+		return bisonfrontend.GrammarToFile(convertOutputFilePath, grammar)
+	case "golr":
+		if convertOutputFilePath == "-" {
+			return golrfrontend.FromGrammar(os.Stdout, rules, grammar)
+		}
+		return golrfrontend.GrammarToFile(convertOutputFilePath, rules, grammar)
+	default:
+		return fmt.Errorf("unsupported output file format %q", convertInputFileFormat)
+	}
 }
 
 func init() {
@@ -56,16 +107,33 @@ func init() {
 		&convertInputFilePath,
 		"input-file-path",
 		"",
-		"The GNU Bison grammar file to convert. Can be '-' to read from stdin.",
+		"The grammar file to read. Can be '-' to read from stdin.",
 	)
 	if err := convertCmd.MarkPersistentFlagRequired("input-file-path"); err != nil {
 		panic(err)
 	}
 
 	convertCmd.PersistentFlags().StringVar(
+		&convertInputFileFormat,
+		"input-file-format",
+		"auto",
+		"The format of the grammar file to read. Format auto derives the format from the file extension. One of: auto, bison, golr.",
+	)
+
+	convertCmd.PersistentFlags().StringVar(
 		&convertOutputFilePath,
 		"output-file-path",
-		"-",
-		"The GoLR grammar file to write. Can be '-' to write to stdout.",
+		"",
+		"The grammar file to write. Can be '-' to write to stdout.",
+	)
+	if err := convertCmd.MarkPersistentFlagRequired("output-file-path"); err != nil {
+		panic(err)
+	}
+
+	convertCmd.PersistentFlags().StringVar(
+		&convertOutputFileFormat,
+		"output-file-format",
+		"auto",
+		"The format of the grammar file to write. Format auto derives the format from the file extension. One of: auto, bison, golr.",
 	)
 }

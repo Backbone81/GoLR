@@ -314,7 +314,7 @@ func GrammarFromFile(filePath string) (grammar frontend.Grammar, err error) {
 	return ToGrammar(file, filePath)
 }
 
-// GrammarToFile writes the context free grammar as JGNU Bison grammar document to the given file path. Returns an error
+// GrammarToFile writes the context free grammar as GNU Bison grammar document to the given file path. Returns an error
 // if the file can not be written or the GNU Bison document can not be encoded successfully.
 func GrammarToFile(filePath string, grammar frontend.Grammar) (err error) {
 	//nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.

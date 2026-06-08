@@ -57,9 +57,11 @@ func executeScannerFrontend() ([]frontend.Rule, error) {
 	switch scannerFrontend {
 	case "golr":
 		if scannerFrontendFilePath == "-" {
-			return golrfrontend.ToRules(os.Stdin, "pipe")
+			rules, _, err := golrfrontend.ToRules(os.Stdin, "pipe")
+			return rules, err
 		}
-		return golrfrontend.RulesFromFile(scannerFrontendFilePath)
+		rules, _, err := golrfrontend.RulesFromFile(scannerFrontendFilePath)
+		return rules, err
 	case "json":
 		if scannerFrontendFilePath == "-" {
 			return jsonfrontend.ToRules(os.Stdin)

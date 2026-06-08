@@ -17,12 +17,12 @@ import (
 
 // ToGrammar reads the context free grammar as GoLR grammar document from the given reader. Returns an error if the
 // grammar document can not be parsed successfully.
-func ToGrammar(reader io.Reader, filePath string) (frontend.Grammar, error) {
+func ToGrammar(reader io.Reader, filePath string) ([]frontend2.Rule, frontend.Grammar, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Frontends: GoLR: ToGrammar").End()
 
 	data, err := io.ReadAll(reader)
 	if err != nil {
-		return frontend.Grammar{}, err
+		return nil, frontend.Grammar{}, err
 	}
 
 	scanner := golrparser.WhitespaceSkipper{
@@ -32,15 +32,15 @@ func ToGrammar(reader io.Reader, filePath string) (frontend.Grammar, error) {
 	parser := golrparser.NewParser()
 	rootNode, err := parser.Parse(&scanner)
 	if err != nil {
-		return frontend.Grammar{}, err
+		return nil, frontend.Grammar{}, err
 	}
 
 	walker := NewASTWalker()
-	_, grammar, err := walker.BuildGrammar(rootNode)
+	rules, grammar, err := walker.BuildGrammar(rootNode)
 	if err != nil {
-		return frontend.Grammar{}, err
+		return nil, frontend.Grammar{}, err
 	}
-	return grammar, nil
+	return rules, grammar, nil
 }
 
 // FromGrammar writes the context free grammar as GoLR grammar document to the given writer. Returns an error if
@@ -336,11 +336,11 @@ func golrProductionRHS(prod frontend.Production, grammar frontend.Grammar) strin
 // error if the file can not be read or the grammar document can not be parsed successfully.
 //
 //nolint:nonamedreturns // Required for defer
-func GrammarFromFile(filePath string) (grammar frontend.Grammar, err error) {
+func GrammarFromFile(filePath string) (rules []frontend2.Rule, grammar frontend.Grammar, err error) {
 	//nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
 	file, err := os.Open(filePath)
 	if err != nil {
-		return frontend.Grammar{}, fmt.Errorf("opening the GoLR file %q: %w", filePath, err)
+		return nil, frontend.Grammar{}, fmt.Errorf("opening the GoLR file %q: %w", filePath, err)
 	}
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
@@ -370,7 +370,7 @@ func GrammarToFile(filePath string, rules []frontend2.Rule, grammar frontend.Gra
 
 // GrammarFromString reads the context free grammar as GoLR grammar document from the given string. Returns an
 // error if the grammar document can not be parsed successfully.
-func GrammarFromString(golrGrammar string) (frontend.Grammar, error) {
+func GrammarFromString(golrGrammar string) ([]frontend2.Rule, frontend.Grammar, error) {
 	return ToGrammar(strings.NewReader(golrGrammar), "in-memory")
 }
 
