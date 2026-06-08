@@ -25,12 +25,12 @@ func ToRules(reader io.Reader, filePath string) ([]scannerfrontend.Rule, parserf
 		return nil, parserfrontend.Grammar{}, err
 	}
 
-	scanner := golrparser.WhitespaceSkipper{
-		Scanner: golrparser.NewScanner(data, filePath),
-	}
+	scanner := golrparser.NewTokenSkipper(
+		golrparser.NewScanner(data, filePath),
+	)
 
 	parser := golrparser.NewParser()
-	rootNode, err := parser.Parse(&scanner)
+	rootNode, err := parser.Parse(scanner)
 	if err != nil {
 		return nil, parserfrontend.Grammar{}, err
 	}

@@ -23,12 +23,12 @@ func GoLR(reader io.Reader, writer io.Writer, filePath string) error {
 		return err
 	}
 
-	scanner := golrparser.WhitespaceSkipper{
-		Scanner: golrparser.NewScanner(data, filePath),
-	}
+	scanner := golrparser.NewTokenSkipper(
+		golrparser.NewScanner(data, filePath),
+	)
 
 	parser := golrparser.NewParser()
-	rootNode, err := parser.Parse(&scanner)
+	rootNode, err := parser.Parse(scanner)
 	if err != nil {
 		return err
 	}

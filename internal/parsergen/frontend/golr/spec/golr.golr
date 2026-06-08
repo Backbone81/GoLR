@@ -1,0 +1,149 @@
+// This GoLR grammar describes how GoLR files are tokenized and parsed.
+
+@scanner {
+    NEWLINE:               /\n|\r\n/ @fragment;
+    HORIZONTAL_WHITESPACE: /[ \t\f\v]/ @fragment;
+    WHITESPACE:            /({NEWLINE}|{HORIZONTAL_WHITESPACE})+/ @skip;
+
+    MULTILINE_COMMENT: /\/\*([^\*]|(\*+[^\*\/]))*\*+\// @fragment;
+    LINE_COMMENT:      /\/\/.*/ @fragment;
+    COMMENT:           /{MULTILINE_COMMENT}|{LINE_COMMENT}/ @skip;
+
+    SCANNER:    "@scanner";
+    PARSER:     "@parser";
+    PRECEDENCE: "@precedence";
+    START:      "@start";
+    LEFT:       "@left";
+    RIGHT:      "@right";
+    NONE:       "@none";
+    SKIP:       "@skip";
+    EMPTY:      "@empty";
+    FRAGMENT:   "@fragment";
+    LBRACE:     "{";
+    RBRACE:     "}";
+    LPAREN:     "(";
+    RPAREN:     ")";
+    COLON:      ":";
+    SEMI:       ";";
+    PIPE:       "|";
+    COMMA:      ",";
+
+    NAME:       /[a-zA-Z_][a-zA-Z0-9_]*/;
+    REGEX:      /\/([^\/]|\\\/)*\//;
+    STRING:     /"([^"]|\\")*"/;
+}
+
+@parser {
+    file
+        : scanner_section parser_section
+        ;
+
+    // ================================================================================
+    // Scanner section
+    // ================================================================================
+
+    scanner_section
+        : "@scanner" "{" scanner_decl_list "}"
+        ;
+
+    scanner_decl_list
+        : @empty
+        | scanner_decl_list scanner_decl
+        ;
+
+    scanner_decl
+        : NAME ":" scanner_decl_rhs ";"
+        ;
+
+    scanner_decl_rhs
+        : scanner_pattern scanner_annotation_list
+        | "@empty" scanner_annotation_list
+        ;
+
+    scanner_pattern
+        : REGEX
+        | STRING
+        ;
+
+    scanner_annotation_list
+        : @empty
+        | scanner_annotation_list scanner_annotation
+        ;
+
+    scanner_annotation
+        : "@skip"
+        | "@fragment"
+        ;
+
+    // ================================================================================
+    // Parser section
+    // ================================================================================
+
+    parser_section
+        : "@parser" "{" start_decl precedence_section rule_decl_list "}"
+        ;
+
+    start_decl
+        : @empty
+        | "@start" ":" NAME ";"
+        ;
+
+    precedence_section
+        : @empty
+        | "@precedence" "{" precedence_decl_list "}"
+        ;
+
+    precedence_decl_list
+        : @empty
+        | precedence_decl_list precedence_decl
+        ;
+
+    precedence_decl
+        : associativity ":" symbol_list ";"
+        ;
+
+    associativity
+        : "@left"
+        | "@right"
+        | "@none"
+        | "@precedence"
+        ;
+
+    rule_decl_list
+        : @empty
+        | rule_decl_list production_decl
+        ;
+
+    production_decl
+        : NAME ":" alternative_list ";"
+        ;
+
+    alternative_list
+        : alternative
+        | alternative_list "|" alternative
+        ;
+
+    alternative
+        : symbol_list alternative_annotation_list
+        | "@empty" alternative_annotation_list
+        ;
+
+    alternative_annotation_list
+        : @empty
+        | alternative_annotation_list alternative_annotation
+        ;
+
+    alternative_annotation
+        : "@precedence" "(" symbol ")"
+        ;
+
+    symbol_list
+        : symbol
+        | symbol_list symbol
+        ;
+
+    symbol
+        : NAME
+        | STRING
+        ;
+}

@@ -160,6 +160,10 @@ func (s *TokenSkipper) Next() bool {
 			return false
 		}
 		switch s.scanner.Token() {
+		case TokenWhitespace:
+			continue
+		case TokenComment:
+			continue
 		default:
 			return true
 		}
@@ -391,37 +395,37 @@ func (s *Scanner) dispatchState() error {
 	case 51:
 		return s.state51Comment()
 	case 52:
-		return s.state52Comment()
+		return s.state52Regex()
 	case 53:
-		return s.state53Comment()
+		return s.state53Regex()
 	case 54:
-		return s.state54Comment()
+		return s.state54Scanner()
 	case 55:
-		return s.state55Regex()
+		return s.state55Start()
 	case 56:
-		return s.state56Regex()
+		return s.state56Skip()
 	case 57:
-		return s.state57Scanner()
+		return s.state57Parser()
 	case 58:
-		return s.state58Start()
+		return s.state58Precedence()
 	case 59:
-		return s.state59Skip()
+		return s.state59Left()
 	case 60:
-		return s.state60Parser()
+		return s.state60Right()
 	case 61:
-		return s.state61Precedence()
+		return s.state61None()
 	case 62:
-		return s.state62Left()
+		return s.state62Empty()
 	case 63:
-		return s.state63Right()
+		return s.state63Fragment()
 	case 64:
-		return s.state64None()
+		return s.state64String()
 	case 65:
-		return s.state65Empty()
+		return s.state65Comment()
 	case 66:
-		return s.state66Fragment()
+		return s.state66Comment()
 	case 67:
-		return s.state67String()
+		return s.state67Comment()
 	case 68:
 		return s.state68Comment()
 	case 69:
@@ -433,91 +437,85 @@ func (s *Scanner) dispatchState() error {
 	case 72:
 		return s.state72Comment()
 	case 73:
-		return s.state73Comment()
+		return s.state73Regex()
 	case 74:
 		return s.state74Comment()
 	case 75:
-		return s.state75Comment()
+		return s.state75Scanner()
 	case 76:
-		return s.state76Regex()
+		return s.state76Start()
 	case 77:
-		return s.state77Comment()
+		return s.state77Skip()
 	case 78:
-		return s.state78Scanner()
+		return s.state78Parser()
 	case 79:
-		return s.state79Start()
+		return s.state79Precedence()
 	case 80:
-		return s.state80Skip()
+		return s.state80Left()
 	case 81:
-		return s.state81Parser()
+		return s.state81Right()
 	case 82:
-		return s.state82Precedence()
+		return s.state82None()
 	case 83:
-		return s.state83Left()
+		return s.state83Empty()
 	case 84:
-		return s.state84Right()
+		return s.state84Fragment()
 	case 85:
-		return s.state85None()
+		return s.state85Scanner()
 	case 86:
-		return s.state86Empty()
+		return s.state86Start()
 	case 87:
-		return s.state87Fragment()
+		return s.state87Skip()
 	case 88:
-		return s.state88Scanner()
+		return s.state88Parser()
 	case 89:
-		return s.state89Start()
+		return s.state89Precedence()
 	case 90:
-		return s.state90Skip()
+		return s.state90Left()
 	case 91:
-		return s.state91Parser()
+		return s.state91Right()
 	case 92:
-		return s.state92Precedence()
+		return s.state92None()
 	case 93:
-		return s.state93Left()
+		return s.state93Empty()
 	case 94:
-		return s.state94Right()
+		return s.state94Fragment()
 	case 95:
-		return s.state95None()
+		return s.state95Scanner()
 	case 96:
-		return s.state96Empty()
+		return s.state96Start()
 	case 97:
-		return s.state97Fragment()
+		return s.state97Parser()
 	case 98:
-		return s.state98Scanner()
+		return s.state98Precedence()
 	case 99:
-		return s.state99Start()
+		return s.state99Right()
 	case 100:
-		return s.state100Parser()
+		return s.state100Empty()
 	case 101:
-		return s.state101Precedence()
+		return s.state101Fragment()
 	case 102:
-		return s.state102Right()
+		return s.state102Scanner()
 	case 103:
-		return s.state103Empty()
+		return s.state103Parser()
 	case 104:
-		return s.state104Fragment()
+		return s.state104Precedence()
 	case 105:
-		return s.state105Scanner()
+		return s.state105Fragment()
 	case 106:
-		return s.state106Parser()
+		return s.state106Scanner()
 	case 107:
 		return s.state107Precedence()
 	case 108:
 		return s.state108Fragment()
 	case 109:
-		return s.state109Scanner()
+		return s.state109Precedence()
 	case 110:
-		return s.state110Precedence()
+		return s.state110Fragment()
 	case 111:
-		return s.state111Fragment()
+		return s.state111Precedence()
 	case 112:
 		return s.state112Precedence()
-	case 113:
-		return s.state113Fragment()
-	case 114:
-		return s.state114Precedence()
-	case 115:
-		return s.state115Precedence()
 	default:
 		return fmt.Errorf("unexpected scanner state %d", s.state)
 	}
@@ -564,49 +562,49 @@ func (s *Scanner) dispatchEOF() {
 	case 40:
 		s.token = TokenRegex
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 55:
+	case 52:
 		s.token = TokenRegex
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 56:
+	case 53:
 		s.token = TokenRegex
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 67:
+	case 64:
 		s.token = TokenString
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 76:
+	case 73:
 		s.token = TokenRegex
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 77:
+	case 74:
 		s.token = TokenComment
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 90:
+	case 87:
 		s.token = TokenSkip
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 93:
+	case 90:
 		s.token = TokenLeft
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 95:
+	case 92:
 		s.token = TokenNone
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 99:
+	case 96:
 		s.token = TokenStart
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 102:
+	case 99:
 		s.token = TokenRight
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 103:
+	case 100:
 		s.token = TokenEmpty
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 106:
+	case 103:
 		s.token = TokenParser
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 109:
+	case 106:
 		s.token = TokenScanner
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 113:
+	case 110:
 		s.token = TokenFragment
 		s.lexemeEndIdx = s.lexemePeekIdx
-	case 115:
+	case 112:
 		s.token = TokenPrecedence
 		s.lexemeEndIdx = s.lexemePeekIdx
 	}
@@ -940,24 +938,12 @@ func (s *Scanner) state16Comment() error {
 		s.state = 16
 	case 0xb <= nextByte && nextByte <= 0x7f:
 		s.state = 16
-	case nextByte == 0xc2:
+	case 0xc2 <= nextByte && nextByte <= 0xdf:
 		s.state = 49
-	case 0xc3 <= nextByte && nextByte <= 0xde:
-		s.state = 49
-	case nextByte == 0xdf:
-		s.state = 49
-	case nextByte == 0xe0:
+	case 0xe0 <= nextByte && nextByte <= 0xef:
 		s.state = 50
-	case 0xe1 <= nextByte && nextByte <= 0xee:
+	case 0xf0 <= nextByte && nextByte <= 0xf4:
 		s.state = 51
-	case nextByte == 0xef:
-		s.state = 51
-	case nextByte == 0xf0:
-		s.state = 52
-	case 0xf1 <= nextByte && nextByte <= 0xf3:
-		s.state = 53
-	case nextByte == 0xf4:
-		s.state = 54
 	default:
 		return errInvalidByte
 	}
@@ -970,7 +956,7 @@ func (s *Scanner) state17Regex() error {
 	case 0x0 <= nextByte && nextByte <= '.':
 		s.state = 17
 	case nextByte == '/':
-		s.state = 55
+		s.state = 52
 	case '0' <= nextByte && nextByte <= '[':
 		s.state = 17
 	case nextByte == '\\':
@@ -1007,7 +993,7 @@ func (s *Scanner) state18Regex() error {
 	case 0x0 <= nextByte && nextByte <= '.':
 		s.state = 17
 	case nextByte == '/':
-		s.state = 56
+		s.state = 53
 	case '0' <= nextByte && nextByte <= '[':
 		s.state = 17
 	case nextByte == '\\':
@@ -1128,11 +1114,11 @@ func (s *Scanner) state25Scanner() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 'c':
-		s.state = 57
+		s.state = 54
 	case nextByte == 'k':
-		s.state = 59
+		s.state = 56
 	case nextByte == 't':
-		s.state = 58
+		s.state = 55
 	default:
 		return errInvalidByte
 	}
@@ -1143,9 +1129,9 @@ func (s *Scanner) state26Parser() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 'a':
-		s.state = 60
+		s.state = 57
 	case nextByte == 'r':
-		s.state = 61
+		s.state = 58
 	default:
 		return errInvalidByte
 	}
@@ -1156,7 +1142,7 @@ func (s *Scanner) state27Left() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 'e':
-		s.state = 62
+		s.state = 59
 	default:
 		return errInvalidByte
 	}
@@ -1167,7 +1153,7 @@ func (s *Scanner) state28Right() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 'i':
-		s.state = 63
+		s.state = 60
 	default:
 		return errInvalidByte
 	}
@@ -1178,7 +1164,7 @@ func (s *Scanner) state29None() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 'o':
-		s.state = 64
+		s.state = 61
 	default:
 		return errInvalidByte
 	}
@@ -1189,7 +1175,7 @@ func (s *Scanner) state30Empty() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 'm':
-		s.state = 65
+		s.state = 62
 	default:
 		return errInvalidByte
 	}
@@ -1200,7 +1186,7 @@ func (s *Scanner) state31Fragment() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 'r':
-		s.state = 66
+		s.state = 63
 	default:
 		return errInvalidByte
 	}
@@ -1213,7 +1199,7 @@ func (s *Scanner) state32String() error {
 	case 0x0 <= nextByte && nextByte <= '!':
 		s.state = 14
 	case nextByte == '"':
-		s.state = 67
+		s.state = 64
 	case '#' <= nextByte && nextByte <= '[':
 		s.state = 14
 	case nextByte == '\\':
@@ -1346,29 +1332,29 @@ func (s *Scanner) state40Regex() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case 0x0 <= nextByte && nextByte <= ')':
-		s.state = 68
+		s.state = 65
 	case nextByte == '*':
-		s.state = 75
-	case '+' <= nextByte && nextByte <= 0x7f:
-		s.state = 68
-	case nextByte == 0xc2:
-		s.state = 69
-	case 0xc3 <= nextByte && nextByte <= 0xde:
-		s.state = 69
-	case nextByte == 0xdf:
-		s.state = 69
-	case nextByte == 0xe0:
-		s.state = 70
-	case 0xe1 <= nextByte && nextByte <= 0xee:
-		s.state = 71
-	case nextByte == 0xef:
-		s.state = 71
-	case nextByte == 0xf0:
 		s.state = 72
+	case '+' <= nextByte && nextByte <= 0x7f:
+		s.state = 65
+	case nextByte == 0xc2:
+		s.state = 66
+	case 0xc3 <= nextByte && nextByte <= 0xde:
+		s.state = 66
+	case nextByte == 0xdf:
+		s.state = 66
+	case nextByte == 0xe0:
+		s.state = 67
+	case 0xe1 <= nextByte && nextByte <= 0xee:
+		s.state = 68
+	case nextByte == 0xef:
+		s.state = 68
+	case nextByte == 0xf0:
+		s.state = 69
 	case 0xf1 <= nextByte && nextByte <= 0xf3:
-		s.state = 73
+		s.state = 70
 	case nextByte == 0xf4:
-		s.state = 74
+		s.state = 71
 	default:
 		return errInvalidByte
 	}
@@ -1385,7 +1371,7 @@ func (s *Scanner) state41Comment() error {
 	case '+' <= nextByte && nextByte <= '.':
 		s.state = 15
 	case nextByte == '/':
-		s.state = 76
+		s.state = 73
 	case '0' <= nextByte && nextByte <= '[':
 		s.state = 15
 	case nextByte == '\\':
@@ -1512,7 +1498,7 @@ func (s *Scanner) state48Comment() error {
 	case '+' <= nextByte && nextByte <= '.':
 		s.state = 15
 	case nextByte == '/':
-		s.state = 77
+		s.state = 74
 	case '0' <= nextByte && nextByte <= '[':
 		s.state = 15
 	case nextByte == '\\':
@@ -1557,11 +1543,7 @@ func (s *Scanner) state49Comment() error {
 func (s *Scanner) state50Comment() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 0xa0:
-		s.state = 49
-	case 0xa1 <= nextByte && nextByte <= 0xbe:
-		s.state = 49
-	case nextByte == 0xbf:
+	case 0x80 <= nextByte && nextByte <= 0xbf:
 		s.state = 49
 	default:
 		return errInvalidByte
@@ -1572,64 +1554,15 @@ func (s *Scanner) state50Comment() error {
 func (s *Scanner) state51Comment() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 0x80:
-		s.state = 49
-	case 0x81 <= nextByte && nextByte <= 0xbe:
-		s.state = 49
-	case nextByte == 0xbf:
-		s.state = 49
+	case 0x80 <= nextByte && nextByte <= 0xbf:
+		s.state = 50
 	default:
 		return errInvalidByte
 	}
 	return nil
 }
 
-func (s *Scanner) state52Comment() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 0x90:
-		s.state = 51
-	case 0x91 <= nextByte && nextByte <= 0xbe:
-		s.state = 51
-	case nextByte == 0xbf:
-		s.state = 51
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state53Comment() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 0x80:
-		s.state = 51
-	case 0x81 <= nextByte && nextByte <= 0xbe:
-		s.state = 51
-	case nextByte == 0xbf:
-		s.state = 51
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state54Comment() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 0x80:
-		s.state = 51
-	case 0x81 <= nextByte && nextByte <= 0x8e:
-		s.state = 51
-	case nextByte == 0x8f:
-		s.state = 51
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state55Regex() error {
+func (s *Scanner) state52Regex() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenRegex
 	s.lexemeEndIdx = s.lexemePeekIdx
@@ -1637,7 +1570,7 @@ func (s *Scanner) state55Regex() error {
 	return errInvalidByte
 }
 
-func (s *Scanner) state56Regex() error {
+func (s *Scanner) state53Regex() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenRegex
 	s.lexemeEndIdx = s.lexemePeekIdx
@@ -1647,7 +1580,7 @@ func (s *Scanner) state56Regex() error {
 	case 0x0 <= nextByte && nextByte <= '.':
 		s.state = 17
 	case nextByte == '/':
-		s.state = 55
+		s.state = 52
 	case '0' <= nextByte && nextByte <= '[':
 		s.state = 17
 	case nextByte == '\\':
@@ -1678,10 +1611,43 @@ func (s *Scanner) state56Regex() error {
 	return nil
 }
 
-func (s *Scanner) state57Scanner() error {
+func (s *Scanner) state54Scanner() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 'a':
+		s.state = 75
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state55Start() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 'a':
+		s.state = 76
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state56Skip() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 'i':
+		s.state = 77
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state57Parser() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 'r':
 		s.state = 78
 	default:
 		return errInvalidByte
@@ -1689,10 +1655,10 @@ func (s *Scanner) state57Scanner() error {
 	return nil
 }
 
-func (s *Scanner) state58Start() error {
+func (s *Scanner) state58Precedence() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'a':
+	case nextByte == 'e':
 		s.state = 79
 	default:
 		return errInvalidByte
@@ -1700,10 +1666,10 @@ func (s *Scanner) state58Start() error {
 	return nil
 }
 
-func (s *Scanner) state59Skip() error {
+func (s *Scanner) state59Left() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'i':
+	case nextByte == 'f':
 		s.state = 80
 	default:
 		return errInvalidByte
@@ -1711,10 +1677,10 @@ func (s *Scanner) state59Skip() error {
 	return nil
 }
 
-func (s *Scanner) state60Parser() error {
+func (s *Scanner) state60Right() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'r':
+	case nextByte == 'g':
 		s.state = 81
 	default:
 		return errInvalidByte
@@ -1722,10 +1688,10 @@ func (s *Scanner) state60Parser() error {
 	return nil
 }
 
-func (s *Scanner) state61Precedence() error {
+func (s *Scanner) state61None() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'e':
+	case nextByte == 'n':
 		s.state = 82
 	default:
 		return errInvalidByte
@@ -1733,10 +1699,10 @@ func (s *Scanner) state61Precedence() error {
 	return nil
 }
 
-func (s *Scanner) state62Left() error {
+func (s *Scanner) state62Empty() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'f':
+	case nextByte == 'p':
 		s.state = 83
 	default:
 		return errInvalidByte
@@ -1744,10 +1710,10 @@ func (s *Scanner) state62Left() error {
 	return nil
 }
 
-func (s *Scanner) state63Right() error {
+func (s *Scanner) state63Fragment() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'g':
+	case nextByte == 'a':
 		s.state = 84
 	default:
 		return errInvalidByte
@@ -1755,40 +1721,7 @@ func (s *Scanner) state63Right() error {
 	return nil
 }
 
-func (s *Scanner) state64None() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 'n':
-		s.state = 85
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state65Empty() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 'p':
-		s.state = 86
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state66Fragment() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 'a':
-		s.state = 87
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state67String() error {
+func (s *Scanner) state64String() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenString
 	s.lexemeEndIdx = s.lexemePeekIdx
@@ -1829,33 +1762,74 @@ func (s *Scanner) state67String() error {
 	return nil
 }
 
-func (s *Scanner) state68Comment() error {
+func (s *Scanner) state65Comment() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case 0x0 <= nextByte && nextByte <= ')':
-		s.state = 68
+		s.state = 65
 	case nextByte == '*':
-		s.state = 75
-	case '+' <= nextByte && nextByte <= 0x7f:
-		s.state = 68
-	case nextByte == 0xc2:
-		s.state = 69
-	case 0xc3 <= nextByte && nextByte <= 0xde:
-		s.state = 69
-	case nextByte == 0xdf:
-		s.state = 69
-	case nextByte == 0xe0:
-		s.state = 70
-	case 0xe1 <= nextByte && nextByte <= 0xee:
-		s.state = 71
-	case nextByte == 0xef:
-		s.state = 71
-	case nextByte == 0xf0:
 		s.state = 72
+	case '+' <= nextByte && nextByte <= 0x7f:
+		s.state = 65
+	case nextByte == 0xc2:
+		s.state = 66
+	case 0xc3 <= nextByte && nextByte <= 0xde:
+		s.state = 66
+	case nextByte == 0xdf:
+		s.state = 66
+	case nextByte == 0xe0:
+		s.state = 67
+	case 0xe1 <= nextByte && nextByte <= 0xee:
+		s.state = 68
+	case nextByte == 0xef:
+		s.state = 68
+	case nextByte == 0xf0:
+		s.state = 69
 	case 0xf1 <= nextByte && nextByte <= 0xf3:
-		s.state = 73
+		s.state = 70
 	case nextByte == 0xf4:
-		s.state = 74
+		s.state = 71
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state66Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case 0x80 <= nextByte && nextByte <= 0xbf:
+		s.state = 65
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state67Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0xa0:
+		s.state = 66
+	case 0xa1 <= nextByte && nextByte <= 0xbe:
+		s.state = 66
+	case nextByte == 0xbf:
+		s.state = 66
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state68Comment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 0x80:
+		s.state = 66
+	case 0x81 <= nextByte && nextByte <= 0xbe:
+		s.state = 66
+	case nextByte == 0xbf:
+		s.state = 66
 	default:
 		return errInvalidByte
 	}
@@ -1865,7 +1839,11 @@ func (s *Scanner) state68Comment() error {
 func (s *Scanner) state69Comment() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case 0x80 <= nextByte && nextByte <= 0xbf:
+	case nextByte == 0x90:
+		s.state = 68
+	case 0x91 <= nextByte && nextByte <= 0xbe:
+		s.state = 68
+	case nextByte == 0xbf:
 		s.state = 68
 	default:
 		return errInvalidByte
@@ -1876,12 +1854,12 @@ func (s *Scanner) state69Comment() error {
 func (s *Scanner) state70Comment() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 0xa0:
-		s.state = 69
-	case 0xa1 <= nextByte && nextByte <= 0xbe:
-		s.state = 69
+	case nextByte == 0x80:
+		s.state = 68
+	case 0x81 <= nextByte && nextByte <= 0xbe:
+		s.state = 68
 	case nextByte == 0xbf:
-		s.state = 69
+		s.state = 68
 	default:
 		return errInvalidByte
 	}
@@ -1892,11 +1870,11 @@ func (s *Scanner) state71Comment() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 0x80:
-		s.state = 69
-	case 0x81 <= nextByte && nextByte <= 0xbe:
-		s.state = 69
-	case nextByte == 0xbf:
-		s.state = 69
+		s.state = 68
+	case 0x81 <= nextByte && nextByte <= 0x8e:
+		s.state = 68
+	case nextByte == 0x8f:
+		s.state = 68
 	default:
 		return errInvalidByte
 	}
@@ -1906,86 +1884,41 @@ func (s *Scanner) state71Comment() error {
 func (s *Scanner) state72Comment() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 0x90:
-		s.state = 71
-	case 0x91 <= nextByte && nextByte <= 0xbe:
-		s.state = 71
-	case nextByte == 0xbf:
-		s.state = 71
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state73Comment() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 0x80:
-		s.state = 71
-	case 0x81 <= nextByte && nextByte <= 0xbe:
-		s.state = 71
-	case nextByte == 0xbf:
-		s.state = 71
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state74Comment() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 0x80:
-		s.state = 71
-	case 0x81 <= nextByte && nextByte <= 0x8e:
-		s.state = 71
-	case nextByte == 0x8f:
-		s.state = 71
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state75Comment() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
 	case 0x0 <= nextByte && nextByte <= ')':
-		s.state = 68
+		s.state = 65
 	case nextByte == '*':
-		s.state = 75
-	case '+' <= nextByte && nextByte <= '.':
-		s.state = 68
-	case nextByte == '/':
-		s.state = 77
-	case '0' <= nextByte && nextByte <= 0x7f:
-		s.state = 68
-	case nextByte == 0xc2:
-		s.state = 69
-	case 0xc3 <= nextByte && nextByte <= 0xde:
-		s.state = 69
-	case nextByte == 0xdf:
-		s.state = 69
-	case nextByte == 0xe0:
-		s.state = 70
-	case 0xe1 <= nextByte && nextByte <= 0xee:
-		s.state = 71
-	case nextByte == 0xef:
-		s.state = 71
-	case nextByte == 0xf0:
 		s.state = 72
-	case 0xf1 <= nextByte && nextByte <= 0xf3:
-		s.state = 73
-	case nextByte == 0xf4:
+	case '+' <= nextByte && nextByte <= '.':
+		s.state = 65
+	case nextByte == '/':
 		s.state = 74
+	case '0' <= nextByte && nextByte <= 0x7f:
+		s.state = 65
+	case nextByte == 0xc2:
+		s.state = 66
+	case 0xc3 <= nextByte && nextByte <= 0xde:
+		s.state = 66
+	case nextByte == 0xdf:
+		s.state = 66
+	case nextByte == 0xe0:
+		s.state = 67
+	case 0xe1 <= nextByte && nextByte <= 0xee:
+		s.state = 68
+	case nextByte == 0xef:
+		s.state = 68
+	case nextByte == 0xf0:
+		s.state = 69
+	case 0xf1 <= nextByte && nextByte <= 0xf3:
+		s.state = 70
+	case nextByte == 0xf4:
+		s.state = 71
 	default:
 		return errInvalidByte
 	}
 	return nil
 }
 
-func (s *Scanner) state76Regex() error {
+func (s *Scanner) state73Regex() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenRegex
 	s.lexemeEndIdx = s.lexemePeekIdx
@@ -2030,7 +1963,7 @@ func (s *Scanner) state76Regex() error {
 	return nil
 }
 
-func (s *Scanner) state77Comment() error {
+func (s *Scanner) state74Comment() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenComment
 	s.lexemeEndIdx = s.lexemePeekIdx
@@ -2038,10 +1971,43 @@ func (s *Scanner) state77Comment() error {
 	return errInvalidByte
 }
 
-func (s *Scanner) state78Scanner() error {
+func (s *Scanner) state75Scanner() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 'n':
+		s.state = 85
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state76Start() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 'r':
+		s.state = 86
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state77Skip() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 'p':
+		s.state = 87
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state78Parser() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 's':
 		s.state = 88
 	default:
 		return errInvalidByte
@@ -2049,10 +2015,10 @@ func (s *Scanner) state78Scanner() error {
 	return nil
 }
 
-func (s *Scanner) state79Start() error {
+func (s *Scanner) state79Precedence() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'r':
+	case nextByte == 'c':
 		s.state = 89
 	default:
 		return errInvalidByte
@@ -2060,10 +2026,10 @@ func (s *Scanner) state79Start() error {
 	return nil
 }
 
-func (s *Scanner) state80Skip() error {
+func (s *Scanner) state80Left() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'p':
+	case nextByte == 't':
 		s.state = 90
 	default:
 		return errInvalidByte
@@ -2071,10 +2037,10 @@ func (s *Scanner) state80Skip() error {
 	return nil
 }
 
-func (s *Scanner) state81Parser() error {
+func (s *Scanner) state81Right() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 's':
+	case nextByte == 'h':
 		s.state = 91
 	default:
 		return errInvalidByte
@@ -2082,10 +2048,10 @@ func (s *Scanner) state81Parser() error {
 	return nil
 }
 
-func (s *Scanner) state82Precedence() error {
+func (s *Scanner) state82None() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'c':
+	case nextByte == 'e':
 		s.state = 92
 	default:
 		return errInvalidByte
@@ -2093,7 +2059,7 @@ func (s *Scanner) state82Precedence() error {
 	return nil
 }
 
-func (s *Scanner) state83Left() error {
+func (s *Scanner) state83Empty() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 't':
@@ -2104,10 +2070,10 @@ func (s *Scanner) state83Left() error {
 	return nil
 }
 
-func (s *Scanner) state84Right() error {
+func (s *Scanner) state84Fragment() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'h':
+	case nextByte == 'g':
 		s.state = 94
 	default:
 		return errInvalidByte
@@ -2115,10 +2081,10 @@ func (s *Scanner) state84Right() error {
 	return nil
 }
 
-func (s *Scanner) state85None() error {
+func (s *Scanner) state85Scanner() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'e':
+	case nextByte == 'n':
 		s.state = 95
 	default:
 		return errInvalidByte
@@ -2126,7 +2092,7 @@ func (s *Scanner) state85None() error {
 	return nil
 }
 
-func (s *Scanner) state86Empty() error {
+func (s *Scanner) state86Start() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 't':
@@ -2137,10 +2103,18 @@ func (s *Scanner) state86Empty() error {
 	return nil
 }
 
-func (s *Scanner) state87Fragment() error {
+func (s *Scanner) state87Skip() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenSkip
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state88Parser() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'g':
+	case nextByte == 'e':
 		s.state = 97
 	default:
 		return errInvalidByte
@@ -2148,10 +2122,10 @@ func (s *Scanner) state87Fragment() error {
 	return nil
 }
 
-func (s *Scanner) state88Scanner() error {
+func (s *Scanner) state89Precedence() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'n':
+	case nextByte == 'e':
 		s.state = 98
 	default:
 		return errInvalidByte
@@ -2159,7 +2133,15 @@ func (s *Scanner) state88Scanner() error {
 	return nil
 }
 
-func (s *Scanner) state89Start() error {
+func (s *Scanner) state90Left() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenLeft
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state91Right() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 't':
@@ -2170,56 +2152,7 @@ func (s *Scanner) state89Start() error {
 	return nil
 }
 
-func (s *Scanner) state90Skip() error {
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenSkip
-	s.lexemeEndIdx = s.lexemePeekIdx
-
-	return errInvalidByte
-}
-
-func (s *Scanner) state91Parser() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 'e':
-		s.state = 100
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state92Precedence() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 'e':
-		s.state = 101
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state93Left() error {
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenLeft
-	s.lexemeEndIdx = s.lexemePeekIdx
-
-	return errInvalidByte
-}
-
-func (s *Scanner) state94Right() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 't':
-		s.state = 102
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state95None() error {
+func (s *Scanner) state92None() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenNone
 	s.lexemeEndIdx = s.lexemePeekIdx
@@ -2227,10 +2160,51 @@ func (s *Scanner) state95None() error {
 	return errInvalidByte
 }
 
-func (s *Scanner) state96Empty() error {
+func (s *Scanner) state93Empty() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 'y':
+		s.state = 100
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state94Fragment() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 'm':
+		s.state = 101
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state95Scanner() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 'e':
+		s.state = 102
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state96Start() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenStart
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state97Parser() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 'r':
 		s.state = 103
 	default:
 		return errInvalidByte
@@ -2238,10 +2212,10 @@ func (s *Scanner) state96Empty() error {
 	return nil
 }
 
-func (s *Scanner) state97Fragment() error {
+func (s *Scanner) state98Precedence() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'm':
+	case nextByte == 'd':
 		s.state = 104
 	default:
 		return errInvalidByte
@@ -2249,7 +2223,23 @@ func (s *Scanner) state97Fragment() error {
 	return nil
 }
 
-func (s *Scanner) state98Scanner() error {
+func (s *Scanner) state99Right() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenRight
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state100Empty() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenEmpty
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state101Fragment() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 'e':
@@ -2260,15 +2250,7 @@ func (s *Scanner) state98Scanner() error {
 	return nil
 }
 
-func (s *Scanner) state99Start() error {
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenStart
-	s.lexemeEndIdx = s.lexemePeekIdx
-
-	return errInvalidByte
-}
-
-func (s *Scanner) state100Parser() error {
+func (s *Scanner) state102Scanner() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 'r':
@@ -2279,10 +2261,18 @@ func (s *Scanner) state100Parser() error {
 	return nil
 }
 
-func (s *Scanner) state101Precedence() error {
+func (s *Scanner) state103Parser() error {
+	// We have an accepting state, update our bookkeeping.
+	s.token = TokenParser
+	s.lexemeEndIdx = s.lexemePeekIdx
+
+	return errInvalidByte
+}
+
+func (s *Scanner) state104Precedence() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'd':
+	case nextByte == 'e':
 		s.state = 107
 	default:
 		return errInvalidByte
@@ -2290,26 +2280,10 @@ func (s *Scanner) state101Precedence() error {
 	return nil
 }
 
-func (s *Scanner) state102Right() error {
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenRight
-	s.lexemeEndIdx = s.lexemePeekIdx
-
-	return errInvalidByte
-}
-
-func (s *Scanner) state103Empty() error {
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenEmpty
-	s.lexemeEndIdx = s.lexemePeekIdx
-
-	return errInvalidByte
-}
-
-func (s *Scanner) state104Fragment() error {
+func (s *Scanner) state105Fragment() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'e':
+	case nextByte == 'n':
 		s.state = 108
 	default:
 		return errInvalidByte
@@ -2317,20 +2291,9 @@ func (s *Scanner) state104Fragment() error {
 	return nil
 }
 
-func (s *Scanner) state105Scanner() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 'r':
-		s.state = 109
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state106Parser() error {
+func (s *Scanner) state106Scanner() error {
 	// We have an accepting state, update our bookkeeping.
-	s.token = TokenParser
+	s.token = TokenScanner
 	s.lexemeEndIdx = s.lexemePeekIdx
 
 	return errInvalidByte
@@ -2339,8 +2302,8 @@ func (s *Scanner) state106Parser() error {
 func (s *Scanner) state107Precedence() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'e':
-		s.state = 110
+	case nextByte == 'n':
+		s.state = 109
 	default:
 		return errInvalidByte
 	}
@@ -2350,7 +2313,18 @@ func (s *Scanner) state107Precedence() error {
 func (s *Scanner) state108Fragment() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
-	case nextByte == 'n':
+	case nextByte == 't':
+		s.state = 110
+	default:
+		return errInvalidByte
+	}
+	return nil
+}
+
+func (s *Scanner) state109Precedence() error {
+	nextByte := s.source[s.lexemePeekIdx]
+	switch {
+	case nextByte == 'c':
 		s.state = 111
 	default:
 		return errInvalidByte
@@ -2358,48 +2332,7 @@ func (s *Scanner) state108Fragment() error {
 	return nil
 }
 
-func (s *Scanner) state109Scanner() error {
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenScanner
-	s.lexemeEndIdx = s.lexemePeekIdx
-
-	return errInvalidByte
-}
-
-func (s *Scanner) state110Precedence() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 'n':
-		s.state = 112
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state111Fragment() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 't':
-		s.state = 113
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state112Precedence() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == 'c':
-		s.state = 114
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state113Fragment() error {
+func (s *Scanner) state110Fragment() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenFragment
 	s.lexemeEndIdx = s.lexemePeekIdx
@@ -2407,18 +2340,18 @@ func (s *Scanner) state113Fragment() error {
 	return errInvalidByte
 }
 
-func (s *Scanner) state114Precedence() error {
+func (s *Scanner) state111Precedence() error {
 	nextByte := s.source[s.lexemePeekIdx]
 	switch {
 	case nextByte == 'e':
-		s.state = 115
+		s.state = 112
 	default:
 		return errInvalidByte
 	}
 	return nil
 }
 
-func (s *Scanner) state115Precedence() error {
+func (s *Scanner) state112Precedence() error {
 	// We have an accepting state, update our bookkeeping.
 	s.token = TokenPrecedence
 	s.lexemeEndIdx = s.lexemePeekIdx

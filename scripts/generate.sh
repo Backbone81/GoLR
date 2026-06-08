@@ -8,10 +8,14 @@ set -ex
 go run ./internal/parsergen/frontend/bison/spec/export/
 
 # Generate the internal parsergen GoLR frontend parser.
-go run ./internal/parsergen/frontend/golr/spec/export/
+go run ./cmd/golr scanner \
+  --frontend golr \
+  --frontend-file-path internal/parsergen/frontend/golr/spec/golr.golr \
+  --backend go \
+  --backend-file-path internal/parsergen/frontend/golr/parser/scanner.go
 go run ./cmd/golr parser \
-  --frontend bison \
-  --frontend-file-path internal/parsergen/frontend/golr/spec/golr.y \
+  --frontend golr \
+  --frontend-file-path internal/parsergen/frontend/golr/spec/golr.golr \
   --backend go \
   --backend-file-path internal/parsergen/frontend/golr/parser/parser.go
 
@@ -22,11 +26,27 @@ cp internal/parsergen/frontend/bison/spec/*.txt examples/bison/spec
 cp internal/parsergen/frontend/bison/spec/LICENSES examples/bison/spec
 cp internal/parsergen/frontend/bison/parser/*.go examples/bison/parser
 
-# Make sure that all generated code of the examples are actually updated-
+# Generate the example GNU Bison parser.
 go run ./examples/bison/spec/export/
-go run ./cmd/golr scanner --frontend golr --frontend-file-path examples/calculator/spec/calculator.golr --backend go --backend-file-path examples/calculator/parser/scanner.go
-go run ./cmd/golr parser --frontend golr --frontend-file-path examples/calculator/spec/calculator.golr --backend go --backend-file-path examples/calculator/parser/parser.go
-go run ./cmd/golr scanner --frontend golr --frontend-file-path examples/golang/spec/golang.golr --backend go --backend-file-path examples/golang/parser/scanner.go
+
+# Generate the example calculator parser.
+go run ./cmd/golr scanner \
+  --frontend golr \
+  --frontend-file-path examples/calculator/spec/calculator.golr \
+  --backend go \
+  --backend-file-path examples/calculator/parser/scanner.go
+go run ./cmd/golr parser \
+  --frontend golr \
+  --frontend-file-path examples/calculator/spec/calculator.golr \
+  --backend go \
+  --backend-file-path examples/calculator/parser/parser.go
+
+# Generate the example Go parser.
+go run ./cmd/golr scanner \
+  --frontend golr \
+  --frontend-file-path examples/golang/spec/golang.golr \
+  --backend go \
+  --backend-file-path examples/golang/parser/scanner.go
 
 # Let's make sure that our examples folder does not reference any internal package.
 if grep -r 'github.com/backbone81/golr/internal/' examples/; then
