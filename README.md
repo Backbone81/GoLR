@@ -121,13 +121,14 @@ Usage:
   golr scanner [flags]
 
 Flags:
-      --backend string                   The backend to use for writing the scanner. One of: dot, go, json, null, yaml. (default "go")
-      --backend-file-path string         The file path to write the scanner to. Can be '-' to write to stdout.
-      --backend-go-package-name string   The Go package name to use for the generated Go code. (default "parser")
-      --core string                      The core to use for generating the scanner from the regular expressions. One of: subset. (default "subset")
-      --frontend string                  The frontend to use for reading the regular expressions. One of: golr, json, yaml. (default "golr")
-      --frontend-file-path string        The file path to read the regular expressions from. Can be '-' to read from stdin.
-  -h, --help                             help for scanner
+      --backend string                     The backend to use for writing the scanner. One of: dot, go, java, json, null, yaml. (default "go")
+      --backend-file-path string           The file path to write the scanner to. Can be '-' to write to stdout.
+      --backend-go-package-name string     The Go package name to use for the generated Go code. (default "parser")
+      --backend-java-package-name string   The Java package name to use for the generated Java code. (default "parser")
+      --core string                        The core to use for generating the scanner from the regular expressions. One of: subset. (default "subset")
+      --frontend string                    The frontend to use for reading the regular expressions. One of: golr, json, yaml. (default "golr")
+      --frontend-file-path string          The file path to read the regular expressions from. Can be '-' to read from stdin.
+  -h, --help                               help for scanner
 ```
 
 The `fmt` sub-command allows to pretty print GoLR grammar files:
@@ -236,6 +237,7 @@ These backends are currently supported:
 
 - [DOT](docs/scannergen-backend-dot.md)
 - [Go](docs/scannergen-backend-golang.md)
+- [Java](docs/scannergen-backend-java.md)
 - [JSON](docs/scannergen-backend-json.md)
 - [Null](docs/scannergen-backend-null.md)
 - [YAML](docs/scannergen-backend-yaml.md)

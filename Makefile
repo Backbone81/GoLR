@@ -49,7 +49,7 @@ test: test-examples
 
 .PHONY: test-examples
 test-examples: prepare
-	go test ./examples/...
+	$(MAKE) -C examples build test
 
 .PHONY: benchmark
 benchmark: prepare
@@ -57,6 +57,7 @@ benchmark: prepare
 
 .PHONY: clean
 clean:
+	$(MAKE) -C examples clean
 	rm -rf tmp
 	rm -f golr
 

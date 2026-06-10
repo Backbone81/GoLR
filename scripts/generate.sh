@@ -39,14 +39,19 @@ cp internal/parsergen/frontend/bison/parser/*.go examples/bison/parser
 # Generate the example calculator parser.
 go run ./cmd/golr scanner \
   --frontend golr \
-  --frontend-file-path examples/calculator/spec/calculator.golr \
+  --frontend-file-path examples/calculator/calculator.golr \
   --backend go \
-  --backend-file-path examples/calculator/parser/scanner.go
+  --backend-file-path examples/calculator/golang/parser/scanner.go
 go run ./cmd/golr parser \
   --frontend golr \
-  --frontend-file-path examples/calculator/spec/calculator.golr \
+  --frontend-file-path examples/calculator/calculator.golr \
   --backend go \
-  --backend-file-path examples/calculator/parser/parser.go
+  --backend-file-path examples/calculator/golang/parser/parser.go
+go run ./cmd/golr scanner \
+  --frontend golr \
+  --frontend-file-path examples/calculator/calculator.golr \
+  --backend java \
+  --backend-file-path examples/calculator/java/parser/Scanner.java
 
 # Generate the example Go parser.
 go run ./cmd/golr scanner \

@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/backbone81/golr/examples/calculator/parser"
+	"calculator/parser"
 )
 
 func main() {

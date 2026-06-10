@@ -9,6 +9,7 @@ import (
 	"github.com/backbone81/golr/pkg/scannergen/backend"
 	dotbackend "github.com/backbone81/golr/pkg/scannergen/backend/dot"
 	golangbackend "github.com/backbone81/golr/pkg/scannergen/backend/golang"
+	javabackend "github.com/backbone81/golr/pkg/scannergen/backend/java"
 	jsonbackend "github.com/backbone81/golr/pkg/scannergen/backend/json"
 	yamlbackend "github.com/backbone81/golr/pkg/scannergen/backend/yaml"
 	subsetcore "github.com/backbone81/golr/pkg/scannergen/core/subset"
@@ -27,7 +28,8 @@ var (
 	scannerBackend         string
 	scannerBackendFilePath string
 
-	scannerBackendGoPackageName string
+	scannerBackendGoPackageName   string
+	scannerBackendJavaPackageName string
 )
 
 var scannerCmd = &cobra.Command{
@@ -102,6 +104,15 @@ func executeScannerBackend(dfa backend.DFA) error {
 		return golangbackend.DFAToFile(scannerBackendFilePath, dfa, golangbackend.Config{
 			PackageName: scannerBackendGoPackageName,
 		})
+	case "java":
+		if scannerBackendFilePath == "-" {
+			return javabackend.FromDFA(os.Stdout, dfa, javabackend.Config{
+				PackageName: scannerBackendJavaPackageName,
+			})
+		}
+		return javabackend.DFAToFile(scannerBackendFilePath, dfa, javabackend.Config{
+			PackageName: scannerBackendJavaPackageName,
+		})
 	case "json":
 		if scannerBackendFilePath == "-" {
 			return jsonbackend.FromDFA(os.Stdout, dfa)
@@ -150,7 +161,7 @@ func init() {
 		&scannerBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the scanner. One of: dot, go, json, null, yaml.",
+		"The backend to use for writing the scanner. One of: dot, go, java, json, null, yaml.",
 	)
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerBackendFilePath,
@@ -167,5 +178,11 @@ func init() {
 		"backend-go-package-name",
 		"parser",
 		"The Go package name to use for the generated Go code.",
+	)
+	scannerCmd.PersistentFlags().StringVar(
+		&scannerBackendJavaPackageName,
+		"backend-java-package-name",
+		"parser",
+		"The Java package name to use for the generated Java code.",
 	)
 }
