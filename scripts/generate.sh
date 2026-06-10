@@ -5,7 +5,16 @@ set -ex
 # This shell script is executing commands to generate code and do some sanity checks.
 
 # Generate the internal parsergen GNU Bison frontend parser.
-go run ./internal/parsergen/frontend/bison/spec/export/
+go run ./cmd/golr scanner \
+  --frontend golr \
+  --frontend-file-path internal/parsergen/frontend/bison/spec/bison.golr \
+  --backend go \
+  --backend-file-path internal/parsergen/frontend/bison/parser/scanner.go
+go run ./cmd/golr parser \
+  --frontend bison \
+  --frontend-file-path internal/parsergen/frontend/bison/spec/bison-3.8.2.y \
+  --backend go \
+  --backend-file-path internal/parsergen/frontend/bison/parser/parser.go
 
 # Generate the internal parsergen GoLR frontend parser.
 go run ./cmd/golr scanner \
@@ -21,13 +30,11 @@ go run ./cmd/golr parser \
 
 # Copy files from the internal parsergen GNU Bison frontend to the examples folder.
 cp internal/parsergen/frontend/bison/spec/*.go examples/bison/spec
+cp internal/parsergen/frontend/bison/spec/*.golr examples/bison/spec
 cp internal/parsergen/frontend/bison/spec/*.y examples/bison/spec
 cp internal/parsergen/frontend/bison/spec/*.txt examples/bison/spec
 cp internal/parsergen/frontend/bison/spec/LICENSES examples/bison/spec
 cp internal/parsergen/frontend/bison/parser/*.go examples/bison/parser
-
-# Generate the example GNU Bison parser.
-go run ./examples/bison/spec/export/
 
 # Generate the example calculator parser.
 go run ./cmd/golr scanner \

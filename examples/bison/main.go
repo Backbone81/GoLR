@@ -25,11 +25,11 @@ func main() {
 
 func printTokens(filePath string, data []byte) {
 	scanner := parser.TokenTransformer{
-		Scanner: &parser.WhitespaceSkipper{
-			Scanner: &parser.ContextScanner{
+		Scanner: parser.NewTokenSkipper(
+			&parser.ContextScanner{
 				Scanner: parser.NewScanner(data, filePath),
 			},
-		},
+		),
 	}
 
 	var tokenCounter int
@@ -44,11 +44,11 @@ func printTokens(filePath string, data []byte) {
 
 func printAbstractSyntaxTree(filePath string, data []byte) {
 	scanner := parser.TokenTransformer{
-		Scanner: &parser.WhitespaceSkipper{
-			Scanner: &parser.ContextScanner{
+		Scanner: parser.NewTokenSkipper(
+			&parser.ContextScanner{
 				Scanner: parser.NewScanner(data, filePath),
 			},
-		},
+		),
 	}
 
 	parser := parser.NewParser()

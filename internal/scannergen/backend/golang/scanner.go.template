@@ -37,14 +37,26 @@ func (t Token) String() string {
     }
 }
 
+// TokenSkipperScanner is the interface the scanner needs to implement for the TokenSkipper.
+type TokenSkipperScanner interface {
+	Token() Token
+	ByteOffset() int
+	Line() int
+	Column() int
+	Lexeme() []byte
+	Next() bool
+	FilePath() string
+	Reset(source []byte, offset int)
+}
+
 // TokenSkipper wraps a scanner and skips all tokens which were marked for skipping. This is usually used for skipping
 // whitespaces and comments.
 type TokenSkipper struct {
-	scanner *Scanner
+	scanner TokenSkipperScanner
 }
 
 // NewTokenSkipper creates a new TokenSkipper by wrapping the given Scanner.
-func NewTokenSkipper(scanner *Scanner) *TokenSkipper {
+func NewTokenSkipper(scanner TokenSkipperScanner) *TokenSkipper {
     return &TokenSkipper {
         scanner: scanner,
     }

@@ -1,0 +1,89 @@
+// This file provides the token description for GNU Bison grammar files. The details can be found at:
+//
+// https://github.com/akimd/bison/blob/master/src/scan-gram.l
+// https://github.com/akimd/bison/blob/master/src/scan-code.l
+// https://github.com/akimd/bison/blob/master/src/scan-skel.l
+// https://github.com/akimd/bison/blob/master/src/parse-gram.y
+//
+// Note that we are only providing tokens here and not the context free grammar. The CFG is derived from the official
+// GNU Bison grammar file.
+@scanner {
+    NEWLINE:               /\n|\r\n/ @fragment;
+    HORIZONTAL_WHITESPACE: /[ \t\f\v]/ @fragment;
+    WS:                    /({NEWLINE}|{HORIZONTAL_WHITESPACE})+/ @skip;
+
+    LINE_COMMENT:      /\/\/.*/ @fragment;
+    MULTILINE_COMMENT: /\/\*([^*]|\*+[^*\/])*\*+\// @fragment;
+    COMMENT:           /{LINE_COMMENT}|{MULTILINE_COMMENT}/ @skip;
+
+    STRING:                          /"([^"]|\\")*"/;
+    TSTRING:                         /_\("([^"]|\\")*"\)/;
+    PERCENT_TOKEN:                   "%token";
+    PERCENT_NTERM:                   "%nterm";
+    PERCENT_TYPE:                    "%type";
+    PERCENT_DESTRUCTOR:              "%destructor";
+    PERCENT_PRINTER:                 "%printer";
+    PERCENT_LEFT:                    "%left";
+    PERCENT_RIGHT:                   "%right";
+    PERCENT_NONASSOC:                "%nonassoc";
+    PERCENT_PRECEDENCE:              "%precedence";
+    PERCENT_PREC:                    "%prec";
+    PERCENT_DPREC:                   "%dprec";
+    PERCENT_MERGE:                   "%merge";
+    PERCENT_CODE:                    "%code";
+    PERCENT_DEFAULT_PREC:            /%default-prec|%default_prec/;
+    PERCENT_DEFINE:                  "%define";
+    PERCENT_ERROR_VERBOSE:           /%error-verbose|%error_verbose/;
+    PERCENT_EXPECT:                  "%expect";
+    PERCENT_EXPECT_RR:               /%expect-rr|%expect_rr/;
+    PERCENT_FILE_PREFIX:             "%file-prefix";
+    PERCENT_FLAG:                    "%<flag>";
+    PERCENT_GLR_PARSER:              "%glr-parser";
+    PERCENT_HEADER:                  "%header";
+    PERCENT_INITIAL_ACTION:          "%initial-action";
+    PERCENT_LANGUAGE:                "%language";
+    PERCENT_NAME_PREFIX:             /%name-prefix|%name_prefix/;
+    PERCENT_NO_DEFAULT_PREC:         /%no-default-prec|%no_default-prec|%no-default_prec|%no_default_prec/;
+    PERCENT_NO_LINES:                /%no-lines|%no_lines/;
+    PERCENT_NONDETERMINISTIC_PARSER: "%nondeterministic-parser";
+    PERCENT_OUTPUT:                  "%output";
+    PERCENT_PURE_PARSER:             /%pure-parser|%pure_parser/;
+    PERCENT_REQUIRE:                 "%require";
+    PERCENT_SKELETON:                "%skeleton";
+    PERCENT_START:                   "%start";
+    PERCENT_TOKEN_TABLE:             /%token-table|%token_table/;
+    PERCENT_VERBOSE:                 "%verbose";
+    PERCENT_YACC:                    "%yacc";
+    BRACED_CODE:                     @empty;
+    BRACED_CODE_START:               "{";
+    BRACED_PREDICATE:                @empty;
+    BRACED_PREDICATE_START:          "%?{";
+    CHAR_LITERAL:                    /'([^']|\\')*'/;
+    COLON:                           ":";
+    EPILOGUE:                        @empty;
+    EQUAL:                           "=";
+    ID:                              /[a-zA-Z_.][a-zA-Z0-9_\-.]*/;
+    BRACKETED_ID:                    /\[[a-zA-Z_.][a-zA-Z0-9_\-.]*\]/;
+    ID_COLON:                        @empty;
+    PERCENT_PERCENT:                 "%%";
+    PIPE:                            "|";
+    PROLOGUE:                        @empty;
+    PROLOGUE_START:                  "%{";
+    SEMICOLON:                       ";";
+    TAG:                             @empty;
+    TAG_ANY:                         "<*>";
+    TAG_NONE:                        "<>";
+    TAG_START:                       "<";
+    INT_LITERAL:                     /[0-9]+/;
+    PERCENT_PARAM:                   "%param";
+    PERCENT_UNION:                   "%union";
+    PERCENT_EMPTY:                   "%empty";
+}
+
+@parser {
+    // We do not define the grammar here. Instead we use the official GNU Bison grammar file. We have this empty rule
+    // here to satisfy the minimal requirements for GoLR grammar files.
+    input
+        : @empty
+        ;
+}

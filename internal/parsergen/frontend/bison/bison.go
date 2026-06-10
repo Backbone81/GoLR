@@ -26,11 +26,11 @@ func ToGrammar(reader io.Reader, filePath string) (frontend.Grammar, error) {
 	}
 
 	scanner := bisonparser.TokenTransformer{
-		Scanner: &bisonparser.WhitespaceSkipper{
-			Scanner: &bisonparser.ContextScanner{
+		Scanner: bisonparser.NewTokenSkipper(
+			&bisonparser.ContextScanner{
 				Scanner: bisonparser.NewScanner(data, filePath),
 			},
-		},
+		),
 	}
 
 	parser := bisonparser.NewParser()

@@ -61,3 +61,7 @@ func (c *ContextScanner) Next() bool {
 func (c *ContextScanner) FilePath() string {
 	return c.Scanner.FilePath()
 }
+
+func (c *ContextScanner) Reset(source []byte, offset int) {
+	c.Scanner.Reset(source, offset)
+}
