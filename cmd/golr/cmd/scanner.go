@@ -11,6 +11,7 @@ import (
 	golangbackend "github.com/backbone81/golr/pkg/scannergen/backend/golang"
 	javabackend "github.com/backbone81/golr/pkg/scannergen/backend/java"
 	jsonbackend "github.com/backbone81/golr/pkg/scannergen/backend/json"
+	rustbackend "github.com/backbone81/golr/pkg/scannergen/backend/rust"
 	yamlbackend "github.com/backbone81/golr/pkg/scannergen/backend/yaml"
 	subsetcore "github.com/backbone81/golr/pkg/scannergen/core/subset"
 	"github.com/backbone81/golr/pkg/scannergen/frontend"
@@ -121,6 +122,11 @@ func executeScannerBackend(dfa backend.DFA) error {
 	case "null":
 		// Nothing to do.
 		return nil
+	case "rust":
+		if scannerBackendFilePath == "-" {
+			return rustbackend.FromDFA(os.Stdout, dfa)
+		}
+		return rustbackend.DFAToFile(scannerBackendFilePath, dfa)
 	case "yaml":
 		if scannerBackendFilePath == "-" {
 			return yamlbackend.FromDFA(os.Stdout, dfa)
@@ -161,7 +167,7 @@ func init() {
 		&scannerBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the scanner. One of: dot, go, java, json, null, yaml.",
+		"The backend to use for writing the scanner. One of: dot, go, java, json, null, rust, yaml.",
 	)
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerBackendFilePath,

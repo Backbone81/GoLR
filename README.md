@@ -121,7 +121,7 @@ Usage:
   golr scanner [flags]
 
 Flags:
-      --backend string                     The backend to use for writing the scanner. One of: dot, go, java, json, null, yaml. (default "go")
+      --backend string                     The backend to use for writing the scanner. One of: dot, go, java, json, null, rust, yaml. (default "go")
       --backend-file-path string           The file path to write the scanner to. Can be '-' to write to stdout.
       --backend-go-package-name string     The Go package name to use for the generated Go code. (default "parser")
       --backend-java-package-name string   The Java package name to use for the generated Java code. (default "parser")
@@ -240,6 +240,7 @@ These backends are currently supported:
 - [Java](docs/scannergen-backend-java.md)
 - [JSON](docs/scannergen-backend-json.md)
 - [Null](docs/scannergen-backend-null.md)
+- [Rust](docs/scannergen-backend-rust.md)
 - [YAML](docs/scannergen-backend-yaml.md)
 
 Are you missing a backend for your use case? Use the JSON backend of GoLR to output the scanner as JSON and implement

@@ -52,6 +52,11 @@ go run ./cmd/golr scanner \
   --frontend-file-path examples/calculator/calculator.golr \
   --backend java \
   --backend-file-path examples/calculator/java/parser/Scanner.java
+go run ./cmd/golr scanner \
+  --frontend golr \
+  --frontend-file-path examples/calculator/calculator.golr \
+  --backend rust \
+  --backend-file-path examples/calculator/rust/src/parser/scanner.rs
 
 # Generate the example Go parser.
 go run ./cmd/golr scanner \
