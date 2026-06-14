@@ -129,4 +129,24 @@ func BenchmarkFromParser(b *testing.B) {
 			}
 		}
 	})
+
+	b.Run("PostgreSQL 18.4", func(b *testing.B) {
+		grammar, err := bison.GrammarFromFile("../../../../testdata/postgres-18.4.y")
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		parser, err := ielr1.GrammarToParser(grammar)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		for b.Loop() {
+			if err := golang.FromParser(io.Discard, parser, golang.Config{
+				PackageName: "parser",
+			}); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
 }

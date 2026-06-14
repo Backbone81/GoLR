@@ -116,4 +116,22 @@ func BenchmarkToGrammar(b *testing.B) {
 			}
 		}
 	})
+
+	b.Run("PostgreSQL 18.4", func(b *testing.B) {
+		grammar, err := bison.GrammarFromFile("../../../../testdata/postgres-18.4.y")
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		var buffer bytes.Buffer
+		if err := json.FromGrammar(&buffer, grammar); err != nil {
+			b.Fatal(err)
+		}
+
+		for b.Loop() {
+			if _, err := json.ToGrammar(bytes.NewReader(buffer.Bytes())); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
 }

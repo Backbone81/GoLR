@@ -40,6 +40,7 @@ PARSER_INPUTS=(
   "bison:testdata/gcc-3.3.6-cpp.y"
   "bison:testdata/gcc-4.2.4-java.y"
   "bison:testdata/go-1.5.4.y"
+  "bison:testdata/postgres-18.4.y"
   "golr:examples/calculator/spec/calculator.golr"
 )
 PARSER_BACKENDS=(dot go json yaml)
@@ -71,6 +72,7 @@ CONVERT_INPUTS=(
   "testdata/gcc-3.3.6-cpp.y"
   "testdata/gcc-4.2.4-java.y"
   "testdata/go-1.5.4.y"
+  "testdata/postgres-18.4.y"
 )
 
 # Produce parser outputs.

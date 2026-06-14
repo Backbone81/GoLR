@@ -1539,41 +1539,6 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar.Productions).To(HaveLen(39 + 80))
 		})
 
-		It("should correctly parse the Go 1.5.4 grammar", func() {
-			grammar, err := bison.GrammarFromFile("../../../../testdata/go-1.5.4.y")
-			Expect(err).ToNot(HaveOccurred())
-
-			// All %token declarations + error token + %left + char literals
-			// Note that some %left declarations are identical to %token and should not be counted twice.
-			Expect(grammar.Terminals).To(HaveLen(46 + 1 + 3 + 24))
-
-			// All left hand sides of productions
-			Expect(grammar.Nonterminals).To(HaveLen(127))
-
-			// All productions + alternatives
-			Expect(grammar.Productions).To(HaveLen(127 + 210))
-		})
-
-		It("should correctly parse the GCC 4.2.4 Java grammar", func() {
-			grammar, err := bison.GrammarFromFile("../../../../testdata/gcc-4.2.4-java.y")
-			Expect(err).ToNot(HaveOccurred())
-
-			// All %token declarations + error token
-			// Note that there are duplicate %token declarations to assign a tag after declaration. Searching for all
-			// %token declarations would therefore result in duplicate tokens.
-			Expect(grammar.Terminals).To(HaveLen(109 + 1))
-
-			// All left hand sides of productions
-			// Note that searching for identifiers at the start of the line with a colon at the end will turn up results
-			// in comments which need to be ignored.
-			Expect(grammar.Nonterminals).To(HaveLen(153))
-
-			// All productions + alternatives
-			// Note that one alternative is inside of a block comment starting with "Screws up thing". We need to remove
-			// that from the result.
-			Expect(grammar.Productions).To(HaveLen(153 + 352))
-		})
-
 		It("should correctly parse the GCC 2.95.3 C grammar", func() {
 			grammar, err := bison.GrammarFromFile("../../../../testdata/gcc-2.95.3-c.y")
 			Expect(err).ToNot(HaveOccurred())
@@ -1626,6 +1591,57 @@ var _ = Describe("Bison Grammar Files", func() {
 			// Note that some alternatives are commented out and need to be removed from the count.
 			Expect(grammar.Productions).To(HaveLen(238 + 633))
 		})
+
+		It("should correctly parse the GCC 4.2.4 Java grammar", func() {
+			grammar, err := bison.GrammarFromFile("../../../../testdata/gcc-4.2.4-java.y")
+			Expect(err).ToNot(HaveOccurred())
+
+			// All %token declarations + error token
+			// Note that there are duplicate %token declarations to assign a tag after declaration. Searching for all
+			// %token declarations would therefore result in duplicate tokens.
+			Expect(grammar.Terminals).To(HaveLen(109 + 1))
+
+			// All left hand sides of productions
+			// Note that searching for identifiers at the start of the line with a colon at the end will turn up results
+			// in comments which need to be ignored.
+			Expect(grammar.Nonterminals).To(HaveLen(153))
+
+			// All productions + alternatives
+			// Note that one alternative is inside of a block comment starting with "Screws up thing". We need to remove
+			// that from the result.
+			Expect(grammar.Productions).To(HaveLen(153 + 352))
+		})
+
+		It("should correctly parse the Go 1.5.4 grammar", func() {
+			grammar, err := bison.GrammarFromFile("../../../../testdata/go-1.5.4.y")
+			Expect(err).ToNot(HaveOccurred())
+
+			// All %token declarations + error token + %left + char literals
+			// Note that some %left declarations are identical to %token and should not be counted twice.
+			Expect(grammar.Terminals).To(HaveLen(46 + 1 + 3 + 24))
+
+			// All left hand sides of productions
+			Expect(grammar.Nonterminals).To(HaveLen(127))
+
+			// All productions + alternatives
+			Expect(grammar.Productions).To(HaveLen(127 + 210))
+		})
+
+		It("should correctly parse the PostgreSQL 18.4 grammar", func() {
+			_, err := bison.GrammarFromFile("../../../../testdata/postgres-18.4.y")
+			Expect(err).ToNot(HaveOccurred())
+
+			//// All %token declarations + error token + %left + char literals
+			//// Note that some %left declarations are identical to %token and should not be counted twice.
+			//Expect(grammar.Terminals).To(HaveLen(46 + 1 + 3 + 24))
+			//
+			//// All left hand sides of productions
+			//Expect(grammar.Nonterminals).To(HaveLen(127))
+			//
+			//// All productions + alternatives
+			//Expect(grammar.Productions).To(HaveLen(127 + 210))
+		})
+
 	})
 })
 
@@ -1697,6 +1713,19 @@ func BenchmarkToGrammar(b *testing.B) {
 
 	b.Run("Go 1.5.4", func(b *testing.B) {
 		data, err := os.ReadFile("../../../../testdata/go-1.5.4.y")
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		for b.Loop() {
+			if _, err := bison.ToGrammar(bytes.NewReader(data), "in-memory"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("PostgreSQL 18.4", func(b *testing.B) {
+		data, err := os.ReadFile("../../../../testdata/postgres-18.4.y")
 		if err != nil {
 			b.Fatal(err)
 		}
