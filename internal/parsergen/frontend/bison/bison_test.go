@@ -1628,20 +1628,20 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should correctly parse the PostgreSQL 18.4 grammar", func() {
-			_, err := bison.GrammarFromFile("../../../../testdata/postgres-18.4.y")
+			grammar, err := bison.GrammarFromFile("../../../../testdata/postgres-18.4.y")
 			Expect(err).ToNot(HaveOccurred())
 
-			//// All %token declarations + error token + %left + char literals
-			//// Note that some %left declarations are identical to %token and should not be counted twice.
-			//Expect(grammar.Terminals).To(HaveLen(46 + 1 + 3 + 24))
-			//
-			//// All left hand sides of productions
-			//Expect(grammar.Nonterminals).To(HaveLen(127))
-			//
-			//// All productions + alternatives
-			//Expect(grammar.Productions).To(HaveLen(127 + 210))
-		})
+			// All %token declarations + error token + %left + char literals
+			// Note that some %left declarations are identical to %token and should not be counted twice.
+			Expect(grammar.Terminals).To(HaveLen(521 + 1 + 1 + 17))
 
+			// All left hand sides of productions
+			Expect(grammar.Nonterminals).To(HaveLen(733))
+
+			// All productions + alternatives
+			// Note that some a_expr and json_name_and_value alternatives are commented out
+			Expect(grammar.Productions).To(HaveLen(733 + 2704 - 3))
+		})
 	})
 })
 
