@@ -16,6 +16,8 @@
 - Add support for Rust backend
 - Add support for JavaScript
 - Add support for TypeScript
+- Add the Ruby GNU Bison grammar as a well known grammar for the bison frontend. Note that this grammar is using %rule
+  statements which we currently do not support.
 
 ## Parser Generator
 
@@ -26,6 +28,7 @@
 - Introduce strongly typed wrappers for general purpose AST nodes. That way, users don't rely on children being a 
   specific count, but can instead use named methods for directory accessing the correct child. Make sure this is a
   zero overhead abstraction over the AST nodes.
+- The bison frontend should support %rule.
 
 ## Scanner Generator
 
