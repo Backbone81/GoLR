@@ -139,6 +139,30 @@ var _ = Describe("Bitset", func() {
 		two.Remove(200)
 		Expect(one.Hash()).To(Equal(two.Hash()))
 	})
+
+	It("should correctly compare", func() {
+		one := utils.NewBitset(3, 2, 64+32, 7, 4)
+		two := utils.NewBitset(7, 4, 64+32, 2, 3)
+		Expect(one.Compare(two)).To(Equal(0))
+		Expect(two.Compare(one)).To(Equal(0))
+
+		Expect(one.Compare(one)).To(Equal(0)) //nolint:gocritic // Comparing a set to itself is the point of this assertion.
+
+		two.Add(5)
+		Expect(one.Compare(two)).ToNot(Equal(0))
+		Expect(one.Compare(two)).To(Equal(-two.Compare(one)))
+
+		two.Remove(5)
+		two.Add(200)
+		two.Remove(200)
+		Expect(one.Equal(two)).To(BeTrue())
+		Expect(one.Compare(two)).To(Equal(0))
+
+		three := utils.NewBitset(3, 2, 64+32, 7, 4, 200)
+		Expect(one.Equal(three)).To(BeFalse())
+		Expect(one.Compare(three)).ToNot(Equal(0))
+		Expect(one.Compare(three)).To(Equal(-three.Compare(one)))
+	})
 })
 
 func BenchmarkBitset(b *testing.B) {

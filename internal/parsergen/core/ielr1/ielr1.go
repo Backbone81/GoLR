@@ -114,6 +114,7 @@ func (i *IELR1) buildProductionList(report bisonutils.BisonXMLReport, parser *ba
 	}
 }
 
+//nolint:gocognit // The state construction loop is inherently branchy; splitting it would obscure the flow.
 func (i *IELR1) buildStateList(report bisonutils.BisonXMLReport, parser *backend.Parser) error {
 	for _, state := range report.Automaton.States {
 		var newState backend.State
@@ -134,6 +135,12 @@ func (i *IELR1) buildStateList(report bisonutils.BisonXMLReport, parser *backend
 			newState.TransitionActions.Add(backend.NewTransitionAction(symbolRef, transition.State))
 		}
 
+		// A single production can reduce on multiple lookahead terminals. Bison reports those as separate reduction
+		// entries, but they must collapse into one reduce action whose lookahead set is the union of all terminals.
+		// We accumulate the lookaheads per production (in first-seen order for deterministic output) and emit one
+		// reduce action per production afterwards.
+		lookaheadByProduction := map[int]*backend.LookaheadSet{}
+		var productionOrder []int
 		for _, reduction := range state.Reductions {
 			if !reduction.Enabled {
 				// Reductions are disabled to resolve shift reduce conflicts. We ignore disabled reductions.
@@ -150,20 +157,27 @@ func (i *IELR1) buildStateList(report bisonutils.BisonXMLReport, parser *backend
 				}
 			}
 
-			var lookaheadSet backend.LookaheadSet
 			if reduction.Symbol == "$default" {
 				newState.DefaultReduceProductionIdx = &productionIdx
 				// The default reduce action should not show up as a standard reduce. Therefore skip to the next.
 				continue
-			} else {
-				terminalIdx, ok := i.terminalIdxByName[reduction.Symbol]
-				if !ok {
-					return fmt.Errorf("unknown terminal %q", reduction.Symbol)
-				}
-				lookaheadSet.Add(terminalIdx)
 			}
 
-			newState.ReduceActions.Add(backend.NewReduceAction(lookaheadSet, productionIdx))
+			terminalIdx, ok := i.terminalIdxByName[reduction.Symbol]
+			if !ok {
+				return fmt.Errorf("unknown terminal %q", reduction.Symbol)
+			}
+
+			lookaheadSet, ok := lookaheadByProduction[productionIdx]
+			if !ok {
+				lookaheadSet = &backend.LookaheadSet{}
+				lookaheadByProduction[productionIdx] = lookaheadSet
+				productionOrder = append(productionOrder, productionIdx)
+			}
+			lookaheadSet.Add(terminalIdx)
+		}
+		for _, productionIdx := range productionOrder {
+			newState.ReduceActions.Add(backend.NewReduceAction(*lookaheadByProduction[productionIdx], productionIdx))
 		}
 		parser.States = append(parser.States, newState)
 	}

@@ -131,6 +131,28 @@ func (b *Bitset) Equal(other Bitset) bool {
 	return true
 }
 
+// Compare returns a negative number, zero, or a positive number reporting whether this bitset sorts before, equal to,
+// or after the other bitset. The ordering is consistent with Equal: bitsets that differ only in trailing empty chunks
+// compare as equal.
+func (b *Bitset) Compare(other Bitset) int {
+	for i := range max(len(b.chunks), len(other.chunks)) {
+		var left, right bitsetChunk
+		if i < len(b.chunks) {
+			left = b.chunks[i]
+		}
+		if i < len(other.chunks) {
+			right = other.chunks[i]
+		}
+		if left != right {
+			if left < right {
+				return -1
+			}
+			return 1
+		}
+	}
+	return 0
+}
+
 // MarshalJSON implements the json.Marshaler interface.
 func (b Bitset) MarshalJSON() ([]byte, error) {
 	idxs := make([]int, 0, b.Length())

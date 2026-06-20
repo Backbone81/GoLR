@@ -33,7 +33,10 @@ func (a ReduceAction) Equal(other ReduceAction) bool {
 }
 
 func CompareReduceAction(x, y ReduceAction) int {
-	return cmp.Compare(x.ProductionIdx, y.ProductionIdx)
+	if result := cmp.Compare(x.ProductionIdx, y.ProductionIdx); result != 0 {
+		return result
+	}
+	return x.LookaheadSet.Compare(y.LookaheadSet)
 }
 
 func ReduceActionEqual(x, y ReduceAction) bool {
