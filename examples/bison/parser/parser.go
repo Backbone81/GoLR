@@ -189,7 +189,7 @@ func (s Symbol) String() string {
 type Node struct {
 	Symbol   Symbol
 	Lexeme   []byte
-	Children []*Node
+	Children []Node
 }
 
 // ParserScanner is the interface the scanner for the parser needs to implement.
@@ -236,14 +236,18 @@ type Parser struct {
 	scanner ParserScanner
 
 	stateStack []int
-	nodeStack  []*Node
+	nodeStack  []Node
+
+	arenaAllocator    []Node
+	arenaAllocatorTop int
 }
 
 // NewParser creates a new parser.
 func NewParser() *Parser {
 	parser := Parser{
-		stateStack: make([]int, 0, 1024),
-		nodeStack:  make([]*Node, 0, 1024),
+		stateStack:     make([]int, 0, 1024),
+		nodeStack:      make([]Node, 0, 1024),
+		arenaAllocator: make([]Node, 16*1024),
 	}
 	return &parser
 }
@@ -254,10 +258,11 @@ var errAccept = errors.New("accept")
 
 // Parse executes a parse on the tokens provided by the scanner and returns a syntax tree or an error. Parse can be
 // called multiple times with different scanners to re-use the memory already allocated by the parser.
-func (p *Parser) Parse(scanner ParserScanner) (*Node, error) {
+func (p *Parser) Parse(scanner ParserScanner) (Node, error) {
 	p.scanner = scanner
+	p.arenaAllocatorTop = 0
 	if !p.scanner.Next() {
-		return nil, errors.New("Unexpected end of tokens")
+		return Node{}, errors.New("Unexpected end of tokens")
 	}
 
 	p.stateStack = p.stateStack[:0]
@@ -271,7 +276,7 @@ func (p *Parser) Parse(scanner ParserScanner) (*Node, error) {
 				// The parse is successfully finished.
 				return p.nodeStack[0], nil
 			}
-			return nil, err
+			return Node{}, err
 		}
 	}
 }
@@ -624,6 +629,17 @@ func (p *Parser) raiseError(cause error) error {
 	}
 }
 
+// allocateNodes provides and arena allocator for slices of Node.
+func (p *Parser) allocateNodes(n int) []Node {
+	if p.arenaAllocatorTop+n > len(p.arenaAllocator) {
+		p.arenaAllocator = make([]Node, max(n, 16*1024))
+		p.arenaAllocatorTop = 0
+	}
+	nodes := p.arenaAllocator[p.arenaAllocatorTop : p.arenaAllocatorTop+n]
+	p.arenaAllocatorTop += n
+	return nodes
+}
+
 func (p *Parser) state0() error {
 	terminal := p.scanner.Token()
 	switch terminal {
@@ -637,7 +653,7 @@ func (p *Parser) state0() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalPrologueDeclarations),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -649,7 +665,7 @@ func (p *Parser) state1() error {
 	case EndToken:
 		// Shift action
 		p.stateStack = append(p.stateStack, 3)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -667,7 +683,7 @@ func (p *Parser) state2() error {
 	case TokenError:
 		// Shift action
 		p.stateStack = append(p.stateStack, 4)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -677,7 +693,7 @@ func (p *Parser) state2() error {
 	case TokenPercentToken:
 		// Shift action
 		p.stateStack = append(p.stateStack, 5)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -687,7 +703,7 @@ func (p *Parser) state2() error {
 	case TokenPercentNterm:
 		// Shift action
 		p.stateStack = append(p.stateStack, 6)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -697,7 +713,7 @@ func (p *Parser) state2() error {
 	case TokenPercentType:
 		// Shift action
 		p.stateStack = append(p.stateStack, 7)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -707,7 +723,7 @@ func (p *Parser) state2() error {
 	case TokenPercentDestructor:
 		// Shift action
 		p.stateStack = append(p.stateStack, 8)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -717,7 +733,7 @@ func (p *Parser) state2() error {
 	case TokenPercentPrinter:
 		// Shift action
 		p.stateStack = append(p.stateStack, 9)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -727,7 +743,7 @@ func (p *Parser) state2() error {
 	case TokenPercentLeft:
 		// Shift action
 		p.stateStack = append(p.stateStack, 10)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -737,7 +753,7 @@ func (p *Parser) state2() error {
 	case TokenPercentRight:
 		// Shift action
 		p.stateStack = append(p.stateStack, 11)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -747,7 +763,7 @@ func (p *Parser) state2() error {
 	case TokenPercentNonassoc:
 		// Shift action
 		p.stateStack = append(p.stateStack, 12)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -757,7 +773,7 @@ func (p *Parser) state2() error {
 	case TokenPercentPrecedence:
 		// Shift action
 		p.stateStack = append(p.stateStack, 13)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -767,7 +783,7 @@ func (p *Parser) state2() error {
 	case TokenPercentCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 14)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -777,7 +793,7 @@ func (p *Parser) state2() error {
 	case TokenPercentDefaultPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 15)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -787,7 +803,7 @@ func (p *Parser) state2() error {
 	case TokenPercentDefine:
 		// Shift action
 		p.stateStack = append(p.stateStack, 16)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -797,7 +813,7 @@ func (p *Parser) state2() error {
 	case TokenPercentErrorVerbose:
 		// Shift action
 		p.stateStack = append(p.stateStack, 17)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -807,7 +823,7 @@ func (p *Parser) state2() error {
 	case TokenPercentExpect:
 		// Shift action
 		p.stateStack = append(p.stateStack, 18)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -817,7 +833,7 @@ func (p *Parser) state2() error {
 	case TokenPercentExpectRr:
 		// Shift action
 		p.stateStack = append(p.stateStack, 19)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -827,7 +843,7 @@ func (p *Parser) state2() error {
 	case TokenPercentFilePrefix:
 		// Shift action
 		p.stateStack = append(p.stateStack, 20)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -837,7 +853,7 @@ func (p *Parser) state2() error {
 	case TokenPercentFlag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 21)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -847,7 +863,7 @@ func (p *Parser) state2() error {
 	case TokenPercentGlrParser:
 		// Shift action
 		p.stateStack = append(p.stateStack, 22)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -857,7 +873,7 @@ func (p *Parser) state2() error {
 	case TokenPercentHeader:
 		// Shift action
 		p.stateStack = append(p.stateStack, 23)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -867,7 +883,7 @@ func (p *Parser) state2() error {
 	case TokenPercentInitialAction:
 		// Shift action
 		p.stateStack = append(p.stateStack, 24)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -877,7 +893,7 @@ func (p *Parser) state2() error {
 	case TokenPercentLanguage:
 		// Shift action
 		p.stateStack = append(p.stateStack, 25)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -887,7 +903,7 @@ func (p *Parser) state2() error {
 	case TokenPercentNamePrefix:
 		// Shift action
 		p.stateStack = append(p.stateStack, 26)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -897,7 +913,7 @@ func (p *Parser) state2() error {
 	case TokenPercentNoDefaultPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 27)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -907,7 +923,7 @@ func (p *Parser) state2() error {
 	case TokenPercentNoLines:
 		// Shift action
 		p.stateStack = append(p.stateStack, 28)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -917,7 +933,7 @@ func (p *Parser) state2() error {
 	case TokenPercentNondeterministicParser:
 		// Shift action
 		p.stateStack = append(p.stateStack, 29)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -927,7 +943,7 @@ func (p *Parser) state2() error {
 	case TokenPercentOutput:
 		// Shift action
 		p.stateStack = append(p.stateStack, 30)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -937,7 +953,7 @@ func (p *Parser) state2() error {
 	case TokenPercentPureParser:
 		// Shift action
 		p.stateStack = append(p.stateStack, 31)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -947,7 +963,7 @@ func (p *Parser) state2() error {
 	case TokenPercentRequire:
 		// Shift action
 		p.stateStack = append(p.stateStack, 32)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -957,7 +973,7 @@ func (p *Parser) state2() error {
 	case TokenPercentSkeleton:
 		// Shift action
 		p.stateStack = append(p.stateStack, 33)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -967,7 +983,7 @@ func (p *Parser) state2() error {
 	case TokenPercentStart:
 		// Shift action
 		p.stateStack = append(p.stateStack, 34)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -977,7 +993,7 @@ func (p *Parser) state2() error {
 	case TokenPercentTokenTable:
 		// Shift action
 		p.stateStack = append(p.stateStack, 35)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -987,7 +1003,7 @@ func (p *Parser) state2() error {
 	case TokenPercentVerbose:
 		// Shift action
 		p.stateStack = append(p.stateStack, 36)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -997,7 +1013,7 @@ func (p *Parser) state2() error {
 	case TokenPercentYacc:
 		// Shift action
 		p.stateStack = append(p.stateStack, 37)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1007,7 +1023,7 @@ func (p *Parser) state2() error {
 	case TokenPercentPercent:
 		// Shift action
 		p.stateStack = append(p.stateStack, 38)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1017,7 +1033,7 @@ func (p *Parser) state2() error {
 	case TokenPrologue:
 		// Shift action
 		p.stateStack = append(p.stateStack, 39)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1027,7 +1043,7 @@ func (p *Parser) state2() error {
 	case TokenSemicolon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 40)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1037,7 +1053,7 @@ func (p *Parser) state2() error {
 	case TokenPercentParam:
 		// Shift action
 		p.stateStack = append(p.stateStack, 41)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1047,7 +1063,7 @@ func (p *Parser) state2() error {
 	case TokenPercentUnion:
 		// Shift action
 		p.stateStack = append(p.stateStack, 42)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1075,7 +1091,7 @@ func (p *Parser) state4() error {
 	case TokenSemicolon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 48)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1093,7 +1109,7 @@ func (p *Parser) state5() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1103,7 +1119,7 @@ func (p *Parser) state5() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1113,7 +1129,7 @@ func (p *Parser) state5() error {
 	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 51)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1131,7 +1147,7 @@ func (p *Parser) state6() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1141,7 +1157,7 @@ func (p *Parser) state6() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1151,7 +1167,7 @@ func (p *Parser) state6() error {
 	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 51)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1169,7 +1185,7 @@ func (p *Parser) state7() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1179,7 +1195,7 @@ func (p *Parser) state7() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1189,7 +1205,7 @@ func (p *Parser) state7() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1199,7 +1215,7 @@ func (p *Parser) state7() error {
 	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 59)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1223,11 +1239,11 @@ func (p *Parser) state8() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalCodePropsType),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1245,11 +1261,11 @@ func (p *Parser) state9() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalCodePropsType),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1267,11 +1283,11 @@ func (p *Parser) state10() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrecedenceDeclarator),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1289,11 +1305,11 @@ func (p *Parser) state11() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrecedenceDeclarator),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1311,11 +1327,11 @@ func (p *Parser) state12() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrecedenceDeclarator),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1333,11 +1349,11 @@ func (p *Parser) state13() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrecedenceDeclarator),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1349,7 +1365,7 @@ func (p *Parser) state14() error {
 	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 65)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1359,7 +1375,7 @@ func (p *Parser) state14() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 66)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1383,11 +1399,11 @@ func (p *Parser) state15() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalGrammarDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1399,7 +1415,7 @@ func (p *Parser) state16() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 67)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1423,11 +1439,11 @@ func (p *Parser) state17() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1439,7 +1455,7 @@ func (p *Parser) state18() error {
 	case TokenIntLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 69)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1457,7 +1473,7 @@ func (p *Parser) state19() error {
 	case TokenIntLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 70)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1475,7 +1491,7 @@ func (p *Parser) state20() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 71)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1499,11 +1515,11 @@ func (p *Parser) state21() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1521,11 +1537,11 @@ func (p *Parser) state22() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1537,7 +1553,7 @@ func (p *Parser) state23() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 72)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1553,7 +1569,7 @@ func (p *Parser) state23() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalString_opt),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1565,7 +1581,7 @@ func (p *Parser) state24() error {
 	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 74)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1583,7 +1599,7 @@ func (p *Parser) state25() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 75)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1601,7 +1617,7 @@ func (p *Parser) state26() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 76)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1625,11 +1641,11 @@ func (p *Parser) state27() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalGrammarDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1647,11 +1663,11 @@ func (p *Parser) state28() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1669,11 +1685,11 @@ func (p *Parser) state29() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1685,7 +1701,7 @@ func (p *Parser) state30() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 77)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1709,11 +1725,11 @@ func (p *Parser) state31() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1725,7 +1741,7 @@ func (p *Parser) state32() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 78)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1743,7 +1759,7 @@ func (p *Parser) state33() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 79)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1761,7 +1777,7 @@ func (p *Parser) state34() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1771,7 +1787,7 @@ func (p *Parser) state34() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1781,7 +1797,7 @@ func (p *Parser) state34() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1805,11 +1821,11 @@ func (p *Parser) state35() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1827,11 +1843,11 @@ func (p *Parser) state36() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1849,11 +1865,11 @@ func (p *Parser) state37() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -1865,7 +1881,7 @@ func (p *Parser) state38() error {
 	case TokenError:
 		// Shift action
 		p.stateStack = append(p.stateStack, 81)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1875,7 +1891,7 @@ func (p *Parser) state38() error {
 	case TokenPercentToken:
 		// Shift action
 		p.stateStack = append(p.stateStack, 5)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1885,7 +1901,7 @@ func (p *Parser) state38() error {
 	case TokenPercentNterm:
 		// Shift action
 		p.stateStack = append(p.stateStack, 6)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1895,7 +1911,7 @@ func (p *Parser) state38() error {
 	case TokenPercentType:
 		// Shift action
 		p.stateStack = append(p.stateStack, 7)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1905,7 +1921,7 @@ func (p *Parser) state38() error {
 	case TokenPercentDestructor:
 		// Shift action
 		p.stateStack = append(p.stateStack, 8)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1915,7 +1931,7 @@ func (p *Parser) state38() error {
 	case TokenPercentPrinter:
 		// Shift action
 		p.stateStack = append(p.stateStack, 9)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1925,7 +1941,7 @@ func (p *Parser) state38() error {
 	case TokenPercentLeft:
 		// Shift action
 		p.stateStack = append(p.stateStack, 10)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1935,7 +1951,7 @@ func (p *Parser) state38() error {
 	case TokenPercentRight:
 		// Shift action
 		p.stateStack = append(p.stateStack, 11)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1945,7 +1961,7 @@ func (p *Parser) state38() error {
 	case TokenPercentNonassoc:
 		// Shift action
 		p.stateStack = append(p.stateStack, 12)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1955,7 +1971,7 @@ func (p *Parser) state38() error {
 	case TokenPercentPrecedence:
 		// Shift action
 		p.stateStack = append(p.stateStack, 13)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1965,7 +1981,7 @@ func (p *Parser) state38() error {
 	case TokenPercentCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 14)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1975,7 +1991,7 @@ func (p *Parser) state38() error {
 	case TokenPercentDefaultPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 15)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1985,7 +2001,7 @@ func (p *Parser) state38() error {
 	case TokenPercentNoDefaultPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 27)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -1995,7 +2011,7 @@ func (p *Parser) state38() error {
 	case TokenPercentStart:
 		// Shift action
 		p.stateStack = append(p.stateStack, 34)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2005,7 +2021,7 @@ func (p *Parser) state38() error {
 	case TokenIdColon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 82)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2015,7 +2031,7 @@ func (p *Parser) state38() error {
 	case TokenPercentUnion:
 		// Shift action
 		p.stateStack = append(p.stateStack, 42)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2039,11 +2055,11 @@ func (p *Parser) state39() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2061,11 +2077,11 @@ func (p *Parser) state40() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2077,7 +2093,7 @@ func (p *Parser) state41() error {
 	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 88)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2095,7 +2111,7 @@ func (p *Parser) state42() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 90)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2111,7 +2127,7 @@ func (p *Parser) state42() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalUnionName),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2129,11 +2145,11 @@ func (p *Parser) state43() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclarations),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2151,11 +2167,11 @@ func (p *Parser) state44() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2167,7 +2183,7 @@ func (p *Parser) state45() error {
 	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 92)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2191,11 +2207,11 @@ func (p *Parser) state46() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalGrammarDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2207,7 +2223,7 @@ func (p *Parser) state47() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2217,7 +2233,7 @@ func (p *Parser) state47() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2227,7 +2243,7 @@ func (p *Parser) state47() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2237,7 +2253,7 @@ func (p *Parser) state47() error {
 	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 93)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2261,11 +2277,11 @@ func (p *Parser) state48() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2283,11 +2299,11 @@ func (p *Parser) state49() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalId),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2305,11 +2321,11 @@ func (p *Parser) state50() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalId),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2321,7 +2337,7 @@ func (p *Parser) state51() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2331,7 +2347,7 @@ func (p *Parser) state51() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2349,7 +2365,7 @@ func (p *Parser) state52() error {
 	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 100)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2365,11 +2381,11 @@ func (p *Parser) state52() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalSymbolDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2381,7 +2397,7 @@ func (p *Parser) state53() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2391,7 +2407,7 @@ func (p *Parser) state53() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2407,11 +2423,11 @@ func (p *Parser) state53() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTokenDecls),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2429,11 +2445,11 @@ func (p *Parser) state54() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTokenDecl_1),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2445,7 +2461,7 @@ func (p *Parser) state55() error {
 	case TokenIntLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 102)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2461,7 +2477,7 @@ func (p *Parser) state55() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalInt_opt),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2479,11 +2495,11 @@ func (p *Parser) state56() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalSymbolDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2495,7 +2511,7 @@ func (p *Parser) state57() error {
 	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 100)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2511,11 +2527,11 @@ func (p *Parser) state57() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalNtermDecls),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2533,11 +2549,11 @@ func (p *Parser) state58() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalStringAsId),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2549,7 +2565,7 @@ func (p *Parser) state59() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2559,7 +2575,7 @@ func (p *Parser) state59() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2569,7 +2585,7 @@ func (p *Parser) state59() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2587,7 +2603,7 @@ func (p *Parser) state60() error {
 	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 105)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2603,11 +2619,11 @@ func (p *Parser) state60() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalSymbolDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2619,7 +2635,7 @@ func (p *Parser) state61() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2629,7 +2645,7 @@ func (p *Parser) state61() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2639,7 +2655,7 @@ func (p *Parser) state61() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2655,11 +2671,11 @@ func (p *Parser) state61() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalSymbolDecls),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2677,11 +2693,11 @@ func (p *Parser) state62() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalSymbol),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2699,11 +2715,11 @@ func (p *Parser) state63() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalSymbols_1),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2721,11 +2737,11 @@ func (p *Parser) state64() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalSymbol),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2743,11 +2759,11 @@ func (p *Parser) state65() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalGrammarDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2759,7 +2775,7 @@ func (p *Parser) state66() error {
 	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 107)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2783,11 +2799,11 @@ func (p *Parser) state67() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalVariable),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2799,7 +2815,7 @@ func (p *Parser) state68() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 108)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2809,7 +2825,7 @@ func (p *Parser) state68() error {
 	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 109)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2819,7 +2835,7 @@ func (p *Parser) state68() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 110)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -2835,7 +2851,7 @@ func (p *Parser) state68() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalValue),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2853,11 +2869,11 @@ func (p *Parser) state69() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2875,11 +2891,11 @@ func (p *Parser) state70() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2897,11 +2913,11 @@ func (p *Parser) state71() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2919,11 +2935,11 @@ func (p *Parser) state72() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalString_opt),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2941,11 +2957,11 @@ func (p *Parser) state73() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2963,11 +2979,11 @@ func (p *Parser) state74() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -2985,11 +3001,11 @@ func (p *Parser) state75() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3007,11 +3023,11 @@ func (p *Parser) state76() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3029,11 +3045,11 @@ func (p *Parser) state77() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3051,11 +3067,11 @@ func (p *Parser) state78() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3073,11 +3089,11 @@ func (p *Parser) state79() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3089,7 +3105,7 @@ func (p *Parser) state80() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3099,7 +3115,7 @@ func (p *Parser) state80() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3109,7 +3125,7 @@ func (p *Parser) state80() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3125,11 +3141,11 @@ func (p *Parser) state80() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalGrammarDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3141,7 +3157,7 @@ func (p *Parser) state81() error {
 	case TokenSemicolon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 112)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3165,11 +3181,11 @@ func (p *Parser) state82() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalIdColon),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3181,7 +3197,7 @@ func (p *Parser) state83() error {
 	case TokenSemicolon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 113)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3206,13 +3222,13 @@ func (p *Parser) state84() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalEpilogue_opt),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	// error
 	case TokenError:
 		// Shift action
 		p.stateStack = append(p.stateStack, 81)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3222,7 +3238,7 @@ func (p *Parser) state84() error {
 	case TokenPercentToken:
 		// Shift action
 		p.stateStack = append(p.stateStack, 5)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3232,7 +3248,7 @@ func (p *Parser) state84() error {
 	case TokenPercentNterm:
 		// Shift action
 		p.stateStack = append(p.stateStack, 6)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3242,7 +3258,7 @@ func (p *Parser) state84() error {
 	case TokenPercentType:
 		// Shift action
 		p.stateStack = append(p.stateStack, 7)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3252,7 +3268,7 @@ func (p *Parser) state84() error {
 	case TokenPercentDestructor:
 		// Shift action
 		p.stateStack = append(p.stateStack, 8)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3262,7 +3278,7 @@ func (p *Parser) state84() error {
 	case TokenPercentPrinter:
 		// Shift action
 		p.stateStack = append(p.stateStack, 9)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3272,7 +3288,7 @@ func (p *Parser) state84() error {
 	case TokenPercentLeft:
 		// Shift action
 		p.stateStack = append(p.stateStack, 10)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3282,7 +3298,7 @@ func (p *Parser) state84() error {
 	case TokenPercentRight:
 		// Shift action
 		p.stateStack = append(p.stateStack, 11)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3292,7 +3308,7 @@ func (p *Parser) state84() error {
 	case TokenPercentNonassoc:
 		// Shift action
 		p.stateStack = append(p.stateStack, 12)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3302,7 +3318,7 @@ func (p *Parser) state84() error {
 	case TokenPercentPrecedence:
 		// Shift action
 		p.stateStack = append(p.stateStack, 13)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3312,7 +3328,7 @@ func (p *Parser) state84() error {
 	case TokenPercentCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 14)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3322,7 +3338,7 @@ func (p *Parser) state84() error {
 	case TokenPercentDefaultPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 15)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3332,7 +3348,7 @@ func (p *Parser) state84() error {
 	case TokenPercentNoDefaultPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 27)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3342,7 +3358,7 @@ func (p *Parser) state84() error {
 	case TokenPercentStart:
 		// Shift action
 		p.stateStack = append(p.stateStack, 34)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3352,7 +3368,7 @@ func (p *Parser) state84() error {
 	case TokenIdColon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 82)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3362,7 +3378,7 @@ func (p *Parser) state84() error {
 	case TokenPercentPercent:
 		// Shift action
 		p.stateStack = append(p.stateStack, 114)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3372,7 +3388,7 @@ func (p *Parser) state84() error {
 	case TokenPercentUnion:
 		// Shift action
 		p.stateStack = append(p.stateStack, 42)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3396,11 +3412,11 @@ func (p *Parser) state85() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalGrammar),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3418,11 +3434,11 @@ func (p *Parser) state86() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRulesOrGrammarDeclaration),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3434,7 +3450,7 @@ func (p *Parser) state87() error {
 	case TokenBracketedId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 117)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3450,7 +3466,7 @@ func (p *Parser) state87() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalNamedRef_opt),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3468,11 +3484,11 @@ func (p *Parser) state88() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalParams),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3484,7 +3500,7 @@ func (p *Parser) state89() error {
 	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 119)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3500,11 +3516,11 @@ func (p *Parser) state89() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3522,11 +3538,11 @@ func (p *Parser) state90() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalUnionName),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3538,7 +3554,7 @@ func (p *Parser) state91() error {
 	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 120)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3556,7 +3572,7 @@ func (p *Parser) state92() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3566,7 +3582,7 @@ func (p *Parser) state92() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3576,7 +3592,7 @@ func (p *Parser) state92() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3586,7 +3602,7 @@ func (p *Parser) state92() error {
 	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 121)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3596,7 +3612,7 @@ func (p *Parser) state92() error {
 	case TokenTagAny:
 		// Shift action
 		p.stateStack = append(p.stateStack, 122)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3606,7 +3622,7 @@ func (p *Parser) state92() error {
 	case TokenTagNone:
 		// Shift action
 		p.stateStack = append(p.stateStack, 123)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3624,7 +3640,7 @@ func (p *Parser) state93() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3634,7 +3650,7 @@ func (p *Parser) state93() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3644,7 +3660,7 @@ func (p *Parser) state93() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3662,7 +3678,7 @@ func (p *Parser) state94() error {
 	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 129)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3678,11 +3694,11 @@ func (p *Parser) state94() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalSymbolDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3694,7 +3710,7 @@ func (p *Parser) state95() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3704,7 +3720,7 @@ func (p *Parser) state95() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3714,7 +3730,7 @@ func (p *Parser) state95() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3730,11 +3746,11 @@ func (p *Parser) state95() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTokenDeclsForPrec),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3752,11 +3768,11 @@ func (p *Parser) state96() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTokenDeclForPrec_1),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3768,7 +3784,7 @@ func (p *Parser) state97() error {
 	case TokenIntLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 102)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3784,7 +3800,7 @@ func (p *Parser) state97() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalInt_opt),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3802,11 +3818,11 @@ func (p *Parser) state98() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTokenDeclForPrec),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3818,7 +3834,7 @@ func (p *Parser) state99() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3828,7 +3844,7 @@ func (p *Parser) state99() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3844,11 +3860,11 @@ func (p *Parser) state99() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTokenDecls),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3860,7 +3876,7 @@ func (p *Parser) state100() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3870,7 +3886,7 @@ func (p *Parser) state100() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3894,11 +3910,11 @@ func (p *Parser) state101() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTokenDecl_1),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3916,11 +3932,11 @@ func (p *Parser) state102() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalInt_opt),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3932,7 +3948,7 @@ func (p *Parser) state103() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3942,7 +3958,7 @@ func (p *Parser) state103() error {
 	case TokenTstring:
 		// Shift action
 		p.stateStack = append(p.stateStack, 133)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3958,7 +3974,7 @@ func (p *Parser) state103() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalAlias),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -3970,7 +3986,7 @@ func (p *Parser) state104() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3980,7 +3996,7 @@ func (p *Parser) state104() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -3990,7 +4006,7 @@ func (p *Parser) state104() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4006,11 +4022,11 @@ func (p *Parser) state104() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalSymbolDecls),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4022,7 +4038,7 @@ func (p *Parser) state105() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4032,7 +4048,7 @@ func (p *Parser) state105() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4042,7 +4058,7 @@ func (p *Parser) state105() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4066,11 +4082,11 @@ func (p *Parser) state106() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalSymbols_1),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4088,11 +4104,11 @@ func (p *Parser) state107() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalGrammarDeclaration),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4110,11 +4126,11 @@ func (p *Parser) state108() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalValue),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4132,11 +4148,11 @@ func (p *Parser) state109() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalValue),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4154,11 +4170,11 @@ func (p *Parser) state110() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalValue),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4176,11 +4192,11 @@ func (p *Parser) state111() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalPrologueDeclaration),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4198,11 +4214,11 @@ func (p *Parser) state112() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRulesOrGrammarDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4220,11 +4236,11 @@ func (p *Parser) state113() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRulesOrGrammarDeclaration),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4236,7 +4252,7 @@ func (p *Parser) state114() error {
 	case TokenEpilogue:
 		// Shift action
 		p.stateStack = append(p.stateStack, 137)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4260,11 +4276,11 @@ func (p *Parser) state115() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalGrammar),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4282,11 +4298,11 @@ func (p *Parser) state116() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalInput),
-			Children: make([]*Node, 4),
+			Children: p.allocateNodes(4),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-4:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-4]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4304,11 +4320,11 @@ func (p *Parser) state117() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalNamedRef_opt),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4320,7 +4336,7 @@ func (p *Parser) state118() error {
 	case TokenColon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 138)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4344,11 +4360,11 @@ func (p *Parser) state119() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalParams),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4366,11 +4382,11 @@ func (p *Parser) state120() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalGrammarDeclaration),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4388,11 +4404,11 @@ func (p *Parser) state121() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTag),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4410,11 +4426,11 @@ func (p *Parser) state122() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTag),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4432,11 +4448,11 @@ func (p *Parser) state123() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTag),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4448,7 +4464,7 @@ func (p *Parser) state124() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4458,7 +4474,7 @@ func (p *Parser) state124() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4468,7 +4484,7 @@ func (p *Parser) state124() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4478,7 +4494,7 @@ func (p *Parser) state124() error {
 	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 121)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4488,7 +4504,7 @@ func (p *Parser) state124() error {
 	case TokenTagAny:
 		// Shift action
 		p.stateStack = append(p.stateStack, 122)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4498,7 +4514,7 @@ func (p *Parser) state124() error {
 	case TokenTagNone:
 		// Shift action
 		p.stateStack = append(p.stateStack, 123)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4514,11 +4530,11 @@ func (p *Parser) state124() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalGrammarDeclaration),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4536,11 +4552,11 @@ func (p *Parser) state125() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalGenericSymlist),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4558,11 +4574,11 @@ func (p *Parser) state126() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalGenericSymlistItem),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4580,11 +4596,11 @@ func (p *Parser) state127() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalGenericSymlistItem),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4596,7 +4612,7 @@ func (p *Parser) state128() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4606,7 +4622,7 @@ func (p *Parser) state128() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4616,7 +4632,7 @@ func (p *Parser) state128() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4632,11 +4648,11 @@ func (p *Parser) state128() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTokenDeclsForPrec),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4648,7 +4664,7 @@ func (p *Parser) state129() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4658,7 +4674,7 @@ func (p *Parser) state129() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4668,7 +4684,7 @@ func (p *Parser) state129() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4692,11 +4708,11 @@ func (p *Parser) state130() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTokenDeclForPrec_1),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4714,11 +4730,11 @@ func (p *Parser) state131() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTokenDeclForPrec),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4730,7 +4746,7 @@ func (p *Parser) state132() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4740,7 +4756,7 @@ func (p *Parser) state132() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4756,11 +4772,11 @@ func (p *Parser) state132() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTokenDecls),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4778,11 +4794,11 @@ func (p *Parser) state133() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalAlias),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4800,11 +4816,11 @@ func (p *Parser) state134() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTokenDecl),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4822,11 +4838,11 @@ func (p *Parser) state135() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalAlias),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4838,7 +4854,7 @@ func (p *Parser) state136() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4848,7 +4864,7 @@ func (p *Parser) state136() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4858,7 +4874,7 @@ func (p *Parser) state136() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4874,11 +4890,11 @@ func (p *Parser) state136() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalSymbolDecls),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4896,11 +4912,11 @@ func (p *Parser) state137() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalEpilogue_opt),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4918,7 +4934,7 @@ func (p *Parser) state138() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalRhs),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4936,11 +4952,11 @@ func (p *Parser) state139() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalGenericSymlist),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -4952,7 +4968,7 @@ func (p *Parser) state140() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4962,7 +4978,7 @@ func (p *Parser) state140() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4972,7 +4988,7 @@ func (p *Parser) state140() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -4988,11 +5004,11 @@ func (p *Parser) state140() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTokenDeclsForPrec),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5004,7 +5020,7 @@ func (p *Parser) state141() error {
 	case TokenPipe:
 		// Shift action
 		p.stateStack = append(p.stateStack, 143)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5014,7 +5030,7 @@ func (p *Parser) state141() error {
 	case TokenSemicolon:
 		// Shift action
 		p.stateStack = append(p.stateStack, 144)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5030,11 +5046,11 @@ func (p *Parser) state141() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRules),
-			Children: make([]*Node, 4),
+			Children: p.allocateNodes(4),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-4:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-4]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5053,13 +5069,13 @@ func (p *Parser) state142() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalTag_opt),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	// STRING
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5069,7 +5085,7 @@ func (p *Parser) state142() error {
 	case TokenPercentPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 145)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5079,7 +5095,7 @@ func (p *Parser) state142() error {
 	case TokenPercentDprec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 146)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5089,7 +5105,7 @@ func (p *Parser) state142() error {
 	case TokenPercentMerge:
 		// Shift action
 		p.stateStack = append(p.stateStack, 147)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5099,7 +5115,7 @@ func (p *Parser) state142() error {
 	case TokenPercentExpect:
 		// Shift action
 		p.stateStack = append(p.stateStack, 148)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5109,7 +5125,7 @@ func (p *Parser) state142() error {
 	case TokenPercentExpectRr:
 		// Shift action
 		p.stateStack = append(p.stateStack, 149)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5119,7 +5135,7 @@ func (p *Parser) state142() error {
 	case TokenBracedPredicate:
 		// Shift action
 		p.stateStack = append(p.stateStack, 150)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5129,7 +5145,7 @@ func (p *Parser) state142() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5139,7 +5155,7 @@ func (p *Parser) state142() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5149,7 +5165,7 @@ func (p *Parser) state142() error {
 	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 151)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5159,7 +5175,7 @@ func (p *Parser) state142() error {
 	case TokenPercentEmpty:
 		// Shift action
 		p.stateStack = append(p.stateStack, 152)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5175,11 +5191,11 @@ func (p *Parser) state142() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRhses_1),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5197,7 +5213,7 @@ func (p *Parser) state143() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalRhs),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5215,11 +5231,11 @@ func (p *Parser) state144() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRhses_1),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5231,7 +5247,7 @@ func (p *Parser) state145() error {
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5241,7 +5257,7 @@ func (p *Parser) state145() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5251,7 +5267,7 @@ func (p *Parser) state145() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5269,7 +5285,7 @@ func (p *Parser) state146() error {
 	case TokenIntLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 157)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5287,7 +5303,7 @@ func (p *Parser) state147() error {
 	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 158)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5305,7 +5321,7 @@ func (p *Parser) state148() error {
 	case TokenIntLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 159)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5323,7 +5339,7 @@ func (p *Parser) state149() error {
 	case TokenIntLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 160)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5347,11 +5363,11 @@ func (p *Parser) state150() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRhs),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5369,11 +5385,11 @@ func (p *Parser) state151() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalTag_opt),
-			Children: make([]*Node, 1),
+			Children: p.allocateNodes(1),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5391,11 +5407,11 @@ func (p *Parser) state152() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRhs),
-			Children: make([]*Node, 2),
+			Children: p.allocateNodes(2),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5407,7 +5423,7 @@ func (p *Parser) state153() error {
 	case TokenBracedCode:
 		// Shift action
 		p.stateStack = append(p.stateStack, 161)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5425,7 +5441,7 @@ func (p *Parser) state154() error {
 	case TokenBracketedId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 117)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5441,7 +5457,7 @@ func (p *Parser) state154() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalNamedRef_opt),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5460,13 +5476,13 @@ func (p *Parser) state155() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalTag_opt),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	// STRING
 	case TokenString:
 		// Shift action
 		p.stateStack = append(p.stateStack, 58)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5476,7 +5492,7 @@ func (p *Parser) state155() error {
 	case TokenPercentPrec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 145)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5486,7 +5502,7 @@ func (p *Parser) state155() error {
 	case TokenPercentDprec:
 		// Shift action
 		p.stateStack = append(p.stateStack, 146)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5496,7 +5512,7 @@ func (p *Parser) state155() error {
 	case TokenPercentMerge:
 		// Shift action
 		p.stateStack = append(p.stateStack, 147)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5506,7 +5522,7 @@ func (p *Parser) state155() error {
 	case TokenPercentExpect:
 		// Shift action
 		p.stateStack = append(p.stateStack, 148)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5516,7 +5532,7 @@ func (p *Parser) state155() error {
 	case TokenPercentExpectRr:
 		// Shift action
 		p.stateStack = append(p.stateStack, 149)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5526,7 +5542,7 @@ func (p *Parser) state155() error {
 	case TokenBracedPredicate:
 		// Shift action
 		p.stateStack = append(p.stateStack, 150)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5536,7 +5552,7 @@ func (p *Parser) state155() error {
 	case TokenCharLiteral:
 		// Shift action
 		p.stateStack = append(p.stateStack, 49)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5546,7 +5562,7 @@ func (p *Parser) state155() error {
 	case TokenId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 50)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5556,7 +5572,7 @@ func (p *Parser) state155() error {
 	case TokenTag:
 		// Shift action
 		p.stateStack = append(p.stateStack, 151)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5566,7 +5582,7 @@ func (p *Parser) state155() error {
 	case TokenPercentEmpty:
 		// Shift action
 		p.stateStack = append(p.stateStack, 152)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5582,11 +5598,11 @@ func (p *Parser) state155() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRhses_1),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5604,11 +5620,11 @@ func (p *Parser) state156() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRhs),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5626,11 +5642,11 @@ func (p *Parser) state157() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRhs),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5648,11 +5664,11 @@ func (p *Parser) state158() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRhs),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5670,11 +5686,11 @@ func (p *Parser) state159() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRhs),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5692,11 +5708,11 @@ func (p *Parser) state160() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRhs),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5708,7 +5724,7 @@ func (p *Parser) state161() error {
 	case TokenBracketedId:
 		// Shift action
 		p.stateStack = append(p.stateStack, 117)
-		p.nodeStack = append(p.nodeStack, &Node{
+		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
 			Lexeme: p.scanner.Lexeme(),
 		})
@@ -5724,7 +5740,7 @@ func (p *Parser) state161() error {
 		newNode := Node{
 			Symbol: NewNonterminal(NonterminalNamedRef_opt),
 		}
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5742,11 +5758,11 @@ func (p *Parser) state162() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRhs),
-			Children: make([]*Node, 3),
+			Children: p.allocateNodes(3),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }
@@ -5764,11 +5780,11 @@ func (p *Parser) state163() error {
 		p.stateStack = append(p.stateStack, nextState)
 		newNode := Node{
 			Symbol:   NewNonterminal(NonterminalRhs),
-			Children: make([]*Node, 4),
+			Children: p.allocateNodes(4),
 		}
 		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-4:])
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-4]
-		p.nodeStack = append(p.nodeStack, &newNode)
+		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	}
 }

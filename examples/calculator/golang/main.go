@@ -40,7 +40,7 @@ func Evaluate(expression string) (int, error) {
 	}
 
 	// Traversing over the abstract syntax tree will calculate the result for us.
-	result, err := evaluateNode(rootNode)
+	result, err := evaluateNode(&rootNode)
 	if err != nil {
 		return 0, err
 	}
@@ -61,7 +61,7 @@ func evaluateNode(node *parser.Node) (int, error) {
 		return strconv.Atoi(string(node.Children[0].Lexeme))
 	case 2:
 		// expression: "-" expression
-		value, err := evaluateNode(node.Children[1])
+		value, err := evaluateNode(&node.Children[1])
 		if err != nil {
 			return 0, err
 		}
@@ -73,15 +73,15 @@ func evaluateNode(node *parser.Node) (int, error) {
 		token, isTerminal := node.Children[1].Symbol.Terminal()
 		if !isTerminal {
 			// expression: "(" expression ")"
-			return evaluateNode(node.Children[1])
+			return evaluateNode(&node.Children[1])
 		}
 
-		leftValue, err := evaluateNode(node.Children[0])
+		leftValue, err := evaluateNode(&node.Children[0])
 		if err != nil {
 			return 0, err
 		}
 
-		rightValue, err := evaluateNode(node.Children[2])
+		rightValue, err := evaluateNode(&node.Children[2])
 		if err != nil {
 			return 0, err
 		}

@@ -52,8 +52,8 @@ func NewASTWalker() *ASTWalker {
 
 // BuildGrammar takes the root node of the abstract syntax tree, traverses the tree to build the context free grammar
 // and returns the finished grammar afterward.
-func (w *ASTWalker) BuildGrammar(node *parser.Node) (frontend.Grammar, error) {
-	w.visitInput(node)
+func (w *ASTWalker) BuildGrammar(node parser.Node) (frontend.Grammar, error) {
+	w.visitInput(&node)
 	if w.startNonterminalName != "" {
 		idx, ok := w.nonterminalIdxByName[w.startNonterminalName]
 		if !ok {
@@ -76,9 +76,9 @@ func (w *ASTWalker) visitInput(node *parser.Node) {
 		}
 		switch nonterminal {
 		case parser.NonterminalPrologueDeclarations:
-			w.visitPrologueDeclarations(child)
+			w.visitPrologueDeclarations(&child)
 		case parser.NonterminalGrammar:
-			w.visitGrammar(child)
+			w.visitGrammar(&child)
 		}
 	}
 }
@@ -95,9 +95,9 @@ func (w *ASTWalker) visitPrologueDeclarations(node *parser.Node) {
 		}
 		switch nonterminal {
 		case parser.NonterminalPrologueDeclarations:
-			w.visitPrologueDeclarations(child)
+			w.visitPrologueDeclarations(&child)
 		case parser.NonterminalPrologueDeclaration:
-			w.visitPrologueDeclaration(child)
+			w.visitPrologueDeclaration(&child)
 		}
 	}
 }
@@ -114,7 +114,7 @@ func (w *ASTWalker) visitPrologueDeclaration(node *parser.Node) {
 		}
 		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalGrammarDeclaration:
-			w.visitGrammarDeclaration(child)
+			w.visitGrammarDeclaration(&child)
 		}
 	}
 }
@@ -130,9 +130,9 @@ func (w *ASTWalker) visitGrammarDeclaration(node *parser.Node) {
 		if ok {
 			switch nonterminal {
 			case parser.NonterminalSymbolDeclaration:
-				w.visitSymbolDeclaration(child)
+				w.visitSymbolDeclaration(&child)
 			case parser.NonterminalSymbols_1:
-				w.visitSymbols_1(child)
+				w.visitSymbols_1(&child)
 			}
 			continue
 		}
@@ -161,9 +161,9 @@ func (w *ASTWalker) visitSymbols_1(node *parser.Node) {
 		}
 		switch nonterminal {
 		case parser.NonterminalSymbol:
-			w.visitSymbol(child)
+			w.visitSymbol(&child)
 		case parser.NonterminalSymbols_1:
-			w.visitSymbols_1(child)
+			w.visitSymbols_1(&child)
 		}
 	}
 }
@@ -180,11 +180,11 @@ func (w *ASTWalker) visitSymbolDeclaration(node *parser.Node) {
 		}
 		switch nonterminal {
 		case parser.NonterminalTokenDecls:
-			w.visitTokenDecls(child)
+			w.visitTokenDecls(&child)
 		case parser.NonterminalTokenDeclsForPrec:
-			w.visitTokenDeclsForPrec(child)
+			w.visitTokenDeclsForPrec(&child)
 		case parser.NonterminalPrecedenceDeclarator:
-			w.visitPrecedenceDeclarator(child)
+			w.visitPrecedenceDeclarator(&child)
 		}
 	}
 }
@@ -226,7 +226,7 @@ func (w *ASTWalker) visitTokenDecls(node *parser.Node) {
 		}
 		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalTokenDecl_1:
-			w.visitTokenDecl_1(child)
+			w.visitTokenDecl_1(&child)
 		}
 	}
 }
@@ -243,9 +243,9 @@ func (w *ASTWalker) visitTokenDecl_1(node *parser.Node) {
 		}
 		switch nonterminal {
 		case parser.NonterminalTokenDecl_1:
-			w.visitTokenDecl_1(child)
+			w.visitTokenDecl_1(&child)
 		case parser.NonterminalTokenDecl:
-			w.visitTokenDecl(child)
+			w.visitTokenDecl(&child)
 		}
 	}
 }
@@ -278,7 +278,7 @@ func (w *ASTWalker) visitTokenDecl(node *parser.Node) {
 		}
 		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalAlias:
-			w.visitAlias(child)
+			w.visitAlias(&child)
 		}
 	}
 }
@@ -302,7 +302,7 @@ func (w *ASTWalker) visitAlias(node *parser.Node) {
 		}
 		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalStringAsId:
-			w.visitStringAsId(child)
+			w.visitStringAsId(&child)
 		}
 	}
 }
@@ -332,9 +332,9 @@ func (w *ASTWalker) visitTokenDeclsForPrec(node *parser.Node) {
 		}
 		switch nonterminal {
 		case parser.NonterminalTokenDeclsForPrec:
-			w.visitTokenDeclsForPrec(child)
+			w.visitTokenDeclsForPrec(&child)
 		case parser.NonterminalTokenDeclForPrec_1:
-			w.visitTokenDeclForPrec_1(child)
+			w.visitTokenDeclForPrec_1(&child)
 		}
 	}
 }
@@ -351,9 +351,9 @@ func (w *ASTWalker) visitTokenDeclForPrec_1(node *parser.Node) {
 		}
 		switch nonterminal {
 		case parser.NonterminalTokenDeclForPrec_1:
-			w.visitTokenDeclForPrec_1(child)
+			w.visitTokenDeclForPrec_1(&child)
 		case parser.NonterminalTokenDeclForPrec:
-			w.visitTokenDeclForPrec(child)
+			w.visitTokenDeclForPrec(&child)
 		}
 	}
 }
@@ -407,9 +407,9 @@ func (w *ASTWalker) visitGrammar(node *parser.Node) {
 		}
 		switch nonterminal {
 		case parser.NonterminalGrammar:
-			w.visitGrammar(child)
+			w.visitGrammar(&child)
 		case parser.NonterminalRulesOrGrammarDeclaration:
-			w.visitRulesOrGrammarDeclaration(child)
+			w.visitRulesOrGrammarDeclaration(&child)
 		}
 	}
 }
@@ -426,9 +426,9 @@ func (w *ASTWalker) visitRulesOrGrammarDeclaration(node *parser.Node) {
 		}
 		switch nonterminal {
 		case parser.NonterminalRules:
-			w.visitRules(child)
+			w.visitRules(&child)
 		case parser.NonterminalGrammarDeclaration:
-			w.visitGrammarDeclaration(child)
+			w.visitGrammarDeclaration(&child)
 		}
 	}
 }
@@ -461,7 +461,7 @@ func (w *ASTWalker) visitRules(node *parser.Node) {
 		}
 		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalRhses_1:
-			w.visitRhses_1(child)
+			w.visitRhses_1(&child)
 		}
 	}
 }
@@ -474,11 +474,11 @@ func (w *ASTWalker) visitRhses_1(node *parser.Node) {
 	if len(node.Children) == 3 {
 		if terminal, ok := node.Children[1].Symbol.Terminal(); ok && terminal == parser.TokenPipe {
 			// We create a new production with the same nonterminal on the left hand side.
-			w.visitRhses_1(node.Children[0])
+			w.visitRhses_1(&node.Children[0])
 			w.grammar.Productions = append(w.grammar.Productions, frontend.Production{
 				NonterminalIdx: w.grammar.Productions[len(w.grammar.Productions)-1].NonterminalIdx,
 			})
-			w.visitRhs(node.Children[2])
+			w.visitRhs(&node.Children[2])
 			return
 		}
 	}
@@ -490,9 +490,9 @@ func (w *ASTWalker) visitRhses_1(node *parser.Node) {
 		}
 		switch nonterminal {
 		case parser.NonterminalRhs:
-			w.visitRhs(child)
+			w.visitRhs(&child)
 		case parser.NonterminalRhses_1:
-			w.visitRhses_1(child)
+			w.visitRhses_1(&child)
 		}
 	}
 }
@@ -513,10 +513,10 @@ func (w *ASTWalker) visitRhs(node *parser.Node) {
 		if nonterminal, ok := child.Symbol.Nonterminal(); ok {
 			switch nonterminal {
 			case parser.NonterminalSymbol:
-				w.visitSymbol(child)
+				w.visitSymbol(&child)
 				w.activePercentPrec = false
 			case parser.NonterminalRhs:
-				w.visitRhs(child)
+				w.visitRhs(&child)
 			}
 			continue
 		}

@@ -63,8 +63,8 @@ func NewASTWalker() *ASTWalker {
 
 // BuildGrammar takes the root node of the abstract syntax tree, traverses the tree to build the context free grammar
 // and returns the finished grammar afterward.
-func (w *ASTWalker) BuildGrammar(node *parser.Node) ([]scannergenfrontend.Rule, parsergenfrontend.Grammar, error) {
-	if err := w.visitFile(node); err != nil {
+func (w *ASTWalker) BuildGrammar(node parser.Node) ([]scannergenfrontend.Rule, parsergenfrontend.Grammar, error) {
+	if err := w.visitFile(&node); err != nil {
 		return nil, parsergenfrontend.Grammar{}, err
 	}
 	if w.startNonterminalName != "" {
@@ -106,11 +106,11 @@ func (w *ASTWalker) visitFile(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalScannerSection:
-			if err := w.visitScannerSection(child); err != nil {
+			if err := w.visitScannerSection(&child); err != nil {
 				return err
 			}
 		case parser.NonterminalParserSection:
-			if err := w.visitParserSection(child); err != nil {
+			if err := w.visitParserSection(&child); err != nil {
 				return err
 			}
 		}
@@ -130,7 +130,7 @@ func (w *ASTWalker) visitScannerSection(node *parser.Node) error {
 		}
 		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalScannerDeclList:
-			if err := w.visitScannerDeclList(child); err != nil {
+			if err := w.visitScannerDeclList(&child); err != nil {
 				return err
 			}
 		}
@@ -183,11 +183,11 @@ func (w *ASTWalker) visitScannerDeclList(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalScannerDeclList:
-			if err := w.visitScannerDeclList(child); err != nil {
+			if err := w.visitScannerDeclList(&child); err != nil {
 				return err
 			}
 		case parser.NonterminalScannerDecl:
-			if err := w.visitScannerDecl(child); err != nil {
+			if err := w.visitScannerDecl(&child); err != nil {
 				return err
 			}
 		}
@@ -224,7 +224,7 @@ func (w *ASTWalker) visitScannerDecl(node *parser.Node) error {
 		}
 		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalScannerDeclRhs:
-			if err := w.visitScannerDeclRhs(child); err != nil {
+			if err := w.visitScannerDeclRhs(&child); err != nil {
 				return err
 			}
 		}
@@ -256,11 +256,11 @@ func (w *ASTWalker) visitScannerDeclRhs(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalScannerPattern:
-			if err := w.visitScannerPattern(child); err != nil {
+			if err := w.visitScannerPattern(&child); err != nil {
 				return err
 			}
 		case parser.NonterminalScannerAnnotationList:
-			if err := w.visitScannerAnnotationList(child); err != nil {
+			if err := w.visitScannerAnnotationList(&child); err != nil {
 				return err
 			}
 		}
@@ -297,11 +297,11 @@ func (w *ASTWalker) visitScannerAnnotationList(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalScannerAnnotationList:
-			if err := w.visitScannerAnnotationList(child); err != nil {
+			if err := w.visitScannerAnnotationList(&child); err != nil {
 				return err
 			}
 		case parser.NonterminalScannerAnnotation:
-			if err := w.visitScannerAnnotation(child); err != nil {
+			if err := w.visitScannerAnnotation(&child); err != nil {
 				return err
 			}
 		}
@@ -341,13 +341,13 @@ func (w *ASTWalker) visitParserSection(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalStartDecl:
-			w.visitStartDecl(child)
+			w.visitStartDecl(&child)
 		case parser.NonterminalPrecedenceSection:
-			if err := w.visitPrecedenceSection(child); err != nil {
+			if err := w.visitPrecedenceSection(&child); err != nil {
 				return err
 			}
 		case parser.NonterminalRuleDeclList:
-			if err := w.visitRuleDeclList(child); err != nil {
+			if err := w.visitRuleDeclList(&child); err != nil {
 				return err
 			}
 		}
@@ -384,7 +384,7 @@ func (w *ASTWalker) visitPrecedenceSection(node *parser.Node) error {
 		}
 		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalPrecedenceDeclList:
-			if err := w.visitPrecedenceDeclList(child); err != nil {
+			if err := w.visitPrecedenceDeclList(&child); err != nil {
 				return err
 			}
 		}
@@ -404,11 +404,11 @@ func (w *ASTWalker) visitPrecedenceDeclList(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalPrecedenceDeclList:
-			if err := w.visitPrecedenceDeclList(child); err != nil {
+			if err := w.visitPrecedenceDeclList(&child); err != nil {
 				return err
 			}
 		case parser.NonterminalPrecedenceDecl:
-			if err := w.visitPrecedenceDecl(child); err != nil {
+			if err := w.visitPrecedenceDecl(&child); err != nil {
 				return err
 			}
 		}
@@ -433,9 +433,9 @@ func (w *ASTWalker) visitPrecedenceDecl(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalAssociativity:
-			w.visitAssociativity(child)
+			w.visitAssociativity(&child)
 		case parser.NonterminalSymbolList:
-			if err := w.visitSymbolList(child); err != nil {
+			if err := w.visitSymbolList(&child); err != nil {
 				return err
 			}
 		}
@@ -480,11 +480,11 @@ func (w *ASTWalker) visitRuleDeclList(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalRuleDeclList:
-			if err := w.visitRuleDeclList(child); err != nil {
+			if err := w.visitRuleDeclList(&child); err != nil {
 				return err
 			}
 		case parser.NonterminalProductionDecl:
-			if err := w.visitProductionDecl(child); err != nil {
+			if err := w.visitProductionDecl(&child); err != nil {
 				return err
 			}
 		}
@@ -522,7 +522,7 @@ func (w *ASTWalker) visitProductionDecl(node *parser.Node) error {
 		}
 		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalAlternativeList:
-			if err := w.visitAlternativeList(child); err != nil {
+			if err := w.visitAlternativeList(&child); err != nil {
 				return err
 			}
 		}
@@ -537,13 +537,13 @@ func (w *ASTWalker) visitAlternativeList(node *parser.Node) error {
 
 	if len(node.Children) == 3 {
 		// alternative_list "|" alternative — recurse left, then create a new production for the right alternative.
-		if err := w.visitAlternativeList(node.Children[0]); err != nil {
+		if err := w.visitAlternativeList(&node.Children[0]); err != nil {
 			return err
 		}
 		w.grammar.Productions = append(w.grammar.Productions, parsergenfrontend.Production{
 			NonterminalIdx: w.grammar.Productions[len(w.grammar.Productions)-1].NonterminalIdx,
 		})
-		if err := w.visitAlternative(node.Children[2]); err != nil {
+		if err := w.visitAlternative(&node.Children[2]); err != nil {
 			return err
 		}
 		return nil
@@ -556,7 +556,7 @@ func (w *ASTWalker) visitAlternativeList(node *parser.Node) error {
 		}
 		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalAlternative:
-			if err := w.visitAlternative(child); err != nil {
+			if err := w.visitAlternative(&child); err != nil {
 				return err
 			}
 		}
@@ -577,11 +577,11 @@ func (w *ASTWalker) visitAlternative(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalSymbolList:
-			if err := w.visitSymbolList(child); err != nil {
+			if err := w.visitSymbolList(&child); err != nil {
 				return err
 			}
 		case parser.NonterminalAlternativeAnnotationList:
-			if err := w.visitAlternativeAnnotationList(child); err != nil {
+			if err := w.visitAlternativeAnnotationList(&child); err != nil {
 				return err
 			}
 		}
@@ -601,11 +601,11 @@ func (w *ASTWalker) visitAlternativeAnnotationList(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalAlternativeAnnotationList:
-			if err := w.visitAlternativeAnnotationList(child); err != nil {
+			if err := w.visitAlternativeAnnotationList(&child); err != nil {
 				return err
 			}
 		case parser.NonterminalAlternativeAnnotation:
-			if err := w.visitAlternativeAnnotation(child); err != nil {
+			if err := w.visitAlternativeAnnotation(&child); err != nil {
 				return err
 			}
 		}
@@ -629,7 +629,7 @@ func (w *ASTWalker) visitAlternativeAnnotation(node *parser.Node) error {
 		}
 		switch nonterminal { //nolint:gocritic // We keep the switch for ease of extension and uniformity.
 		case parser.NonterminalSymbol:
-			if err := w.visitSymbol(child); err != nil {
+			if err := w.visitSymbol(&child); err != nil {
 				return err
 			}
 		}
@@ -651,11 +651,11 @@ func (w *ASTWalker) visitSymbolList(node *parser.Node) error {
 		}
 		switch nonterminal {
 		case parser.NonterminalSymbolList:
-			if err := w.visitSymbolList(child); err != nil {
+			if err := w.visitSymbolList(&child); err != nil {
 				return err
 			}
 		case parser.NonterminalSymbol:
-			if err := w.visitSymbol(child); err != nil {
+			if err := w.visitSymbol(&child); err != nil {
 				return err
 			}
 		}

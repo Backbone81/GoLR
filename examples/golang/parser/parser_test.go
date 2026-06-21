@@ -709,17 +709,17 @@ var _ = Describe("Golang Parser", func() {
 	})
 })
 
-func buildBasicLitAST(token parser.Token, lexeme string) *parser.Node {
-	return &parser.Node{
+func buildBasicLitAST(token parser.Token, lexeme string) parser.Node {
+	return parser.Node{
 		Symbol: parser.NewNonterminal(parser.NonterminalSourcefile),
-		Children: []*parser.Node{
+		Children: []parser.Node{
 			{
 				Symbol: parser.NewTerminal(parser.TokenTestBasicLit),
 				Lexeme: []byte("@TestBasicLit"),
 			},
 			{
 				Symbol: parser.NewNonterminal(parser.NonterminalBasiclit),
-				Children: []*parser.Node{
+				Children: []parser.Node{
 					{
 						Symbol: parser.NewTerminal(token),
 						Lexeme: []byte(lexeme),
