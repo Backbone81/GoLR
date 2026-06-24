@@ -23,5 +23,76 @@
 
         <lang.braceMatcher language="GoLR"
                            implementationClass="com.backbone81.golr.GolrPairedBraceMatcher"/>
+
+        <!-- Provides the "Find Usages" panel (Alt+F7) and the word-index scanner used by
+             the indexing phase of the reference search.
+             IntelliJ calls canFindUsagesFor() to decide when the action is available,
+             getWordsScanner() to build the file index, and getType()/getDescriptiveName()
+             to compose the panel header text. -->
+        <lang.findUsagesProvider language="GoLR"
+                                 implementationClass="com.backbone81.golr.GolrFindUsagesProvider"/>
+
+        <!-- Provides the FindUsagesHandler for Alt+F7. The handler itself is a thin wrapper;
+             the actual reference search is done by GolrReferencesSearcher via ReferencesSearch. -->
+        <findUsagesHandlerFactory implementation="com.backbone81.golr.GolrFindUsagesHandlerFactory"
+                                   order="first"/>
+
+        <!-- Hooks into ReferencesSearch.search() for GolrSymbolDefinition targets.
+             The default ReferencesSearch path finds IDENTIFIER leaf tokens via the word index
+             but calls getReference() on the leaf, which returns null — the reference lives on
+             the parent GolrSymbolReference composite node. This executor bypasses the leaf
+             path and walks the PSI tree directly, making ReferencesSearch work for GoLR.
+             This is what makes Find Usages report confirmed usages, and it is also the
+             source of the count that GolrReferencesCodeVisionProvider renders as the
+             "N usages" inlay (the provider calls ReferencesSearch.search()). -->
+        <referencesSearch implementation="com.backbone81.golr.GolrReferencesSearcher"/>
+
+        <!-- Draws the clickable "N usages" Code Vision indicator above every symbol
+             definition. This is a dedicated, language-specific feature: the platform does
+             NOT show usage counts automatically, so without this provider no count appears
+             even though Find Usages and ReferencesSearch already work. The provider counts
+             via ReferencesSearch (routed through GolrReferencesSearcher) and delegates the
+             click to the Find Usages stack. -->
+        <codeInsight.daemonBoundCodeVisionProvider
+                implementation="com.backbone81.golr.GolrReferencesCodeVisionProvider"/>
+
+        <!-- Gives the provider above its own "GoLR usages" group in the Code Vision settings,
+             so it is enabled by default and independent of the shared platform "Usages"
+             toggle (which a user may have turned off for Java/Kotlin). -->
+        <config.codeVisionGroupSettingProvider
+                implementation="com.backbone81.golr.GolrCodeVisionGroupSettingProvider"/>
+
+        <!-- Assigns the group label "Symbol reference" to GolrSymbolReference usages in the
+             Find Usages panel. Without this, IntelliJ falls back to "Unclassified" because
+             it has no built-in knowledge of GoLR node types. -->
+        <usageTypeProvider implementation="com.backbone81.golr.GolrUsageTypeProvider"/>
+
+        <!-- Validates the name the user types in the Rename dialog (Shift+F6).
+             IntelliJ calls isIdentifier() on every keystroke; returning false disables
+             the "Refactor" button and shows a validation error in the dialog. -->
+        <lang.namesValidator language="GoLR"
+                             implementationClass="com.backbone81.golr.GolrNamesValidator"/>
+
+        <!-- Declares that GoLR symbols support inline rename. This is what makes IntelliJ's
+             built-in inline-rename handler activate for GoLR symbols (Shift+F6 renames in the
+             editor instead of via a modal dialog). See GolrRefactoringSupportProvider. -->
+        <lang.refactoringSupport language="GoLR"
+                                 implementationClass="com.backbone81.golr.GolrRefactoringSupportProvider"/>
+
+        <!-- Drives the rename refactoring (Shift+F6) for GoLR symbol definitions.
+             canProcessElement() opts in for GolrSymbolDefinition elements.
+             findReferences() scans the PSI tree directly instead of using the file
+             word-index (which is not populated for .golr files), so all reference sites
+             are found and updated.
+             isInplaceRenameSupported() enables inline (in-editor) rename. -->
+        <renamePsiElementProcessor
+                implementation="com.backbone81.golr.GolrRenamePsiElementProcessor"/>
+
+        <!-- Auto-completion (Ctrl+Space / typing). Suggests every symbol defined in the
+             current .golr file when the caret is on an identifier, so rule bodies,
+             precedence lines, and the @start declaration can be filled in without retyping
+             terminal/nonterminal names. See GolrCompletionContributor. -->
+        <completion.contributor language="GoLR"
+                                implementationClass="com.backbone81.golr.GolrCompletionContributor"/>
     </extensions>
 </idea-plugin>
