@@ -1,0 +1,6 @@
+# Build and tooling artifacts — none of these are checked in.
+node_modules/
+dist/
+out/
+.vscode-test/
+*.vsix

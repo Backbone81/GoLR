@@ -1,0 +1,10 @@
+{
+  "//": "Configuration for the pure unit tests. These run in plain Node (no VSCode host) and",
+  "//1": "cover the tokenizer, model, and formatter. Integration tests live under",
+  "//2": "out/test/integration and are run separately by @vscode/test-cli (.vscode-test.mjs).",
+  "//3": "The TDD interface (suite/test) matches the interface the VSCode test host uses, so",
+  "//4": "both suites are written the same way.",
+  "ui": "tdd",
+  "spec": "out/test/unit/**/*.test.js",
+  "timeout": 10000
+}

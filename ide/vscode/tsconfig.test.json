@@ -1,0 +1,22 @@
+{
+  // Test build configuration.
+  //
+  // Unlike the base config (which only type-checks), this one emits JavaScript into out/ so
+  // that:
+  //   - Mocha can run the pure unit tests directly in Node (out/test/unit/**),
+  //   - @vscode/test-cli can load the integration tests in the extension host
+  //     (out/test/integration/**).
+  // Both kinds of tests import the same source modules from src/, so the whole src tree is
+  // compiled into out/ preserving the directory layout.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "out",
+    "rootDir": "src",
+    // Tests intentionally keep unused parameters in some provider stubs and helpers, so we
+    // relax these two checks for the test build only.
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["src"]
+}

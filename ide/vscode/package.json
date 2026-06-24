@@ -1,25 +1,75 @@
 {
   "name": "golr",
   "displayName": "GoLR",
-  "description": "Syntax highlighting for GoLR files.",
-  "version": "0.0.1",
+  "description": "Language support for GoLR grammar files (.golr): syntax highlighting, go to definition, find usages, rename, completion, and formatting.",
+  "version": "0.1.0",
+  "publisher": "backbone81",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/backbone81/golr"
+  },
   "engines": {
     "vscode": "^1.120.0"
   },
   "categories": [
     "Programming Languages"
   ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:golr"
+  ],
   "contributes": {
-    "languages": [{
-      "id": "golr",
-      "aliases": ["GoLR", "golr"],
-      "extensions": [".golr"],
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "golr",
-      "scopeName": "source.golr",
-      "path": "./syntaxes/golr.tmLanguage.json"
-    }]
+    "languages": [
+      {
+        "id": "golr",
+        "aliases": ["GoLR", "golr"],
+        "extensions": [".golr"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "golr",
+        "scopeName": "source.golr",
+        "path": "./syntaxes/golr.tmLanguage.json"
+      }
+    ],
+    "semanticTokenScopes": [
+      {
+        "language": "golr",
+        "scopes": {
+          "class.declaration": ["entity.name.type.golr"],
+          "class": ["entity.name.type.golr"],
+          "enum.declaration": ["entity.name.constant.golr"],
+          "enum": ["entity.name.constant.golr"]
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "tsc --noEmit && node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "package": "tsc --noEmit && node esbuild.js --production",
+    "lint": "eslint src",
+    "compile-tests": "tsc -p tsconfig.test.json",
+    "pretest": "npm run compile && npm run compile-tests",
+    "test:unit": "mocha",
+    "test:integration": "vscode-test",
+    "test": "npm run test:unit && npm run test:integration"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "@types/mocha": "^10.0.7",
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.120.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.23.0",
+    "eslint": "^9.9.0",
+    "mocha": "^10.7.0",
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.0.0"
   }
 }

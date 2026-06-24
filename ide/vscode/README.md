@@ -1,6 +1,6 @@
 # golr README
 
-This is the README for your extension "golr". After writing up a brief description, we recommend including the following sections.
+Language support for GoLR grammar files (`.golr`).
 
 ## Features
 

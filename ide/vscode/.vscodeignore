@@ -1,4 +1,19 @@
+# Files excluded from the packaged .vsix. The published extension should contain only the
+# bundled dist/extension.js plus the static language assets — not the TypeScript sources,
+# tests, build tooling, or downloaded test runtimes.
 .vscode/**
 .vscode-test/**
+.vscode-test.mjs
+out/**
+src/**
+node_modules/**
 .gitignore
+.mocharc.json
+esbuild.js
+eslint.config.mjs
+tsconfig.json
+tsconfig.test.json
+Makefile
 vsc-extension-quickstart.md
+**/*.map
+**/*.ts

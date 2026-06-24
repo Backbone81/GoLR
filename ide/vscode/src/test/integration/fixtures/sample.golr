@@ -1,0 +1,17 @@
+@scanner {
+    PLUS:    "+";
+    INTEGER: /[0-9]+/;
+}
+
+@parser {
+    @start: expression;
+
+    expression
+        : expression PLUS term
+        | term
+        ;
+
+    term
+        : INTEGER
+        ;
+}
