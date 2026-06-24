@@ -7,3 +7,4 @@ This folder contains IDE integrations to make working with GoLR files easier. Th
 - Rename symbol
 - Find usage
 - Auto complete
+- Code formatting

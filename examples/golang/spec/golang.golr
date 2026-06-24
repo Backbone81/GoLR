@@ -140,7 +140,7 @@
     hex_digits:     /{hex_digit}(_?{hex_digit})*/ @fragment;
 
     // Floating-point literals (https://go.dev/ref/spec#Floating-point_literals)
-    float_lit: /{float_lit_frag}/;
+    float_lit:      /{float_lit_frag}/;
     float_lit_frag: /{decimal_float_lit}|{hex_float_lit}/ @fragment;
 
     decimal_float_lit: /{decimal_digits}\.{decimal_digits}?{decimal_exponent}?|{decimal_digits}{decimal_exponent}|\.{decimal_digits}{decimal_exponent}?/ @fragment;
@@ -168,11 +168,11 @@
     raw_string_lit:         /`([^`]|{newline})*`/ @fragment;
     interpreted_string_lit: /"([^\n"\\]|{little_u_value}|{big_u_value}|{escaped_char}|{byte_value})*"/ @fragment;
 
-    test_basic_lit: "@TestBasicLit";
+    test_basic_lit:  "@TestBasicLit";
     test_expression: "@TestExpression";
-    test_type: "@TestType";
-    test_statement: "@TestStatement";
-    test_decl: "@TestDecl";
+    test_type:       "@TestType";
+    test_statement:  "@TestStatement";
+    test_decl:       "@TestDecl";
 }
 
 @parser {
@@ -181,7 +181,7 @@
     @precedence {
         @left: "*" "/" "%" "<<" ">>" "&" "&^";
         @left: "+" "-" "|" "^";
-        @left: "=="  "!="  "<"  "<="  ">"  ">=";
+        @left: "==" "!=" "<" "<=" ">" ">=";
         @left: "&&";
         @left: "||";
     }

@@ -94,5 +94,12 @@
              terminal/nonterminal names. See GolrCompletionContributor. -->
         <completion.contributor language="GoLR"
                                 implementationClass="com.backbone81.golr.GolrCompletionContributor"/>
+
+        <!-- Code formatting (Reformat Code, Ctrl+Alt+L). Registers GoLR as formattable; the
+             model is a no-op because the actual reformat is done by GolrPreFormatProcessor,
+             which rewrites the file into the canonical layout via GolrFormatter. -->
+        <lang.formatter language="GoLR"
+                        implementationClass="com.backbone81.golr.GolrFormattingModelBuilder"/>
+        <preFormatProcessor implementation="com.backbone81.golr.GolrPreFormatProcessor"/>
     </extensions>
 </idea-plugin>
