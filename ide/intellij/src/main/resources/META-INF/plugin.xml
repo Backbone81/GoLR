@@ -2,7 +2,21 @@
     <id>com.backbone81.golr</id>
     <name>GoLR</name>
     <vendor url="https://github.com/backbone81/golr">backbone81</vendor>
-    <description><![CDATA[Syntax highlighting for GoLR grammar files (.golr).]]></description>
+    <description><![CDATA[
+        This plugin provides language support for <a href="https://github.com/backbone81/golr">GoLR</a>
+        grammar files (`.golr`).
+
+        It provides:
+
+        <ul>
+            <li>Syntax highlighting</li>
+            <li>Code completion</li>
+            <li>Go to definition</li>
+            <li>Rename symbol</li>
+            <li>Find all references</li>
+            <li>Format document</li>
+        </ul>
+    ]]></description>
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">

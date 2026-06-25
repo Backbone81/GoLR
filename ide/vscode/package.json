@@ -1,7 +1,7 @@
 {
   "name": "golr",
   "displayName": "GoLR",
-  "description": "Language support for GoLR grammar files (.golr): syntax highlighting, go to definition, find usages, rename, completion, and formatting.",
+  "description": "Language support for GoLR grammar files (.golr).",
   "version": "0.1.0",
   "publisher": "backbone81",
   "repository": {
