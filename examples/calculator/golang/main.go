@@ -33,13 +33,13 @@ func Evaluate(expression string) (int, error) {
 	)
 
 	// The expression is parsed by giving the generated parser the scanner to pull tokens from. We get the root node
-	// of the abstract syntax tree as a result.
+	// of the parse tree as a result.
 	rootNode, err := parser.NewParser().Parse(scanner)
 	if err != nil {
 		return 0, err
 	}
 
-	// Traversing over the abstract syntax tree will calculate the result for us.
+	// Traversing over the parse tree will calculate the result for us.
 	result, err := evaluateNode(&rootNode)
 	if err != nil {
 		return 0, err
@@ -47,7 +47,7 @@ func Evaluate(expression string) (int, error) {
 	return result, nil
 }
 
-// evaluateNode recursively evaluates an expression node from the abstract syntax tree.
+// evaluateNode recursively evaluates an expression node from the parse tree.
 // The number of children encodes which grammar production was matched:
 //   - 1 child:  INTEGER literal
 //   - 2 children: unary minus ("-" expression)

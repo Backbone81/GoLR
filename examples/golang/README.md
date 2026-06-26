@@ -1,7 +1,7 @@
 # Go
 
-This example demonstrates the use of GoLR for parsing Go source code. It can be used to list all tokens and display an
-abstract syntax tree of such code.
+This example demonstrates the use of GoLR for parsing Go source code. It can be used to list all tokens and display a
+parse tree of such code.
 
 ***IMPORTANT: The Go programming language has some ambiguities which are very hard to solve in the context of an LR(1)
 grammar. The generated parser therefore accepts a superset of valid Go code. A separate pass over the parsed syntax
@@ -12,7 +12,7 @@ The generated scanner produces the same tokens as the official `go/scanner`. Thi
 code of the Go standard library. Roughly 6,500 Go source code files.
 
 The generated parser can not be tested against the official `go/parser`, because the GoLR grammar produces a slightly
-different syntax tree. The parser is still validated against the full source code of the Go standard library to make
+different parse tree. The parser is still validated against the full source code of the Go standard library to make
 sure that those files parse successfully.
 
 The performance of the generated scanner and parser can be compared with a benchmark to the official Go scanner and

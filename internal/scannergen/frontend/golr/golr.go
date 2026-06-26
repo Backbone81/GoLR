@@ -35,7 +35,7 @@ func ToRules(reader io.Reader, filePath string) ([]scannerfrontend.Rule, parserf
 		return nil, parserfrontend.Grammar{}, err
 	}
 
-	walker := golr.NewASTWalker()
+	walker := golr.NewTreeWalker()
 	rules, grammar, err := walker.BuildGrammar(rootNode)
 	if err != nil {
 		return nil, parserfrontend.Grammar{}, err

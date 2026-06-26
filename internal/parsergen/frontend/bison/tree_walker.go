@@ -1,4 +1,4 @@
-//nolint:exhaustive // The ASTWalker will only descend selected nonterminals and does not need to be exhaustive.
+//nolint:exhaustive // The TreeWalker will only descend selected nonterminals and does not need to be exhaustive.
 package bison
 
 import (
@@ -9,9 +9,9 @@ import (
 	"github.com/backbone81/golr/internal/parsergen/frontend/bison/parser"
 )
 
-// ASTWalker is a helper struct which walks the abstract syntax tree of a parsed GNU Bison grammar and extracts all
+// TreeWalker is a helper struct which walks the parse tree of a parsed GNU Bison grammar and extracts all
 // information required to describe the context free grammar therein.
-type ASTWalker struct {
+type TreeWalker struct {
 	grammar frontend.Grammar
 
 	terminalIdxByName    map[string]int
@@ -34,9 +34,9 @@ type ASTWalker struct {
 	activePercentPrec bool
 }
 
-// NewASTWalker creates a new ASTWalker.
-func NewASTWalker() *ASTWalker {
-	result := ASTWalker{
+// NewTreeWalker creates a new TreeWalker.
+func NewTreeWalker() *TreeWalker {
+	result := TreeWalker{
 		terminalIdxByName:    make(map[string]int),
 		nonterminalIdxByName: make(map[string]int),
 	}
@@ -50,9 +50,9 @@ func NewASTWalker() *ASTWalker {
 	return &result
 }
 
-// BuildGrammar takes the root node of the abstract syntax tree, traverses the tree to build the context free grammar
+// BuildGrammar takes the root node of the parse tree, traverses the tree to build the context free grammar
 // and returns the finished grammar afterward.
-func (w *ASTWalker) BuildGrammar(node parser.Node) (frontend.Grammar, error) {
+func (w *TreeWalker) BuildGrammar(node parser.Node) (frontend.Grammar, error) {
 	w.visitInput(&node)
 	if w.startNonterminalName != "" {
 		idx, ok := w.nonterminalIdxByName[w.startNonterminalName]
@@ -64,7 +64,7 @@ func (w *ASTWalker) BuildGrammar(node parser.Node) (frontend.Grammar, error) {
 	return w.grammar, nil
 }
 
-func (w *ASTWalker) visitInput(node *parser.Node) {
+func (w *TreeWalker) visitInput(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalInput {
 		panic("unexpected nonterminal")
 	}
@@ -83,7 +83,7 @@ func (w *ASTWalker) visitInput(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitPrologueDeclarations(node *parser.Node) {
+func (w *TreeWalker) visitPrologueDeclarations(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalPrologueDeclarations {
 		panic("unexpected nonterminal")
 	}
@@ -102,7 +102,7 @@ func (w *ASTWalker) visitPrologueDeclarations(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitPrologueDeclaration(node *parser.Node) {
+func (w *TreeWalker) visitPrologueDeclaration(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalPrologueDeclaration {
 		panic("unexpected nonterminal")
 	}
@@ -119,7 +119,7 @@ func (w *ASTWalker) visitPrologueDeclaration(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitGrammarDeclaration(node *parser.Node) {
+func (w *TreeWalker) visitGrammarDeclaration(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalGrammarDeclaration {
 		panic("unexpected nonterminal")
 	}
@@ -149,7 +149,7 @@ func (w *ASTWalker) visitGrammarDeclaration(node *parser.Node) {
 	w.activePercentStart = activePercentStartBackup
 }
 
-func (w *ASTWalker) visitSymbols_1(node *parser.Node) {
+func (w *TreeWalker) visitSymbols_1(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalSymbols_1 {
 		panic("unexpected nonterminal")
 	}
@@ -168,7 +168,7 @@ func (w *ASTWalker) visitSymbols_1(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitSymbolDeclaration(node *parser.Node) {
+func (w *TreeWalker) visitSymbolDeclaration(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalSymbolDeclaration {
 		panic("unexpected nonterminal")
 	}
@@ -189,7 +189,7 @@ func (w *ASTWalker) visitSymbolDeclaration(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitPrecedenceDeclarator(node *parser.Node) {
+func (w *TreeWalker) visitPrecedenceDeclarator(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalPrecedenceDeclarator {
 		panic("unexpected nonterminal")
 	}
@@ -214,7 +214,7 @@ func (w *ASTWalker) visitPrecedenceDeclarator(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitTokenDecls(node *parser.Node) {
+func (w *TreeWalker) visitTokenDecls(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalTokenDecls {
 		panic("unexpected nonterminal")
 	}
@@ -231,7 +231,7 @@ func (w *ASTWalker) visitTokenDecls(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitTokenDecl_1(node *parser.Node) {
+func (w *TreeWalker) visitTokenDecl_1(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalTokenDecl_1 {
 		panic("unexpected nonterminal")
 	}
@@ -250,7 +250,7 @@ func (w *ASTWalker) visitTokenDecl_1(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitTokenDecl(node *parser.Node) {
+func (w *TreeWalker) visitTokenDecl(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalTokenDecl {
 		panic("unexpected nonterminal")
 	}
@@ -283,7 +283,7 @@ func (w *ASTWalker) visitTokenDecl(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitAlias(node *parser.Node) {
+func (w *TreeWalker) visitAlias(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalAlias {
 		panic("unexpected nonterminal")
 	}
@@ -307,7 +307,7 @@ func (w *ASTWalker) visitAlias(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitStringAsId(node *parser.Node) {
+func (w *TreeWalker) visitStringAsId(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalStringAsId {
 		panic("unexpected nonterminal")
 	}
@@ -320,7 +320,7 @@ func (w *ASTWalker) visitStringAsId(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitTokenDeclsForPrec(node *parser.Node) {
+func (w *TreeWalker) visitTokenDeclsForPrec(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalTokenDeclsForPrec {
 		panic("unexpected nonterminal")
 	}
@@ -339,7 +339,7 @@ func (w *ASTWalker) visitTokenDeclsForPrec(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitTokenDeclForPrec_1(node *parser.Node) {
+func (w *TreeWalker) visitTokenDeclForPrec_1(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalTokenDeclForPrec_1 {
 		panic("unexpected nonterminal")
 	}
@@ -358,7 +358,7 @@ func (w *ASTWalker) visitTokenDeclForPrec_1(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitTokenDeclForPrec(node *parser.Node) {
+func (w *TreeWalker) visitTokenDeclForPrec(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalTokenDeclForPrec {
 		panic("unexpected nonterminal")
 	}
@@ -395,7 +395,7 @@ func (w *ASTWalker) visitTokenDeclForPrec(node *parser.Node) {
 	w.terminalIdxByName[id] = len(w.grammar.Terminals) - 1
 }
 
-func (w *ASTWalker) visitGrammar(node *parser.Node) {
+func (w *TreeWalker) visitGrammar(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalGrammar {
 		panic("unexpected nonterminal")
 	}
@@ -414,7 +414,7 @@ func (w *ASTWalker) visitGrammar(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitRulesOrGrammarDeclaration(node *parser.Node) {
+func (w *TreeWalker) visitRulesOrGrammarDeclaration(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalRulesOrGrammarDeclaration {
 		panic("unexpected nonterminal")
 	}
@@ -433,7 +433,7 @@ func (w *ASTWalker) visitRulesOrGrammarDeclaration(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitRules(node *parser.Node) {
+func (w *TreeWalker) visitRules(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalRules {
 		panic("unexpected nonterminal")
 	}
@@ -466,7 +466,7 @@ func (w *ASTWalker) visitRules(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitRhses_1(node *parser.Node) {
+func (w *TreeWalker) visitRhses_1(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalRhses_1 {
 		panic("unexpected nonterminal")
 	}
@@ -497,7 +497,7 @@ func (w *ASTWalker) visitRhses_1(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitRhs(node *parser.Node) {
+func (w *TreeWalker) visitRhs(node *parser.Node) {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalRhs {
 		panic("unexpected nonterminal")
 	}
@@ -523,7 +523,7 @@ func (w *ASTWalker) visitRhs(node *parser.Node) {
 	}
 }
 
-func (w *ASTWalker) visitSymbol(node *parser.Node) {
+func (w *TreeWalker) visitSymbol(node *parser.Node) {
 	nonterminal, ok := node.Symbol.Nonterminal()
 	if !ok || nonterminal != parser.NonterminalSymbol {
 		panic("unexpected nonterminal")
@@ -572,7 +572,7 @@ func (w *ASTWalker) visitSymbol(node *parser.Node) {
 	w.grammar.Productions[len(w.grammar.Productions)-1] = production
 }
 
-func (w *ASTWalker) getSymbolId(node *parser.Node) (string, error) {
+func (w *TreeWalker) getSymbolId(node *parser.Node) (string, error) {
 	if id, err := w.getID(node); err == nil {
 		return id, nil
 	}
@@ -597,7 +597,7 @@ func (w *ASTWalker) getSymbolId(node *parser.Node) (string, error) {
 	return id, nil
 }
 
-func (w *ASTWalker) getID(node *parser.Node) (string, error) {
+func (w *TreeWalker) getID(node *parser.Node) (string, error) {
 	firstChild := node.Children[0]
 	idNonterminal, ok := firstChild.Symbol.Nonterminal()
 	if !ok {
@@ -618,7 +618,7 @@ func (w *ASTWalker) getID(node *parser.Node) (string, error) {
 	return string(firstChildChild.Lexeme), nil
 }
 
-func (w *ASTWalker) getStringAsID(node *parser.Node) (string, error) {
+func (w *TreeWalker) getStringAsID(node *parser.Node) (string, error) {
 	firstChild := node.Children[0]
 	idNonterminal, ok := firstChild.Symbol.Nonterminal()
 	if !ok {
@@ -639,7 +639,7 @@ func (w *ASTWalker) getStringAsID(node *parser.Node) (string, error) {
 	return string(firstChildChild.Lexeme), nil
 }
 
-func (w *ASTWalker) getCharLiteralAsID(node *parser.Node) (string, error) {
+func (w *TreeWalker) getCharLiteralAsID(node *parser.Node) (string, error) {
 	firstChild := node.Children[0]
 	idNonterminal, ok := firstChild.Symbol.Nonterminal()
 	if !ok {
@@ -660,7 +660,7 @@ func (w *ASTWalker) getCharLiteralAsID(node *parser.Node) (string, error) {
 	return string(firstChildChild.Lexeme), nil
 }
 
-func (w *ASTWalker) getIDColon(node *parser.Node) (string, error) {
+func (w *TreeWalker) getIDColon(node *parser.Node) (string, error) {
 	firstChild := node.Children[0]
 	idNonterminal, ok := firstChild.Symbol.Nonterminal()
 	if !ok {

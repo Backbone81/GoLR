@@ -494,7 +494,7 @@ func (s Symbol) String() string {
 	return fmt.Sprintf("terminal %d", Token(nonterminal))
 }
 
-// Node is a single node of the abstract syntax tree.
+// Node is a single node of the parse tree.
 type Node struct {
 	Symbol   Symbol
 	Lexeme   []byte
@@ -565,7 +565,7 @@ func NewParser() *Parser {
 // exposed to the user.
 var errAccept = errors.New("accept")
 
-// Parse executes a parse on the tokens provided by the scanner and returns a syntax tree or an error. Parse can be
+// Parse executes a parse on the tokens provided by the scanner and returns a parse tree or an error. Parse can be
 // called multiple times with different scanners to re-use the memory already allocated by the parser.
 func (p *Parser) Parse(scanner ParserScanner) (Node, error) {
 	p.scanner = scanner

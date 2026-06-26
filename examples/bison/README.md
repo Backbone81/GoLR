@@ -1,7 +1,7 @@
 # GNU Bison Grammar Parser
 
 This example demonstrates how to generate a scanner and parser for processing GNU Bison grammar files. It can then
-be used to list all tokens and display an abstract syntax tree of such a grammar.
+be used to list all tokens and display a parse tree of such a grammar.
 
 The `spec` folder contains a description of tokens in the GoLR format alongside the official GNU Bison grammar used by
 GNU Bison itself.

@@ -35,7 +35,7 @@ func ToGrammar(reader io.Reader, filePath string) ([]frontend2.Rule, frontend.Gr
 		return nil, frontend.Grammar{}, err
 	}
 
-	walker := NewASTWalker()
+	walker := NewTreeWalker()
 	rules, grammar, err := walker.BuildGrammar(rootNode)
 	if err != nil {
 		return nil, frontend.Grammar{}, err

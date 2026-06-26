@@ -332,7 +332,7 @@ var _ = Describe("Golang Parser", func() {
 				golrParser := parser.NewParser()
 				ast, err := golrParser.Parse(golrScanner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(ast).To(Equal(buildBasicLitAST(parser.TokenIntLit, literal)), literal)
+				Expect(ast).To(Equal(buildBasicLitTree(parser.TokenIntLit, literal)), literal)
 			},
 			Entry("Integer", "42"),
 			Entry("Integer", "4_2"),
@@ -362,7 +362,7 @@ var _ = Describe("Golang Parser", func() {
 				golrParser := parser.NewParser()
 				ast, err := golrParser.Parse(golrScanner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(ast).To(Equal(buildBasicLitAST(parser.TokenFloatLit, literal)))
+				Expect(ast).To(Equal(buildBasicLitTree(parser.TokenFloatLit, literal)))
 			},
 			Entry("Decimal float", "0."),
 			Entry("Decimal float", "72.40"),
@@ -396,7 +396,7 @@ var _ = Describe("Golang Parser", func() {
 				golrParser := parser.NewParser()
 				ast, err := golrParser.Parse(golrScanner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(ast).To(Equal(buildBasicLitAST(parser.TokenImaginaryLit, literal)))
+				Expect(ast).To(Equal(buildBasicLitTree(parser.TokenImaginaryLit, literal)))
 			},
 			Entry("Imaginary", "0i"),
 			Entry("Imaginary", "0123i"),
@@ -425,7 +425,7 @@ var _ = Describe("Golang Parser", func() {
 				golrParser := parser.NewParser()
 				ast, err := golrParser.Parse(golrScanner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(ast).To(Equal(buildBasicLitAST(parser.TokenRuneLit, literal)))
+				Expect(ast).To(Equal(buildBasicLitTree(parser.TokenRuneLit, literal)))
 			},
 			Entry("Rune literal", `'a'`),
 			Entry("Rune literal", `'ä'`),
@@ -454,7 +454,7 @@ var _ = Describe("Golang Parser", func() {
 				golrParser := parser.NewParser()
 				ast, err := golrParser.Parse(golrScanner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(ast).To(Equal(buildBasicLitAST(parser.TokenStringLit, literal)))
+				Expect(ast).To(Equal(buildBasicLitTree(parser.TokenStringLit, literal)))
 			},
 			Entry("String literal", "`abc`"),
 			Entry("String literal", "`\\n\n\\n`"),
@@ -709,7 +709,7 @@ var _ = Describe("Golang Parser", func() {
 	})
 })
 
-func buildBasicLitAST(token parser.Token, lexeme string) parser.Node {
+func buildBasicLitTree(token parser.Token, lexeme string) parser.Node {
 	return parser.Node{
 		Symbol: parser.NewNonterminal(parser.NonterminalSourcefile),
 		Children: []parser.Node{

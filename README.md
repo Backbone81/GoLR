@@ -13,7 +13,7 @@ The architecture of GoLR separates the frontend from the core and the backend. T
 the context free grammar from different input formats. The core constructs the LR(1) parser from the grammar. The
 backend finally outputs the parser into different output formats.
 
-The generated parser constructs an abstract syntax tree which you can then walk and execute semantic actions
+The generated parser constructs a parse tree which you can then walk and execute semantic actions
 accordingly.
 
 For more details about how this project came to be, see the documentation about [motivation](docs/motivation.md).
@@ -60,7 +60,7 @@ if err != nil {
 }
 ```
 
-You can then walk the abstract syntax tree from the root node.
+You can then walk the parse tree from the root node.
 
 ## Examples
 

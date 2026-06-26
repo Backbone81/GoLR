@@ -33,7 +33,7 @@ func GoLR(reader io.Reader, writer io.Writer, filePath string) error {
 		return err
 	}
 
-	walker := golr.NewASTWalker()
+	walker := golr.NewTreeWalker()
 	rules, grammar, err := walker.BuildGrammar(rootNode)
 	if err != nil {
 		return err
