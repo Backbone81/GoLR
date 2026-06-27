@@ -27,8 +27,12 @@ prepare: generate
 		golangci/golangci-lint:v2.12.2 \
 		golangci-lint run --fix $(PACKAGE)
 
+.PHONY: build-examples
+build-examples: prepare
+	$(MAKE) -C examples build
+
 .PHONY: build
-build: prepare
+build: build-examples
 	go build ./cmd/golr
 
 .PHONY: run
@@ -49,7 +53,7 @@ test: test-examples
 
 .PHONY: test-examples
 test-examples: prepare
-	$(MAKE) -C examples build test
+	$(MAKE) -C examples test
 
 .PHONY: benchmark
 benchmark: prepare

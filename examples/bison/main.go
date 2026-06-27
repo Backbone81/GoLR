@@ -56,7 +56,7 @@ func printAbstractSyntaxTree(filePath string, data []byte) {
 	if err != nil {
 		panic(err)
 	}
-	nodeCount := printTree(rootNode, "", true, 0)
+	nodeCount := printTree(&rootNode, "", true, 0)
 
 	fmt.Println()
 	fmt.Printf("%d nodes\n", nodeCount)
@@ -84,7 +84,7 @@ func printTree(node *parser.Node, prefix string, isLast bool, depth int) int {
 	var nodeCounter int
 	for i, child := range node.Children {
 		nodeCounter++
-		nodeCounter += printTree(child, childPrefix, i == len(node.Children)-1, depth+1)
+		nodeCounter += printTree(&child, childPrefix, i == len(node.Children)-1, depth+1)
 	}
 	return nodeCounter
 }
