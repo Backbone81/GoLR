@@ -67,6 +67,10 @@ func (d *DigraphAlgorithm) traverse(gotoIdx int) {
 		for {
 			topOfStack := d.gotoIdxWorkStack.Top()
 			d.processed[topOfStack] = math.MaxInt
+			// All members of a strongly connected component share the same follow set, which is fully accumulated in
+			// the root of the component (gotoIdx). Copy it into each member, otherwise members other than the root keep
+			// an incomplete set. This is the "F(Top of S) <- F x" step of the Digraph algorithm by DeRemer and Pennello.
+			d.merge(topOfStack, gotoIdx)
 			d.gotoIdxWorkStack.Pop()
 			if topOfStack == gotoIdx {
 				break
