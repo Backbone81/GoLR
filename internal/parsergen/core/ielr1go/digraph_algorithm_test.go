@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"slices"
+	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -301,4 +302,58 @@ func randomGraph(random *rand.Rand) (int, []ielr1go.Edge) {
 		}
 	}
 	return nodeCount, edges
+}
+
+// BenchmarkDigraphAlgorithm measures constructing and running the digraph algorithm on graphs of different sizes and
+// densities. The dense cases (many more edges than nodes) are the interesting ones: they are where scanning the whole
+// edge list per node used to dominate, so they are the best guard against a regression back to that behavior.
+func BenchmarkDigraphAlgorithm(b *testing.B) {
+	benchmarks := []struct {
+		description string
+		nodeCount   int
+		edgeCount   int
+	}{
+		{"nodes=128,edges=128", 128, 128},
+		{"nodes=128,edges=1024", 128, 1024},
+		{"nodes=1024,edges=1024", 1024, 1024},
+		{"nodes=1024,edges=8192", 1024, 8192},
+		{"nodes=4096,edges=4096", 4096, 4096},
+		{"nodes=4096,edges=32768", 4096, 32768},
+	}
+	for _, benchmark := range benchmarks {
+		edges := benchmarkGraph(benchmark.nodeCount, benchmark.edgeCount)
+		b.Run(benchmark.description, func(b *testing.B) {
+			for range b.N {
+				// Each run mutates the follow sets, so we start from fresh records seeded with one token per node. This
+				// setup is excluded from the measurement, so the reported time and allocations cover only constructing and
+				// running the digraph algorithm.
+				b.StopTimer()
+				gotoRecords := make([]ielr1go.GotoRecord, benchmark.nodeCount)
+				for nodeIdx := range gotoRecords {
+					gotoRecords[nodeIdx].GotoFollows.Add(nodeIdx)
+				}
+				merge := func(fromGotoIdx int, toGotoIdx int) {
+					gotoRecords[fromGotoIdx].GotoFollows.Merge(&gotoRecords[toGotoIdx].GotoFollows)
+				}
+				b.StartTimer()
+
+				digraph := ielr1go.NewDigraphAlgorithm(gotoRecords, edges, merge)
+				digraph.Execute()
+			}
+		})
+	}
+}
+
+// benchmarkGraph builds a deterministic random graph with the given number of nodes and edges. The fixed seed keeps the
+// benchmark comparable across runs.
+func benchmarkGraph(nodeCount int, edgeCount int) []ielr1go.Edge {
+	random := rand.New(rand.NewSource(1))
+	edges := make([]ielr1go.Edge, edgeCount)
+	for edgeIdx := range edges {
+		edges[edgeIdx] = ielr1go.Edge{
+			FromIdx: random.Intn(nodeCount),
+			ToIdx:   random.Intn(nodeCount),
+		}
+	}
+	return edges
 }

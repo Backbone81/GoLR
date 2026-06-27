@@ -11,7 +11,14 @@ import (
 // for propagating goto follow sets correctly across a directed graph which might contain loops and shortcuts.
 type DigraphAlgorithm struct {
 	gotoRecords []GotoRecord
-	edges       []Edge
+
+	// successorGotoIdxs holds the target goto index of every edge in the relation, grouped by source goto, so that
+	// traverse only looks at the outgoing edges of a goto instead of scanning the whole edge list on every call. The
+	// successors of source goto g are the slice successorGotoIdxs[successorGotoIdxOffsets[g]:successorGotoIdxOffsets[g+1]].
+	// This compressed-sparse-row layout keeps the whole relation in two allocations regardless of the number of gotos,
+	// and stores the successors of each goto contiguously.
+	successorGotoIdxs       []int
+	successorGotoIdxOffsets []int
 
 	gotoIdxWorkStack utils.Stack[int]
 	processed        []int
@@ -26,11 +33,29 @@ func NewDigraphAlgorithm(
 	edges []Edge,
 	merge func(fromGotoIdx int, toGotoIdx int),
 ) DigraphAlgorithm {
+	// Build the compressed-sparse-row adjacency. First count the outgoing edges per goto to get the offsets, then place
+	// each edge target into the slot reserved for its source goto.
+	successorGotoIdxOffsets := make([]int, len(gotoRecords)+1)
+	for _, edge := range edges {
+		successorGotoIdxOffsets[edge.FromIdx+1]++
+	}
+	for gotoIdx := 1; gotoIdx < len(successorGotoIdxOffsets); gotoIdx++ {
+		successorGotoIdxOffsets[gotoIdx] += successorGotoIdxOffsets[gotoIdx-1]
+	}
+	successorGotoIdxs := make([]int, len(edges))
+	nextSuccessorSlot := make([]int, len(gotoRecords))
+	copy(nextSuccessorSlot, successorGotoIdxOffsets)
+	for _, edge := range edges {
+		successorGotoIdxs[nextSuccessorSlot[edge.FromIdx]] = edge.ToIdx
+		nextSuccessorSlot[edge.FromIdx]++
+	}
+
 	return DigraphAlgorithm{
-		gotoRecords: gotoRecords,
-		edges:       edges,
-		merge:       merge,
-		processed:   make([]int, len(gotoRecords)),
+		gotoRecords:             gotoRecords,
+		successorGotoIdxs:       successorGotoIdxs,
+		successorGotoIdxOffsets: successorGotoIdxOffsets,
+		merge:                   merge,
+		processed:               make([]int, len(gotoRecords)),
 	}
 }
 
@@ -51,17 +76,13 @@ func (d *DigraphAlgorithm) traverse(gotoIdx int) {
 	d.gotoIdxWorkStack.Push(gotoIdx)
 	currDepth := d.gotoIdxWorkStack.Size()
 	d.processed[gotoIdx] = currDepth
-	// TODO: iterating over all edges here is very inefficient
-	for _, edge := range d.edges {
-		if edge.FromIdx != gotoIdx {
-			continue
-		}
-		if d.processed[edge.ToIdx] == 0 {
+	for _, toIdx := range d.successorGotoIdxs[d.successorGotoIdxOffsets[gotoIdx]:d.successorGotoIdxOffsets[gotoIdx+1]] {
+		if d.processed[toIdx] == 0 {
 			// The target goto index for the edge has not been processed yet, so process that goto now.
-			d.traverse(edge.ToIdx)
+			d.traverse(toIdx)
 		}
-		d.processed[gotoIdx] = min(d.processed[gotoIdx], d.processed[edge.ToIdx])
-		d.merge(gotoIdx, edge.ToIdx)
+		d.processed[gotoIdx] = min(d.processed[gotoIdx], d.processed[toIdx])
+		d.merge(gotoIdx, toIdx)
 	}
 	if d.processed[gotoIdx] == currDepth {
 		for {
