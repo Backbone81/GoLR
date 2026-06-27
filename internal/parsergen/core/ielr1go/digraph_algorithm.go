@@ -24,8 +24,19 @@ type DigraphAlgorithm struct {
 	successorGotoIdxs       []int
 	successorGotoIdxOffsets []int
 
+	// gotoIdxWorkStack holds the gotos on the current depth-first traversal path whose strongly connected component has
+	// not been closed yet. It is the stack "S" of the Digraph algorithm. When a component root is found, its members sit
+	// contiguously on top of the stack and are popped together. The zero value is an empty stack, ready to use.
 	gotoIdxWorkStack utils.Stack[int]
-	processed        []int
+
+	// processed records the traversal state of every goto, indexed by goto index. It is the array "N" of the Digraph
+	// algorithm and encodes three states in one int:
+	//   - 0:           the goto has not been visited yet (the zero value, set up by NewDigraphAlgorithm).
+	//   - 1..len:      the goto is on gotoIdxWorkStack; the value is its depth on the stack, lowered to the smallest
+	//                  depth reachable through a back edge so the component root is the goto whose value still equals its
+	//                  own depth.
+	//   - math.MaxInt: the goto's component has been closed; its follow set is final and it is ignored from then on.
+	processed []int
 }
 
 // NewDigraphAlgorithm creates a new instances for algorithm digraph. The follows slice is indexed by goto index, owned
