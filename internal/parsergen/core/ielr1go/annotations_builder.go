@@ -158,7 +158,7 @@ func (b *AnnotationsBuilder) getItemLookaheadSetFromGotoFollows(stateIdx int, it
 				// the production for our core.
 				continue
 			}
-			b.itemLookaheadSets[stateIdx][itemIdx].Merge(&b.lalr1Builder.gotoRecords[gotoIdx].GotoFollows)
+			b.itemLookaheadSets[stateIdx][itemIdx].Merge(&b.lalr1Builder.gotoFollows[gotoIdx])
 		}
 	}
 	return b.itemLookaheadSets[stateIdx][itemIdx]
@@ -250,7 +250,7 @@ func (b *AnnotationsBuilder) computeLhsContributions(stateIdx int, nonterminalId
 		gotoIdx = idx
 		break
 	}
-	if b.lalr1Builder.gotoRecords[gotoIdx].AlwaysFollows.Contains(terminalIdx) {
+	if b.lalr1Builder.alwaysFollows[gotoIdx].Contains(terminalIdx) {
 		return nil
 	}
 

@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/core/ielr1go"
 )
 
@@ -19,20 +20,18 @@ var _ = Describe("Digraph Algorithm", func() {
 	// every token, so over-propagation (a node receiving a follow it should not see) is caught as well.
 	DescribeTable("should propagate follow sets to every reachable node and to no others",
 		func(nodeCount int, edges []ielr1go.Edge, expected [][]int) {
-			gotoRecords := make([]ielr1go.GotoRecord, nodeCount)
-			for nodeIdx := range gotoRecords {
-				gotoRecords[nodeIdx].GotoFollows.Add(nodeIdx)
+			follows := make([]backend.LookaheadSet, nodeCount)
+			for nodeIdx := range follows {
+				follows[nodeIdx].Add(nodeIdx)
 			}
 
-			digraph := ielr1go.NewDigraphAlgorithm(gotoRecords, edges, func(fromGotoIdx int, toGotoIdx int) {
-				gotoRecords[fromGotoIdx].GotoFollows.Merge(&gotoRecords[toGotoIdx].GotoFollows)
-			})
+			digraph := ielr1go.NewDigraphAlgorithm(follows, edges)
 			digraph.Execute()
 
-			for nodeIdx := range gotoRecords {
+			for nodeIdx := range follows {
 				for token := range nodeCount {
 					want := slices.Contains(expected[nodeIdx], token)
-					Expect(gotoRecords[nodeIdx].GotoFollows.Contains(token)).To(
+					Expect(follows[nodeIdx].Contains(token)).To(
 						Equal(want),
 						"node %d should have token %d == %v", nodeIdx, token, want,
 					)
@@ -237,20 +236,18 @@ var _ = Describe("Digraph Algorithm", func() {
 // exactly the set of nodes reachable from it. Seeding singletons is sufficient to exercise propagation completely:
 // follow sets distribute over union, so correctness for per-node singletons implies correctness for any initial sets.
 func compareDigraphToOracle(nodeCount int, edges []ielr1go.Edge) (string, bool) {
-	gotoRecords := make([]ielr1go.GotoRecord, nodeCount)
-	for nodeIdx := range gotoRecords {
-		gotoRecords[nodeIdx].GotoFollows.Add(nodeIdx)
+	follows := make([]backend.LookaheadSet, nodeCount)
+	for nodeIdx := range follows {
+		follows[nodeIdx].Add(nodeIdx)
 	}
-	digraph := ielr1go.NewDigraphAlgorithm(gotoRecords, edges, func(fromGotoIdx int, toGotoIdx int) {
-		gotoRecords[fromGotoIdx].GotoFollows.Merge(&gotoRecords[toGotoIdx].GotoFollows)
-	})
+	digraph := ielr1go.NewDigraphAlgorithm(follows, edges)
 	digraph.Execute()
 
 	want := naiveReachabilityFollows(nodeCount, edges)
 
 	for nodeIdx := range nodeCount {
 		for token := range nodeCount {
-			got := gotoRecords[nodeIdx].GotoFollows.Contains(token)
+			got := follows[nodeIdx].Contains(token)
 			if got != want[nodeIdx][token] {
 				return fmt.Sprintf(
 					"node %d token %d: got %v, want %v (nodeCount=%d, edges=%v)",
@@ -324,20 +321,17 @@ func BenchmarkDigraphAlgorithm(b *testing.B) {
 		edges := benchmarkGraph(benchmark.nodeCount, benchmark.edgeCount)
 		b.Run(benchmark.description, func(b *testing.B) {
 			for range b.N {
-				// Each run mutates the follow sets, so we start from fresh records seeded with one token per node. This
+				// Each run mutates the follow sets, so we start from fresh follow sets seeded with one token per node. This
 				// setup is excluded from the measurement, so the reported time and allocations cover only constructing and
 				// running the digraph algorithm.
 				b.StopTimer()
-				gotoRecords := make([]ielr1go.GotoRecord, benchmark.nodeCount)
-				for nodeIdx := range gotoRecords {
-					gotoRecords[nodeIdx].GotoFollows.Add(nodeIdx)
-				}
-				merge := func(fromGotoIdx int, toGotoIdx int) {
-					gotoRecords[fromGotoIdx].GotoFollows.Merge(&gotoRecords[toGotoIdx].GotoFollows)
+				follows := make([]backend.LookaheadSet, benchmark.nodeCount)
+				for nodeIdx := range follows {
+					follows[nodeIdx].Add(nodeIdx)
 				}
 				b.StartTimer()
 
-				digraph := ielr1go.NewDigraphAlgorithm(gotoRecords, edges, merge)
+				digraph := ielr1go.NewDigraphAlgorithm(follows, edges)
 				digraph.Execute()
 			}
 		})

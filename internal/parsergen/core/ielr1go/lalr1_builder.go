@@ -53,6 +53,16 @@ type LALR1Builder struct {
 	// gotoRecords provides details about each nonterminal transition. This is derived from definition 3.4 of IELR(1).
 	gotoRecords []GotoRecord
 
+	// gotoFollows holds the goto follow set for each goto, indexed by goto index. This is "goto_follows" from IELR(1)
+	// definition 3.4.
+	gotoFollows []backend.LookaheadSet
+
+	// successorFollows holds the successor follows from IELR(1) definition 3.6, indexed by goto index.
+	successorFollows []backend.LookaheadSet
+
+	// alwaysFollows holds the follow set from definition 3.20 of IELR(1), indexed by goto index.
+	alwaysFollows []backend.LookaheadSet
+
 	// gotoIdxsByStateIdx provides a list of goto indexes when indexed by state index. This is helpful when calculating
 	// internal dependencies, as we need access to all gotos within the same state.
 	gotoIdxsByStateIdx map[int][]int
@@ -482,7 +492,7 @@ func (b *LALR1Builder) addReductionLookaheadSets() {
 	// lookahead set.
 	for i := range b.reduceActions {
 		for _, gotoIdx := range b.getGeneratedGotoIdxs(b.reduceActions[i].StateIdx, b.reduceActions[i].Core) {
-			b.reduceActions[i].LookaheadSet.Merge(&b.gotoRecords[gotoIdx].GotoFollows)
+			b.reduceActions[i].LookaheadSet.Merge(&b.gotoFollows[gotoIdx])
 		}
 	}
 }
@@ -633,14 +643,9 @@ func (b *LALR1Builder) printGotoFollowsPredecessorRelations(writer io.Writer) er
 // calculateSuccessorFollows fills the successor follows as specified in definition 3.6 of IELR(1) by propagating
 // the follow sets along the goto follows successor relations. Those are also called "reads" by DeRemer and Pennello.
 func (b *LALR1Builder) calculateSuccessorFollows() {
+	b.successorFollows = make([]backend.LookaheadSet, len(b.gotoRecords))
 	b.initSuccessorFollows()
-	propagation := NewDigraphAlgorithm(
-		b.gotoRecords,
-		b.gotoFollowsSuccessorRelation,
-		func(fromGotoIdx int, toGotoIdx int) {
-			b.gotoRecords[fromGotoIdx].SuccessorFollows.Merge(&b.gotoRecords[toGotoIdx].SuccessorFollows)
-		},
-	)
+	propagation := NewDigraphAlgorithm(b.successorFollows, b.gotoFollowsSuccessorRelation)
 	propagation.Execute()
 }
 
@@ -651,7 +656,7 @@ func (b *LALR1Builder) initSuccessorFollows() {
 		stateIdx := b.gotoRecords[gotoIdx].ToStateIdx
 		transitions := SliceFromView(b.terminalTransitions, b.terminalTransitionsByState[stateIdx])
 		for _, transition := range transitions {
-			b.gotoRecords[gotoIdx].SuccessorFollows.Add(transition.SymbolIdx)
+			b.successorFollows[gotoIdx].Add(transition.SymbolIdx)
 		}
 	}
 }
@@ -669,7 +674,7 @@ func (b *LALR1Builder) printGotoSuccessorFollows(writer io.Writer) error {
 			record.ToStateIdx,
 			b.grammar.Nonterminals[record.NonterminalIdx],
 			record.FromStateIdx,
-			record.SuccessorFollows.String(),
+			b.successorFollows[idx].String(),
 		); err != nil {
 			return err
 		}
@@ -682,38 +687,34 @@ func (b *LALR1Builder) printGotoSuccessorFollows(writer io.Writer) error {
 
 // calculateAlwaysFollows fills the always follows as specified in definition 3.20 of IELR(1).
 func (b *LALR1Builder) calculateAlwaysFollows() {
+	b.alwaysFollows = make([]backend.LookaheadSet, len(b.gotoRecords))
 	// Initialize the always follows with the terminal transitions of the target state.
 	for i := range b.gotoRecords {
 		stateIdx := b.gotoRecords[i].ToStateIdx
-		var terminals backend.LookaheadSet
 		for _, transition := range SliceFromView(b.terminalTransitions, b.terminalTransitionsByState[stateIdx]) {
-			terminals.Add(transition.SymbolIdx)
+			b.alwaysFollows[i].Add(transition.SymbolIdx)
 		}
-		b.gotoRecords[i].AlwaysFollows.Merge(&terminals)
 	}
 
 	gotoFollowsAlwaysRelation := make([]Edge, len(b.gotoFollowsSuccessorRelation)+len(b.gotoFollowsInternalRelation))
 	copy(gotoFollowsAlwaysRelation[:len(b.gotoFollowsSuccessorRelation)], b.gotoFollowsSuccessorRelation)
 	copy(gotoFollowsAlwaysRelation[len(b.gotoFollowsSuccessorRelation):], b.gotoFollowsInternalRelation)
-	propagation := NewDigraphAlgorithm(b.gotoRecords, gotoFollowsAlwaysRelation, func(fromGotoIdx int, toGotoIdx int) {
-		b.gotoRecords[fromGotoIdx].AlwaysFollows.Merge(&b.gotoRecords[toGotoIdx].AlwaysFollows)
-	})
+	propagation := NewDigraphAlgorithm(b.alwaysFollows, gotoFollowsAlwaysRelation)
 	propagation.Execute()
 }
 
 // calculateGotoFollows fills the goto follows as specified in definition 3.24 of IELR(1) by propagating the follow sets
 // along the goto follows includes relations.
 func (b *LALR1Builder) calculateGotoFollows() {
+	b.gotoFollows = make([]backend.LookaheadSet, len(b.gotoRecords))
 	// Initialize the goto follows with the always follows of the same goto.
 	for i := range b.gotoRecords {
-		b.gotoRecords[i].GotoFollows.Merge(&b.gotoRecords[i].AlwaysFollows)
+		b.gotoFollows[i].Merge(&b.alwaysFollows[i])
 	}
 	gotoFollowsIncludesRelation := make([]Edge, len(b.gotoFollowsInternalRelation)+len(b.gotoFollowsPredecessorRelation))
 	copy(gotoFollowsIncludesRelation[:len(b.gotoFollowsInternalRelation)], b.gotoFollowsInternalRelation)
 	copy(gotoFollowsIncludesRelation[len(b.gotoFollowsInternalRelation):], b.gotoFollowsPredecessorRelation)
-	propagation := NewDigraphAlgorithm(b.gotoRecords, gotoFollowsIncludesRelation, func(fromGotoIdx int, toGotoIdx int) {
-		b.gotoRecords[fromGotoIdx].GotoFollows.Merge(&b.gotoRecords[toGotoIdx].GotoFollows)
-	})
+	propagation := NewDigraphAlgorithm(b.gotoFollows, gotoFollowsIncludesRelation)
 	propagation.Execute()
 }
 
@@ -730,7 +731,7 @@ func (b *LALR1Builder) printGotoFollows(writer io.Writer) error {
 			record.ToStateIdx,
 			b.grammar.Nonterminals[record.NonterminalIdx],
 			record.FromStateIdx,
-			record.GotoFollows.String(),
+			b.gotoFollows[idx].String(),
 		); err != nil {
 			return err
 		}

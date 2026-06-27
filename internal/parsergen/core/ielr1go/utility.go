@@ -40,15 +40,6 @@ type GotoRecord struct {
 
 	// NonterminalIdx is the nonterminal index which is triggering this goto.
 	NonterminalIdx int
-
-	// Follows is the goto follow for this goto. This is "goto_follows" from IELR(1) definition 3.4.
-	GotoFollows backend.LookaheadSet
-
-	// SuccessorFollows provides the successor follows from IELR(1) definition 3.6.
-	SuccessorFollows backend.LookaheadSet
-
-	// AlwaysFollows provides the follow set from definition 3.20 of IELR(1).
-	AlwaysFollows backend.LookaheadSet
 }
 
 type InternalDependencyCandidate struct {
