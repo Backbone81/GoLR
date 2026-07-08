@@ -3,9 +3,6 @@ package ielr1go
 import (
 	"context"
 	"errors"
-	"fmt"
-	"io"
-	"maps"
 	"runtime/trace"
 	"slices"
 
@@ -47,8 +44,15 @@ type LALR1Builder struct {
 	// reduceActions is a list with all reduce actions for the parser.
 	reduceActions []ReduceActionRecord
 
+	// terminalTransitions is the flat list of all terminal transitions for the parser, appended state by state during
+	// LR(0) construction.
+	terminalTransitions []TransitionRecord
+
+	// terminalTransitionsByState indexes into terminalTransitions to give the terminal transitions of a single state
+	// when indexed by state index. This relies on the terminal transitions of a state being stored contiguously: while
+	// a state is processed nothing else appends to terminalTransitions, so its transitions form one uninterrupted run
+	// which the view captures as an offset and a length.
 	terminalTransitionsByState []SliceView
-	terminalTransitions        []TransitionRecord
 
 	// gotoRecords provides details about each nonterminal transition. This is derived from definition 3.4 of IELR(1).
 	gotoRecords []GotoRecord
@@ -56,9 +60,6 @@ type LALR1Builder struct {
 	// gotoFollows holds the goto follow set for each goto, indexed by goto index. This is "goto_follows" from IELR(1)
 	// definition 3.4.
 	gotoFollows []backend.LookaheadSet
-
-	// successorFollows holds the successor follows from IELR(1) definition 3.6, indexed by goto index.
-	successorFollows []backend.LookaheadSet
 
 	// alwaysFollows holds the follow set from definition 3.20 of IELR(1), indexed by goto index.
 	alwaysFollows []backend.LookaheadSet
@@ -88,12 +89,11 @@ type LALR1Builder struct {
 	successorDependencyCandidates []int
 
 	// internalDependencyCandidates provides a list of goto indexes which are part of an internal dependency. This list
-	// is constructed during LR(0) state construction and used afterward to extend the goto follows successor
-	// relations.
+	// is constructed during LR(0) state construction and used afterward to build the goto follows internal relations.
 	internalDependencyCandidates []InternalDependencyCandidate
 
 	// predecessorDependencyCandidates provides a list of goto indexes which are part of a predecessor dependency. This
-	// list is constructed during LR(0) state construction and used afterward to extend the goto follows successor
+	// list is constructed during LR(0) state construction and used afterward to build the goto follows predecessor
 	// relations.
 	predecessorDependencyCandidates []PredecessorDependencyCandidate
 }
@@ -195,18 +195,23 @@ func (b *LALR1Builder) buildLR0States() {
 	// We keep those variables outside the loop to re-use their allocated memory in subsequent loops.
 	nextKernelItemsBySymbolRef := make(map[frontend.SymbolRef]*backend.CoreSet, 32)
 	emptyProductionIdxs := make([]int, 0, 32)
+	sortedSymbolRefs := make([]frontend.SymbolRef, 0, 32)
 
 	stateIdxWorkList := utils.NewDynamicRingBuffer[int]()
 	b.initStartState(&stateIdxWorkList)
 	for !stateIdxWorkList.IsEmpty() {
 		stateIdx := stateIdxWorkList.Remove()
 
-		// TODO: replace this construct with a transition map for now to reduce complexity
+		// The terminal transitions of this state are about to be appended contiguously to terminalTransitions, so we
+		// remember where they start and record their length once the state is fully processed. See the doc comment on
+		// terminalTransitionsByState for the contiguity invariant this relies on.
+		// TODO: Consider replacing this offset/length bookkeeping with a simpler per-state transition map.
 		b.terminalTransitionsByState[stateIdx].Offset = len(b.terminalTransitions)
 
 		b.buildNextKernelItems(stateIdx, nextKernelItemsBySymbolRef, &emptyProductionIdxs)
 		b.recordReduceActions(stateIdx, emptyProductionIdxs)
-		for _, symbolRef := range b.getSortedSymbolRefs(nextKernelItemsBySymbolRef) {
+		sortedSymbolRefs = b.getSortedSymbolRefs(nextKernelItemsBySymbolRef, sortedSymbolRefs)
+		for _, symbolRef := range sortedSymbolRefs {
 			nextKernelItems := nextKernelItemsBySymbolRef[symbolRef]
 			nextKernelItemsHash := nextKernelItems.Hash()
 
@@ -291,8 +296,13 @@ func (b *LALR1Builder) advanceCore(
 	production := b.grammar.Productions[core.ProductionIdx()]
 	if core.Position() == len(production.SymbolRefs) {
 		// We are already at the end of the production.
-		if len(production.SymbolRefs) == 0 {
-			// We found an empty production and need to record it for the main LR(0) loop.
+		if len(production.SymbolRefs) == 0 && !slices.Contains(*emptyProductionIdxs, core.ProductionIdx()) {
+			// We found an empty production and need to record it for the main LR(0) loop. The same empty production can
+			// be reached through several closure items which step over the same nullable nonterminal. As empty
+			// productions never become part of a core, they bypass the core deduplication below, so we guard against
+			// recording them more than once here. Without this guard we would emit duplicate reduce actions for the
+			// empty production. The number of distinct empty productions per state is tiny, so the linear scan is
+			// cheap and keeps this allocation-neutral.
 			*emptyProductionIdxs = append(*emptyProductionIdxs, core.ProductionIdx())
 		}
 		return
@@ -344,10 +354,17 @@ func (b *LALR1Builder) recordReduceActions(stateIdx int, emptyProductionIdxs []i
 // getSortedSymbolRefs returns a sorted list of symbols to index into the nextKernelItemsBySymbolRef. This is important
 // as we want to have a stable order in which states are created, and we would not have that stability with the map
 // alone, as the map does not guarantee any specific order for its keys.
+//
+// The buffer is reused across states to avoid an allocation per state. It is reset before use, so the caller can pass
+// the slice returned by the previous call back in.
 func (b *LALR1Builder) getSortedSymbolRefs(
 	nextKernelItemsBySymbolRef map[frontend.SymbolRef]*backend.CoreSet,
+	buffer []frontend.SymbolRef,
 ) []frontend.SymbolRef {
-	symbolRefs := slices.Collect(maps.Keys(nextKernelItemsBySymbolRef))
+	symbolRefs := buffer[:0]
+	for symbolRef := range nextKernelItemsBySymbolRef {
+		symbolRefs = append(symbolRefs, symbolRef)
+	}
 	slices.Sort(symbolRefs)
 	return symbolRefs
 }
@@ -480,10 +497,13 @@ func (b *LALR1Builder) addReductionLookaheadSets() {
 	b.buildGotoFollowsInternalRelations()
 	b.buildGotoFollowsPredecessorRelations()
 
-	// TODO: Check if we can improve performance by not calculating all successor and goto follows up front, but instead
+	// We follow implementation 2 from IELR(1) section 3.3.5, which computes goto follows from always follows
+	// (definition 3.24) and never computes successor follows (definition 3.6). Only the successor relation itself is
+	// needed, as an input to the always follows.
+	//
+	// TODO: Check if we can improve performance by not calculating all always and goto follows up front, but instead
 	// lazily calculate those which we need for reduce actions. This could result in a significant amount of follow
 	// sets not being calculated as they are not involved in any reduce action.
-	b.calculateSuccessorFollows()
 	b.calculateAlwaysFollows()
 	b.calculateGotoFollows()
 
@@ -501,46 +521,26 @@ func (b *LALR1Builder) addReductionLookaheadSets() {
 // in IELR(1) definition 3.5. We are taking all the gotos we found to happen on nullable nonterminals during LR(0)
 // state construction, and we are creating edges to those gotos from the gotos which are pointing to the same state.
 func (b *LALR1Builder) buildGotoFollowsSuccessorRelations() {
+	// Index all gotos by their target state, so we can find the gotos entering a state without scanning every goto for
+	// each candidate. This turns the relation construction from quadratic into linear in the number of gotos plus the
+	// number of produced edges.
+	gotoIdxsByToStateIdx := make([][]int, len(b.states))
+	for gotoIdx := range b.gotoRecords {
+		toStateIdx := b.gotoRecords[gotoIdx].ToStateIdx
+		gotoIdxsByToStateIdx[toStateIdx] = append(gotoIdxsByToStateIdx[toStateIdx], gotoIdx)
+	}
+
 	for _, nullableGotoIdx := range b.successorDependencyCandidates {
-		for gotoIdx := range b.gotoRecords {
-			if b.gotoRecords[gotoIdx].ToStateIdx != b.gotoRecords[nullableGotoIdx].FromStateIdx {
-				continue
-			}
+		// A goto g contributes an edge to the nullable goto g' exactly when to_state[g] = from_state[g'], so we only
+		// need the gotos which end in the state the nullable goto starts from.
+		fromStateIdx := b.gotoRecords[nullableGotoIdx].FromStateIdx
+		for _, gotoIdx := range gotoIdxsByToStateIdx[fromStateIdx] {
 			b.gotoFollowsSuccessorRelation = append(b.gotoFollowsSuccessorRelation, Edge{
 				FromIdx: gotoIdx,
 				ToIdx:   nullableGotoIdx,
 			})
 		}
 	}
-}
-
-// printGotoFollowsSuccessorRelations prints the goto follows successor relations to the writer. This is helpful
-// in debug situations.
-func (b *LALR1Builder) printGotoFollowsSuccessorRelations(writer io.Writer) error {
-	if _, err := fmt.Fprintf(writer, "Goto Follows Successor Relations:\n"); err != nil {
-		return err
-	}
-	for idx, edge := range b.gotoFollowsSuccessorRelation {
-		fromGoto := b.gotoRecords[edge.FromIdx]
-		toGoto := b.gotoRecords[edge.ToIdx]
-		if _, err := fmt.Fprintf(
-			writer,
-			"#%d [G%d on %s in state %d] to [G%d on %s in state %d]\n",
-			idx,
-			fromGoto.ToStateIdx,
-			b.grammar.Nonterminals[fromGoto.NonterminalIdx],
-			fromGoto.FromStateIdx,
-			toGoto.ToStateIdx,
-			b.grammar.Nonterminals[toGoto.NonterminalIdx],
-			toGoto.FromStateIdx,
-		); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintln(writer); err != nil {
-		return err
-	}
-	return nil
 }
 
 // buildGotoFollowsInternalRelations builds up the digraph for the goto follows internal relation as specified in
@@ -582,109 +582,6 @@ func (b *LALR1Builder) buildGotoFollowsPredecessorRelations() {
 	}
 }
 
-// printGotoFollowsInternalRelations prints the goto follows internal relations to the writer. This is helpful
-// in debug situations.
-func (b *LALR1Builder) printGotoFollowsInternalRelations(writer io.Writer) error {
-	if _, err := fmt.Fprintf(writer, "Goto Follows Internal Relations:\n"); err != nil {
-		return err
-	}
-	for idx, edge := range b.gotoFollowsInternalRelation {
-		fromGoto := b.gotoRecords[edge.FromIdx]
-		toGoto := b.gotoRecords[edge.ToIdx]
-		if _, err := fmt.Fprintf(
-			writer,
-			"#%d [G%d on %s in state %d] to [G%d on %s in state %d]\n",
-			idx,
-			fromGoto.ToStateIdx,
-			b.grammar.Nonterminals[fromGoto.NonterminalIdx],
-			fromGoto.FromStateIdx,
-			toGoto.ToStateIdx,
-			b.grammar.Nonterminals[toGoto.NonterminalIdx],
-			toGoto.FromStateIdx,
-		); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintln(writer); err != nil {
-		return err
-	}
-	return nil
-}
-
-// printGotoFollowsPredecessorRelations prints the goto follows predecessor relations to the writer. This is helpful
-// in debug situations.
-func (b *LALR1Builder) printGotoFollowsPredecessorRelations(writer io.Writer) error {
-	if _, err := fmt.Fprintf(writer, "Goto Follows Predecessor Relations:\n"); err != nil {
-		return err
-	}
-	for idx, edge := range b.gotoFollowsPredecessorRelation {
-		fromGoto := b.gotoRecords[edge.FromIdx]
-		toGoto := b.gotoRecords[edge.ToIdx]
-		if _, err := fmt.Fprintf(
-			writer,
-			"#%d [G%d on %s in state %d] to [G%d on %s in state %d]\n",
-			idx,
-			fromGoto.ToStateIdx,
-			b.grammar.Nonterminals[fromGoto.NonterminalIdx],
-			fromGoto.FromStateIdx,
-			toGoto.ToStateIdx,
-			b.grammar.Nonterminals[toGoto.NonterminalIdx],
-			toGoto.FromStateIdx,
-		); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintln(writer); err != nil {
-		return err
-	}
-	return nil
-}
-
-// calculateSuccessorFollows fills the successor follows as specified in definition 3.6 of IELR(1) by propagating
-// the follow sets along the goto follows successor relations. Those are also called "reads" by DeRemer and Pennello.
-func (b *LALR1Builder) calculateSuccessorFollows() {
-	b.successorFollows = make([]backend.LookaheadSet, len(b.gotoRecords))
-	b.initSuccessorFollows()
-	propagation := NewDigraphAlgorithm(b.successorFollows, b.gotoFollowsSuccessorRelation)
-	propagation.Execute()
-}
-
-// initSuccessorFollows initializes the successor follows with terminals from the terminal transitions out of the target
-// state of the goto. Those are also called "direct reads" by DeRemer and Pennello.
-func (b *LALR1Builder) initSuccessorFollows() {
-	for gotoIdx := range b.gotoRecords {
-		stateIdx := b.gotoRecords[gotoIdx].ToStateIdx
-		transitions := SliceFromView(b.terminalTransitions, b.terminalTransitionsByState[stateIdx])
-		for _, transition := range transitions {
-			b.successorFollows[gotoIdx].Add(transition.SymbolIdx)
-		}
-	}
-}
-
-// printGotoSuccessorFollows prints the goto successor follows to the writer. This is helpful in debug situations.
-func (b *LALR1Builder) printGotoSuccessorFollows(writer io.Writer) error {
-	if _, err := fmt.Fprintf(writer, "Goto Successor Follows:\n"); err != nil {
-		return err
-	}
-	for idx, record := range b.gotoRecords {
-		if _, err := fmt.Fprintf(
-			writer,
-			"#%d [G%d on %s in state %d] %s\n",
-			idx,
-			record.ToStateIdx,
-			b.grammar.Nonterminals[record.NonterminalIdx],
-			record.FromStateIdx,
-			b.successorFollows[idx].String(),
-		); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintln(writer); err != nil {
-		return err
-	}
-	return nil
-}
-
 // calculateAlwaysFollows fills the always follows as specified in definition 3.20 of IELR(1).
 func (b *LALR1Builder) calculateAlwaysFollows() {
 	b.alwaysFollows = make([]backend.LookaheadSet, len(b.gotoRecords))
@@ -716,30 +613,6 @@ func (b *LALR1Builder) calculateGotoFollows() {
 	copy(gotoFollowsIncludesRelation[len(b.gotoFollowsInternalRelation):], b.gotoFollowsPredecessorRelation)
 	propagation := NewDigraphAlgorithm(b.gotoFollows, gotoFollowsIncludesRelation)
 	propagation.Execute()
-}
-
-// printGotoFollows prints the goto follows to the writer. This is helpful in debug situations.
-func (b *LALR1Builder) printGotoFollows(writer io.Writer) error {
-	if _, err := fmt.Fprintf(writer, "Goto Follows:\n"); err != nil {
-		return err
-	}
-	for idx, record := range b.gotoRecords {
-		if _, err := fmt.Fprintf(
-			writer,
-			"#%d [G%d on %s in state %d] %s\n",
-			idx,
-			record.ToStateIdx,
-			b.grammar.Nonterminals[record.NonterminalIdx],
-			record.FromStateIdx,
-			b.gotoFollows[idx].String(),
-		); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintln(writer); err != nil {
-		return err
-	}
-	return nil
 }
 
 // getGeneratedGotoIdxs returns a list of goto indexes which generated the given core. This is done by tracing the core
