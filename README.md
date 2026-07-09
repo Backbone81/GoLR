@@ -191,6 +191,8 @@ These cores are currently supported:
 
 - [IELR(1)](docs/parsergen-core-ielr1.md)
 - [IELR(1) Bison](docs/parsergen-core-ielr1-bison.md)
+- [LR(1)](docs/parsergen-core-lr1.md)
+- [LR(1) Bison](docs/parsergen-core-lr1-bison.md)
 
 ### Parser Generator Backends
 

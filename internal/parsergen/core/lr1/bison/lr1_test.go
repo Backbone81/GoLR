@@ -3,7 +3,7 @@ package bison_test
 import (
 	"testing"
 
-	ielr1bison "github.com/backbone81/golr/internal/parsergen/core/ielr1/bison"
+	lr1bison "github.com/backbone81/golr/internal/parsergen/core/lr1/bison"
 	"github.com/backbone81/golr/internal/parsergen/frontend/bison"
 )
 
@@ -39,11 +39,11 @@ var BenchmarkInputs = []BenchmarkInput{
 	},
 	{
 		Title: "PHP 8.6.7",
-		Path:  "../../../../testdata/php-8.6.7.y",
+		Path:  "../../../../../testdata/php-8.6.7.y",
 	},
 	{
 		Title: "PostgreSQL 18.4",
-		Path:  "../../../../testdata/postgres-18.4.y",
+		Path:  "../../../../../testdata/postgres-18.4.y",
 	},
 }
 
@@ -56,7 +56,7 @@ func BenchmarkGrammarToParser(b *testing.B) {
 			}
 
 			for b.Loop() {
-				if _, err := ielr1bison.GrammarToParser(grammar); err != nil {
+				if _, err := lr1bison.GrammarToParser(grammar); err != nil {
 					b.Fatal(err)
 				}
 			}
