@@ -190,6 +190,7 @@ flexibility.
 These cores are currently supported:
 
 - [IELR(1)](docs/parsergen-core-ielr1.md)
+- [IELR(1) Bison](docs/parsergen-core-ielr1-bison.md)
 
 ### Parser Generator Backends
 

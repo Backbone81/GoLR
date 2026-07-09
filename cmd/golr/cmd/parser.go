@@ -11,7 +11,7 @@ import (
 	golangbackend "github.com/backbone81/golr/pkg/parsergen/backend/golang"
 	jsonbackend "github.com/backbone81/golr/pkg/parsergen/backend/json"
 	yamlbackend "github.com/backbone81/golr/pkg/parsergen/backend/yaml"
-	ielr1core "github.com/backbone81/golr/pkg/parsergen/core/ielr1"
+	ielr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/bison"
 	"github.com/backbone81/golr/pkg/parsergen/frontend"
 	bisonfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/bison"
 	golrfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/golr"
@@ -85,8 +85,8 @@ func executeParserFrontend() (frontend.Grammar, error) {
 
 func executeParserCore(grammar frontend.Grammar) (backend.Parser, error) {
 	switch parserCore {
-	case "ielr1":
-		return ielr1core.GrammarToParser(grammar)
+	case "ielr1", "ielr1-bison":
+		return ielr1bisoncore.GrammarToParser(grammar)
 	default:
 		return backend.Parser{}, fmt.Errorf("unsupported parser core %q", parserCore)
 	}
@@ -149,7 +149,7 @@ func init() {
 		&parserCore,
 		"core",
 		"ielr1",
-		"The core to use for generating the parser from the context free grammar. One of: ielr1.",
+		"The core to use for generating the parser from the context free grammar. One of: ielr1, ielr1-bison.",
 	)
 
 	parserCmd.PersistentFlags().StringVar(

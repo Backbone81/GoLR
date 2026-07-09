@@ -1,9 +1,9 @@
-package ielr1_test
+package bison_test
 
 import (
 	"testing"
 
-	"github.com/backbone81/golr/internal/parsergen/core/ielr1"
+	ielr1bison "github.com/backbone81/golr/internal/parsergen/core/ielr1/bison"
 	"github.com/backbone81/golr/internal/parsergen/frontend/bison"
 )
 
@@ -56,7 +56,7 @@ func BenchmarkGrammarToParser(b *testing.B) {
 			}
 
 			for b.Loop() {
-				if _, err := ielr1.GrammarToParser(grammar); err != nil {
+				if _, err := ielr1bison.GrammarToParser(grammar); err != nil {
 					b.Fatal(err)
 				}
 			}

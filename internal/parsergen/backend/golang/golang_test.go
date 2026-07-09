@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/backbone81/golr/internal/parsergen/backend/golang"
-	"github.com/backbone81/golr/internal/parsergen/core/ielr1"
+	ielr1bison "github.com/backbone81/golr/internal/parsergen/core/ielr1/bison"
 	"github.com/backbone81/golr/internal/parsergen/frontend/bison"
 )
 
@@ -57,7 +57,7 @@ func BenchmarkFromParser(b *testing.B) {
 				b.Fatal(err)
 			}
 
-			parser, err := ielr1.GrammarToParser(grammar)
+			parser, err := ielr1bison.GrammarToParser(grammar)
 			if err != nil {
 				b.Fatal(err)
 			}
