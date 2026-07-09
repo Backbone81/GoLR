@@ -39,6 +39,11 @@ var _ = Describe("LALR(1) Builder", func() {
 			ielr1go.GotoFollowsCaveatsTestGrammarFig6,
 			ielr1go.GotoFollowsCaveatsTestGrammarFig6LALRParser,
 		),
+		Entry(
+			"the LR(1) but not LALR(1) grammar with a reduce/reduce conflict",
+			ielr1go.ReduceReduceConflictTestGrammar,
+			ielr1go.ReduceReduceConflictTestGrammarLALR1Parser,
+		),
 	)
 })
 
@@ -51,6 +56,7 @@ func BenchmarkComputeLALR1ParserTables(b *testing.B) {
 		{"Unambiguous Test Grammar Fig1", ielr1go.UnambiguousTestGrammarFig1},
 		{"Ambiguous Test Grammar Fig2", ielr1go.AmbiguousTestGrammarFig2},
 		{"Goto Follows Test Grammar Fig5", ielr1go.GotoFollowsTestGrammarFig5},
+		{"Reduce/Reduce Conflict Test Grammar", ielr1go.ReduceReduceConflictTestGrammar},
 	}
 	for _, benchmark := range benchmarks {
 		b.Run(benchmark.description, func(b *testing.B) {

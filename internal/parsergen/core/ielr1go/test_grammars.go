@@ -1068,4 +1068,247 @@ var (
 			},
 		},
 	}
+
+	// ReduceReduceConflictTestGrammar is the classic grammar which is LR(1) but not LALR(1). It is used to verify that
+	// the LALR(1) builder faithfully produces overlapping reduction lookahead sets when the grammar has a genuine
+	// LALR(1) conflict (the builder does not resolve conflicts; that is a later phase). In canonical LR(1) the two "c"
+	// states stay separate, but LALR(1) merges them because they share the same core, which merges their lookahead sets
+	// and creates a reduce/reduce conflict on both "d" and "e".
+	//
+	//   1. S -> aAd
+	//   2. S -> bBd
+	//   3. S -> aBe
+	//   4. S -> bAe
+	//   5. A -> c
+	//   6. B -> c
+	//
+	// This behavior was cross-checked against GNU Bison 3.8.2 (--define=lr.type=lalr), which reports the same two
+	// reduce/reduce conflicts in the merged "c" state.
+	ReduceReduceConflictTestGrammar = frontend.Grammar{
+		Terminals: []frontend.Symbol{
+			{
+				Name: "a", // 0
+			},
+			{
+				Name: "b", // 1
+			},
+			{
+				Name: "c", // 2
+			},
+			{
+				Name: "d", // 3
+			},
+			{
+				Name: "e", // 4
+			},
+		},
+		Nonterminals: []frontend.Symbol{
+			{
+				Name: "S", // 0
+			},
+			{
+				Name: "A", // 1
+			},
+			{
+				Name: "B", // 2
+			},
+		},
+		Productions: []frontend.Production{
+			//   1. S -> aAd
+			{
+				NonterminalIdx: 0, // S
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(0),    // a
+					frontend.NewNonterminalRef(1), // A
+					frontend.NewTerminalRef(3),    // d
+				},
+			},
+			//   2. S -> bBd
+			{
+				NonterminalIdx: 0, // S
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(1),    // b
+					frontend.NewNonterminalRef(2), // B
+					frontend.NewTerminalRef(3),    // d
+				},
+			},
+			//   3. S -> aBe
+			{
+				NonterminalIdx: 0, // S
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(0),    // a
+					frontend.NewNonterminalRef(2), // B
+					frontend.NewTerminalRef(4),    // e
+				},
+			},
+			//   4. S -> bAe
+			{
+				NonterminalIdx: 0, // S
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(1),    // b
+					frontend.NewNonterminalRef(1), // A
+					frontend.NewTerminalRef(4),    // e
+				},
+			},
+			//   5. A -> c
+			{
+				NonterminalIdx: 1, // A
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(2), // c
+				},
+			},
+			//   6. B -> c
+			{
+				NonterminalIdx: 2, // B
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(2), // c
+				},
+			},
+		},
+		StartNonterminalIdx: 0, // S
+	}
+	ReduceReduceConflictTestGrammarAugmented   = frontend.AugmentGrammar(ReduceReduceConflictTestGrammar)
+	ReduceReduceConflictTestGrammarLALR1Parser = backend.Parser{
+		Grammar: ReduceReduceConflictTestGrammarAugmented,
+		// NOTE: The order of states is the same order as Bison would create them.
+		States: []backend.State{
+			// state 0
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(0, 0),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(1), 1),    // shift a
+					backend.NewTransitionAction(frontend.NewTerminalRef(2), 2),    // shift b
+					backend.NewTransitionAction(frontend.NewNonterminalRef(1), 3), // goto S
+				),
+			},
+			// state 1
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(1, 1),
+					backend.NewCore(3, 1),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(3), 4),    // shift c
+					backend.NewTransitionAction(frontend.NewNonterminalRef(2), 5), // goto A
+					backend.NewTransitionAction(frontend.NewNonterminalRef(3), 6), // goto B
+				),
+			},
+			// state 2
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(2, 1),
+					backend.NewCore(4, 1),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(3), 4),    // shift c
+					backend.NewTransitionAction(frontend.NewNonterminalRef(2), 7), // goto A
+					backend.NewTransitionAction(frontend.NewNonterminalRef(3), 8), // goto B
+				),
+			},
+			// state 3
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(0, 1),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(0), 9), // shift EOF
+				),
+			},
+			// state 4: the merged "c" state which carries the reduce/reduce conflict. A -> c . and B -> c . both reduce
+			// on the merged lookahead set {d, e}.
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(5, 1),
+					backend.NewCore(6, 1),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(4, 5), 5), // A -> c on {d, e}
+					backend.NewReduceAction(backend.NewLookaheadSet(4, 5), 6), // B -> c on {d, e}
+				),
+			},
+			// state 5
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(1, 2),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(4), 10), // shift d
+				),
+			},
+			// state 6
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(3, 2),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(5), 11), // shift e
+				),
+			},
+			// state 7
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(4, 2),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(5), 12), // shift e
+				),
+			},
+			// state 8
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(2, 2),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(4), 13), // shift d
+				),
+			},
+			// state 9
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(0, 2),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.LookaheadSet{}, 0),
+				),
+			},
+			// state 10
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(1, 3),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(0), 1),
+				),
+			},
+			// state 11
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(3, 3),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(0), 3),
+				),
+			},
+			// state 12
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(4, 3),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(0), 4),
+				),
+			},
+			// state 13
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(2, 3),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(0), 2),
+				),
+			},
+		},
+	}
 )
