@@ -1,4 +1,4 @@
-package ielr1go
+package golr
 
 import (
 	"github.com/backbone81/golr/internal/parsergen/backend"

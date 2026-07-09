@@ -12,7 +12,7 @@ import (
 	jsonbackend "github.com/backbone81/golr/pkg/parsergen/backend/json"
 	yamlbackend "github.com/backbone81/golr/pkg/parsergen/backend/yaml"
 	ielr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/bison"
-	ielr1gocore "github.com/backbone81/golr/pkg/parsergen/core/ielr1go"
+	ielr1golrcore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/golr"
 	lalr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/lalr1/bison"
 	lr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/lr1/bison"
 	"github.com/backbone81/golr/pkg/parsergen/frontend"
@@ -91,13 +91,11 @@ func executeParserCore(grammar frontend.Grammar) (backend.Parser, error) {
 	case "ielr1", "ielr1-bison":
 		return ielr1bisoncore.GrammarToParser(grammar)
 	case "ielr1-golr":
-		return ielr1go.GrammarToParser(grammar)
+		return ielr1golrcore.GrammarToParser(grammar)
 	case "lalr1", "lalr1-bison":
 		return lalr1bisoncore.GrammarToParser(grammar)
 	case "lr1", "lr1-bison":
 		return lr1bisoncore.GrammarToParser(grammar)
-	case "ielr1-go":
-		return ielr1gocore.GrammarToParser(grammar)
 	default:
 		return backend.Parser{}, fmt.Errorf("unsupported parser core %q", parserCore)
 	}

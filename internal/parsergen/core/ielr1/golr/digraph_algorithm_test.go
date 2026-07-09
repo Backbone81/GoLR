@@ -1,4 +1,4 @@
-package ielr1go_test
+package golr_test
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
-	"github.com/backbone81/golr/internal/parsergen/core/ielr1go"
+	golr2 "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 )
 
 var _ = Describe("Digraph Algorithm", func() {
@@ -19,13 +19,13 @@ var _ = Describe("Digraph Algorithm", func() {
 	// expected follow set of a node is exactly the set of nodes reachable from it. We assert presence and absence of
 	// every token, so over-propagation (a node receiving a follow it should not see) is caught as well.
 	DescribeTable("should propagate follow sets to every reachable node and to no others",
-		func(nodeCount int, edges []ielr1go.Edge, expected [][]int) {
+		func(nodeCount int, edges []golr2.Edge, expected [][]int) {
 			follows := make([]backend.LookaheadSet, nodeCount)
 			for nodeIdx := range follows {
 				follows[nodeIdx].Add(nodeIdx)
 			}
 
-			digraph := ielr1go.NewDigraphAlgorithm(follows, edges)
+			digraph := golr2.NewDigraphAlgorithm(follows, edges)
 			digraph.Execute()
 
 			for nodeIdx := range follows {
@@ -42,21 +42,21 @@ var _ = Describe("Digraph Algorithm", func() {
 		// No edges: nothing propagates, every node keeps only its own token.
 		Entry("isolated nodes without edges",
 			3,
-			[]ielr1go.Edge{},
+			[]golr2.Edge{},
 			[][]int{{0}, {1}, {2}},
 		),
 
 		// A single node looping onto itself must not break and must keep just its own token.
 		Entry("a self loop",
 			1,
-			[]ielr1go.Edge{{FromIdx: 0, ToIdx: 0}},
+			[]golr2.Edge{{FromIdx: 0, ToIdx: 0}},
 			[][]int{{0}},
 		),
 
 		// A linear chain 0 -> 1 -> 2: follows accumulate towards the head of the chain.
 		Entry("a linear chain",
 			3,
-			[]ielr1go.Edge{
+			[]golr2.Edge{
 				{FromIdx: 0, ToIdx: 1},
 				{FromIdx: 1, ToIdx: 2},
 			},
@@ -67,7 +67,7 @@ var _ = Describe("Digraph Algorithm", func() {
 		// follows must reach node 0 exactly once and completely.
 		Entry("a diamond with a shared child",
 			4,
-			[]ielr1go.Edge{
+			[]golr2.Edge{
 				{FromIdx: 0, ToIdx: 1},
 				{FromIdx: 0, ToIdx: 2},
 				{FromIdx: 1, ToIdx: 3},
@@ -79,7 +79,7 @@ var _ = Describe("Digraph Algorithm", func() {
 		// Two disconnected components must not leak follows into each other and Execute must visit both roots.
 		Entry("two disconnected components",
 			4,
-			[]ielr1go.Edge{
+			[]golr2.Edge{
 				{FromIdx: 0, ToIdx: 1},
 				{FromIdx: 2, ToIdx: 3},
 			},
@@ -89,7 +89,7 @@ var _ = Describe("Digraph Algorithm", func() {
 		// A 2-node loop 0 <-> 1: both nodes share the union of their follows.
 		Entry("a loop of size two",
 			2,
-			[]ielr1go.Edge{
+			[]golr2.Edge{
 				{FromIdx: 0, ToIdx: 1},
 				{FromIdx: 1, ToIdx: 0},
 			},
@@ -101,7 +101,7 @@ var _ = Describe("Digraph Algorithm", func() {
 		// accident during stack unwinding, so at least three nodes are needed to exercise the copy back across an SCC.
 		Entry("a loop of size three",
 			3,
-			[]ielr1go.Edge{
+			[]golr2.Edge{
 				{FromIdx: 0, ToIdx: 1},
 				{FromIdx: 1, ToIdx: 2},
 				{FromIdx: 2, ToIdx: 0},
@@ -112,7 +112,7 @@ var _ = Describe("Digraph Algorithm", func() {
 		// A 4-node loop 0 -> 1 -> 2 -> 3 -> 0: every member of the cycle gets every token.
 		Entry("a loop of size four",
 			4,
-			[]ielr1go.Edge{
+			[]golr2.Edge{
 				{FromIdx: 0, ToIdx: 1},
 				{FromIdx: 1, ToIdx: 2},
 				{FromIdx: 2, ToIdx: 3},
@@ -125,7 +125,7 @@ var _ = Describe("Digraph Algorithm", func() {
 		// must not confuse the strongly connected component detection: all three nodes still share every token.
 		Entry("a loop with a shortcut chord",
 			3,
-			[]ielr1go.Edge{
+			[]golr2.Edge{
 				{FromIdx: 0, ToIdx: 1},
 				{FromIdx: 1, ToIdx: 2},
 				{FromIdx: 2, ToIdx: 0},
@@ -138,7 +138,7 @@ var _ = Describe("Digraph Algorithm", func() {
 		// must reach every member of the upstream component, but not the other way around.
 		Entry("two loops linked by an edge",
 			4,
-			[]ielr1go.Edge{
+			[]golr2.Edge{
 				{FromIdx: 0, ToIdx: 1},
 				{FromIdx: 1, ToIdx: 0},
 				{FromIdx: 1, ToIdx: 2},
@@ -152,7 +152,7 @@ var _ = Describe("Digraph Algorithm", func() {
 		// that is not the whole graph, so the four nodes end up with four different follow sets.
 		Entry("an inner loop with an entry and a sink",
 			4,
-			[]ielr1go.Edge{
+			[]golr2.Edge{
 				{FromIdx: 0, ToIdx: 1},
 				{FromIdx: 1, ToIdx: 2},
 				{FromIdx: 2, ToIdx: 1},
@@ -166,7 +166,7 @@ var _ = Describe("Digraph Algorithm", func() {
 		// merged. The two loops share no follows; only the root sees all of them.
 		Entry("two independent loops reachable from a common root",
 			5,
-			[]ielr1go.Edge{
+			[]golr2.Edge{
 				{FromIdx: 0, ToIdx: 1},
 				{FromIdx: 1, ToIdx: 2},
 				{FromIdx: 2, ToIdx: 1},
@@ -182,7 +182,7 @@ var _ = Describe("Digraph Algorithm", func() {
 		// that relies on popped component members being marked as resolved so they are not pulled back into a later one.
 		Entry("an edge into an already resolved loop",
 			5,
-			[]ielr1go.Edge{
+			[]golr2.Edge{
 				{FromIdx: 0, ToIdx: 1},
 				{FromIdx: 1, ToIdx: 2},
 				{FromIdx: 2, ToIdx: 1},
@@ -201,7 +201,7 @@ var _ = Describe("Digraph Algorithm", func() {
 		// from later traversals, so this case fails if that exclusion is dropped.
 		Entry("an entry node into a loop that reaches an earlier resolved loop",
 			6,
-			[]ielr1go.Edge{
+			[]golr2.Edge{
 				{FromIdx: 0, ToIdx: 1},
 				{FromIdx: 1, ToIdx: 2},
 				{FromIdx: 2, ToIdx: 1},
@@ -235,12 +235,12 @@ var _ = Describe("Digraph Algorithm", func() {
 // disagreement. Each node is seeded with the single token equal to its own index, so a node's expected follow set is
 // exactly the set of nodes reachable from it. Seeding singletons is sufficient to exercise propagation completely:
 // follow sets distribute over union, so correctness for per-node singletons implies correctness for any initial sets.
-func compareDigraphToOracle(nodeCount int, edges []ielr1go.Edge) (string, bool) {
+func compareDigraphToOracle(nodeCount int, edges []golr2.Edge) (string, bool) {
 	follows := make([]backend.LookaheadSet, nodeCount)
 	for nodeIdx := range follows {
 		follows[nodeIdx].Add(nodeIdx)
 	}
-	digraph := ielr1go.NewDigraphAlgorithm(follows, edges)
+	digraph := golr2.NewDigraphAlgorithm(follows, edges)
 	digraph.Execute()
 
 	want := naiveReachabilityFollows(nodeCount, edges)
@@ -266,7 +266,7 @@ func compareDigraphToOracle(nodeCount int, edges []ielr1go.Edge) (string, bool) 
 // no traversal order, no stack), which is what makes it a trustworthy oracle rather than a second copy of the same
 // algorithm. It is defined in the test file so it can never be reached from production code, and it is far too slow to
 // be used there anyway.
-func naiveReachabilityFollows(nodeCount int, edges []ielr1go.Edge) []map[int]bool {
+func naiveReachabilityFollows(nodeCount int, edges []golr2.Edge) []map[int]bool {
 	follows := make([]map[int]bool, nodeCount)
 	for nodeIdx := range follows {
 		follows[nodeIdx] = map[int]bool{nodeIdx: true}
@@ -287,13 +287,13 @@ func naiveReachabilityFollows(nodeCount int, edges []ielr1go.Edge) []map[int]boo
 
 // randomGraph builds a small random graph for the property test. Keeping the node count tiny ensures the naive oracle
 // stays cheap while still producing cycles, shared children and nested components often enough to be interesting.
-func randomGraph(random *rand.Rand) (int, []ielr1go.Edge) {
+func randomGraph(random *rand.Rand) (int, []golr2.Edge) {
 	const maxNodes = 8
 	nodeCount := random.Intn(maxNodes) + 1
 	edgeCount := random.Intn(nodeCount*nodeCount + 1)
-	edges := make([]ielr1go.Edge, edgeCount)
+	edges := make([]golr2.Edge, edgeCount)
 	for edgeIdx := range edges {
-		edges[edgeIdx] = ielr1go.Edge{
+		edges[edgeIdx] = golr2.Edge{
 			FromIdx: random.Intn(nodeCount),
 			ToIdx:   random.Intn(nodeCount),
 		}
@@ -331,7 +331,7 @@ func BenchmarkDigraphAlgorithm(b *testing.B) {
 				}
 				b.StartTimer()
 
-				digraph := ielr1go.NewDigraphAlgorithm(follows, edges)
+				digraph := golr2.NewDigraphAlgorithm(follows, edges)
 				digraph.Execute()
 			}
 		})
@@ -340,11 +340,11 @@ func BenchmarkDigraphAlgorithm(b *testing.B) {
 
 // benchmarkGraph builds a deterministic random graph with the given number of nodes and edges. The fixed seed keeps the
 // benchmark comparable across runs.
-func benchmarkGraph(nodeCount int, edgeCount int) []ielr1go.Edge {
+func benchmarkGraph(nodeCount int, edgeCount int) []golr2.Edge {
 	random := rand.New(rand.NewSource(1))
-	edges := make([]ielr1go.Edge, edgeCount)
+	edges := make([]golr2.Edge, edgeCount)
 	for edgeIdx := range edges {
-		edges[edgeIdx] = ielr1go.Edge{
+		edges[edgeIdx] = golr2.Edge{
 			FromIdx: random.Intn(nodeCount),
 			ToIdx:   random.Intn(nodeCount),
 		}

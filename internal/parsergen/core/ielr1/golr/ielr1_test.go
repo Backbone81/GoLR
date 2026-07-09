@@ -1,4 +1,4 @@
-package ielr1go_test
+package golr_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"

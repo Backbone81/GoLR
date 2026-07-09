@@ -190,6 +190,7 @@ flexibility.
 These cores are currently supported:
 
 - [IELR(1)](docs/parsergen-core-ielr1.md)
+- [IELR(1) GoLR](docs/parsergen-core-ielr1-golr.md)
 - [IELR(1) Bison](docs/parsergen-core-ielr1-bison.md)
 - [LALR(1)](docs/parsergen-core-lalr1.md)
 - [LALR(1) Bison](docs/parsergen-core-lalr1-bison.md)

@@ -1,4 +1,4 @@
-package ielr1go
+package golr
 
 import (
 	"math"
