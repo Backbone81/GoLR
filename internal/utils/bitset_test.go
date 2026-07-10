@@ -44,6 +44,21 @@ var _ = Describe("Bitset", func() {
 		Expect(bitset.IsEmpty()).To(BeFalse())
 	})
 
+	It("should report if adding a bit changed the bitset", func() {
+		var bitset utils.Bitset
+
+		Expect(bitset.Add(0)).To(BeTrue())
+		Expect(bitset.Add(0)).To(BeFalse())
+
+		// The bit lives in a chunk which does not exist yet, so the bitset has to grow for it.
+		Expect(bitset.Add(64 + 32)).To(BeTrue())
+		Expect(bitset.Add(64 + 32)).To(BeFalse())
+
+		// A bit which was removed before is set again.
+		bitset.Remove(0)
+		Expect(bitset.Add(0)).To(BeTrue())
+	})
+
 	It("should correctly remove bits", func() {
 		var bitset utils.Bitset
 		bitset.Add(0)
@@ -100,9 +115,33 @@ var _ = Describe("Bitset", func() {
 	It("should correctly merge", func() {
 		one := utils.NewBitset(3, 2, 64+32, 7, 4)
 		two := utils.NewBitset(8, 7, 64+40, 130)
-		one.Merge(&two)
+		Expect(one.Merge(&two)).To(BeTrue())
 		Expect(one).To(Equal(utils.NewBitset(3, 2, 64+32, 7, 4, 8, 64+40, 130)))
 	})
+
+	DescribeTable("should correctly report if a merge changed the bitset",
+		func(lhsBits []int, rhsBits []int, wantChanged bool) {
+			lhsBitset := utils.NewBitset(lhsBits...)
+			rhsBitset := utils.NewBitset(rhsBits...)
+			wantLhsBitset := utils.NewBitset(append(slices.Clone(lhsBits), rhsBits...)...)
+
+			Expect(lhsBitset.Merge(&rhsBitset)).To(Equal(wantChanged))
+			Expect(lhsBitset.Equal(wantLhsBitset)).To(BeTrue())
+		},
+		// A merge only changes the bitset when the right-hand side holds a bit which is not set yet. Sharing bits with
+		// the right-hand side is not a change.
+		Entry("both empty", nil, nil, false),
+		Entry("right-hand side empty", []int{1}, nil, false),
+		Entry("left-hand side empty", nil, []int{1}, true),
+		Entry("identical bits", []int{1, 2}, []int{1, 2}, false),
+		Entry("right-hand side is a subset", []int{1, 2}, []int{2}, false),
+		Entry("disjoint bits in the same chunk", []int{1}, []int{2}, true),
+		Entry("overlapping bits with one new bit", []int{1, 2}, []int{2, 3}, true),
+		Entry("right-hand side has a bit in a new chunk", []int{1}, []int{64 + 1}, true),
+		Entry("right-hand side repeats a bit in a later chunk", []int{1, 64 + 1}, []int{64 + 1}, false),
+		Entry("right-hand side skips over an empty chunk", []int{1}, []int{128 + 1}, true),
+		Entry("left-hand side reaches further than the right-hand side", []int{1, 128 + 1}, []int{1}, false),
+	)
 
 	It("should correctly report equality", func() {
 		one := utils.NewBitset(3, 2, 64+32, 7, 4)
@@ -120,6 +159,29 @@ var _ = Describe("Bitset", func() {
 
 		two.Remove(200)
 		Expect(one.Equal(two)).To(BeTrue())
+	})
+
+	It("should correctly return the raw bytes", func() {
+		var bitset utils.Bitset
+		Expect(bitset.Bytes()).To(BeNil())
+
+		bitset.Add(0)
+		Expect(bitset.Bytes()).To(Equal([]byte{1, 0, 0, 0, 0, 0, 0, 0}))
+
+		// Growing the bitset into a second chunk and clearing that chunk again must not change the bytes, as the
+		// trailing empty chunk does not hold any bits.
+		bitset.Add(64)
+		Expect(bitset.Bytes()).To(HaveLen(16))
+		bitset.Remove(64)
+		Expect(bitset.Bytes()).To(Equal([]byte{1, 0, 0, 0, 0, 0, 0, 0}))
+
+		// Bitsets which are equal return the same bytes, even when one of them holds more storage than the other.
+		one := utils.NewBitset(3, 200)
+		two := utils.NewBitset(3, 200)
+		two.Remove(200)
+		one.Remove(200)
+		Expect(one.Equal(two)).To(BeTrue())
+		Expect(one.Bytes()).To(Equal(two.Bytes()))
 	})
 
 	It("should correctly calculate hashes", func() {

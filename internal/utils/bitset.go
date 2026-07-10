@@ -63,7 +63,8 @@ func (b *Bitset) IsEmpty() bool {
 }
 
 // Add marks the bit at idx as being set. If idx is beyond the current storage capacity, the storage will be resized.
-func (b *Bitset) Add(idx int) {
+// The return value reports if the bit was set which was not set before.
+func (b *Bitset) Add(idx int) bool {
 	AssertValidIndex(idx, math.MaxInt)
 	chunkIdx := idx / bitsetChunkMaxBits
 	bitIdx := idx % bitsetChunkMaxBits
@@ -72,7 +73,7 @@ func (b *Bitset) Add(idx int) {
 		copy(newChunks, b.chunks)
 		b.chunks = newChunks
 	}
-	b.chunks[chunkIdx].Add(bitIdx)
+	return b.chunks[chunkIdx].Add(bitIdx)
 }
 
 // Remove marks the bit at idx as not being set. If idx is beyond the current storage capacity, no resize will happen.
@@ -98,13 +99,21 @@ func (b *Bitset) All() iter.Seq[int] {
 	}
 }
 
-// Merge adds all the bits set in the other bitset to the current one.
-func (b *Bitset) Merge(other *Bitset) {
+// Merge adds all the bits set in the other bitset to the current one. The return value reports if a bit was set which
+// was not set before.
+func (b *Bitset) Merge(other *Bitset) bool {
+	changed := false
 	commonChunks := min(len(b.chunks), len(other.chunks))
 	for i := range commonChunks {
+		// The chunk changes when the other chunk holds a bit which this chunk does not hold yet.
+		changed = changed || other.chunks[i]&^b.chunks[i] != 0
 		b.chunks[i] |= other.chunks[i]
 	}
+	for i := range other.chunks[commonChunks:] {
+		changed = changed || other.chunks[commonChunks+i] != 0
+	}
 	b.chunks = append(b.chunks, other.chunks[commonChunks:]...)
+	return changed
 }
 
 // Equal reports if this bitset is equal to the other bitset. The bitsets can be of different size and still be equal
@@ -230,24 +239,32 @@ func (b *Bitset) String() string {
 	return builder.String()
 }
 
-// Hash returns a hash value over all chunks. All chunks except for trailing empty chunks contribute to the hash.
-func (b *Bitset) Hash() uint64 {
+// Bytes returns the raw bytes of the chunks which hold the bits of the bitset. Trailing empty chunks are not part of
+// the result, so two bitsets which are Equal always return the same bytes, no matter how much storage they hold. An
+// empty bitset returns nil.
+//
+// The result aliases the storage of the bitset. It must not be modified and it is only valid until the bitset is
+// modified. This is meant for hashing and serializing a bitset without copying its bits.
+func (b *Bitset) Bytes() []byte {
 	chunkCount := len(b.chunks)
 	for ; chunkCount > 0 && b.chunks[chunkCount-1].IsEmpty(); chunkCount-- {
-		// We remove empty chunks at the end, as we do not want them to contribute to the hash. Otherwise, two bitsets
-		// with the same bits set but with different sizes would lead to different hashes.
+		// We remove empty chunks at the end, as we do not want them to contribute to the result. Otherwise, two bitsets
+		// with the same bits set but with different sizes would lead to different bytes.
 	}
+	if chunkCount == 0 {
+		return nil
+	}
+	chunksByteSize := chunkCount * int(unsafe.Sizeof(b.chunks[0]))
 
+	//nolint:gosec // unsafe is required for better performance
+	return unsafe.Slice((*byte)(unsafe.Pointer(&b.chunks[0])), chunksByteSize)
+}
+
+// Hash returns a hash value over all chunks. All chunks except for trailing empty chunks contribute to the hash.
+func (b *Bitset) Hash() uint64 {
 	hash := fnv.New64a()
-	if chunkCount > 0 {
-		chunksByteSize := chunkCount * int(unsafe.Sizeof(b.chunks[0]))
-
-		//nolint:gosec // unsafe is required for better performance
-		chunksBytes := unsafe.Slice((*byte)(unsafe.Pointer(&b.chunks[0])), chunksByteSize)
-
-		if _, err := hash.Write(chunksBytes); err != nil {
-			panic(err)
-		}
+	if _, err := hash.Write(b.Bytes()); err != nil {
+		panic(err)
 	}
 	return hash.Sum64()
 }
@@ -280,9 +297,12 @@ func (c *bitsetChunk) IsEmpty() bool {
 	return *c == 0
 }
 
-func (c *bitsetChunk) Add(idx int) {
+func (c *bitsetChunk) Add(idx int) bool {
 	AssertValidIndex(idx, bitsetChunkMaxBits)
-	*c |= 1 << idx
+	mask := bitsetChunk(1) << idx
+	changed := *c&mask == 0
+	*c |= mask
+	return changed
 }
 
 func (c *bitsetChunk) Remove(idx int) {

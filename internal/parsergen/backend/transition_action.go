@@ -22,7 +22,7 @@ type TransitionAction uint32
 
 // NewTransitionAction creates a new transition action with the given symbol index and the target state index.
 func NewTransitionAction(symbolRef frontend.SymbolRef, stateIdx int) TransitionAction {
-	utils.AssertValidIndex(stateIdx, transitionActionMaxState)
+	utils.AssertValidIndex(stateIdx, TransitionActionMaxState)
 	// NOTE: We want to have the symbol index in the upper half of the TransitionAction and the state index in the lower
 	// half. That way we automatically get a sensible order when sorting by the value of the TransitionAction (i.e.
 	// first by symbol and second by state).
@@ -32,8 +32,8 @@ func NewTransitionAction(symbolRef frontend.SymbolRef, stateIdx int) TransitionA
 
 const (
 	transitionActionStateBits = 16
-	transitionActionMaxState  = (1 << transitionActionStateBits) - 1
-	transitionActionStateMask = transitionActionMaxState
+	TransitionActionMaxState  = (1 << transitionActionStateBits) - 1
+	transitionActionStateMask = TransitionActionMaxState
 )
 
 // SymbolRef returns the symbol index of the TransitionAction.
