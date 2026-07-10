@@ -183,6 +183,140 @@ var (
 			},
 		},
 	}
+	UnambiguousTestGrammarFig1LR1Parser = backend.Parser{
+		Grammar: UnambiguousTestGrammarFig1Augmented,
+		States: []backend.State{
+			// state 0
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(0, 0),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(1), 1),    // shift a
+					backend.NewTransitionAction(frontend.NewTerminalRef(2), 2),    // shift b
+					backend.NewTransitionAction(frontend.NewNonterminalRef(1), 3), // goto S
+				),
+			},
+			// state 1
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(1, 1),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(1), 4),    // shift a
+					backend.NewTransitionAction(frontend.NewNonterminalRef(2), 5), // goto A
+				),
+			},
+			// state 2
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(2, 1),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(1), 6),    // shift a
+					backend.NewTransitionAction(frontend.NewNonterminalRef(2), 7), // goto A
+				),
+			},
+			// state 3
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(0, 1),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(0), 8), // shift EOF
+				),
+			},
+			// state 4: reached through "a", so "A -> a ." reduces on "a" only
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(3, 1),
+					backend.NewCore(4, 1),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(1), 9), // shift a
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(1), 3), // A -> a on {a}
+				),
+			},
+			// state 5
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(1, 2),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(1), 10), // shift a
+				),
+			},
+			// state 6: reached through "b", so "A -> a ." reduces on "b" only
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(3, 1),
+					backend.NewCore(4, 1),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(1), 11), // shift a
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(2), 3), // A -> a on {b}
+				),
+			},
+			// state 7
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(2, 2),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(2), 12), // shift b
+				),
+			},
+			// state 8: the accepting state. Nothing can follow the end of input, so the lookahead set is empty.
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(0, 2),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.LookaheadSet{}, 0),
+				),
+			},
+			// state 9
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(4, 2),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(1), 4), // A -> a on {a}
+				),
+			},
+			// state 10
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(1, 3),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(0), 1), // S -> a A a on {EOF}
+				),
+			},
+			// state 11
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(4, 2),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(2), 4), // A -> a on {b}
+				),
+			},
+			// state 12
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(2, 3),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(0), 2), // S -> b A b on {EOF}
+				),
+			},
+		},
+	}
 
 	// AmbiguousTestGrammarFig2 is the ambiguous grammar from the IELR(1) paper in Fig. 2 on page 3 (or 945).
 	//

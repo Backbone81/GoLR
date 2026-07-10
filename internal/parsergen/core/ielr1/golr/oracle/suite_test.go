@@ -1,4 +1,4 @@
-package golr_test
+package oracle_test
 
 import (
 	"testing"
@@ -9,11 +9,11 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestIelr1(t *testing.T) {
+func TestSuite(t *testing.T) {
 	// we want to use fmt.Stringer for displaying data in failed tests, so that we have an easier time understanding
 	// packed data.
 	format.UseStringerRepresentation = true
 
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Parsergen: Cores: IELR(1) Go Suite")
+	RunSpecs(t, "Parsergen: Core: IELR(1): GoLR: Oracle Suite")
 }
