@@ -1,0 +1,124 @@
+package golr_test
+
+import (
+	"fmt"
+	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"github.com/backbone81/golr/internal/parsergen/backend"
+	ielr1golr "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
+	lr1golr "github.com/backbone81/golr/internal/parsergen/core/lr1/golr"
+	"github.com/backbone81/golr/internal/parsergen/frontend"
+)
+
+var _ = Describe("LR(1) Builder", func() {
+	DescribeTable("should correctly compute the canonical LR(1) parser table",
+		func(grammar frontend.Grammar, wantLR1Parser backend.Parser) {
+			lr1Builder := lr1golr.NewLR1Builder(frontend.AugmentGrammar(grammar))
+			Expect(lr1Builder.Build()).To(Succeed())
+			Expect(lr1Builder.Parser()).To(Equal(wantLR1Parser))
+		},
+		Entry(
+			"the unambiguous test grammar for Fig. 1",
+			ielr1golr.UnambiguousTestGrammarFig1,
+			ielr1golr.UnambiguousTestGrammarFig1LR1Parser,
+		),
+	)
+
+	DescribeTable("should produce the correct number of LR(1) states",
+		func(grammar frontend.Grammar, wantStateCount int) {
+			lr1Builder := lr1golr.NewLR1Builder(frontend.AugmentGrammar(grammar))
+			Expect(lr1Builder.Build()).To(Succeed())
+
+			Expect(lr1Builder.Parser().States).To(HaveLen(wantStateCount))
+		},
+		// The state counts were cross-checked against GNU Bison 3.8.2 (--define=lr.type=canonical-lr).
+		Entry("the unambiguous test grammar for Fig. 1", ielr1golr.UnambiguousTestGrammarFig1, 13),
+		Entry("the goto follows test grammar for Fig. 5", ielr1golr.GotoFollowsTestGrammarFig5, 27),
+		Entry("the goto follows caveats test grammar for Fig. 6", ielr1golr.GotoFollowsCaveatsTestGrammarFig6, 18),
+		Entry("the LR(1) but not LALR(1) grammar", ielr1golr.ReduceReduceConflictTestGrammar, 15),
+	)
+
+	It("should not report a conflict for a grammar which is LR(1) but not LALR(1)", func() {
+		// This is the whole point of canonical LR(1) as an oracle: the reduce/reduce conflict which LALR(1) reports for
+		// this grammar is an artifact of merging the two "c" states, not a property of the grammar.
+		lalr1Builder := ielr1golr.NewLALR1Builder(frontend.AugmentGrammar(ielr1golr.ReduceReduceConflictTestGrammar))
+		lalr1Builder.Build()
+		Expect(getConflictDescriptions(lalr1Builder.Parser())).ToNot(BeEmpty())
+
+		lr1Builder := lr1golr.NewLR1Builder(frontend.AugmentGrammar(ielr1golr.ReduceReduceConflictTestGrammar))
+		Expect(lr1Builder.Build()).To(Succeed())
+		Expect(getConflictDescriptions(lr1Builder.Parser())).To(BeEmpty())
+	})
+
+	It("should report a conflict for an ambiguous grammar", func() {
+		lr1Builder := lr1golr.NewLR1Builder(frontend.AugmentGrammar(ielr1golr.AmbiguousTestGrammarFig2))
+		Expect(lr1Builder.Build()).To(Succeed())
+		Expect(getConflictDescriptions(lr1Builder.Parser())).ToNot(BeEmpty())
+	})
+})
+
+// getConflictDescriptions returns a description for every shift/reduce and reduce/reduce conflict of the parser.
+func getConflictDescriptions(parser backend.Parser) []string {
+	var result []string
+	for stateIdx := range parser.States {
+		state := &parser.States[stateIdx]
+
+		for _, transitionAction := range state.TransitionActions.All() {
+			if transitionAction.SymbolRef().IsNonterminal() {
+				continue
+			}
+			for _, reduceAction := range state.ReduceActions.All() {
+				if reduceAction.LookaheadSet.Contains(transitionAction.SymbolRef().Idx()) {
+					result = append(result, fmt.Sprintf(
+						"state %d: shift/reduce conflict on terminal %d with production %d",
+						stateIdx, transitionAction.SymbolRef().Idx(), reduceAction.ProductionIdx,
+					))
+				}
+			}
+		}
+
+		for leftIdx, leftReduceAction := range state.ReduceActions.All() {
+			for rightIdx, rightReduceAction := range state.ReduceActions.All() {
+				if leftIdx >= rightIdx {
+					continue
+				}
+				for terminalIdx := range leftReduceAction.LookaheadSet.All() {
+					if rightReduceAction.LookaheadSet.Contains(terminalIdx) {
+						result = append(result, fmt.Sprintf(
+							"state %d: reduce/reduce conflict on terminal %d between production %d and production %d",
+							stateIdx, terminalIdx, leftReduceAction.ProductionIdx, rightReduceAction.ProductionIdx,
+						))
+					}
+				}
+			}
+		}
+	}
+	return result
+}
+
+func BenchmarkComputeLR1ParserTables(b *testing.B) {
+	benchmarks := []struct {
+		description string
+		grammar     frontend.Grammar
+	}{
+		{"Goto Follows Caveats Test Grammar Fig6", ielr1golr.GotoFollowsCaveatsTestGrammarFig6},
+		{"Unambiguous Test Grammar Fig1", ielr1golr.UnambiguousTestGrammarFig1},
+		{"Ambiguous Test Grammar Fig2", ielr1golr.AmbiguousTestGrammarFig2},
+		{"Goto Follows Test Grammar Fig5", ielr1golr.GotoFollowsTestGrammarFig5},
+		{"Reduce/Reduce Conflict Test Grammar", ielr1golr.ReduceReduceConflictTestGrammar},
+	}
+	for _, benchmark := range benchmarks {
+		b.Run(benchmark.description, func(b *testing.B) {
+			augmentedGrammar := frontend.AugmentGrammar(benchmark.grammar)
+			for b.Loop() {
+				lr1Builder := lr1golr.NewLR1Builder(augmentedGrammar)
+				if err := lr1Builder.Build(); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
