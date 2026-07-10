@@ -93,20 +93,27 @@ func (s *OrderedSet[T]) IsEmpty() bool {
 	return len(s.data) == 0
 }
 
+// Bytes returns the raw bytes of the values of the ordered set. An empty ordered set returns nil.
+//
+// The result aliases the storage of the ordered set. It must not be modified and it is only valid until the ordered set
+// is modified. This is meant for hashing and keying an ordered set without copying its values.
+func (s *OrderedSet[T]) Bytes() []byte {
+	if len(s.data) == 0 {
+		return nil
+	}
+	// We reinterpret the slice of values as a slice of bytes. We do this with unsafe pointer arithmetic to avoid
+	// rewriting data we already have at hand.
+	dataByteSize := len(s.data) * int(unsafe.Sizeof(s.data[0]))
+
+	//nolint:gosec // unsafe is required for better performance
+	return unsafe.Slice((*byte)(unsafe.Pointer(&s.data[0])), dataByteSize)
+}
+
 // Hash calculates a hash over all values of the ordered set.
 func (s *OrderedSet[T]) Hash() uint64 {
 	hash := fnv.New64a()
-	if len(s.data) > 0 {
-		// We are converting the slice of values into a slice of bytes for calculating the hash. We do this with unsafe
-		// pointer arithmetic to avoid rewriting data only for the hash, which we already have at hand.
-		dataByteSize := len(s.data) * int(unsafe.Sizeof(s.data[0]))
-
-		//nolint:gosec // unsafe is required for better performance
-		dataBytes := unsafe.Slice((*byte)(unsafe.Pointer(&s.data[0])), dataByteSize)
-
-		if _, err := hash.Write(dataBytes); err != nil {
-			panic(err)
-		}
+	if _, err := hash.Write(s.Bytes()); err != nil {
+		panic(err)
 	}
 	return hash.Sum64()
 }
