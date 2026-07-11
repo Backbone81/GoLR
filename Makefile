@@ -76,4 +76,4 @@ release-test:
 release: release-test
 release: export GITHUB_TOKEN ?= unknown
 release:
-	goreleaser release
+	goreleaser release --clean
