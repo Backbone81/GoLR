@@ -25,9 +25,9 @@
 - Improve performance
 - Compare performance with other generators like https://github.com/goccmack/gocc or Hyacc (https://hyacc.sourceforge.net/)
 - The IELR(1) implementation should be native Go and not call out to Bison.
-- Introduce strongly typed wrappers for general purpose AST nodes. That way, users don't rely on children being a 
-  specific count, but can instead use named methods for directory accessing the correct child. Make sure this is a
-  zero overhead abstraction over the AST nodes.
+- Introduce strongly typed wrappers for general purpose parse nodes. That way, users don't rely on children being a 
+  specific count, but can instead use named methods for directly accessing the correct child. Make sure this is a
+  zero overhead abstraction over the parse nodes.
 - The bison frontend should support %rule.
 
 ## Scanner Generator

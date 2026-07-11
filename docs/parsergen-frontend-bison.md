@@ -17,7 +17,8 @@ Any not supported functionality is ignored.
 
 The GNU Bison grammar parser is tested against a set of well known GNU Bison grammar files for several programming
 languages, to make sure that it works correctly. The well known grammar files include GNU Bison, GCC C, GCC
-Objective C, GCC C++, GCC Java and Go.
+Objective C, GCC C++, GCC Java, Go and more. See thee `testdata` directory in the repository root for the full set
+of grammars.
 
 ## Example
 
