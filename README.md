@@ -29,7 +29,8 @@ go install github.com/backbone81/golr/cmd/golr@latest
 Or download a prebuilt binary from the releases section and make it available in your shell.
 
 **IMPORTANT: The current [IELR(1)](https://doi.org/10.1016/j.scico.2009.08.001) core uses GNU Bison in the background to do the parser construction, make sure
-that a recent version of GNU Bison v3 is available in your shell.**
+that a recent version of GNU Bison v3 is available in your shell. This is a limitation until the native Go
+[IELR(1)](https://doi.org/10.1016/j.scico.2009.08.001) implementation is ready to use.**
 
 This example assumes a context free grammar in a GNU Bison grammar file `grammar.y`. Run GoLR to generate a Go parser
 from it:
@@ -106,7 +107,7 @@ Flags:
       --backend string                   The backend to use for writing the parser. One of: dot, go, json, null, yaml. (default "go")
       --backend-file-path string         The file path to write the parser to. Can be '-' to write to stdout.
       --backend-go-package-name string   The Go package name to use for the generated Go code. (default "parser")
-      --core string                      The core to use for generating the parser from the context free grammar. One of: ielr1. (default "ielr1")
+      --core string                      The core to use for generating the parser from the context free grammar. One of: ielr1, ielr1-bison, lalr1, lalr1-bison, lr1, lr1-bison. (default "ielr1")
       --frontend string                  The frontend to use for reading the context free grammar. One of: bison, golr, json, yaml. (default "golr")
       --frontend-file-path string        The file path to read the context free grammar from. Can be '-' to read from stdin.
   -h, --help                             help for parser
