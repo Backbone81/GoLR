@@ -1445,4 +1445,122 @@ var (
 			},
 		},
 	}
+
+	// FollowKernelItemsReflexiveTestGrammar is a grammar where a goto follow set depends on the lookahead set of a
+	// kernel item of its own state, without any goto follows internal relation being involved.
+	//
+	//   1. S -> aC
+	//   2. C -> c
+	//
+	// The state reached from the start state on "a" has the single kernel item "S -> a.C". Its lookahead set is part of
+	// the follow set of the goto on C in that state, because the production ends right after C. As the only production
+	// for C starts with a terminal, there is no goto follows internal relation which involves the goto on C. The
+	// dependency is therefore only found when follow kernel items are seeded from the goto itself, which is the
+	// reflexive part of the GFi* closure of definition 3.16 of IELR(1).
+	FollowKernelItemsReflexiveTestGrammar = frontend.Grammar{
+		Terminals: []frontend.Symbol{
+			{
+				Name: "a", // 0
+			},
+			{
+				Name: "c", // 1
+			},
+		},
+		Nonterminals: []frontend.Symbol{
+			{
+				Name: "S", // 0
+			},
+			{
+				Name: "C", // 1
+			},
+		},
+		Productions: []frontend.Production{
+			// 1. S -> aC
+			{
+				NonterminalIdx: 0, // S
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(0),    // a
+					frontend.NewNonterminalRef(1), // C
+				},
+			},
+			// 2. C -> c
+			{
+				NonterminalIdx: 1, // C
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(1), // c
+				},
+			},
+		},
+		StartNonterminalIdx: 0, // "S"
+	}
+
+	// FollowKernelItemsTransitiveTestGrammar is a grammar where a goto follow set depends on the lookahead set of a
+	// kernel item of its own state through a chain of two goto follows internal relations.
+	//
+	//   1. S -> aA
+	//   2. A -> B
+	//   3. B -> C
+	//   4. C -> c
+	//
+	// The state reached from the start state on "a" has the single kernel item "S -> a.A" and gotos on A, B and C. The
+	// follow set of the goto on C contains the follow set of the goto on B, which contains the follow set of the goto on
+	// A, which contains the lookahead set of the kernel item. The goto on C therefore depends on the kernel item over
+	// two goto follows internal relations, which is the transitive part of the GFi* closure of definition 3.16 of
+	// IELR(1).
+	FollowKernelItemsTransitiveTestGrammar = frontend.Grammar{
+		Terminals: []frontend.Symbol{
+			{
+				Name: "a", // 0
+			},
+			{
+				Name: "c", // 1
+			},
+		},
+		Nonterminals: []frontend.Symbol{
+			{
+				Name: "S", // 0
+			},
+			{
+				Name: "A", // 1
+			},
+			{
+				Name: "B", // 2
+			},
+			{
+				Name: "C", // 3
+			},
+		},
+		Productions: []frontend.Production{
+			// 1. S -> aA
+			{
+				NonterminalIdx: 0, // S
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(0),    // a
+					frontend.NewNonterminalRef(1), // A
+				},
+			},
+			// 2. A -> B
+			{
+				NonterminalIdx: 1, // A
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewNonterminalRef(2), // B
+				},
+			},
+			// 3. B -> C
+			{
+				NonterminalIdx: 2, // B
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewNonterminalRef(3), // C
+				},
+			},
+			// 4. C -> c
+			{
+				NonterminalIdx: 3, // C
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(1), // c
+				},
+			},
+		},
+		StartNonterminalIdx: 0, // "S"
+	}
 )

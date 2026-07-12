@@ -6,6 +6,7 @@ import (
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 // GrammarToParser calculates a parser from the context free grammar.
@@ -32,8 +33,9 @@ type IELR1 struct {
 	predecessorStateIdxsByStateIdx [][]int
 
 	// followKernelItems reports if the goto does depend on the kernel item's lookahead set. It is indexed by goto index
-	// and then kernel item index. This is definition 3.16 of IELR(1) and named "follow_kernel_items" there.
-	followKernelItems [][]bool
+	// and holds the kernel item indexes of the state the goto is coming from. This is definition 3.16 of IELR(1) and
+	// named "follow_kernel_items" there.
+	followKernelItems []utils.Bitset
 }
 
 func NewIELR1(augmentedGrammar frontend.Grammar) IELR1 {
@@ -69,6 +71,14 @@ func (i *IELR1) phase0ComputeLALR1ParserTables() {
 	i.parser = i.lalr1Builder.Parser()
 }
 
+// phase1ComputeAuxiliaryTables computes the auxiliary tables of section 3.3 of IELR(1).
+//
+// Section 3.3 asks for three tables: predecessors, follow_kernel_items and always_follows. Only the first two are
+// computed here. The always_follows of definition 3.20 are already computed by the LALR(1) builder, because we follow
+// implementation 2 of section 3.3.5, which the paper recommends for a parser generator without an existing LALR(1)
+// implementation: the always follows are computed between the two steps of phase 0 and phase 0 derives its goto follows
+// from them with definition 3.24. That saves a closure computation and means successor follows are never computed at
+// all.
 func (i *IELR1) phase1ComputeAuxiliaryTables() {
 	defer trace.StartRegion(context.TODO(), "IELR(1): Phase 1: Compute auxiliary tables").End()
 
@@ -90,41 +100,69 @@ func (i *IELR1) initPredecessorStateIdxsByStateIdx() {
 	}
 }
 
-// initFollowKernelItems initializes followKernelItems.
+// initFollowKernelItems initializes followKernelItems as specified in definition 3.16 of IELR(1).
+//
+// A goto follow set depends on the lookahead set of a kernel item of the state the goto is coming from, when the kernel
+// item has its position in front of the nonterminal of that goto and the rest of the production after that nonterminal
+// can be empty. Definition 3.16 does not stop at the goto itself, but follows the goto follows internal relation: the
+// follow set of a goto contains the follow sets of all the gotos it depends on internally, so it also depends on the
+// kernel items those gotos depend on.
+//
+// We therefore seed every goto with the kernel items the goto itself depends on, and let the digraph algorithm add the
+// kernel items of the gotos which are reachable through the internal relation. This gives us the reflexive transitive
+// closure of the internal relation which the definition asks for. Kernel item indexes are only meaningful within a
+// single state, but the internal relation only ever relates gotos which come from the same state, so the propagation
+// never mixes kernel item indexes of different states.
 func (i *IELR1) initFollowKernelItems() {
-	i.followKernelItems = make([][]bool, len(i.lalr1Builder.gotoRecords))
-	for _, edge := range i.lalr1Builder.gotoFollowsInternalRelation {
-		// We need to work with the state which the internal relation is contained in. Make sure that you are using the
-		// correct goto and the correct state to stay inside the desired state.
-		toGoto := i.lalr1Builder.gotoRecords[edge.ToIdx]
-		state := i.parser.States[toGoto.FromStateIdx]
+	i.followKernelItems = make([]utils.Bitset, len(i.lalr1Builder.gotoRecords))
+	for gotoIdx, gotoRecord := range i.lalr1Builder.gotoRecords {
+		state := i.parser.States[gotoRecord.FromStateIdx]
 		for kernelItemIdx, kernelItem := range state.KernelItems.All() {
 			production := i.grammar.Productions[kernelItem.ProductionIdx()]
-			if kernelItem.Position() == len(production.SymbolRefs) ||
-				production.SymbolRefs[kernelItem.Position()].IsTerminal() ||
-				production.SymbolRefs[kernelItem.Position()].Idx() != toGoto.NonterminalIdx {
-				// We are looking for the kernel item which is responsible for the goto. If the kernel item is at the
-				// end of the production, or the next symbol is not a nonterminal or the nonterminal is different from
-				// the goto, this is not the kernel item we are looking for.
+			if kernelItem.Position() == len(production.SymbolRefs) {
+				// The kernel item is at the end of the production, so it does not take the goto.
+				continue
+			}
+			symbolRef := production.SymbolRefs[kernelItem.Position()]
+			if symbolRef.IsTerminal() || symbolRef.Idx() != gotoRecord.NonterminalIdx {
+				// The kernel item does not move over the nonterminal of the goto, so it does not take the goto.
 				continue
 			}
 			if !i.lalr1Builder.isCoreTailEmpty(backend.NewCore(kernelItem.ProductionIdx(), kernelItem.Position()+1)) {
-				// The kernel item needs to be empty after the nonterminal transition. If this is not the case, we
-				// do not record the dependency.
+				// The rest of the production after the nonterminal transition can not be empty, so the lookahead set of
+				// the kernel item can never follow the nonterminal of the goto.
 				continue
 			}
-
-			// The goto does depend on the kernel item's lookahead set. Record it for the source and the destination.
-			if i.followKernelItems[edge.FromIdx] == nil {
-				i.followKernelItems[edge.FromIdx] = make([]bool, state.KernelItems.Length())
-			}
-			i.followKernelItems[edge.FromIdx][kernelItemIdx] = true
-			if i.followKernelItems[edge.ToIdx] == nil {
-				i.followKernelItems[edge.ToIdx] = make([]bool, state.KernelItems.Length())
-			}
-			i.followKernelItems[edge.ToIdx][kernelItemIdx] = true
+			i.followKernelItems[gotoIdx].Add(kernelItemIdx)
 		}
 	}
+	propagation := NewDigraphAlgorithm(i.followKernelItems, i.lalr1Builder.gotoFollowsInternalRelation)
+	propagation.Execute()
+}
+
+// FollowKernelItems returns the kernel items whose lookahead sets a goto follow set depends on, indexed by goto index.
+// The kernel item indexes are indexes into the kernel items of the state the goto is coming from. This is definition
+// 3.16 of IELR(1) and named "follow_kernel_items" there.
+//
+// The table is only valid after phase 1 has run.
+func (i *IELR1) FollowKernelItems() []utils.Bitset {
+	return i.followKernelItems
+}
+
+// GotoRecords returns the details about every nonterminal transition of the parser, indexed by goto index. This is what
+// the goto indexes of FollowKernelItems refer to.
+//
+// The table is only valid after phase 0 has run.
+func (i *IELR1) GotoRecords() []GotoRecord {
+	return i.lalr1Builder.gotoRecords
+}
+
+// Predecessors returns the state indexes of the states which have a transition into the state, indexed by state index.
+// This is definition 3.15 of IELR(1) and named "predecessors" there.
+//
+// The table is only valid after phase 1 has run.
+func (i *IELR1) Predecessors() [][]int {
+	return i.predecessorStateIdxsByStateIdx
 }
 
 func (i *IELR1) phase2ComputeAnnotations() {

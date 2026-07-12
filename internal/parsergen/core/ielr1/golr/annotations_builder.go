@@ -22,8 +22,9 @@ type AnnotationsBuilder struct {
 	predecessorStateIdxsByStateIdx [][]int
 
 	// followKernelItems reports if the goto does depend on the kernel item's lookahead set. It is indexed by goto index
-	// and then kernel item index. This is definition 3.16 of IELR(1) and named "follow_kernel_items" there.
-	followKernelItems [][]bool
+	// and holds the kernel item indexes of the state the goto is coming from. This is definition 3.16 of IELR(1) and
+	// named "follow_kernel_items" there.
+	followKernelItems []utils.Bitset
 
 	// itemLookaheadSets provides the lookahead sets for the kernel items of a state. It is indexed by the state index.
 	// This is definition 3.26 of IELR(1) and named "item_lookahead_sets" there.
@@ -75,7 +76,7 @@ func NewAnnotationsBuilder(
 	lalr1Builder LALR1Builder,
 	parser backend.Parser,
 	predecessorStateIdxsByStateIdx [][]int,
-	followKernelItems [][]bool,
+	followKernelItems []utils.Bitset,
 ) *AnnotationsBuilder {
 	return &AnnotationsBuilder{
 		grammar:                        parser.Grammar,
@@ -258,7 +259,7 @@ func (b *AnnotationsBuilder) computeLhsContributions(stateIdx int, nonterminalId
 	result := make(KernelItemConflictContributions, state.KernelItems.Length())
 	for itemIdx := range result {
 		itemLookaheadSet := b.getItemLookaheadSet(stateIdx, itemIdx)
-		result[itemIdx] = b.followKernelItems[gotoIdx][itemIdx] && itemLookaheadSet.Contains(terminalIdx)
+		result[itemIdx] = b.followKernelItems[gotoIdx].Contains(itemIdx) && itemLookaheadSet.Contains(terminalIdx)
 	}
 	return result
 }

@@ -3,18 +3,22 @@ package golr
 import (
 	"math"
 
-	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/utils"
 )
 
 // DigraphAlgorithm provides an implementation for algorithm Digraph as described by DeRemer and Pennello in
 // "Efficient Computation of LALR(1) Look-Ahead Sets" at https://doi.org/10.1145/69622.357187. It provides functionality
-// for propagating goto follow sets correctly across a directed graph which might contain loops and shortcuts.
+// for propagating sets correctly across a directed graph which might contain loops and shortcuts.
+//
+// The algorithm does not care what the bits of the propagated sets mean. IELR(1) uses it with sets of terminals, when
+// propagating goto follow sets along the goto follows relations, and with sets of kernel items, when propagating the
+// follow kernel items of definition 3.16 along the goto follows internal relation.
 type DigraphAlgorithm struct {
-	// follows holds the follow set being propagated, indexed by goto index. The caller owns this slice and seeds it
-	// with the direct contributions before calling Execute. The algorithm merges follow sets along the relation in
-	// place, so after Execute the slice holds the fully propagated follow sets.
-	follows []backend.LookaheadSet
+	// sets holds the sets being propagated, indexed by goto index. The caller owns this slice and seeds it with the
+	// direct contributions before calling Execute. The algorithm merges the sets along the relation in place, so after
+	// Execute the slice holds the fully propagated sets, which is the reflexive transitive closure of the relation
+	// applied to the seed.
+	sets []utils.Bitset
 
 	// successorGotoIdxs holds the target goto index of every edge in the relation, grouped by source goto, so that
 	// traverse only looks at the outgoing edges of a goto instead of scanning the whole edge list on every call. The
@@ -35,20 +39,20 @@ type DigraphAlgorithm struct {
 	//   - 1..len:      the goto is on gotoIdxWorkStack; the value is its depth on the stack, lowered to the smallest
 	//                  depth reachable through a back edge so the component root is the goto whose value still equals its
 	//                  own depth.
-	//   - math.MaxInt: the goto's component has been closed; its follow set is final and it is ignored from then on.
+	//   - math.MaxInt: the goto's component has been closed; its set is final and it is ignored from then on.
 	processed []int
 }
 
-// NewDigraphAlgorithm creates a new instances for algorithm digraph. The follows slice is indexed by goto index, owned
+// NewDigraphAlgorithm creates a new instances for algorithm digraph. The sets slice is indexed by goto index, owned
 // by the caller, and propagated in place: seed it with the direct contributions before calling Execute and read the
 // results back from it afterward.
 func NewDigraphAlgorithm(
-	follows []backend.LookaheadSet,
+	sets []utils.Bitset,
 	edges []Edge,
 ) DigraphAlgorithm {
 	// Build the compressed-sparse-row adjacency. First count the outgoing edges per goto to get the offsets, then place
 	// each edge target into the slot reserved for its source goto.
-	successorGotoIdxOffsets := make([]int, len(follows)+1)
+	successorGotoIdxOffsets := make([]int, len(sets)+1)
 	for _, edge := range edges {
 		successorGotoIdxOffsets[edge.FromIdx+1]++
 	}
@@ -56,7 +60,7 @@ func NewDigraphAlgorithm(
 		successorGotoIdxOffsets[gotoIdx] += successorGotoIdxOffsets[gotoIdx-1]
 	}
 	successorGotoIdxs := make([]int, len(edges))
-	nextSuccessorSlot := make([]int, len(follows))
+	nextSuccessorSlot := make([]int, len(sets))
 	copy(nextSuccessorSlot, successorGotoIdxOffsets)
 	for _, edge := range edges {
 		successorGotoIdxs[nextSuccessorSlot[edge.FromIdx]] = edge.ToIdx
@@ -64,16 +68,16 @@ func NewDigraphAlgorithm(
 	}
 
 	return DigraphAlgorithm{
-		follows:                 follows,
+		sets:                    sets,
 		successorGotoIdxs:       successorGotoIdxs,
 		successorGotoIdxOffsets: successorGotoIdxOffsets,
-		processed:               make([]int, len(follows)),
+		processed:               make([]int, len(sets)),
 	}
 }
 
 // Execute runs the algorithm digraph on all the gotos.
 func (d *DigraphAlgorithm) Execute() {
-	for gotoIdx := range len(d.follows) {
+	for gotoIdx := range len(d.sets) {
 		if d.processed[gotoIdx] != 0 {
 			// This goto index has already been processed and does not need any more processing.
 			continue
@@ -94,16 +98,16 @@ func (d *DigraphAlgorithm) traverse(gotoIdx int) {
 			d.traverse(toIdx)
 		}
 		d.processed[gotoIdx] = min(d.processed[gotoIdx], d.processed[toIdx])
-		d.follows[gotoIdx].Merge(&d.follows[toIdx])
+		d.sets[gotoIdx].Merge(&d.sets[toIdx])
 	}
 	if d.processed[gotoIdx] == currDepth {
 		for {
 			topOfStack := d.gotoIdxWorkStack.Top()
 			d.processed[topOfStack] = math.MaxInt
-			// All members of a strongly connected component share the same follow set, which is fully accumulated in
-			// the root of the component (gotoIdx). Copy it into each member, otherwise members other than the root keep
-			// an incomplete set. This is the "F(Top of S) <- F x" step of the Digraph algorithm by DeRemer and Pennello.
-			d.follows[topOfStack].Merge(&d.follows[gotoIdx])
+			// All members of a strongly connected component share the same set, which is fully accumulated in the root
+			// of the component (gotoIdx). Copy it into each member, otherwise members other than the root keep an
+			// incomplete set. This is the "F(Top of S) <- F x" step of the Digraph algorithm by DeRemer and Pennello.
+			d.sets[topOfStack].Merge(&d.sets[gotoIdx])
 			d.gotoIdxWorkStack.Pop()
 			if topOfStack == gotoIdx {
 				break
