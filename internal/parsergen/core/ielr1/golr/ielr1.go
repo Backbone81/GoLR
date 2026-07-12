@@ -32,10 +32,18 @@ type IELR1 struct {
 	// TODO: This table might be valuable to calculate and use during LALR(1) construction already.
 	predecessorStateIdxsByStateIdx [][]int
 
-	// followKernelItems reports if the goto does depend on the kernel item's lookahead set. It is indexed by goto index
-	// and holds the kernel item indexes of the state the goto is coming from. This is definition 3.16 of IELR(1) and
-	// named "follow_kernel_items" there.
-	followKernelItems []utils.Bitset
+	// followKernelItemsByGotoIdx reports if the goto does depend on the kernel item's lookahead set. It holds the kernel
+	// item indexes of the state the goto is coming from. This is definition 3.16 of IELR(1) and named
+	// "follow_kernel_items" there.
+	followKernelItemsByGotoIdx []utils.Bitset
+
+	// inadequaciesByStateIdx holds the inadequacies of the LALR(1) parser tables, keyed by the state index of the
+	// conflicted state. This is definition 3.27 of IELR(1) and named "inadequacy_lists" there.
+	inadequaciesByStateIdx map[int][]*Inadequacy
+
+	// annotationListsByStateIdx holds the annotations of a state, keyed by state index. This is definition 3.29 of
+	// IELR(1) and named "annotation_lists" there.
+	annotationListsByStateIdx map[int][]Annotation
 }
 
 func NewIELR1(augmentedGrammar frontend.Grammar) IELR1 {
@@ -100,7 +108,7 @@ func (i *IELR1) initPredecessorStateIdxsByStateIdx() {
 	}
 }
 
-// initFollowKernelItems initializes followKernelItems as specified in definition 3.16 of IELR(1).
+// initFollowKernelItems initializes followKernelItemsByGotoIdx as specified in definition 3.16 of IELR(1).
 //
 // A goto follow set depends on the lookahead set of a kernel item of the state the goto is coming from, when the kernel
 // item has its position in front of the nonterminal of that goto and the rest of the production after that nonterminal
@@ -114,7 +122,7 @@ func (i *IELR1) initPredecessorStateIdxsByStateIdx() {
 // single state, but the internal relation only ever relates gotos which come from the same state, so the propagation
 // never mixes kernel item indexes of different states.
 func (i *IELR1) initFollowKernelItems() {
-	i.followKernelItems = make([]utils.Bitset, len(i.lalr1Builder.gotoRecords))
+	i.followKernelItemsByGotoIdx = make([]utils.Bitset, len(i.lalr1Builder.gotoRecords))
 	for gotoIdx, gotoRecord := range i.lalr1Builder.gotoRecords {
 		state := i.parser.States[gotoRecord.FromStateIdx]
 		for kernelItemIdx, kernelItem := range state.KernelItems.All() {
@@ -133,10 +141,10 @@ func (i *IELR1) initFollowKernelItems() {
 				// the kernel item can never follow the nonterminal of the goto.
 				continue
 			}
-			i.followKernelItems[gotoIdx].Add(kernelItemIdx)
+			i.followKernelItemsByGotoIdx[gotoIdx].Add(kernelItemIdx)
 		}
 	}
-	propagation := NewDigraphAlgorithm(i.followKernelItems, i.lalr1Builder.gotoFollowsInternalRelation)
+	propagation := NewDigraphAlgorithm(i.followKernelItemsByGotoIdx, i.lalr1Builder.gotoFollowsInternalRelation)
 	propagation.Execute()
 }
 
@@ -146,7 +154,7 @@ func (i *IELR1) initFollowKernelItems() {
 //
 // The table is only valid after phase 1 has run.
 func (i *IELR1) FollowKernelItems() []utils.Bitset {
-	return i.followKernelItems
+	return i.followKernelItemsByGotoIdx
 }
 
 // GotoRecords returns the details about every nonterminal transition of the parser, indexed by goto index. This is what
@@ -165,16 +173,62 @@ func (i *IELR1) Predecessors() [][]int {
 	return i.predecessorStateIdxsByStateIdx
 }
 
+// GotoIdxsByStateIdx returns the goto indexes of the gotos which come from a state, keyed by state index.
+//
+// The table is only valid after phase 0 has run.
+func (i *IELR1) GotoIdxsByStateIdx() map[int][]int {
+	return i.lalr1Builder.gotoIdxsByStateIdx
+}
+
+// GotoFollows returns the goto follow set of every goto, indexed by goto index. This is "goto_follows" from definition
+// 3.4 of IELR(1).
+//
+// The table is only valid after phase 0 has run.
+func (i *IELR1) GotoFollows() []backend.LookaheadSet {
+	return i.lalr1Builder.gotoFollows
+}
+
+// AlwaysFollows returns the terminals which follow a goto no matter what the lookahead sets of the kernel items of the
+// state the goto comes from are, indexed by goto index. This is definition 3.20 of IELR(1) and named "always_follows"
+// there.
+//
+// The table is only valid after phase 0 has run.
+func (i *IELR1) AlwaysFollows() []backend.LookaheadSet {
+	return i.lalr1Builder.alwaysFollows
+}
+
 func (i *IELR1) phase2ComputeAnnotations() {
 	defer trace.StartRegion(context.TODO(), "IELR(1): Phase 2: Compute annotations").End()
 
 	annotationsBuilder := NewAnnotationsBuilder(
-		i.lalr1Builder,
 		i.parser,
+		i.lalr1Builder.gotoRecords,
+		i.lalr1Builder.gotoIdxsByStateIdx,
+		i.lalr1Builder.gotoFollows,
+		i.lalr1Builder.alwaysFollows,
 		i.predecessorStateIdxsByStateIdx,
-		i.followKernelItems,
+		i.followKernelItemsByGotoIdx,
 	)
 	annotationsBuilder.Execute()
+	i.inadequaciesByStateIdx = annotationsBuilder.Inadequacies()
+	i.annotationListsByStateIdx = annotationsBuilder.AnnotationLists()
+}
+
+// Inadequacies returns the inadequacies of the LALR(1) parser tables, keyed by the state index of the conflicted
+// state. This is definition 3.27 of IELR(1) and named "inadequacy_lists" there.
+//
+// The table is only valid after phase 2 has run.
+func (i *IELR1) Inadequacies() map[int][]*Inadequacy {
+	return i.inadequaciesByStateIdx
+}
+
+// AnnotationLists returns the annotations of the states, keyed by state index. An annotation describes whether and how
+// any isocore which phase 3 might split from the state can contribute to an inadequacy. This is definition 3.29 of
+// IELR(1) and named "annotation_lists" there.
+//
+// The table is only valid after phase 2 has run.
+func (i *IELR1) AnnotationLists() map[int][]Annotation {
+	return i.annotationListsByStateIdx
 }
 
 func (i *IELR1) phase3SplitStates() {
