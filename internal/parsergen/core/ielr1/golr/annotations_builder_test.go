@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
 	lr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lr1/golr"
@@ -102,13 +103,13 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 
 			// The conflict has two contributions: the shift of "E -> a" and the reduction of the empty production
 			// "E -> ". The paper calls them contribution 1 and contribution 2.
-			var contributions []ielr1golrcore.ConflictContribution
+			var contributions []conflict.Contribution
 			for _, contribution := range inadequacies[0].Contributions.All() {
 				contributions = append(contributions, contribution)
 			}
-			Expect(contributions).To(Equal([]ielr1golrcore.ConflictContribution{
-				ielr1golrcore.NewShiftConflictContribution(),
-				ielr1golrcore.NewReduceConflictContribution(productionIdxEmptyE),
+			Expect(contributions).To(Equal([]conflict.Contribution{
+				conflict.NewShiftContribution(),
+				conflict.NewReduceContribution(productionIdxEmptyE),
 			}))
 		})
 

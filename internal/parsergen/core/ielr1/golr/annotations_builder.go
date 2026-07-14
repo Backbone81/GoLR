@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	"github.com/backbone81/golr/internal/utils"
 )
 
@@ -219,7 +220,7 @@ func (b *AnnotationsBuilder) getGotoIdx(stateIdx int, nonterminalIdx int) (int, 
 func (b *AnnotationsBuilder) initInadequacies() {
 	b.inadequaciesByStateIdx = make(map[int][]*Inadequacy)
 	for stateIdx := range b.parser.States {
-		contributionsByTerminalIdx := b.getConflictContributions(stateIdx)
+		contributionsByTerminalIdx := conflict.ContributionsByTerminalIdx(b.parser.States[stateIdx])
 		for _, terminalIdx := range slices.Sorted(maps.Keys(contributionsByTerminalIdx)) {
 			contributions := contributionsByTerminalIdx[terminalIdx]
 			if contributions.Length() <= 1 {
@@ -233,30 +234,6 @@ func (b *AnnotationsBuilder) initInadequacies() {
 			})
 		}
 	}
-}
-
-// getConflictContributions returns all the actions the state has per terminal. This is the contributions function of
-// definition 2.17 of IELR(1). A terminal with more than one action is a conflicted terminal, as specified in
-// definition 2.18.
-func (b *AnnotationsBuilder) getConflictContributions(stateIdx int) map[int]ConflictContributionSet {
-	result := make(map[int]ConflictContributionSet)
-	state := b.parser.States[stateIdx]
-	for _, transition := range state.TransitionActions.All() {
-		if transition.SymbolRef().IsNonterminal() {
-			continue
-		}
-		contributions := result[transition.SymbolRef().Idx()]
-		contributions.Add(NewShiftConflictContribution())
-		result[transition.SymbolRef().Idx()] = contributions
-	}
-	for _, reduction := range state.ReduceActions.All() {
-		for terminalIdx := range reduction.LookaheadSet.All() {
-			contributions := result[terminalIdx]
-			contributions.Add(NewReduceConflictContribution(reduction.ProductionIdx))
-			result[terminalIdx] = contributions
-		}
-	}
-	return result
 }
 
 // initAnnotationLists initializes annotationListsByStateIdx as specified in definition 3.29 of IELR(1).

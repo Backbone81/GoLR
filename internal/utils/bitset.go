@@ -86,6 +86,15 @@ func (b *Bitset) Remove(idx int) {
 	}
 }
 
+// Clone returns a copy of the bitset which shares no storage with the original. A plain copy of a bitset keeps
+// referencing the chunks of the original, so setting or removing a bit on the copy would change the original as well.
+// Clone is what you want when the original must stay untouched.
+func (b *Bitset) Clone() Bitset {
+	return Bitset{
+		chunks: slices.Clone(b.chunks),
+	}
+}
+
 // All returns an iterator over all set bits.
 func (b *Bitset) All() iter.Seq[int] {
 	return func(yield func(int) bool) {

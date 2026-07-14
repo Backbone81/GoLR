@@ -49,6 +49,33 @@ func (s *ReduceActionSet) Add(value ReduceAction) bool {
 	return true
 }
 
+// Remove removes a value from the ordered set. If the value is not present in the ordered set, the set is not changed.
+// The return value reports if the value was removed.
+func (s *ReduceActionSet) Remove(value ReduceAction) bool {
+	index, found := slices.BinarySearchFunc(s.actions, value, CompareReduceAction)
+	if !found {
+		return false
+	}
+	s.actions = slices.Delete(s.actions, index, index+1)
+	return true
+}
+
+// Clone returns a copy of the ordered set which shares no storage with the original. A plain copy of a reduce action
+// set keeps referencing the actions of the original, so removing an action from the copy would remove it from the
+// original as well. Clone is what you want when the original must stay untouched.
+//
+// The lookahead sets of the reduce actions are cloned as well, because a reduce action holds its lookahead set as a
+// bitset, which shares its storage on a plain copy just the same.
+func (s *ReduceActionSet) Clone() ReduceActionSet {
+	result := ReduceActionSet{
+		actions: slices.Clone(s.actions),
+	}
+	for i := range result.actions {
+		result.actions[i].LookaheadSet = result.actions[i].LookaheadSet.Clone()
+	}
+	return result
+}
+
 // Merge adds all values of the other ordered set.
 func (s *ReduceActionSet) Merge(other *ReduceActionSet) {
 	for _, value := range other.All() {
