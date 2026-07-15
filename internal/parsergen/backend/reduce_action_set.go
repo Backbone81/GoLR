@@ -60,6 +60,14 @@ func (s *ReduceActionSet) Remove(value ReduceAction) bool {
 	return true
 }
 
+// Clear removes all reduce actions from the set while keeping the already allocated backing storage. Refilling the set
+// afterward reuses that storage instead of allocating a new one, so this is what you want when a set is emptied and
+// rebuilt with a similar number of reduce actions. Note that this keeps a reference to the previous reduce actions
+// until they are overwritten, so it is not suitable for letting their lookahead sets be garbage collected.
+func (s *ReduceActionSet) Clear() {
+	s.actions = s.actions[:0]
+}
+
 // Clone returns a copy of the ordered set which shares no storage with the original. A plain copy of a reduce action
 // set keeps referencing the actions of the original, so removing an action from the copy would remove it from the
 // original as well. Clone is what you want when the original must stay untouched.

@@ -41,6 +41,10 @@ run: prepare
 
 .PHONY: test
 test: test-examples
+	go test --race $(PACKAGE)
+
+.PHONY: test-coverage
+test-coverage: test-examples
 	mkdir -p tmp
 	rm -rf tmp/coverage
 	mkdir -p tmp/coverage

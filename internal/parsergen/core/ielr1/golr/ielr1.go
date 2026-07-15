@@ -122,8 +122,9 @@ func (i *IELR1) initPredecessorStateIdxsByStateIdx() {
 // single state, but the internal relation only ever relates gotos which come from the same state, so the propagation
 // never mixes kernel item indexes of different states.
 func (i *IELR1) initFollowKernelItems() {
-	i.followKernelItemsByGotoIdx = make([]utils.Bitset, len(i.lalr1Builder.gotoRecords))
-	for gotoIdx, gotoRecord := range i.lalr1Builder.gotoRecords {
+	gotoRecords := i.lalr1Builder.lookaheads.GotoRecords()
+	i.followKernelItemsByGotoIdx = make([]utils.Bitset, len(gotoRecords))
+	for gotoIdx, gotoRecord := range gotoRecords {
 		state := i.parser.States[gotoRecord.FromStateIdx]
 		for kernelItemIdx, kernelItem := range state.KernelItems.All() {
 			production := i.grammar.Productions[kernelItem.ProductionIdx()]
@@ -136,7 +137,7 @@ func (i *IELR1) initFollowKernelItems() {
 				// The kernel item does not move over the nonterminal of the goto, so it does not take the goto.
 				continue
 			}
-			if !i.lalr1Builder.isCoreTailEmpty(backend.NewCore(kernelItem.ProductionIdx(), kernelItem.Position()+1)) {
+			if !i.lalr1Builder.lookaheads.IsCoreTailEmpty(backend.NewCore(kernelItem.ProductionIdx(), kernelItem.Position()+1)) {
 				// The rest of the production after the nonterminal transition can not be empty, so the lookahead set of
 				// the kernel item can never follow the nonterminal of the goto.
 				continue
@@ -144,7 +145,7 @@ func (i *IELR1) initFollowKernelItems() {
 			i.followKernelItemsByGotoIdx[gotoIdx].Add(kernelItemIdx)
 		}
 	}
-	propagation := NewDigraphAlgorithm(i.followKernelItemsByGotoIdx, i.lalr1Builder.gotoFollowsInternalRelation)
+	propagation := NewDigraphAlgorithm(i.followKernelItemsByGotoIdx, i.lalr1Builder.lookaheads.GotoFollowsInternalRelation())
 	propagation.Execute()
 }
 
@@ -162,7 +163,7 @@ func (i *IELR1) FollowKernelItems() []utils.Bitset {
 //
 // The table is only valid after phase 0 has run.
 func (i *IELR1) GotoRecords() []GotoRecord {
-	return i.lalr1Builder.gotoRecords
+	return i.lalr1Builder.lookaheads.GotoRecords()
 }
 
 // Predecessors returns the state indexes of the states which have a transition into the state, indexed by state index.
@@ -177,7 +178,7 @@ func (i *IELR1) Predecessors() [][]int {
 //
 // The table is only valid after phase 0 has run.
 func (i *IELR1) GotoIdxsByStateIdx() map[int][]int {
-	return i.lalr1Builder.gotoIdxsByStateIdx
+	return i.lalr1Builder.lookaheads.GotoIdxsByStateIdx()
 }
 
 // GotoFollows returns the goto follow set of every goto, indexed by goto index. This is "goto_follows" from definition
@@ -185,7 +186,7 @@ func (i *IELR1) GotoIdxsByStateIdx() map[int][]int {
 //
 // The table is only valid after phase 0 has run.
 func (i *IELR1) GotoFollows() []backend.LookaheadSet {
-	return i.lalr1Builder.gotoFollows
+	return i.lalr1Builder.lookaheads.GotoFollows()
 }
 
 // AlwaysFollows returns the terminals which follow a goto no matter what the lookahead sets of the kernel items of the
@@ -194,7 +195,7 @@ func (i *IELR1) GotoFollows() []backend.LookaheadSet {
 //
 // The table is only valid after phase 0 has run.
 func (i *IELR1) AlwaysFollows() []backend.LookaheadSet {
-	return i.lalr1Builder.alwaysFollows
+	return i.lalr1Builder.lookaheads.AlwaysFollows()
 }
 
 func (i *IELR1) phase2ComputeAnnotations() {
@@ -202,10 +203,10 @@ func (i *IELR1) phase2ComputeAnnotations() {
 
 	annotationsBuilder := NewAnnotationsBuilder(
 		i.parser,
-		i.lalr1Builder.gotoRecords,
-		i.lalr1Builder.gotoIdxsByStateIdx,
-		i.lalr1Builder.gotoFollows,
-		i.lalr1Builder.alwaysFollows,
+		i.lalr1Builder.lookaheads.GotoRecords(),
+		i.lalr1Builder.lookaheads.GotoIdxsByStateIdx(),
+		i.lalr1Builder.lookaheads.GotoFollows(),
+		i.lalr1Builder.lookaheads.AlwaysFollows(),
 		i.predecessorStateIdxsByStateIdx,
 		i.followKernelItemsByGotoIdx,
 	)

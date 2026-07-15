@@ -2,28 +2,10 @@ package golr
 
 import "github.com/backbone81/golr/internal/parsergen/backend"
 
-// SliceView is a helper struct which describes an offset into a slice and a length. It is used to work with growing
-// slices where we want to keep a reference to some subsection even after the underlying array has grown.
-type SliceView struct {
-	Offset int
-	Length int
-}
-
-// SliceFromView returns a slice as a subset of a bigger slice. The extent of the subset is specified by the view.
-func SliceFromView[T any](slice []T, view SliceView) []T {
-	return slice[view.Offset : view.Offset+view.Length]
-}
-
 type ReduceActionRecord struct {
 	StateIdx     int
 	Core         backend.Core
 	LookaheadSet backend.LookaheadSet
-}
-
-type TransitionRecord struct {
-	FromStateIdx int
-	SymbolIdx    int
-	ToStateIdx   int
 }
 
 type Edge struct {
