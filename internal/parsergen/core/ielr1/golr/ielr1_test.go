@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
@@ -32,6 +33,23 @@ var _ = Describe("IELR(1)", func() {
 		),
 	)
 
+	// Phase 5 of IELR(1) (section 3.7 of the paper) resolves the conflicts which splitting cannot remove, the genuine
+	// ones canonical LR(1) has too. It runs at the GrammarToParser interface through conflict.Resolve, not inside the
+	// builder, so the raw table BuildParser returns still carries the conflict while the table GrammarToParser returns is
+	// free of it. The ambiguous grammar of figure 2 has such a genuine conflict and is the sharpest case for this split of
+	// responsibilities.
+	It("should resolve the genuine conflict of the ambiguous grammar only at the GrammarToParser interface", func() {
+		augmentedGrammar := frontend.AugmentGrammar(ielr1golrcore.AmbiguousTestGrammarFig2)
+
+		rawBuilder := ielr1golrcore.NewIELR1(augmentedGrammar, conflict.NewDefaultPolicy(augmentedGrammar))
+		rawParser := rawBuilder.BuildParser()
+		Expect(hasConflict(rawParser)).To(BeTrue(), "the raw split table is expected to keep the genuine conflict")
+
+		resolvedParser, err := ielr1golrcore.GrammarToParser(augmentedGrammar)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(hasConflict(resolvedParser)).To(BeFalse(), "phase 5 is expected to resolve the genuine conflict")
+	})
+
 	// The follow kernel items of definition 3.16 of IELR(1) are the kernel items whose lookahead sets a goto follow set
 	// depends on. The definition asks for the reflexive transitive closure of the goto follows internal relation, so a
 	// goto depends on the kernel items of its own state, and on the kernel items of every goto it reaches through the
@@ -43,7 +61,7 @@ var _ = Describe("IELR(1)", func() {
 	DescribeTable("should compute the follow kernel items of definition 3.16",
 		func(grammar frontend.Grammar, wantFollowKernelItems map[string][]int) {
 			augmentedGrammar := frontend.AugmentGrammar(grammar)
-			ielr1 := ielr1golrcore.NewIELR1(augmentedGrammar)
+			ielr1 := ielr1golrcore.NewIELR1(augmentedGrammar, conflict.NewDefaultPolicy(augmentedGrammar))
 			ielr1.BuildParser()
 
 			gotFollowKernelItems := make(map[string][]int)

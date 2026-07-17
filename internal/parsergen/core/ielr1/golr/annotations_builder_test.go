@@ -367,7 +367,7 @@ func newAnnotationsBuilder(grammar frontend.Grammar) *ielr1golrcore.AnnotationsB
 	lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
 	lalr1Builder.Build()
 
-	ielr1 := ielr1golrcore.NewIELR1(augmentedGrammar)
+	ielr1 := ielr1golrcore.NewIELR1(augmentedGrammar, conflict.NewDefaultPolicy(augmentedGrammar))
 	ielr1.BuildParser()
 
 	annotationsBuilder := ielr1golrcore.NewAnnotationsBuilder(

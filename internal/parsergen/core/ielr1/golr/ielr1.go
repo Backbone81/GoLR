@@ -11,11 +11,32 @@ import (
 )
 
 // GrammarToParser calculates a parser from the context free grammar.
+//
+// The builder produces the minimal LR(1) parser tables with their conflicts still in them, the same way the LR(1) and
+// LALR(1) builders do, which keeps those tables usable for oracle and differential testing. Phase 5 of IELR(1) (section
+// 3.7 of the paper) then turns them into a parser table a backend can serialize: conflict.Resolve applies the conflict
+// resolution policy as a final pass over the whole table, removes the losing actions, and reports the conflicts the
+// policy left undecided as an error.
+//
+// Phase 5 runs here at the interface rather than inside the builder, so BuildParser keeps returning the raw tables the
+// oracle work inspects before any policy touches them. It is also where the orphan cleanup of section 3.8.2 will later
+// slot in, after resolution, as its own pass over the parser: the phase 5 orphans it removes are the states resolution
+// strands when it deletes a shift.
+//
+// The policy the builder splits states with in phase 3 is the very policy passed to conflict.Resolve here, so a
+// lookahead distinction the compatibility test of definition 3.43 preserved is resolved the same way phase 3 assumed it
+// would be.
 func GrammarToParser(augmentedGrammar frontend.Grammar) (backend.Parser, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: IELR1: GrammarToParser").End()
 
-	builder := NewIELR1(augmentedGrammar)
-	return builder.BuildParser(), nil
+	conflictPolicy := conflict.NewDefaultPolicy(augmentedGrammar)
+	builder := NewIELR1(augmentedGrammar, conflictPolicy)
+	parser := builder.BuildParser()
+
+	if _, err := conflict.Resolve(&parser, conflictPolicy); err != nil {
+		return backend.Parser{}, err
+	}
+	return parser, nil
 }
 
 // IELR1 provides an implementation of the IELR(1) algorithm as described by Denny and Malloy in "The IELR(1) algorithm
@@ -25,12 +46,12 @@ type IELR1 struct {
 	grammar frontend.Grammar
 	parser  backend.Parser
 
-	// splitPolicy is the conflict resolution which phase 3 uses to decide the dominant contribution of definition 3.42.
+	// conflictPolicy is the conflict resolution which phase 3 uses to decide the dominant contribution of definition 3.42.
 	// It is the Δ function of the paper, and phase 3's compatibility test of definition 3.43 is defined in terms of it:
 	// two isocores are merged only when they agree on the dominant contribution the policy decides. This is what makes
 	// the result IELR(1) rather than minimal LR(1) - phase 3 declines to split a state whose lookahead distinctions the
 	// policy resolves away, keeping the tables close to LALR(1) size.
-	splitPolicy conflict.Policy
+	conflictPolicy conflict.Policy
 
 	// TODO: We should not store the LALR(1) builder. Instead we should copy over what we need and be done with it.
 	lalr1Builder LALR1Builder
@@ -54,15 +75,18 @@ type IELR1 struct {
 	annotationListsByStateIdx map[int][]Annotation
 }
 
-func NewIELR1(augmentedGrammar frontend.Grammar) IELR1 {
+// NewIELR1 returns a new IELR(1) builder for the augmented grammar. The split policy is the conflict resolution phase 3
+// uses to decide the dominant contribution of definition 3.42, so that it merges isocores whose only difference is a
+// conflict the policy resolves, which keeps the split automaton close to LALR(1) size. The caller passes it in rather
+// than the builder constructing its own, so the same policy can resolve the remaining conflicts of phase 5 after the
+// builder has run, see GrammarToParser.
+func NewIELR1(augmentedGrammar frontend.Grammar, conflictPolicy conflict.Policy) IELR1 {
 	result := IELR1{
 		grammar: augmentedGrammar,
 		parser: backend.Parser{
 			Grammar: augmentedGrammar,
 		},
-		// The default policy resolves conflicts the way GNU Bison and Yacc do. Phase 3 uses it to merge isocores whose
-		// only difference is a conflict the policy resolves, which keeps the split automaton close to LALR(1) size.
-		splitPolicy: conflict.NewDefaultPolicy(augmentedGrammar),
+		conflictPolicy: conflictPolicy,
 	}
 	return result
 }
@@ -75,7 +99,9 @@ func (i *IELR1) BuildParser() backend.Parser {
 	i.phase2ComputeAnnotations()
 	i.phase3SplitStates()
 	i.phase4ComputeReductionLookaheads()
-	i.phase5ResolveRemainingConflicts()
+	// Phase 5 of IELR(1) (section 3.7 of the paper), resolving the remaining conflicts, is deliberately not a step of the
+	// builder. It runs outside, in GrammarToParser, through conflict.Resolve, so that BuildParser returns the minimal
+	// LR(1) tables with their conflicts intact for oracle and differential testing. See GrammarToParser for the details.
 	return i.parser
 }
 
@@ -260,7 +286,7 @@ func (i *IELR1) phase3SplitStates() {
 	splitStatesBuilder := NewSplitStatesBuilder(
 		i.grammar,
 		i.parser.States,
-		i.splitPolicy,
+		i.conflictPolicy,
 		i.annotationListsByStateIdx,
 		i.lalr1Builder.lookaheads.GotoRecords(),
 		i.lalr1Builder.lookaheads.GotoIdxsByStateIdx(),
@@ -289,10 +315,4 @@ func (i *IELR1) phase4ComputeReductionLookaheads() {
 	reductionLookaheadBuilder := NewReductionLookaheadBuilder(i.grammar, i.parser.States)
 	reductionLookaheadBuilder.Build()
 	applyReductionLookaheads(i.parser.States, reductionLookaheadBuilder.ReduceActions())
-}
-
-func (i *IELR1) phase5ResolveRemainingConflicts() {
-	defer trace.StartRegion(context.TODO(), "IELR(1): Phase 5: Resolve remaining conflicts").End()
-
-	// TODO: resolve remaining conflicts
 }

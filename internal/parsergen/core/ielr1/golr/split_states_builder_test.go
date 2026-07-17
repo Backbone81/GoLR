@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
 	lr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lr1/golr"
@@ -24,6 +25,10 @@ var _ = Describe("Split States Builder", func() {
 	//  2. IELR(1) has a conflict exactly when canonical LR(1) has one. A conflict of the LALR(1) parser tables which
 	//     canonical LR(1) does not have is a mysterious conflict which phase 3 removes by splitting; a conflict canonical
 	//     LR(1) has too is genuine and survives.
+	//
+	// The conflict invariant is about the raw automaton, before phase 5 resolves anything, so we compare the split table
+	// the builder returns from BuildParser, not the conflict-free table GrammarToParser produces. Resolving the conflicts
+	// with the default policy would make hasConflict always false and defeat the comparison.
 	DescribeTable("should agree with canonical LR(1) on the state count bounds and the conflicts",
 		func(grammar frontend.Grammar) {
 			augmentedGrammar := frontend.AugmentGrammar(grammar)
@@ -32,8 +37,8 @@ var _ = Describe("Split States Builder", func() {
 			lalr1Builder.Build()
 			lalr1Parser := lalr1Builder.Parser()
 
-			ielr1Parser, err := ielr1golrcore.GrammarToParser(augmentedGrammar)
-			Expect(err).ToNot(HaveOccurred())
+			ielr1Builder := ielr1golrcore.NewIELR1(augmentedGrammar, conflict.NewDefaultPolicy(augmentedGrammar))
+			ielr1Parser := ielr1Builder.BuildParser()
 
 			lr1Builder := lr1golrcore.NewLR1Builder(augmentedGrammar)
 			Expect(lr1Builder.Build()).To(Succeed())
@@ -61,8 +66,8 @@ var _ = Describe("Split States Builder", func() {
 		lalr1Builder.Build()
 		lalr1Parser := lalr1Builder.Parser()
 
-		ielr1Parser, err := ielr1golrcore.GrammarToParser(augmentedGrammar)
-		Expect(err).ToNot(HaveOccurred())
+		ielr1Builder := ielr1golrcore.NewIELR1(augmentedGrammar, conflict.NewDefaultPolicy(augmentedGrammar))
+		ielr1Parser := ielr1Builder.BuildParser()
 
 		Expect(hasConflict(lalr1Parser)).To(BeTrue(), "the LALR(1) parser tables are expected to have the mysterious conflict")
 		Expect(hasConflict(ielr1Parser)).To(BeFalse(), "phase 3 is expected to remove the mysterious conflict")
@@ -103,8 +108,8 @@ var _ = Describe("Split States Builder", func() {
 			lalr1Builder.Build()
 			lalr1Parser := lalr1Builder.Parser()
 
-			ielr1Parser, err := ielr1golrcore.GrammarToParser(augmentedGrammar)
-			Expect(err).ToNot(HaveOccurred(), "grammar seed %d:\n%s", grammarSeed, grammar.String())
+			ielr1Builder := ielr1golrcore.NewIELR1(augmentedGrammar, conflict.NewDefaultPolicy(augmentedGrammar))
+			ielr1Parser := ielr1Builder.BuildParser()
 
 			Expect(len(ielr1Parser.States)).To(
 				BeNumerically(">=", len(lalr1Parser.States)),
