@@ -5,6 +5,7 @@ import (
 	"runtime/trace"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	"github.com/backbone81/golr/internal/utils"
 )
@@ -23,6 +24,13 @@ func GrammarToParser(augmentedGrammar frontend.Grammar) (backend.Parser, error) 
 type IELR1 struct {
 	grammar frontend.Grammar
 	parser  backend.Parser
+
+	// splitPolicy is the conflict resolution which phase 3 uses to decide the dominant contribution of definition 3.42.
+	// It is the Δ function of the paper, and phase 3's compatibility test of definition 3.43 is defined in terms of it:
+	// two isocores are merged only when they agree on the dominant contribution the policy decides. This is what makes
+	// the result IELR(1) rather than minimal LR(1) - phase 3 declines to split a state whose lookahead distinctions the
+	// policy resolves away, keeping the tables close to LALR(1) size.
+	splitPolicy conflict.Policy
 
 	// TODO: We should not store the LALR(1) builder. Instead we should copy over what we need and be done with it.
 	lalr1Builder LALR1Builder
@@ -52,6 +60,9 @@ func NewIELR1(augmentedGrammar frontend.Grammar) IELR1 {
 		parser: backend.Parser{
 			Grammar: augmentedGrammar,
 		},
+		// The default policy resolves conflicts the way GNU Bison and Yacc do. Phase 3 uses it to merge isocores whose
+		// only difference is a conflict the policy resolves, which keeps the split automaton close to LALR(1) size.
+		splitPolicy: conflict.NewDefaultPolicy(augmentedGrammar),
 	}
 	return result
 }
@@ -153,15 +164,17 @@ func (i *IELR1) initFollowKernelItems() {
 // The kernel item indexes are indexes into the kernel items of the state the goto is coming from. This is definition
 // 3.16 of IELR(1) and named "follow_kernel_items" there.
 //
-// The table is only valid after phase 1 has run.
+// The table is only valid after phase 1 has run. It describes the LALR(1) automaton of phase 0 and is not updated for
+// the split automaton of phases 3 and 4, so it must not be indexed with the states of the final parser.
 func (i *IELR1) FollowKernelItems() []utils.Bitset {
 	return i.followKernelItemsByGotoIdx
 }
 
-// GotoRecords returns the details about every nonterminal transition of the parser, indexed by goto index. This is what
-// the goto indexes of FollowKernelItems refer to.
+// GotoRecords returns the details about every nonterminal transition of the LALR(1) automaton, indexed by goto index.
+// This is what the goto indexes of FollowKernelItems refer to.
 //
-// The table is only valid after phase 0 has run.
+// The table is only valid after phase 0 has run. It describes the LALR(1) automaton of phase 0 and is not updated for
+// the split automaton of phases 3 and 4, so it must not be indexed with the states of the final parser.
 func (i *IELR1) GotoRecords() []GotoRecord {
 	return i.lalr1Builder.lookaheads.GotoRecords()
 }
@@ -169,14 +182,16 @@ func (i *IELR1) GotoRecords() []GotoRecord {
 // Predecessors returns the state indexes of the states which have a transition into the state, indexed by state index.
 // This is definition 3.15 of IELR(1) and named "predecessors" there.
 //
-// The table is only valid after phase 1 has run.
+// The table is only valid after phase 1 has run. It describes the LALR(1) automaton of phase 0 and is not updated for
+// the split automaton of phases 3 and 4, so it must not be indexed with the states of the final parser.
 func (i *IELR1) Predecessors() [][]int {
 	return i.predecessorStateIdxsByStateIdx
 }
 
 // GotoIdxsByStateIdx returns the goto indexes of the gotos which come from a state, keyed by state index.
 //
-// The table is only valid after phase 0 has run.
+// The table is only valid after phase 0 has run. It describes the LALR(1) automaton of phase 0 and is not updated for
+// the split automaton of phases 3 and 4, so it must not be indexed with the states of the final parser.
 func (i *IELR1) GotoIdxsByStateIdx() map[int][]int {
 	return i.lalr1Builder.lookaheads.GotoIdxsByStateIdx()
 }
@@ -184,7 +199,8 @@ func (i *IELR1) GotoIdxsByStateIdx() map[int][]int {
 // GotoFollows returns the goto follow set of every goto, indexed by goto index. This is "goto_follows" from definition
 // 3.4 of IELR(1).
 //
-// The table is only valid after phase 0 has run.
+// The table is only valid after phase 0 has run. It describes the LALR(1) automaton of phase 0 and is not updated for
+// the split automaton of phases 3 and 4, so it must not be indexed with the states of the final parser.
 func (i *IELR1) GotoFollows() []backend.LookaheadSet {
 	return i.lalr1Builder.lookaheads.GotoFollows()
 }
@@ -193,7 +209,8 @@ func (i *IELR1) GotoFollows() []backend.LookaheadSet {
 // state the goto comes from are, indexed by goto index. This is definition 3.20 of IELR(1) and named "always_follows"
 // there.
 //
-// The table is only valid after phase 0 has run.
+// The table is only valid after phase 0 has run. It describes the LALR(1) automaton of phase 0 and is not updated for
+// the split automaton of phases 3 and 4, so it must not be indexed with the states of the final parser.
 func (i *IELR1) AlwaysFollows() []backend.LookaheadSet {
 	return i.lalr1Builder.lookaheads.AlwaysFollows()
 }
@@ -218,30 +235,60 @@ func (i *IELR1) phase2ComputeAnnotations() {
 // Inadequacies returns the inadequacies of the LALR(1) parser tables, keyed by the state index of the conflicted
 // state. This is definition 3.27 of IELR(1) and named "inadequacy_lists" there.
 //
-// The table is only valid after phase 2 has run.
+// The table is only valid after phase 2 has run. It describes the LALR(1) automaton of phase 0 and is not updated for
+// the split automaton of phases 3 and 4, so it must not be indexed with the states of the final parser.
 func (i *IELR1) Inadequacies() map[int][]*Inadequacy {
 	return i.inadequaciesByStateIdx
 }
 
-// AnnotationLists returns the annotations of the states, keyed by state index. An annotation describes whether and how
-// any isocore which phase 3 might split from the state can contribute to an inadequacy. This is definition 3.29 of
-// IELR(1) and named "annotation_lists" there.
+// AnnotationLists returns the annotations of the LALR(1) states, keyed by state index. An annotation describes whether
+// and how any isocore which phase 3 might split from the state can contribute to an inadequacy. This is definition 3.29
+// of IELR(1) and named "annotation_lists" there.
 //
-// The table is only valid after phase 2 has run.
+// The table is only valid after phase 2 has run. It describes the LALR(1) automaton of phase 0 and is not updated for
+// the split automaton of phases 3 and 4, so it must not be indexed with the states of the final parser.
 func (i *IELR1) AnnotationLists() map[int][]Annotation {
 	return i.annotationListsByStateIdx
 }
 
+// phase3SplitStates splits the LALR(1) states into the isocores of the minimal LR(1) parser tables, as described in
+// section 3.5 of IELR(1). The split automaton replaces the LALR(1) automaton in the parser tables. Its reduce actions
+// still carry the LALR(1) reduction lookahead sets, which phase 4 recomputes for the split automaton.
 func (i *IELR1) phase3SplitStates() {
 	defer trace.StartRegion(context.TODO(), "IELR(1): Phase 3: Split states").End()
 
-	// TODO: split states
+	splitStatesBuilder := NewSplitStatesBuilder(
+		i.grammar,
+		i.parser.States,
+		i.splitPolicy,
+		i.annotationListsByStateIdx,
+		i.lalr1Builder.lookaheads.GotoRecords(),
+		i.lalr1Builder.lookaheads.GotoIdxsByStateIdx(),
+		i.lalr1Builder.lookaheads.AlwaysFollows(),
+		i.followKernelItemsByGotoIdx,
+	)
+	splitStatesBuilder.Build()
+	i.parser.States = splitStatesBuilder.States()
 }
 
+// phase4ComputeReductionLookaheads recomputes the reduction lookahead sets for the split automaton and writes them back
+// into its reduce actions. This is section 3.6 of IELR(1), which runs step 2 of phase 0 again on the states phase 3
+// produced. The reduction lookahead builder derives the reduction lookaheads from the states alone, so it serves both
+// phase 0 and phase 4.
+//
+// The full recomputation is mandatory: the item lookahead sets phase 3 recomputed cannot be reused, because they are
+// filtered down to the annotation-relevant terminals of definition 3.38 and may carry lookaheads from predecessors
+// which were later redirected away.
+//
+// A state phase 3 left without any predecessor still gets its lookaheads recomputed, and the backward traces of
+// reachable states may pass through such a state. Both are phase 3 orphans of section 3.8.1 of IELR(1), which the paper
+// accepts as suboptimum state merging: correctness is unaffected, only table minimality can suffer.
 func (i *IELR1) phase4ComputeReductionLookaheads() {
 	defer trace.StartRegion(context.TODO(), "IELR(1): Phase 4: Compute reduction lookaheads").End()
 
-	// TODO: compute reduction lookaheads
+	reductionLookaheadBuilder := NewReductionLookaheadBuilder(i.grammar, i.parser.States)
+	reductionLookaheadBuilder.Build()
+	applyReductionLookaheads(i.parser.States, reductionLookaheadBuilder.ReduceActions())
 }
 
 func (i *IELR1) phase5ResolveRemainingConflicts() {

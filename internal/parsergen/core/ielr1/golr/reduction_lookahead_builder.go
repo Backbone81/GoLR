@@ -91,18 +91,36 @@ type ReductionLookaheadBuilder struct {
 	predecessorDependencyCandidates []PredecessorDependencyCandidate
 }
 
+// applyReductionLookaheads writes the reduction lookahead sets computed by a reduction lookahead builder back into the
+// reduce actions of the states. The reduce actions carry outdated lookahead sets before this runs — empty ones right
+// after the LR(0) construction in phase 0, the LALR(1) ones right after phase 3 — so they are cleared and refilled with
+// the computed ones. A reduce action is keyed by its production and its lookahead set, so it cannot be amended in
+// place. Clearing keeps the backing storage so the refill reuses it.
+func applyReductionLookaheads(states []backend.State, reduceActions []ReduceActionRecord) {
+	for stateIdx := range states {
+		states[stateIdx].ReduceActions.Clear()
+	}
+	for _, reduceAction := range reduceActions {
+		states[reduceAction.StateIdx].ReduceActions.Add(
+			backend.NewReduceAction(reduceAction.LookaheadSet, reduceAction.Core.ProductionIdx()),
+		)
+	}
+}
+
 // NewReductionLookaheadBuilder returns a new builder which computes the reduction lookahead sets of the given
 // automaton. The grammar provided MUST be the augmented grammar the states were built from.
 func NewReductionLookaheadBuilder(grammar frontend.Grammar, states []backend.State) ReductionLookaheadBuilder {
+	// The maps keyed by nonterminal index hold at most one entry per nonterminal, and the maps keyed by state index at
+	// most one entry per state, so the exact sizes serve as the allocation hints.
 	return ReductionLookaheadBuilder{
 		grammar:                        grammar,
 		states:                         states,
-		productionIdxsByNonterminalIdx: make(map[int][]int, 128),
-		nullableByNonterminalIdx:       make(map[int]bool, 128),
+		productionIdxsByNonterminalIdx: make(map[int][]int, len(grammar.Nonterminals)),
+		nullableByNonterminalIdx:       make(map[int]bool, len(grammar.Nonterminals)),
 
-		gotoIdxsByStateIdx: make(map[int][]int, 256),
+		gotoIdxsByStateIdx: make(map[int][]int, len(states)),
 
-		backwardTransitionsByStateIdx: make(map[int]BackwardTransitionInfo),
+		backwardTransitionsByStateIdx: make(map[int]BackwardTransitionInfo, len(states)),
 	}
 }
 

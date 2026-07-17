@@ -143,6 +143,35 @@ var _ = Describe("Bitset", func() {
 		Entry("left-hand side reaches further than the right-hand side", []int{1, 128 + 1}, []int{1}, false),
 	)
 
+	It("should correctly intersect", func() {
+		one := utils.NewBitset(3, 2, 64+32, 7, 4)
+		two := utils.NewBitset(8, 7, 64+40, 130, 4)
+		Expect(one.Intersect(&two)).To(BeTrue())
+		Expect(one.Equal(utils.NewBitset(7, 4))).To(BeTrue())
+	})
+
+	DescribeTable("should correctly report if an intersect changed the bitset",
+		func(lhsBits []int, rhsBits []int, wantChanged bool, wantBits []int) {
+			lhsBitset := utils.NewBitset(lhsBits...)
+			rhsBitset := utils.NewBitset(rhsBits...)
+			wantLhsBitset := utils.NewBitset(wantBits...)
+
+			Expect(lhsBitset.Intersect(&rhsBitset)).To(Equal(wantChanged))
+			Expect(lhsBitset.Equal(wantLhsBitset)).To(BeTrue())
+		},
+		// An intersect only changes the bitset when this side holds a bit which the other side does not hold.
+		Entry("both empty", nil, nil, false, nil),
+		Entry("right-hand side empty", []int{1}, nil, true, nil),
+		Entry("left-hand side empty", nil, []int{1}, false, nil),
+		Entry("identical bits", []int{1, 2}, []int{1, 2}, false, []int{1, 2}),
+		Entry("right-hand side is a subset", []int{1, 2}, []int{2}, true, []int{2}),
+		Entry("left-hand side is a subset", []int{2}, []int{1, 2}, false, []int{2}),
+		Entry("disjoint bits in the same chunk", []int{1}, []int{2}, true, nil),
+		Entry("overlapping bits with one new bit", []int{1, 2}, []int{2, 3}, true, []int{2}),
+		Entry("left-hand side has a bit in a later chunk", []int{1, 64 + 1}, []int{1}, true, []int{1}),
+		Entry("right-hand side reaches further than the left-hand side", []int{1}, []int{1, 64 + 1}, false, []int{1}),
+	)
+
 	It("should correctly report equality", func() {
 		one := utils.NewBitset(3, 2, 64+32, 7, 4)
 		two := utils.NewBitset(7, 4, 64+32, 2, 3)

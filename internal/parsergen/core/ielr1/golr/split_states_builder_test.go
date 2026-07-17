@@ -1,0 +1,143 @@
+package golr_test
+
+import (
+	"math/rand"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
+	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
+	lr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lr1/golr"
+	"github.com/backbone81/golr/internal/parsergen/frontend"
+)
+
+var _ = Describe("Split States Builder", func() {
+	// Phase 3 splits the LALR(1) states into the isocores of the minimal LR(1) parser tables. We verify it behaviorally
+	// against canonical LR(1), which is the defining property of IELR(1): under a conflict-preserving policy it removes
+	// exactly the conflicts of the LALR(1) parser tables which canonical LR(1) does not have, and nothing else. Two
+	// invariants capture that without comparing the tables structurally, which two correct generators are free to differ
+	// on:
+	//
+	//  1. The state count is bounded by the two extremes, |LALR(1)| <= |IELR(1)| <= |canonical LR(1)|. IELR(1) only ever
+	//     splits states, so it never drops below LALR(1), and it never splits further than canonical LR(1).
+	//  2. IELR(1) has a conflict exactly when canonical LR(1) has one. A conflict of the LALR(1) parser tables which
+	//     canonical LR(1) does not have is a mysterious conflict which phase 3 removes by splitting; a conflict canonical
+	//     LR(1) has too is genuine and survives.
+	DescribeTable("should agree with canonical LR(1) on the state count bounds and the conflicts",
+		func(grammar frontend.Grammar) {
+			augmentedGrammar := frontend.AugmentGrammar(grammar)
+
+			lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
+			lalr1Builder.Build()
+			lalr1Parser := lalr1Builder.Parser()
+
+			ielr1Parser, err := ielr1golrcore.GrammarToParser(augmentedGrammar)
+			Expect(err).ToNot(HaveOccurred())
+
+			lr1Builder := lr1golrcore.NewLR1Builder(augmentedGrammar)
+			Expect(lr1Builder.Build()).To(Succeed())
+			lr1Parser := lr1Builder.Parser()
+
+			Expect(len(ielr1Parser.States)).To(BeNumerically(">=", len(lalr1Parser.States)))
+			Expect(len(ielr1Parser.States)).To(BeNumerically("<=", len(lr1Parser.States)))
+			Expect(hasConflict(ielr1Parser)).To(Equal(hasConflict(lr1Parser)))
+		},
+		Entry("the unambiguous test grammar for Fig. 1", ielr1golrcore.UnambiguousTestGrammarFig1),
+		Entry("the ambiguous test grammar for Fig. 2", ielr1golrcore.AmbiguousTestGrammarFig2),
+		Entry("the goto follows test grammar for Fig. 5", ielr1golrcore.GotoFollowsTestGrammarFig5),
+		Entry("the goto follows caveats test grammar for Fig. 6", ielr1golrcore.GotoFollowsCaveatsTestGrammarFig6),
+		Entry("the LR(1) but not LALR(1) grammar", ielr1golrcore.ReduceReduceConflictTestGrammar),
+	)
+
+	// The reduce/reduce grammar is LR(1) but not LALR(1): its LALR(1) parser tables have a reduce/reduce conflict which
+	// canonical LR(1) does not have. It is the sharpest hand-picked case for phase 3, because getting the conflict to
+	// disappear requires actually splitting a state. A phase 3 which never split would leave the conflict in place and
+	// silently degrade IELR(1) into LALR(1), which the state count check pins down alongside the conflict check.
+	It("should split a state to remove the mysterious conflict of the reduce/reduce grammar", func() {
+		augmentedGrammar := frontend.AugmentGrammar(ielr1golrcore.ReduceReduceConflictTestGrammar)
+
+		lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
+		lalr1Builder.Build()
+		lalr1Parser := lalr1Builder.Parser()
+
+		ielr1Parser, err := ielr1golrcore.GrammarToParser(augmentedGrammar)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(hasConflict(lalr1Parser)).To(BeTrue(), "the LALR(1) parser tables are expected to have the mysterious conflict")
+		Expect(hasConflict(ielr1Parser)).To(BeFalse(), "phase 3 is expected to remove the mysterious conflict")
+		Expect(len(ielr1Parser.States)).To(
+			BeNumerically(">", len(lalr1Parser.States)),
+			"phase 3 is expected to have split at least one state",
+		)
+	})
+
+	// We feed a large corpus of random grammars through the LALR(1) builder, the IELR(1) builder and canonical LR(1) and
+	// assert the two invariants on every one. The hand-picked grammars above pin down specific figures, the random corpus
+	// is there to surprise us with grammar shapes we did not think to write down. Each run draws a fresh corpus from the
+	// Ginkgo random seed, so a rare edge case surfaces over repeated runs; a failing run replays with `ginkgo --seed=...`
+	// and the reported per-grammar seed reconstructs the single failing grammar on its own.
+	It("should agree with canonical LR(1) on a corpus of random grammars", func() {
+		// grammarCount trades test time for how much of the grammar space is explored. The corpus builds three automatons
+		// per grammar under -race, so keep it to a size which still finishes in a few seconds; bump it when hunting a bug.
+		const grammarCount = 1000
+
+		var compared, mysteriousConflictRemoved int
+
+		masterRng := rand.New(rand.NewSource(GinkgoRandomSeed()))
+		for range grammarCount {
+			grammarSeed := masterRng.Int63()
+			grammar := oracle.DefaultGrammarGenerator(rand.New(rand.NewSource(grammarSeed))).Generate()
+			augmentedGrammar := frontend.AugmentGrammar(grammar)
+
+			lr1Builder := lr1golrcore.NewLR1Builder(augmentedGrammar)
+			if err := lr1Builder.Build(); err != nil {
+				// A grammar whose canonical LR(1) automaton exceeds the addressable state limit cannot be the oracle. It
+				// is skipped, not a failure of the builder under test.
+				Expect(err).To(MatchError(lr1golrcore.ErrStateLimitExceeded), "grammar seed %d:\n%s", grammarSeed, grammar.String())
+				continue
+			}
+			lr1Parser := lr1Builder.Parser()
+
+			lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
+			lalr1Builder.Build()
+			lalr1Parser := lalr1Builder.Parser()
+
+			ielr1Parser, err := ielr1golrcore.GrammarToParser(augmentedGrammar)
+			Expect(err).ToNot(HaveOccurred(), "grammar seed %d:\n%s", grammarSeed, grammar.String())
+
+			Expect(len(ielr1Parser.States)).To(
+				BeNumerically(">=", len(lalr1Parser.States)),
+				"IELR(1) dropped below the LALR(1) state count, grammar seed %d:\n%s", grammarSeed, grammar.String(),
+			)
+			Expect(len(ielr1Parser.States)).To(
+				BeNumerically("<=", len(lr1Parser.States)),
+				"IELR(1) split further than canonical LR(1), grammar seed %d:\n%s", grammarSeed, grammar.String(),
+			)
+			Expect(hasConflict(ielr1Parser)).To(
+				Equal(hasConflict(lr1Parser)),
+				"IELR(1) and canonical LR(1) disagree on the conflicts, grammar seed %d:\n%s", grammarSeed, grammar.String(),
+			)
+
+			compared++
+			if hasConflict(lalr1Parser) && !hasConflict(lr1Parser) {
+				// The LALR(1) parser tables have a mysterious conflict which canonical LR(1) does not have, and IELR(1)
+				// removed it, as the conflict check above just confirmed. These are the grammars which actually exercise
+				// the state splitting, so we track how many the corpus reaches to guard its discriminating power.
+				mysteriousConflictRemoved++
+			}
+		}
+
+		GinkgoWriter.Printf(
+			"random grammar corpus: %d compared, %d with a mysterious conflict IELR(1) removed\n",
+			compared, mysteriousConflictRemoved,
+		)
+
+		// Guard the discriminating power of the corpus: passing thousands of grammars which never trigger a split proves
+		// little, so fail if the corpus stops reaching the grammars phase 3 exists for. A healthy corpus removes a
+		// mysterious conflict on the order of two dozen grammars per thousand, so a comfortable margin below that still
+		// catches a generator which degraded into trivial grammars, where the count would collapse towards zero.
+		Expect(compared).To(BeNumerically(">", grammarCount/2))
+		Expect(mysteriousConflictRemoved).To(BeNumerically(">", 10))
+	})
+})

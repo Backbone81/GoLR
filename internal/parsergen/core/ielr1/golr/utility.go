@@ -2,12 +2,23 @@ package golr
 
 import "github.com/backbone81/golr/internal/parsergen/backend"
 
+// ReduceActionRecord is a reduce action of the automaton as the reduction lookahead builder works on it: the state the
+// reduction happens in, the item which reduces there, and the reduction lookahead set the builder computes for it.
 type ReduceActionRecord struct {
-	StateIdx     int
-	Core         backend.Core
+	// StateIdx is the state index of the state the reduction happens in.
+	StateIdx int
+
+	// Core is the item which reduces, with its position at the end of the production. It is what the builder traces
+	// backward through the states to the gotos which generated it, whose goto follow sets make up the lookahead set.
+	Core backend.Core
+
+	// LookaheadSet is the reduction lookahead set. It is empty until the builder fills it in.
 	LookaheadSet backend.LookaheadSet
 }
 
+// Edge is a single edge of a digraph relation between gotos, as consumed by the digraph algorithm. The direction
+// follows the goto follows relations of IELR(1): the set of FromIdx depends on the set of ToIdx, so propagation merges
+// the set of ToIdx into the set of FromIdx.
 type Edge struct {
 	FromIdx int
 	ToIdx   int

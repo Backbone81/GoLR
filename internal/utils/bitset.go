@@ -125,6 +125,23 @@ func (b *Bitset) Merge(other *Bitset) bool {
 	return changed
 }
 
+// Intersect removes every bit from the bitset which is not also set in the other bitset, so the bitset is reduced to
+// the intersection of both. Bits which are set in the other bitset but not in this one are never added. The return
+// value reports if a bit was removed.
+func (b *Bitset) Intersect(other *Bitset) bool {
+	changed := false
+	for i := range b.chunks {
+		var otherChunk bitsetChunk
+		if i < len(other.chunks) {
+			otherChunk = other.chunks[i]
+		}
+		// A bit is removed when this chunk holds a bit which the other chunk does not hold.
+		changed = changed || b.chunks[i]&^otherChunk != 0
+		b.chunks[i] &= otherChunk
+	}
+	return changed
+}
+
 // Equal reports if this bitset is equal to the other bitset. The bitsets can be of different size and still be equal
 // as long as the set bits are located at locations which both bitsets share.
 func (b *Bitset) Equal(other Bitset) bool {

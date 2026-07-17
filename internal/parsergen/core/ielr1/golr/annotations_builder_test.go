@@ -355,12 +355,23 @@ func actionCountOnTerminal(state backend.State, terminalIdx int) int {
 
 // newAnnotationsBuilder runs the phases which phase 2 depends on and returns the annotations builder after it has
 // computed the annotations.
+//
+// The LALR(1) states come from the LALR(1) builder rather than from the IELR(1) builder, because phase 3 of IELR(1)
+// splits those states and replaces them in the IELR(1) parser tables. The phase 0 and phase 1 auxiliary tables the
+// annotations builder needs on top of them are relative to the LALR(1) automaton and stay valid, so those are taken from
+// the IELR(1) builder. Both builders construct the same LALR(1) automaton from the same grammar, so their state indexes
+// agree.
 func newAnnotationsBuilder(grammar frontend.Grammar) *ielr1golrcore.AnnotationsBuilder {
-	ielr1 := ielr1golrcore.NewIELR1(frontend.AugmentGrammar(grammar))
+	augmentedGrammar := frontend.AugmentGrammar(grammar)
+
+	lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
+	lalr1Builder.Build()
+
+	ielr1 := ielr1golrcore.NewIELR1(augmentedGrammar)
 	ielr1.BuildParser()
 
 	annotationsBuilder := ielr1golrcore.NewAnnotationsBuilder(
-		ielr1.Parser(),
+		lalr1Builder.Parser(),
 		ielr1.GotoRecords(),
 		ielr1.GotoIdxsByStateIdx(),
 		ielr1.GotoFollows(),

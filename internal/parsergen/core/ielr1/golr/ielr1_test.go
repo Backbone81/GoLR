@@ -6,11 +6,32 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/backbone81/golr/internal/parsergen/backend"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
 
 var _ = Describe("IELR(1)", func() {
+	// The random grammar corpus of the split states builder tests only observes the reduction lookahead sets of phase 4
+	// through the presence of conflicts, which catches lookahead sets that are too large but not ones that are too
+	// small: a lookahead set missing a terminal creates no conflict, it silently makes the parser reject valid input.
+	// Pinning the exact parser table of a grammar which requires a split closes that gap for the sharpest hand-picked
+	// case: the two isocores of the split "c" state must end up with exactly the mirrored one-terminal lookahead sets
+	// their own predecessors generate.
+	DescribeTable("should correctly compute the IELR(1) parser table",
+		func(grammar frontend.Grammar, wantIELR1Parser backend.Parser) {
+			augmentedGrammar := frontend.AugmentGrammar(grammar)
+			ielr1Parser, err := ielr1golrcore.GrammarToParser(augmentedGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ielr1Parser).To(Equal(wantIELR1Parser))
+		},
+		Entry(
+			"the LR(1) but not LALR(1) grammar with a reduce/reduce conflict",
+			ielr1golrcore.ReduceReduceConflictTestGrammar,
+			ielr1golrcore.ReduceReduceConflictTestGrammarIELR1Parser,
+		),
+	)
+
 	// The follow kernel items of definition 3.16 of IELR(1) are the kernel items whose lookahead sets a goto follow set
 	// depends on. The definition asks for the reflexive transitive closure of the goto follows internal relation, so a
 	// goto depends on the kernel items of its own state, and on the kernel items of every goto it reaches through the

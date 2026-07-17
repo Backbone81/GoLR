@@ -48,9 +48,13 @@ type LALR1Builder struct {
 // NewLALR1Builder returns a new builder for LALR(1) parser tables. The grammar provided MUST be an augmented grammar.
 func NewLALR1Builder(grammar frontend.Grammar) LALR1Builder {
 	return LALR1Builder{
-		grammar:                        grammar,
-		productionIdxsByNonterminalIdx: make(map[int][]int, 128),
+		grammar: grammar,
+		// The map keyed by nonterminal index holds at most one entry per nonterminal, so the exact size serves as the
+		// allocation hint.
+		productionIdxsByNonterminalIdx: make(map[int][]int, len(grammar.Nonterminals)),
 
+		// The map holds one entry per distinct kernel item hash, which approaches the number of states. That number is
+		// only discovered during construction, so the hint stays a guess which saves the first few growth steps.
 		stateIdxsByKernelItemHash: make(map[uint64][]int, 128),
 	}
 }
@@ -66,24 +70,7 @@ func (b *LALR1Builder) Build() {
 	// follows from them and compute the reduction lookahead sets.
 	b.lookaheads = NewReductionLookaheadBuilder(b.grammar, b.states)
 	b.lookaheads.Build()
-	b.applyReductionLookaheads()
-}
-
-// applyReductionLookaheads writes the reduction lookahead sets computed by the reduction lookahead builder back into the
-// reduce actions of the states. The LR(0) construction added the reduce actions with an empty lookahead set, so we
-// replace them with the ones carrying their lookahead set. A reduce action is keyed by its production and its lookahead
-// set, so we cannot amend a lookahead set in place and rebuild the reduce actions of each state instead. Clearing keeps
-// the backing storage the LR(0) construction already allocated, so refilling it with the same productions reuses that
-// storage instead of allocating a new set per state.
-func (b *LALR1Builder) applyReductionLookaheads() {
-	for stateIdx := range b.states {
-		b.states[stateIdx].ReduceActions.Clear()
-	}
-	for _, reduceAction := range b.lookaheads.ReduceActions() {
-		b.states[reduceAction.StateIdx].ReduceActions.Add(
-			backend.NewReduceAction(reduceAction.LookaheadSet, reduceAction.Core.ProductionIdx()),
-		)
-	}
+	applyReductionLookaheads(b.states, b.lookaheads.ReduceActions())
 }
 
 // initProductionIdxsByNonterminalIdx initializes the helper variable productionIdxsByNonterminalIdx.

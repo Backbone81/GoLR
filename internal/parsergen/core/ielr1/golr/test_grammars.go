@@ -1446,6 +1446,170 @@ var (
 		},
 	}
 
+	// ReduceReduceConflictTestGrammarIELR1Parser is the IELR(1) parser table for ReduceReduceConflictTestGrammar. It
+	// pins down the exact reduction lookahead sets phase 4 computes on a split automaton: phase 3 splits the merged "c"
+	// state of the LALR(1) parser tables into one isocore per predecessor, and phase 4 recomputes the reduction
+	// lookahead sets of both isocores from their own predecessors, which is what removes the mysterious reduce/reduce
+	// conflict. The table is identical to ReduceReduceConflictTestGrammarLALR1Parser except for the split state 4, the
+	// appended state 14 and the redirected "c" transition of state 2.
+	ReduceReduceConflictTestGrammarIELR1Parser = backend.Parser{
+		Grammar: ReduceReduceConflictTestGrammarAugmented,
+		States: []backend.State{
+			// state 0
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(0, 0),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(1), 1),    // shift a
+					backend.NewTransitionAction(frontend.NewTerminalRef(2), 2),    // shift b
+					backend.NewTransitionAction(frontend.NewNonterminalRef(1), 3), // goto S
+				),
+			},
+			// state 1
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(1, 1),
+					backend.NewCore(3, 1),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(3), 4),    // shift c
+					backend.NewTransitionAction(frontend.NewNonterminalRef(2), 5), // goto A
+					backend.NewTransitionAction(frontend.NewNonterminalRef(3), 6), // goto B
+				),
+			},
+			// state 2: the "c" transition is redirected to the isocore phase 3 split off, state 14.
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(2, 1),
+					backend.NewCore(4, 1),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(3), 14),   // shift c
+					backend.NewTransitionAction(frontend.NewNonterminalRef(2), 7), // goto A
+					backend.NewTransitionAction(frontend.NewNonterminalRef(3), 8), // goto B
+				),
+			},
+			// state 3
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(0, 1),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(0), 9), // shift EOF
+				),
+			},
+			// state 4: the isocore of the "c" state which is only reached over "a". Phase 4 traces its reductions back
+			// through its single predecessor, state 1, so A -> c . reduces only on "d" (S -> aAd) and B -> c . only on
+			// "e" (S -> aBe). The reduce/reduce conflict of the LALR(1) parser tables is gone.
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(5, 1),
+					backend.NewCore(6, 1),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(4), 5), // A -> c on {d}
+					backend.NewReduceAction(backend.NewLookaheadSet(5), 6), // B -> c on {e}
+				),
+			},
+			// state 5
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(1, 2),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(4), 10), // shift d
+				),
+			},
+			// state 6
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(3, 2),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(5), 11), // shift e
+				),
+			},
+			// state 7
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(4, 2),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(5), 12), // shift e
+				),
+			},
+			// state 8
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(2, 2),
+				),
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewTerminalRef(4), 13), // shift d
+				),
+			},
+			// state 9
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(0, 2),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.LookaheadSet{}, 0),
+				),
+			},
+			// state 10
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(1, 3),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(0), 1),
+				),
+			},
+			// state 11
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(3, 3),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(0), 3),
+				),
+			},
+			// state 12
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(4, 3),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(0), 4),
+				),
+			},
+			// state 13
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(2, 3),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(0), 2),
+				),
+			},
+			// state 14: the isocore of the "c" state which is only reached over "b", split off by phase 3 and appended
+			// at the end. Phase 4 traces its reductions back through its single predecessor, state 2, so the lookahead
+			// sets mirror the ones of state 4: A -> c . reduces only on "e" (S -> bAe) and B -> c . only on "d"
+			// (S -> bBd).
+			{
+				KernelItems: backend.NewCoreSet(
+					backend.NewCore(5, 1),
+					backend.NewCore(6, 1),
+				),
+				ReduceActions: backend.NewReduceActionSet(
+					backend.NewReduceAction(backend.NewLookaheadSet(5), 5), // A -> c on {e}
+					backend.NewReduceAction(backend.NewLookaheadSet(4), 6), // B -> c on {d}
+				),
+			},
+		},
+	}
+
 	// FollowKernelItemsReflexiveTestGrammar is a grammar where a goto follow set depends on the lookahead set of a
 	// kernel item of its own state, without any goto follows internal relation being involved.
 	//
