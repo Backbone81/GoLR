@@ -62,7 +62,11 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 		var annotationsBuilder *ielr1golrcore.AnnotationsBuilder
 
 		BeforeEach(func() {
-			annotationsBuilder = newAnnotationsBuilder(ielr1golrcore.GotoFollowsTestGrammarFig5)
+			// The paper walks the grammar of figure 5 through phase 2 with a conflict-preserving policy: it presents the
+			// annotations as computed, and only section 3.4.3 points out that a shift-over-reduce policy would make them
+			// split-stable and discard them. The empty compound policy resolves nothing, so it keeps every annotation the
+			// annotation computation produces, which is what this walk-through checks.
+			annotationsBuilder = newAnnotationsBuilder(ielr1golrcore.GotoFollowsTestGrammarFig5, conflict.CompoundPolicy{})
 
 			// The walk-through of the paper only makes sense when our LALR(1) tables have the states it talks about at
 			// the state indexes the expectations below use.
@@ -165,18 +169,39 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 		})
 	})
 
+	// This is the general case of definition 3.35, which section 3.4.3 of the paper spells out for the grammar of figure
+	// 5 on page 24: if the shift/reduce conflict on "a" is resolved by shift over reduce, then the shift dominates the
+	// conflict in every isocore which phase 3 could split from the conflicted state, because the shift is an always
+	// contribution and no reduction can beat it. The dominant contribution is therefore split-stable, so the annotation
+	// on the conflicted state is useless, as are all the annotations phase 2 computes from it along the lane. The paper
+	// concludes that "phase 3 would have no reason to split any LALR(1) states", so phase 2 annotates nothing.
+	It("should discard every annotation of figure 5 when shift over reduce resolves the conflict", func() {
+		grammar := ielr1golrcore.GotoFollowsTestGrammarFig5
+		conflictPolicy := conflict.NewDefaultPolicy(frontend.AugmentGrammar(grammar))
+
+		annotationsBuilder := newAnnotationsBuilder(grammar, conflictPolicy)
+
+		// The conflict is still found, it is only its annotation which the split stability makes useless.
+		Expect(annotationsBuilder.Inadequacies()).ToNot(BeEmpty())
+		Expect(annotationsBuilder.AnnotationLists()).To(BeEmpty())
+	})
+
 	// The lanes of a conflicted state can be cyclic, so the reverse iteration of definition 3.29 only terminates because
 	// it stops as soon as it computes an annotation which the state carries already. A left recursive grammar is what
 	// puts a cycle into the lanes, so this makes sure we do not iterate forever on one.
 	DescribeTable("should terminate the iteration along cyclic lanes",
 		func(grammar frontend.Grammar) {
-			annotationsBuilder := newAnnotationsBuilder(grammar)
+			// A conflict-preserving policy keeps every annotation which is not split-stable on its own, so that the
+			// termination of the reverse iteration is what this test exercises rather than the policy discarding
+			// annotations.
+			conflictPolicy := conflict.CompoundPolicy{}
+			annotationsBuilder := newAnnotationsBuilder(grammar, conflictPolicy)
 
 			Expect(annotationsBuilder.Inadequacies()).ToNot(BeEmpty())
 			for _, annotations := range annotationsBuilder.AnnotationLists() {
 				for _, annotation := range annotations {
 					// Useless annotations are discarded, so no annotation which survives may be split-stable.
-					Expect(annotation.IsSplitStable()).To(BeFalse())
+					Expect(annotation.IsSplitStable(conflictPolicy)).To(BeFalse())
 				}
 			}
 		},
@@ -231,7 +256,10 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 			}
 			lr1StateIdxsByKernelItemsHash := stateIdxsByKernelItemsHash(lr1Parser)
 
-			annotationsBuilder := newAnnotationsBuilder(grammar)
+			// The property that every LR(1)-relative inadequacy is annotated only holds under a policy which resolves no
+			// conflict: a policy which resolves a conflict split-stably would rightly discard its annotation, which is the
+			// separate concern of the general case of definition 3.35. So this test uses the conflict-preserving policy.
+			annotationsBuilder := newAnnotationsBuilder(grammar, conflict.CompoundPolicy{})
 
 			// An annotation is attached to every state along the lane of the conflict, not only to the conflicted state
 			// itself, and a state may carry annotations of conflicts it is not the conflicted state of. So we collect the
@@ -354,24 +382,27 @@ func actionCountOnTerminal(state backend.State, terminalIdx int) int {
 }
 
 // newAnnotationsBuilder runs the phases which phase 2 depends on and returns the annotations builder after it has
-// computed the annotations.
+// computed the annotations. The conflict policy is what phase 2 decides split-stable dominant contributions with, so a
+// caller passes the conflict-preserving empty compound policy to keep every annotation, or a resolving policy to have
+// the split-stable ones discarded.
 //
 // The LALR(1) states come from the LALR(1) builder rather than from the IELR(1) builder, because phase 3 of IELR(1)
 // splits those states and replaces them in the IELR(1) parser tables. The phase 0 and phase 1 auxiliary tables the
 // annotations builder needs on top of them are relative to the LALR(1) automaton and stay valid, so those are taken from
 // the IELR(1) builder. Both builders construct the same LALR(1) automaton from the same grammar, so their state indexes
 // agree.
-func newAnnotationsBuilder(grammar frontend.Grammar) *ielr1golrcore.AnnotationsBuilder {
+func newAnnotationsBuilder(grammar frontend.Grammar, conflictPolicy conflict.Policy) *ielr1golrcore.AnnotationsBuilder {
 	augmentedGrammar := frontend.AugmentGrammar(grammar)
 
 	lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
 	lalr1Builder.Build()
 
-	ielr1 := ielr1golrcore.NewIELR1(augmentedGrammar, conflict.NewDefaultPolicy(augmentedGrammar))
+	ielr1 := ielr1golrcore.NewIELR1(augmentedGrammar, conflictPolicy)
 	ielr1.BuildParser()
 
 	annotationsBuilder := ielr1golrcore.NewAnnotationsBuilder(
 		lalr1Builder.Parser(),
+		conflictPolicy,
 		ielr1.GotoRecords(),
 		ielr1.GotoIdxsByStateIdx(),
 		ielr1.GotoFollows(),

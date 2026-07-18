@@ -16,6 +16,11 @@ type AnnotationsBuilder struct {
 	// parser holds the LALR(1) parser tables of phase 0, together with the augmented grammar they were built from.
 	parser backend.Parser
 
+	// conflictPolicy is the conflict resolution which phase 3 uses to decide the dominant contribution of definition
+	// 3.42. Phase 2 needs it to decide the general case of split-stable dominant contributions in definition 3.35, so
+	// that it can discard the annotations whose dominant contribution splitting a state cannot change.
+	conflictPolicy conflict.Policy
+
 	// gotoRecords provides details about each nonterminal transition. This is derived from definition 3.4 of IELR(1).
 	gotoRecords []GotoRecord
 
@@ -71,6 +76,7 @@ type annotatedState struct {
 // of phase 0 together with the goto tables computed alongside them, and the auxiliary tables of phase 1.
 func NewAnnotationsBuilder(
 	parser backend.Parser,
+	conflictPolicy conflict.Policy,
 	gotoRecords []GotoRecord,
 	gotoIdxsByStateIdx map[int][]int,
 	gotoFollows []backend.LookaheadSet,
@@ -80,6 +86,7 @@ func NewAnnotationsBuilder(
 ) *AnnotationsBuilder {
 	return &AnnotationsBuilder{
 		parser:                         parser,
+		conflictPolicy:                 conflictPolicy,
 		gotoRecords:                    gotoRecords,
 		gotoIdxsByStateIdx:             gotoIdxsByStateIdx,
 		gotoFollows:                    gotoFollows,
@@ -280,7 +287,7 @@ func (b *AnnotationsBuilder) addAnnotation(
 	stateIdx int,
 	annotation Annotation,
 ) {
-	if annotation.IsSplitStable() {
+	if annotation.IsSplitStable(b.conflictPolicy) {
 		return
 	}
 	for _, existingAnnotation := range b.annotationListsByStateIdx[stateIdx] {

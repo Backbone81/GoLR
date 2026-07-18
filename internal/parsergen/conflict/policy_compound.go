@@ -41,3 +41,19 @@ func (p CompoundPolicy) Resolve(terminalIdx int, candidates ContributionSet) Con
 	}
 	return result
 }
+
+// ContributeSplitStability lets each policy of the compound narrow the same bookkeeping in order. That shared
+// bookkeeping is what makes the split stability of a compound policy decidable at all: a later policy narrows what the
+// earlier policies left in remaining, so the policies together account for interactions which none of them sees on its
+// own, like a reduction which precedence removes never reaching the reduce/reduce comparison behind it.
+//
+// Unlike Resolve, this does not stop once a single contribution is left. A policy which decides between reductions
+// still has to weigh in on whether the surviving contribution is an always contribution, and it does so by inspecting
+// the remaining contribution even when it is the only one left. Replaying the policies on candidates which the early
+// stopping Resolve would never hand them stays faithful to Resolve because the Policy contract demands that a Resolve
+// returns one or no candidate unchanged, see Policy.
+func (p CompoundPolicy) ContributeSplitStability(terminalIdx int, splitStability *SplitStability) {
+	for _, policy := range p {
+		policy.ContributeSplitStability(terminalIdx, splitStability)
+	}
+}

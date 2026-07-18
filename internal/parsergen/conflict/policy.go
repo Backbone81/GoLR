@@ -14,8 +14,20 @@ import (
 // Removing every candidate is how a policy asks for the conflicted terminal to be rejected in this state, which is what
 // a terminal declared as nonassociative needs. A policy which does not want that must never return an empty set for a
 // non-empty input.
+//
+// A conflict which is already decided must be left alone: Resolve must return candidates of one or no contribution
+// unchanged. A compound policy stops calling Resolve as soon as so few candidates are left, but its split stability
+// bookkeeping keeps replaying every policy on whatever remains, see CompoundPolicy.ContributeSplitStability. A Resolve
+// which narrowed a decided conflict further would make the bookkeeping diverge from what Resolve actually decides, and
+// the split stability verdict would be about a decision the policies never make.
 type Policy interface {
 	Resolve(terminalIdx int, candidates ContributionSet) ContributionSet
+
+	// ContributeSplitStability narrows the split stability bookkeeping the same way Resolve narrows its candidates, and
+	// records in the bookkeeping whether any narrowing it made depended on a potential contribution being present. It is
+	// how a policy takes part in deciding the general case of definition 3.35 of IELR(1), so that phase 2 can discard the
+	// annotations whose dominant contribution splitting a state cannot change. See SplitStability for the whole picture.
+	ContributeSplitStability(terminalIdx int, splitStability *SplitStability)
 }
 
 // NewDefaultPolicy returns the compound policy which resolves conflicts the way GNU Bison and Yacc do: precedence and

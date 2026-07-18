@@ -35,3 +35,19 @@ func (p *EarliestProductionPolicy) Resolve(terminalIdx int, candidates Contribut
 	}
 	return result
 }
+
+// ContributeSplitStability defers the narrowing to Resolve and only decides whether that narrowing is split-stable.
+//
+// Removing the later reductions is anchored by the earliest reduction, so those reductions being potential does not
+// threaten split stability: they lose the reduce/reduce comparison whether or not an isocore makes them. The reduction
+// which survives is the earliest one, and it winning is only split-stable when it is an always contribution: if it is
+// potential, an isocore which does not make it reduces on a later production instead, or does not reduce at all, so the
+// dominant contribution changes.
+func (p *EarliestProductionPolicy) ContributeSplitStability(terminalIdx int, splitStability *SplitStability) {
+	splitStability.remaining = p.Resolve(terminalIdx, splitStability.remaining)
+	for _, contribution := range splitStability.remaining.All() {
+		if contribution.IsReduceAction() && !splitStability.isAlways(contribution) {
+			splitStability.markUnstable()
+		}
+	}
+}

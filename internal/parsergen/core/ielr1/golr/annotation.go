@@ -1,5 +1,12 @@
 package golr
 
+import (
+	"errors"
+
+	"github.com/backbone81/golr/internal/parsergen/conflict"
+	"github.com/backbone81/golr/internal/utils"
+)
+
 // Annotation describes whether and how any isocore which phase 3 might split from a state can make the contributions
 // of the inadequacy it refers to. This is definition 3.28 of IELR(1).
 type Annotation struct {
@@ -22,19 +29,45 @@ func (a *Annotation) Equal(other *Annotation) bool {
 
 // IsSplitStable reports if the annotation specifies a split-stable dominant contribution, which makes the annotation
 // useless. A useless annotation can be discarded, and the reverse iteration along the lane can be terminated. This is
-// observation 3.33 and observation 3.34 of IELR(1).
+// definition 3.35 together with observation 3.34 of IELR(1).
 //
-// Observation 3.33 is the special case of definition 3.35 which holds when all contributions are always contributions
-// or never contributions. In that case every isocore which can be split from the annotated state makes exactly the
-// same contributions, so splitting the state cannot change which contribution dominates the conflict. We do not
-// implement the general case of definition 3.35, because it depends on the dominant contribution function, which is
-// the conflict resolution of phase 5 and does not exist yet. Missing out on useless annotations does not sacrifice
-// correctness, it only leaves phase 3 with more annotations to consider than strictly necessary.
-func (a *Annotation) IsSplitStable() bool {
-	for _, contributionRow := range a.ContributionMatrix {
-		if contributionRow.IsPotential() {
-			return false
+// The contributions of the inadequacy fall into three kinds, see definition 3.28: an always contribution is made by
+// every isocore which phase 3 could split from the annotated state, a never contribution by none of them, and a
+// potential contribution only by the isocores whose kernel item lookahead sets happen to contain the conflicted
+// terminal. The dominant contribution is split-stable when the conflict resolution policy decides the conflict the same
+// way no matter which of the potential contributions an isocore makes, because then splitting the state cannot change
+// which contribution dominates.
+//
+// The policy decides that in a single pass over its rules with the SplitStability bookkeeping: the never contributions
+// are left out, the always and potential contributions become the maximal isocore, and each policy of the compound
+// records whether its narrowing depended on a potential contribution. Observation 3.33, where there are no potential
+// contributions and the result is split-stable regardless of the policy, falls out of this as the case where no
+// narrowing can depend on a potential contribution.
+func (a *Annotation) IsSplitStable(policy conflict.Policy) bool {
+	var always, potentials conflict.ContributionSet
+	for contributionIdx, contributionRow := range a.ContributionMatrix {
+		contribution := a.Inadequacy.Contributions.GetByIndex(contributionIdx)
+		switch {
+		case contributionRow.IsAlways():
+			always.Add(contribution)
+		case contributionRow.IsPotential():
+			potentials.Add(contribution)
+		default:
+			// A never contribution is made by no isocore, so it is left out of the bookkeeping entirely.
 		}
 	}
-	return true
+	utils.DebugAssert(func() error {
+		// The policies which fill in the bookkeeping rely on the shift being an always contribution, which point 1 of
+		// definition 3.30 guarantees by making its contribution matrix row undefined. A potential shift would make the
+		// split stability of the precedence policy wrong, so guard against it rather than discard annotations silently.
+		for _, contribution := range potentials.All() {
+			if contribution.IsShiftAction() {
+				return errors.New("a shift must be an always contribution per definition 3.30 point 1, not a potential one")
+			}
+		}
+		return nil
+	})
+	splitStability := conflict.NewSplitStability(always, potentials)
+	policy.ContributeSplitStability(a.Inadequacy.TerminalIdx, &splitStability)
+	return splitStability.IsSplitStable()
 }

@@ -246,6 +246,7 @@ func (i *IELR1) phase2ComputeAnnotations() {
 
 	annotationsBuilder := NewAnnotationsBuilder(
 		i.parser,
+		i.conflictPolicy,
 		i.lalr1Builder.lookaheads.GotoRecords(),
 		i.lalr1Builder.lookaheads.GotoIdxsByStateIdx(),
 		i.lalr1Builder.lookaheads.GotoFollows(),
