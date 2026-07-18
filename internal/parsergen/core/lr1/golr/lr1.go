@@ -9,10 +9,12 @@ import (
 )
 
 // GrammarToParser calculates a parser from the context free grammar.
-func GrammarToParser(augmentedGrammar frontend.Grammar) (backend.Parser, error) {
+func GrammarToParser(grammar frontend.Grammar) (backend.Parser, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: LR1: GrammarToParser").End()
 
-	builder := NewLR1Builder(augmentedGrammar)
+	// The builder works on the augmented grammar, so the caller hands us the grammar as the frontend produced it and
+	// we augment it here, the same way the LALR(1) and IELR(1) cores do.
+	builder := NewLR1Builder(frontend.AugmentGrammar(grammar))
 	if err := builder.Build(); err != nil {
 		return backend.Parser{}, err
 	}

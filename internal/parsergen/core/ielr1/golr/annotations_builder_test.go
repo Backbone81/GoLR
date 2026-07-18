@@ -244,7 +244,7 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 			grammarSeed := masterRng.Int63()
 			grammar := oracle.DefaultGrammarGenerator(rand.New(rand.NewSource(grammarSeed))).Generate()
 
-			lr1Parser, err := lr1golrcore.GrammarToParser(frontend.AugmentGrammar(grammar))
+			lr1Parser, err := lr1golrcore.GrammarToParser(grammar)
 			if err != nil {
 				// A grammar whose canonical LR(1) automaton exceeds the addressable state limit cannot be handled by the
 				// oracle. It is skipped, not a failure of phase 2.

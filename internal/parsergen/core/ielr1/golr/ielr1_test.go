@@ -21,8 +21,7 @@ var _ = Describe("IELR(1)", func() {
 	// their own predecessors generate.
 	DescribeTable("should correctly compute the IELR(1) parser table",
 		func(grammar frontend.Grammar, wantIELR1Parser backend.Parser) {
-			augmentedGrammar := frontend.AugmentGrammar(grammar)
-			ielr1Parser, err := ielr1golrcore.GrammarToParser(augmentedGrammar)
+			ielr1Parser, _, err := ielr1golrcore.GrammarToParser(grammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ielr1Parser).To(Equal(wantIELR1Parser))
 		},
@@ -45,7 +44,7 @@ var _ = Describe("IELR(1)", func() {
 		rawParser := rawBuilder.BuildParser()
 		Expect(hasConflict(rawParser)).To(BeTrue(), "the raw split table is expected to keep the genuine conflict")
 
-		resolvedParser, err := ielr1golrcore.GrammarToParser(augmentedGrammar)
+		resolvedParser, _, err := ielr1golrcore.GrammarToParser(ielr1golrcore.AmbiguousTestGrammarFig2)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hasConflict(resolvedParser)).To(BeFalse(), "phase 5 is expected to resolve the genuine conflict")
 	})

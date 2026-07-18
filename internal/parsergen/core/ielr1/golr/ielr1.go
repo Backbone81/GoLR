@@ -26,17 +26,23 @@ import (
 // The policy the builder splits states with in phase 3 is the very policy passed to conflict.Resolve here, so a
 // lookahead distinction the compatibility test of definition 3.43 preserved is resolved the same way phase 3 assumed it
 // would be.
-func GrammarToParser(augmentedGrammar frontend.Grammar) (backend.Parser, error) {
+func GrammarToParser(grammar frontend.Grammar) (backend.Parser, []conflict.Conflict, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: IELR1: GrammarToParser").End()
+
+	// The whole algorithm works on the augmented grammar, where a new start symbol derives the old one followed by the
+	// end of input marker, so the caller hands us the grammar as the frontend produced it and we augment it here. This
+	// is the same contract the LR(1) and LALR(1) cores follow.
+	augmentedGrammar := frontend.AugmentGrammar(grammar)
 
 	conflictPolicy := conflict.NewDefaultPolicy(augmentedGrammar)
 	builder := NewIELR1(augmentedGrammar, conflictPolicy)
 	parser := builder.BuildParser()
 
-	if _, err := conflict.Resolve(&parser, conflictPolicy); err != nil {
-		return backend.Parser{}, err
+	conflicts, err := conflict.Resolve(&parser, conflictPolicy)
+	if err != nil {
+		return backend.Parser{}, conflicts, err
 	}
-	return parser, nil
+	return parser, conflicts, nil
 }
 
 // IELR1 provides an implementation of the IELR(1) algorithm as described by Denny and Malloy in "The IELR(1) algorithm

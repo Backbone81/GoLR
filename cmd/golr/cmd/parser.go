@@ -11,6 +11,7 @@ import (
 	golangbackend "github.com/backbone81/golr/pkg/parsergen/backend/golang"
 	jsonbackend "github.com/backbone81/golr/pkg/parsergen/backend/json"
 	yamlbackend "github.com/backbone81/golr/pkg/parsergen/backend/yaml"
+	"github.com/backbone81/golr/pkg/parsergen/conflict"
 	ielr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/bison"
 	ielr1golrcore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/golr"
 	lalr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/lalr1/bison"
@@ -32,6 +33,8 @@ var (
 	parserBackendFilePath string
 
 	parserBackendGoPackageName string
+
+	parserVerbose bool
 )
 
 var parserCmd = &cobra.Command{
@@ -45,10 +48,15 @@ var parserCmd = &cobra.Command{
 			return err
 		}
 
-		parser, err := executeParserCore(grammar)
+		parser, conflicts, err := executeParserCore(grammar)
 		if err != nil {
 			return err
 		}
+
+		// The conflicts are reported to stderr so they do not corrupt a backend which writes its output to stdout. The
+		// conflicts the policy resolved on its own are only summarized unless --verbose asks for the full listing, so the
+		// report stays readable for a large grammar which leans on precedence declarations.
+		printConflictReport(os.Stderr, parser.Grammar, conflicts, parserVerbose)
 
 		if err := executeParserBackend(parser); err != nil {
 			return err
@@ -86,7 +94,7 @@ func executeParserFrontend() (frontend.Grammar, error) {
 	}
 }
 
-func executeParserCore(grammar frontend.Grammar) (backend.Parser, error) {
+func executeParserCore(grammar frontend.Grammar) (backend.Parser, []conflict.Conflict, error) {
 	switch parserCore {
 	case "ielr1", "ielr1-bison":
 		return ielr1bisoncore.GrammarToParser(grammar)
@@ -97,7 +105,7 @@ func executeParserCore(grammar frontend.Grammar) (backend.Parser, error) {
 	case "lr1", "lr1-bison":
 		return lr1bisoncore.GrammarToParser(grammar)
 	default:
-		return backend.Parser{}, fmt.Errorf("unsupported parser core %q", parserCore)
+		return backend.Parser{}, nil, fmt.Errorf("unsupported parser core %q", parserCore)
 	}
 }
 
@@ -182,5 +190,13 @@ func init() {
 		"backend-go-package-name",
 		"parser",
 		"The Go package name to use for the generated Go code.",
+	)
+
+	parserCmd.PersistentFlags().BoolVarP(
+		&parserVerbose,
+		"verbose",
+		"v",
+		false,
+		"List every conflict the parser generator resolved on its own, instead of only summarizing them.",
 	)
 }

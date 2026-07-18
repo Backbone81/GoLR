@@ -57,7 +57,7 @@ func BenchmarkFromParser(b *testing.B) {
 				b.Fatal(err)
 			}
 
-			parser, err := ielr1bison.GrammarToParser(grammar)
+			parser, _, err := ielr1bison.GrammarToParser(grammar)
 			if err != nil {
 				b.Fatal(err)
 			}
