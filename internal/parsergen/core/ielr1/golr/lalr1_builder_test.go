@@ -1,6 +1,7 @@
 package golr_test
 
 import (
+	"bytes"
 	"maps"
 	"math/rand"
 	"slices"
@@ -8,6 +9,9 @@ import (
 
 	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
 	lr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lr1/golr"
+	bisonfrontend "github.com/backbone81/golr/internal/parsergen/frontend/bison"
+	lalr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/lalr1/bison"
+	"github.com/backbone81/golr/testdata"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -190,6 +194,28 @@ var _ = Describe("LALR(1) Builder", func() {
 			Expect(withMerging).To(BeNumerically(">", 100))
 			Expect(withConflict).To(BeNumerically(">", 100))
 		})
+	})
+
+	Context("well known grammars", func() {
+		for _, wellKnownGrammar := range testdata.WellKnownGrammars {
+			It("should correctly build the "+wellKnownGrammar.Title+" parser", func() {
+				grammar, err := bisonfrontend.ToGrammar(
+					bytes.NewBuffer(wellKnownGrammar.Content),
+					wellKnownGrammar.FileName,
+				)
+				Expect(err).ToNot(HaveOccurred())
+
+				bisonParser, _, err := lalr1bisoncore.GrammarToParser(grammar)
+				Expect(err).ToNot(HaveOccurred())
+
+				augmentedGrammar := frontend.AugmentGrammar(grammar)
+				lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
+				lalr1Builder.Build()
+				golrParser := lalr1Builder.Parser()
+
+				Expect(len(golrParser.States)).To(Equal(len(bisonParser.States)))
+			})
+		}
 	})
 })
 

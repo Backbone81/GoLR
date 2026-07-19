@@ -8,22 +8,26 @@ var grammarFS embed.FS
 // WellKnownGrammar describes the details of a well known grammar usually used for testing and benchmarking.
 type WellKnownGrammar struct {
 	// Title provides a human-readable name for the well-known grammar.
-	Title        string
+	Title string
 
 	// FileName provides the on-disk file name for the well-known grammar.
-	FileName     string
+	FileName string
 
 	// Content provides the content of the well-known grammar.
-	Content      []byte
+	Content []byte
 
 	// Terminals provides the number of terminals this grammar contains.
-	Terminals    int
+	Terminals int
 
 	// Nonterminals provides the number of nonterminals this grammar contains.
 	Nonterminals int
 
 	// Productions provides the number of productions this grammar contains.
-	Productions  int
+	Productions int
+
+	// IsLALR1 reports if the grammar is LALR(1) only which means that IELR(1) will not find any states to split
+	// in the generated LALR(1) parser table.
+	IsLALR1 bool
 }
 
 // WellKnownGrammars provides a list of well-known grammars to use for tests and benchmarks.
@@ -43,6 +47,8 @@ var WellKnownGrammars = []WellKnownGrammar{
 		// Note that not all alternatives start in the first column. symbols.1 has an alternative which is indented
 		// and therefore easy to overlook with a regex search in the grammar file.
 		Productions: 39 + 80,
+
+		IsLALR1: true,
 	},
 	{
 		Title:    "GCC 2.95.3 C",
@@ -59,6 +65,8 @@ var WellKnownGrammars = []WellKnownGrammar{
 		// All productions + alternatives
 		// Note that some alternatives are commented out and need to be removed from the count.
 		Productions: 117 + 247,
+
+		IsLALR1: true,
 	},
 	{
 		Title:    "GCC 2.95.3 Objective C",
@@ -75,6 +83,8 @@ var WellKnownGrammars = []WellKnownGrammar{
 		// All productions + alternatives
 		// Note that some alternatives are commented out and need to be removed from the count.
 		Productions: 162 + 340,
+
+		IsLALR1: true,
 	},
 	{
 		Title:    "GCC 3.3.6 C++",
@@ -93,6 +103,8 @@ var WellKnownGrammars = []WellKnownGrammar{
 		// All productions + alternatives
 		// Note that some alternatives are commented out and need to be removed from the count.
 		Productions: 238 + 633,
+
+		IsLALR1: false,
 	},
 	{
 		Title:    "GCC 4.2.4 Java",
@@ -112,6 +124,8 @@ var WellKnownGrammars = []WellKnownGrammar{
 		// Note that one alternative is inside of a block comment starting with "Screws up thing". We need to remove
 		// that from the result.
 		Productions: 153 + 352,
+
+		IsLALR1: true,
 	},
 	{
 		Title:    "Go 1.5.4",
@@ -126,6 +140,8 @@ var WellKnownGrammars = []WellKnownGrammar{
 
 		// All productions + alternatives
 		Productions: 127 + 210,
+
+		IsLALR1: true,
 	},
 	{
 		Title:    "PHP 8.6.7",
@@ -139,6 +155,8 @@ var WellKnownGrammars = []WellKnownGrammar{
 
 		// All productions + alternatives
 		Productions: 177 + 446,
+
+		IsLALR1: true,
 	},
 	{
 		Title:    "PostgreSQL 18.4",
@@ -154,6 +172,8 @@ var WellKnownGrammars = []WellKnownGrammar{
 		// All productions + alternatives
 		// Note that some a_expr and json_name_and_value alternatives are commented out
 		Productions: 733 + 2704 - 3,
+
+		IsLALR1: false,
 	},
 }
 

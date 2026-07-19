@@ -5,8 +5,10 @@ import (
 	"slices"
 	"testing"
 
+	lalr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lalr1/golr"
 	bisonfrontend "github.com/backbone81/golr/internal/parsergen/frontend/bison"
 	ielr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/bison"
+	lalr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/lalr1/bison"
 	"github.com/backbone81/golr/testdata"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -118,13 +120,26 @@ var _ = Describe("IELR(1)", func() {
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				bisonParser, _, err := ielr1bisoncore.GrammarToParser(grammar)
+				bisonLALR1Parser, _, err := lalr1bisoncore.GrammarToParser(grammar)
+				Expect(err).ToNot(HaveOccurred())
+				bisonIELR1Parser, _, err := ielr1bisoncore.GrammarToParser(grammar)
 				Expect(err).ToNot(HaveOccurred())
 
-				golrParser, _, err := ielr1golrcore.GrammarToParser(grammar)
+				golrLALR1Parser, _, err := lalr1golrcore.GrammarToParser(grammar)
+				Expect(err).ToNot(HaveOccurred())
+				golrIELR1Parser, _, err := ielr1golrcore.GrammarToParser(grammar)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(len(golrParser.States)).To(Equal(len(bisonParser.States)))
+				if wellKnownGrammar.IsLALR1 {
+					Expect(len(bisonIELR1Parser.States)).To(Equal(len(bisonLALR1Parser.States)))
+					Expect(len(golrIELR1Parser.States)).To(Equal(len(golrLALR1Parser.States)))
+					Expect(len(golrLALR1Parser.States)).To(Equal(len(bisonLALR1Parser.States)))
+					Expect(len(golrIELR1Parser.States)).To(Equal(len(bisonIELR1Parser.States)))
+				} else {
+					Expect(len(bisonIELR1Parser.States)).ToNot(Equal(len(bisonLALR1Parser.States)))
+					Expect(len(golrIELR1Parser.States)).ToNot(Equal(len(golrLALR1Parser.States)))
+					Expect(len(golrIELR1Parser.States)).To(Equal(len(bisonIELR1Parser.States)))
+				}
 			})
 		}
 	})
