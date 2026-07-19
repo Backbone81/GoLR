@@ -1,8 +1,13 @@
 package golr_test
 
 import (
+	"bytes"
 	"slices"
+	"testing"
 
+	bisonfrontend "github.com/backbone81/golr/internal/parsergen/frontend/bison"
+	ielr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/bison"
+	"github.com/backbone81/golr/testdata"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -103,4 +108,45 @@ var _ = Describe("IELR(1)", func() {
 			},
 		),
 	)
+
+	PContext("well known grammars", func() {
+		for _, wellKnownGrammar := range testdata.WellKnownGrammars {
+			It("should correctly build the "+wellKnownGrammar.Title+" parser", func() {
+				grammar, err := bisonfrontend.ToGrammar(
+					bytes.NewBuffer(wellKnownGrammar.Content),
+					wellKnownGrammar.FileName,
+				)
+				Expect(err).ToNot(HaveOccurred())
+
+				bisonParser, _, err := ielr1bisoncore.GrammarToParser(grammar)
+				Expect(err).ToNot(HaveOccurred())
+
+				golrParser, _, err := ielr1golrcore.GrammarToParser(grammar)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(len(golrParser.States)).To(Equal(len(bisonParser.States)))
+			})
+		}
+	})
 })
+
+func BenchmarkGrammarToParser(b *testing.B) {
+	for _, wellKnownGrammar := range testdata.WellKnownGrammars {
+		b.Run(wellKnownGrammar.Title, func(b *testing.B) {
+			grammar, err := bisonfrontend.ToGrammar(
+				bytes.NewBuffer(wellKnownGrammar.Content),
+				wellKnownGrammar.FileName,
+			)
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			for b.Loop() {
+				_, _, err := ielr1golrcore.GrammarToParser(grammar)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}

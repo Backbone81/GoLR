@@ -89,7 +89,6 @@ func build(grammarFilePath string, automatonFilePath string, parserType string) 
 
 	args := []string{
 		"--warnings=no-other",
-		"-Werror=conflicts-rr",
 		"--output=/dev/null",
 		"--report-file=/dev/null",
 		"--xml=" + automatonFilePath,
