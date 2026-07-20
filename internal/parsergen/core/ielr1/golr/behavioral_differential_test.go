@@ -12,6 +12,7 @@ import (
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
+	lalr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lalr1/golr"
 	lr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
@@ -58,12 +59,12 @@ var _ = Describe("IELR(1) behavioral differential test", func() {
 			// when hunting a suspected bug.
 			const grammarCount = 1000
 
-			var compared, skipped int
+			var compared, skipped, discriminating, splittingFired int
 
 			// A master RNG derives a distinct seed per grammar, so the corpus is grammarCount different grammars rather
 			// than one repeated. The derived seed is reported on failure so a single failing grammar reconstructs on its
-			// own, which is what shrinking it into a regression fixture needs. Seeding the master from the Ginkgo random
-			// seed makes every run explore a fresh corpus while staying reproducible with `ginkgo --seed=...`.
+			// own by hand. Seeding the master from the Ginkgo random seed makes every run explore a fresh corpus while
+			// staying reproducible with `ginkgo --seed=...`.
 			masterRng := rand.New(rand.NewSource(GinkgoRandomSeed()))
 			for range grammarCount {
 				grammarSeed := masterRng.Int63()
@@ -72,30 +73,61 @@ var _ = Describe("IELR(1) behavioral differential test", func() {
 				// The sentences for this grammar are drawn from an RNG seeded off the grammar seed, so a failing grammar
 				// replays its exact sentence stream from the reported seed alone.
 				inputRng := rand.New(rand.NewSource(grammarSeed))
-				if behaviorMatchesCanonicalLR1(grammar, inputsPerGrammar, inputRng, "grammar seed %d:\n%s", grammarSeed, grammar.String()) {
-					compared++
-				} else {
+				comparison := behaviorMatchesCanonicalLR1(grammar, inputsPerGrammar, inputRng, "grammar seed %d:\n%s", grammarSeed, grammar.String())
+				if !comparison.compared {
 					skipped++
+					continue
+				}
+				compared++
+				if comparison.discriminating {
+					discriminating++
+				}
+				if comparison.splittingFired {
+					splittingFired++
 				}
 			}
 
-			GinkgoWriter.Printf("random grammar corpus: %d compared, %d skipped (canonical LR(1) state limit)\n", compared, skipped)
+			GinkgoWriter.Printf(
+				"random grammar corpus: %d compared, %d skipped (canonical LR(1) state limit), %d discriminating (LALR conflict LR(1) removes), %d split (|IELR| > |LALR|)\n",
+				compared, skipped, discriminating, splittingFired,
+			)
 
 			// Guard against the generator degrading into grammars the oracle cannot build: if most grammars were skipped
 			// the test would pass vacuously, which is the failure we care about the most.
 			Expect(compared).To(BeNumerically(">", grammarCount/2))
+
+			// The discriminating grammars — those where LALR has a conflict canonical LR(1) does not — are the whole
+			// point of the corpus: they are the non-LALR grammars where phase 3 splitting earns its keep. Passing a
+			// corpus of only trivially-LALR grammars would exercise none of the splitting under test and pass vacuously,
+			// so assert the corpus keeps clearing a floor of them. The generator yields roughly 65 of them per thousand
+			// grammars (observed 49–74 across runs, a ~6.5% rate with a binomial standard deviation near 8); a floor of 15
+			// sits several deviations below that mean — never flaky — while still catching the generator degrading toward
+			// all-trivial grammars.
+			Expect(discriminating).To(BeNumerically(">", 15))
 		})
 	})
 })
 
+// grammarComparison reports what a single grammar contributed to the corpus. compared is false when the grammar was
+// skipped (its canonical LR(1) automaton exceeded the addressable state limit), in which case the other fields are
+// meaningless. discriminating marks a grammar where LALR(1) has a conflict canonical LR(1) does not — the non-LALR
+// shapes the corpus exists to find. splittingFired marks a grammar where the IELR(1) table has more states than the
+// LALR(1) table, i.e. phase 3 actually split a state.
+type grammarComparison struct {
+	compared       bool
+	discriminating bool
+	splittingFired bool
+}
+
 // behaviorMatchesCanonicalLR1 builds the resolved canonical LR(1) oracle table and the IELR(1) table under test for the
 // grammar and drives both through inputsPerGrammar generated sentences in lockstep, asserting they take the identical
-// sequence of LR actions on every one. It returns false when the grammar's canonical LR(1) automaton exceeds the
-// addressable state limit — the oracle cannot be built then, so the grammar is skipped rather than failed. The
-// description and args are woven into every assertion so a failure names the grammar it came from (a curated title or a
-// corpus seed).
-func behaviorMatchesCanonicalLR1(grammar frontend.Grammar, inputsPerGrammar int, inputRng *rand.Rand, description string, args ...any) bool {
-	// The input generator and the interpreters speak the augmented alphabet, so augment once here for the generator; both
+// sequence of LR actions on every one. It also builds the LALR(1) table so it can assert the state-count size invariant
+// |LALR(1)| <= |IELR(1)| <= |canonical LR(1)| and report the corpus-coverage flags in the returned grammarComparison.
+// A grammar whose canonical LR(1) automaton exceeds the addressable state limit is skipped (compared=false) rather than
+// failed — the oracle cannot be built then. The description and args are woven into every assertion so a failure names
+// the grammar it came from (a curated title or a corpus seed).
+func behaviorMatchesCanonicalLR1(grammar frontend.Grammar, inputsPerGrammar int, inputRng *rand.Rand, description string, args ...any) grammarComparison {
+	// The input generator and the interpreters speak the augmented alphabet, so augment once here for the generator; the
 	// GrammarToParser calls below augment the grammar the same way internally.
 	augmentedGrammar := frontend.AugmentGrammar(grammar)
 
@@ -104,15 +136,43 @@ func behaviorMatchesCanonicalLR1(grammar frontend.Grammar, inputsPerGrammar int,
 	// to address is skipped, not a failure of the builder under test; any other error means conflict resolution failed,
 	// which the default policy never should for a generated grammar (no precedence declarations), so asserting the error
 	// is the state limit doubles as the plan's precondition that resolution does not error.
-	oracleParser, _, err := lr1golrcore.GrammarToParser(grammar)
+	oracleParser, lr1Conflicts, err := lr1golrcore.GrammarToParser(grammar)
 	if err != nil {
 		Expect(err).To(MatchError(lr1golrcore.ErrStateLimitExceeded), append([]any{description}, args...)...)
-		return false
+		return grammarComparison{compared: false}
 	}
 
 	// The system under test: the IELR(1) table, resolved with the same policy by its GrammarToParser.
 	sutParser, _, err := ielr1golrcore.GrammarToParser(grammar)
 	Expect(err).ToNot(HaveOccurred(), append([]any{description}, args...)...)
+
+	// The LALR(1) table, built the same way, is the lower bound of the size invariant and the source of the
+	// discriminating signal. It is always no larger than canonical LR(1), so if the oracle built without hitting the
+	// state limit this one does too; the default policy resolves every conflict of a generated grammar, so any error is
+	// a real failure.
+	lalrParser, lalrConflicts, err := lalr1golrcore.GrammarToParser(grammar)
+	Expect(err).ToNot(HaveOccurred(), append([]any{description}, args...)...)
+
+	// Size invariant |LALR(1)| <= |IELR(1)| <= |canonical LR(1)| (CLAUDE.md). Conflict resolution never adds or removes
+	// states, so comparing the resolved tables is valid. An IELR(1) table larger than canonical LR(1) or smaller than
+	// LALR(1) is a correctness-preserving quality bug — splitting too eagerly or losing a required split.
+	Expect(len(sutParser.States)).To(
+		BeNumerically(">=", len(lalrParser.States)),
+		append([]any{"IELR(1) has fewer states than LALR(1): %s", description}, args...)...,
+	)
+	Expect(len(sutParser.States)).To(
+		BeNumerically("<=", len(oracleParser.States)),
+		append([]any{"IELR(1) has more states than canonical LR(1): %s", description}, args...)...,
+	)
+
+	comparison := grammarComparison{
+		compared: true,
+		// A grammar is discriminating when LALR(1) reports more conflicts than canonical LR(1): the surplus are the
+		// mysterious LALR conflicts LR(1) removes, the shapes where phase 3 splitting matters. Comparing conflict counts
+		// is a conservative proxy — it never over-counts a discriminating grammar — which is all a coverage metric needs.
+		discriminating: len(lalrConflicts) > len(lr1Conflicts),
+		splittingFired: len(sutParser.States) > len(lalrParser.States),
+	}
 
 	generator := oracle.NewInputGenerator(augmentedGrammar, inputRng)
 	for range inputsPerGrammar {
@@ -144,7 +204,7 @@ func behaviorMatchesCanonicalLR1(grammar frontend.Grammar, inputsPerGrammar int,
 			))
 		}
 	}
-	return true
+	return comparison
 }
 
 // traceParse runs the parser table over the input with tracing on and returns the recorded trace, for the divergence
