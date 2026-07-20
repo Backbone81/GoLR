@@ -2,8 +2,12 @@ package oracle
 
 import (
 	"fmt"
+	"io"
+	"slices"
+	"strings"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
 
 // AugmentGrammar (see frontend.AugmentGrammar) always inserts the EOF terminal as the first terminal and the
@@ -99,21 +103,59 @@ type ParserInterpreter struct {
 
 	// parserAction provides the last action taken.
 	parserAction ParserAction
+
+	// trace, when non-nil, receives one readable line per step describing the action the interpreter took. It is the
+	// interpreter's own debugging channel, so a divergence between two tables can be inspected by tracing each of them
+	// rather than reconstructing what happened by hand. It is nil and costs nothing unless WithTrace sets it.
+	trace io.Writer
+}
+
+// ParserInterpreterOption customizes a ParserInterpreter at construction time.
+type ParserInterpreterOption func(*ParserInterpreter)
+
+// WithMaxSteps overrides the runaway step bound the interpreter guards against. It exists so two interpreters compared
+// in lockstep can share one bound: the default bound scales with the table's state count, so an IELR(1) table (fewer
+// states) and a canonical LR(1) table for the same grammar would otherwise cut a non-terminating parse — as a cyclic
+// grammar produces — off at different steps and read as a spurious divergence instead of the agreement it is.
+func WithMaxSteps(maxSteps int) ParserInterpreterOption {
+	return func(i *ParserInterpreter) {
+		i.maxSteps = maxSteps
+	}
+}
+
+// WithTrace makes the interpreter write one readable line per step to the writer, describing the state the action was
+// decided in, the lookahead, and the action taken (a reduce expanded into its named production). It turns the
+// interpreter into its own tracer, so debugging a divergence between two tables is a matter of tracing each of them to a
+// buffer and reading the two side by side. Passing nil disables tracing, which is also the default.
+func WithTrace(writer io.Writer) ParserInterpreterOption {
+	return func(i *ParserInterpreter) {
+		i.trace = writer
+	}
+}
+
+// DefaultMaxSteps returns the runaway step bound for an input of the given length (EOF included) parsed over a table
+// with the given number of states. It is a loose but safe guard: every shift consumes input and every reduce without a
+// shift is bounded by the automaton size, so this comfortably exceeds the steps any well-formed parse needs while still
+// capping a reduce loop. It is exported so a lockstep comparison can size one shared bound off the larger of two tables.
+func DefaultMaxSteps(inputLen int, stateCount int) int {
+	return (inputLen+1)*(stateCount+1)*4 + 1024
 }
 
 // NewParserInterpreter creates an interpreter for the given resolved parser table and input. The input is a sequence of
 // terminal indexes. The EOF terminal with index 0 is appended automatically, matching the shape produced by
 // frontend.AugmentGrammar. The interpreter does not modify the parser table or the input.
-func NewParserInterpreter(parser backend.Parser, input []int) *ParserInterpreter {
+func NewParserInterpreter(parser backend.Parser, input []int, options ...ParserInterpreterOption) *ParserInterpreter {
 	input = append(input, eofTerminalIdx)
-	return &ParserInterpreter{
+	interpreter := &ParserInterpreter{
 		parser:     parser,
 		input:      input,
 		stateStack: []int{0},
-		// A loose but safe runaway guard: every shift consumes input and every reduce is bounded by the automaton
-		// size, so this comfortably exceeds the steps any well-formed parse needs while still capping a bug.
-		maxSteps: (len(input)+1)*(len(parser.States)+1)*4 + 1024,
+		maxSteps:   DefaultMaxSteps(len(input), len(parser.States)),
 	}
+	for _, option := range options {
+		option(interpreter)
+	}
+	return interpreter
 }
 
 // shiftAction builds an ParserActionShift for the given terminal index.
@@ -160,15 +202,40 @@ func (i *ParserInterpreter) Offset() int {
 
 // Next advances the parse by exactly one LR action and returns it. The action mutates the interpreter's own state stack
 // and input cursor. It returns true as long as progress can be made.
+//
+// When a trace writer is set (see WithTrace) it writes one readable line per step, describing the state the action was
+// decided in, the lookahead, and the action taken. The state stack and lookahead are captured before the step, because
+// a shift advances the input cursor and a reduce rewrites the stack, so reading them afterwards would describe the next
+// decision rather than this one.
 func (i *ParserInterpreter) Next() bool {
 	if i.parserAction.Kind == ParserActionAccept || i.parserAction.Kind == ParserActionReject {
 		return false
 	}
 
+	var stackBeforeStep []int
+	var lookaheadBeforeStep int
+	if i.trace != nil {
+		stackBeforeStep = slices.Clone(i.stateStack)
+		lookaheadBeforeStep = i.input[i.offset]
+	}
+
+	i.advance()
+
+	if i.trace != nil {
+		i.writeTraceLine(stackBeforeStep, lookaheadBeforeStep)
+	}
+	return true
+}
+
+// advance takes the single LR action for the current state and lookahead, mutating the state stack and input cursor and
+// recording it in parserAction. It always leaves parserAction set, so Next can report progress unconditionally. It is
+// split out from Next so the trace can bracket exactly one step without the tracing having to be threaded through every
+// branch.
+func (i *ParserInterpreter) advance() {
 	i.stepCount++
 	if i.stepCount > i.maxSteps {
 		i.parserAction = i.rejectAction()
-		return true
+		return
 	}
 
 	state := &i.parser.States[i.stateStack[len(i.stateStack)-1]]
@@ -181,7 +248,7 @@ func (i *ParserInterpreter) Next() bool {
 	for _, reduceAction := range state.ReduceActions.All() {
 		if reduceAction.ProductionIdx == acceptProductionIdx || reduceAction.LookaheadSet.Contains(terminal) {
 			i.reduce(reduceAction.ProductionIdx)
-			return true
+			return
 		}
 	}
 
@@ -194,19 +261,18 @@ func (i *ParserInterpreter) Next() bool {
 			// stays put on it, so reading the current terminal never needs a bounds check and keeps returning EOF.
 			i.offset = min(i.offset+1, len(i.input)-1)
 			i.parserAction = i.shiftAction(terminal)
-			return true
+			return
 		}
 	}
 
 	// Otherwise a default reduce on any lookahead, matching the `default:` case of a generated state function.
 	if state.DefaultReduceProductionIdx != nil {
 		i.reduce(*state.DefaultReduceProductionIdx)
-		return true
+		return
 	}
 
 	// No action applies for this state and terminal.
 	i.parserAction = i.rejectAction()
-	return true
 }
 
 // Value returns the parser action for the last Next() call.
@@ -239,6 +305,62 @@ func (i *ParserInterpreter) reduce(productionIdx int) {
 	}
 	i.stateStack = append(i.stateStack, gotoState)
 	i.parserAction = i.reduceAction(productionIdx)
+}
+
+// writeTraceLine writes one step to the trace: the step number, the state the action was decided in and the full stack
+// it sat on, the lookahead, and the action taken. The stack and lookahead are the ones captured before the step, so the
+// line describes the decision rather than its after-effect. It is only called when a trace writer is set.
+func (i *ParserInterpreter) writeTraceLine(stackBeforeStep []int, lookaheadBeforeStep int) {
+	topStateIdx := stackBeforeStep[len(stackBeforeStep)-1]
+	fmt.Fprintf(
+		i.trace,
+		"step %-5d state %-4d lookahead %-6s %-40s stack %v\n",
+		i.stepCount, topStateIdx, i.formatTerminal(lookaheadBeforeStep), i.formatAction(), stackBeforeStep,
+	)
+}
+
+// formatAction renders the last action for a trace line in the grammar's own vocabulary: a reduce expanded into its
+// named production and a shift naming the terminal it consumes, so a reader does not have to translate indexes by hand.
+func (i *ParserInterpreter) formatAction() string {
+	switch i.parserAction.Kind {
+	case ParserActionShift:
+		return "shift " + i.formatTerminal(i.parserAction.TerminalIdx)
+	case ParserActionReduce:
+		return "reduce " + i.formatProduction(i.parserAction.ProductionIdx)
+	default:
+		return i.parserAction.String()
+	}
+}
+
+// formatProduction renders a production as its named left and right hand sides, e.g. "N0 -> N1 N4 N1 N5", which is far
+// easier to follow in a trace than a bare production index.
+func (i *ParserInterpreter) formatProduction(productionIdx int) string {
+	production := i.parser.Grammar.Productions[productionIdx]
+	var builder strings.Builder
+	builder.WriteString(i.parser.Grammar.Nonterminals[production.NonterminalIdx].Name)
+	builder.WriteString(" ->")
+	for _, symbolRef := range production.SymbolRefs {
+		builder.WriteString(" ")
+		builder.WriteString(i.formatSymbolRef(symbolRef))
+	}
+	return builder.String()
+}
+
+// formatSymbolRef renders a grammar symbol as its name, terminal or nonterminal alike.
+func (i *ParserInterpreter) formatSymbolRef(symbolRef frontend.SymbolRef) string {
+	if symbolRef.IsTerminal() {
+		return i.formatTerminal(symbolRef.Idx())
+	}
+	return i.parser.Grammar.Nonterminals[symbolRef.Idx()].Name
+}
+
+// formatTerminal renders a terminal index as its name, or as "$" for the EOF terminal, so a trace reads in the grammar's
+// own vocabulary rather than in indexes.
+func (i *ParserInterpreter) formatTerminal(terminalIdx int) string {
+	if terminalIdx == eofTerminalIdx {
+		return "$"
+	}
+	return i.parser.Grammar.Terminals[terminalIdx].Name
 }
 
 // gotoStateForNonterminal finds the goto target state for the given nonterminal in the state's transition actions.

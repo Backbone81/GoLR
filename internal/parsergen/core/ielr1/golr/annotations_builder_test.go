@@ -244,8 +244,11 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 			grammarSeed := masterRng.Int63()
 			grammar := oracle.DefaultGrammarGenerator(rand.New(rand.NewSource(grammarSeed))).Generate()
 
-			lr1Parser, err := lr1golrcore.GrammarToParser(grammar)
-			if err != nil {
+			// This oracle needs the raw canonical LR(1) table with its conflicts intact — the property tested below only
+			// holds under a conflict-preserving policy — so it builds it directly instead of through GrammarToParser,
+			// which resolves conflicts as a public parser interface should.
+			lr1Builder := lr1golrcore.NewLR1Builder(frontend.AugmentGrammar(grammar))
+			if err := lr1Builder.Build(); err != nil {
 				// A grammar whose canonical LR(1) automaton exceeds the addressable state limit cannot be handled by the
 				// oracle. It is skipped, not a failure of phase 2.
 				Expect(err).To(
@@ -254,6 +257,7 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 				)
 				continue
 			}
+			lr1Parser := lr1Builder.Parser()
 			lr1StateIdxsByKernelItemsHash := stateIdxsByKernelItemsHash(lr1Parser)
 
 			// The property that every LR(1)-relative inadequacy is annotated only holds under a policy which resolves no
