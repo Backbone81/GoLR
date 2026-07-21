@@ -12,36 +12,40 @@ import (
 
 // GrammarToParser calculates a parser from the context free grammar.
 //
-// The builder produces the minimal LR(1) parser tables with their conflicts still in them, the same way the LR(1) and
-// LALR(1) builders do, which keeps those tables usable for oracle and differential testing. Phase 5 of IELR(1) (section
-// 3.7 of the paper) then turns them into a parser table a backend can serialize: conflict.Resolve applies the conflict
-// resolution policy as a final pass over the whole table, removes the losing actions, and reports the conflicts the
-// policy left undecided as an error.
+// The grammar is taken as a frontend produces it. What comes back are minimal LR(1) parser tables a backend can
+// serialize, with every conflict of the grammar decided, so that no state is left with more than one action for a
+// terminal. The tables accept the same language and produce the same parses as canonical LR(1) ones while staying close
+// to the size of LALR(1) ones, which is what IELR(1) is for.
 //
-// Phase 5 runs here at the interface rather than inside the builder, so BuildParser keeps returning the raw tables the
-// oracle work inspects before any policy touches them. It is also where the orphan cleanup of section 3.8.2 will later
-// slot in, after resolution, as its own pass over the parser: the phase 5 orphans it removes are the states resolution
-// strands when it deletes a shift.
-//
-// The policy the builder splits states with in phase 3 is the very policy passed to conflict.Resolve here, so a
-// lookahead distinction the compatibility test of definition 3.43 preserved is resolved the same way phase 3 assumed it
-// would be.
+// Every conflict which was found is returned, whether it was decided or not, because a parser generator reports the
+// conflicts of a grammar to the user even when it decided them on its own. The error reports the conflicts which were
+// left undecided, one conflict.UnresolvedConflictError each; no parser can be generated from such a grammar, so the
+// parser tables come back empty then and the conflicts are all there is left to report.
 func GrammarToParser(grammar frontend.Grammar) (backend.Parser, []conflict.Conflict, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: IELR1: GrammarToParser").End()
 
 	// The whole algorithm works on the augmented grammar, where a new start symbol derives the old one followed by the
-	// end of input marker, so the caller hands us the grammar as the frontend produced it and we augment it here. This
-	// is the same contract the LR(1) and LALR(1) cores follow.
+	// end of input marker, so the caller hands us the grammar as the frontend produced it and we augment it here.
 	augmentedGrammar := frontend.AugmentGrammar(grammar)
 
+	// The policy the builder splits states with in phase 3 is the very policy which resolves the remaining conflicts
+	// below, so a lookahead distinction the compatibility test of definition 3.43 preserved is resolved the same way
+	// phase 3 assumed it would be.
 	conflictPolicy := conflict.NewDefaultPolicy(augmentedGrammar)
+
+	// Phases 0 to 4 of IELR(1) build the parser.
 	builder := NewIELR1(augmentedGrammar, conflictPolicy)
 	parser := builder.BuildParser()
 
+	// Phase 5 of IELR(1) (section 3.7 of the paper).
 	conflicts, err := conflict.Resolve(&parser, conflictPolicy)
 	if err != nil {
 		return backend.Parser{}, conflicts, err
 	}
+
+	// Resolving a conflict can delete the only shift into a state, which strands that state and everything behind it.
+	// This is the unreachable state removal of section 3.8.2, the optional phase 6 of the paper.
+	parser, conflicts = conflict.RemoveUnreachableStates(parser, conflicts)
 	return parser, conflicts, nil
 }
 
@@ -107,7 +111,7 @@ func (i *IELR1) BuildParser() backend.Parser {
 	i.phase4ComputeReductionLookaheads()
 	// Phase 5 of IELR(1) (section 3.7 of the paper), resolving the remaining conflicts, is deliberately not a step of the
 	// builder. It runs outside, in GrammarToParser, through conflict.Resolve, so that BuildParser returns the minimal
-	// LR(1) tables with their conflicts intact for oracle and differential testing. See GrammarToParser for the details.
+	// LR(1) tables with their conflicts intact for oracle and differential testing.
 	return i.parser
 }
 
