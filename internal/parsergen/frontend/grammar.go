@@ -119,6 +119,15 @@ func AugmentGrammar(grammar Grammar) Grammar {
 	for i := 1; i < len(augmentedGrammar.Productions); i++ {
 		production := &augmentedGrammar.Productions[i]
 		production.NonterminalIdx += nonterminalOffset
+
+		if production.PrecedenceTerminalIdx != nil {
+			// The terminal a production takes its precedence from explicitly is a terminal index like any other, so it
+			// moves along with the terminals. NOTE: We need to point at a new value instead of adding to the existing
+			// one, because the productions were copied over from the old grammar and still share the value with it.
+			precedenceTerminalIdx := *production.PrecedenceTerminalIdx + terminalOffset
+			production.PrecedenceTerminalIdx = &precedenceTerminalIdx
+		}
+
 		if len(production.SymbolRefs) == 0 {
 			// We only want to augment symbol indexes when there are symbols at all.
 			continue

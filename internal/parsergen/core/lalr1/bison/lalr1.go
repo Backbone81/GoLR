@@ -9,17 +9,27 @@ import (
 	"strconv"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	bisonfrontend "github.com/backbone81/golr/internal/parsergen/frontend/bison"
 	bisonutils "github.com/backbone81/golr/internal/utils/bison"
 )
 
 // GrammarToParser calculates a parser from the context free grammar.
-func GrammarToParser(augmentedGrammar frontend.Grammar) (backend.Parser, error) {
+//
+// The policy factory is ignored. GNU Bison resolves the conflicts itself, with its own precedence and associativity
+// rules, and this core only reads the tables it reports back. The parameter is there so that this core has the same
+// signature as the GoLR one and a caller can switch between them.
+func GrammarToParser(
+	grammar frontend.Grammar,
+	policyFactory conflict.PolicyFactory,
+) (backend.Parser, []conflict.Conflict, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: LALR1: GrammarToParser").End()
 
-	builder := NewLALR1(augmentedGrammar)
-	return builder.BuildParser()
+	builder := NewLALR1(grammar)
+	parser, err := builder.BuildParser()
+	// Note that we currently do not capture reported conflicts from GNU Bison. Therefore, we return no conflicts.
+	return parser, nil, err
 }
 
 type LALR1 struct {

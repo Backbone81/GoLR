@@ -86,6 +86,15 @@ func (b *Bitset) Remove(idx int) {
 	}
 }
 
+// Clone returns a copy of the bitset which shares no storage with the original. A plain copy of a bitset keeps
+// referencing the chunks of the original, so setting or removing a bit on the copy would change the original as well.
+// Clone is what you want when the original must stay untouched.
+func (b *Bitset) Clone() Bitset {
+	return Bitset{
+		chunks: slices.Clone(b.chunks),
+	}
+}
+
 // All returns an iterator over all set bits.
 func (b *Bitset) All() iter.Seq[int] {
 	return func(yield func(int) bool) {
@@ -113,6 +122,23 @@ func (b *Bitset) Merge(other *Bitset) bool {
 		changed = changed || other.chunks[commonChunks+i] != 0
 	}
 	b.chunks = append(b.chunks, other.chunks[commonChunks:]...)
+	return changed
+}
+
+// Intersect removes every bit from the bitset which is not also set in the other bitset, so the bitset is reduced to
+// the intersection of both. Bits which are set in the other bitset but not in this one are never added. The return
+// value reports if a bit was removed.
+func (b *Bitset) Intersect(other *Bitset) bool {
+	changed := false
+	for i := range b.chunks {
+		var otherChunk bitsetChunk
+		if i < len(other.chunks) {
+			otherChunk = other.chunks[i]
+		}
+		// A bit is removed when this chunk holds a bit which the other chunk does not hold.
+		changed = changed || b.chunks[i]&^otherChunk != 0
+		b.chunks[i] &= otherChunk
+	}
 	return changed
 }
 

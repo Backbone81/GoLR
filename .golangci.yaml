@@ -108,6 +108,10 @@ linters:
     cyclop:
       max-complexity: 15
   exclusions:
+    # TODO: The Go native IELR(1) core is still work in progress. Exclude it from linting for now and tackle the linter
+    # findings once the implementation has settled.
+    paths:
+      - ^internal/parsergen/core/ielr1/golr/
     rules:
       - path: _test\.go
         linters:

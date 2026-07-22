@@ -143,7 +143,13 @@ func writeBisonAssociativityAndPrecedence(writer io.Writer, grammar frontend.Gra
 				return err
 			}
 		case frontend.AssociativityUndeclared:
-			// Nothing to output for undeclared associativity as that is the default situation.
+			// A terminal with no precedence at all is dropped by buildPrecedenceGroups, so a group which reaches this
+			// point has a real precedence level but no associativity. That is exactly what %precedence declares, so it
+			// has to be emitted here: omitting it would leave the terminal without any precedence in the generated
+			// grammar, which silently changes how conflicts on it are resolved.
+			if _, err := fmt.Fprintf(writer, "%%precedence"); err != nil {
+				return err
+			}
 		default:
 			if _, err := fmt.Fprintf(writer, "%%precedence"); err != nil {
 				return err

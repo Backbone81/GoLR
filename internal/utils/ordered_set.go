@@ -65,6 +65,15 @@ func (s *OrderedSet[T]) Remove(value T) bool {
 	return true
 }
 
+// Clone returns a copy of the ordered set which shares no storage with the original. A plain copy of an ordered set
+// keeps referencing the values of the original, so removing a value from the copy would remove it from the original as
+// well. Clone is what you want when the original must stay untouched.
+func (s *OrderedSet[T]) Clone() OrderedSet[T] {
+	return OrderedSet[T]{
+		data: slices.Clone(s.data),
+	}
+}
+
 // Merge adds all values of the other ordered set.
 func (s *OrderedSet[T]) Merge(other *OrderedSet[T]) {
 	for _, value := range other.All() {

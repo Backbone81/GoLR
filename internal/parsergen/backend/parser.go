@@ -9,7 +9,11 @@ import (
 
 // Parser is a parser.
 type Parser struct {
-	// Grammar is the grammar which was used to generate the parser.
+	// Grammar is the grammar which was used to generate the parser. This is the augmented grammar, where a new start
+	// symbol derives the old one followed by the end of input marker, not the grammar a frontend produced: it is the
+	// grammar the terminal, nonterminal and production indexes of the states refer to. Whatever reads those indexes has
+	// to be bound to this grammar, a conflict policy for instance, or it reads the neighbouring symbol of every index it
+	// looks up.
 	Grammar frontend.Grammar `json:"grammar" yaml:"grammar"`
 
 	// States is the list of parser states.
