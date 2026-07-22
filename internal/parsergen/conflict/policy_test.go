@@ -12,7 +12,7 @@ var _ = Describe("Policies", func() {
 	// grammar declares one operator per case a policy has to tell apart, see PrecedenceTestGrammar.
 	DescribeTable("should compute the dominant contribution with the policy of GNU Bison",
 		func(terminalIdx int, contributions conflict.ContributionSet, wantDecision conflict.Decision) {
-			policy := conflict.NewDefaultPolicy(conflict.PrecedenceTestGrammar)
+			policy := conflict.DefaultPolicy(conflict.PrecedenceTestGrammar)
 
 			decision := conflict.DominantContribution(policy, terminalIdx, contributions)
 
@@ -156,7 +156,7 @@ var _ = Describe("Policies", func() {
 		// reduction and the earliest production beats the ones declared after it whenever precedence has nothing to
 		// say.
 		It("should be total, so that it decides every conflict the way GNU Bison does", func() {
-			policy := conflict.NewDefaultPolicy(conflict.PrecedenceTestGrammar)
+			policy := conflict.DefaultPolicy(conflict.PrecedenceTestGrammar)
 
 			for terminalIdx := range conflict.PrecedenceTestGrammar.Terminals {
 				for _, contributions := range allPossibleContributionSets() {
@@ -175,10 +175,10 @@ var _ = Describe("Policies", func() {
 		It("should resolve a shift/reduce conflict in favor of the reduction without the precedence policy", func() {
 			// The precedence declarations of the grammar say that the reduction of "E -> E * E" wins over the shift of
 			// "+". Without the precedence policy, the shift over reduce policy decides instead, and the shift wins.
-			policy := conflict.CompoundPolicy{
-				conflict.NewShiftOverReducePolicy(),
-				conflict.NewEarliestProductionPolicy(),
-			}
+			policy := conflict.CompoundPolicy(
+				conflict.ShiftOverReducePolicy,
+				conflict.EarliestProductionPolicy,
+			)(conflict.PrecedenceTestGrammar)
 			contributions := conflict.NewContributionSet(
 				conflict.NewShiftContribution(),
 				conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxTimes),
@@ -198,10 +198,10 @@ var _ = Describe("Policies", func() {
 			// behind the precedence policy decides between a shift and a reduction, so the conflict stands. This is
 			// how a grammar author insists on deciding every shift/reduce conflict with explicit precedence
 			// declarations.
-			policy := conflict.CompoundPolicy{
-				conflict.NewPrecedencePolicy(conflict.PrecedenceTestGrammar),
-				conflict.NewEarliestProductionPolicy(),
-			}
+			policy := conflict.CompoundPolicy(
+				conflict.PrecedencePolicy,
+				conflict.EarliestProductionPolicy,
+			)(conflict.PrecedenceTestGrammar)
 			contributions := conflict.NewContributionSet(
 				conflict.NewShiftContribution(),
 				conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxIdentity),
@@ -219,9 +219,9 @@ var _ = Describe("Policies", func() {
 		It("should rule out the reductions which lost even when the conflict stays unresolved", func() {
 			// The reduction of "E -> E + E" binds looser than "*", so it loses against the shift and is ruled out. The
 			// identity production has no precedence, so the shift and its reduction stay undecided.
-			policy := conflict.CompoundPolicy{
-				conflict.NewPrecedencePolicy(conflict.PrecedenceTestGrammar),
-			}
+			policy := conflict.CompoundPolicy(
+				conflict.PrecedencePolicy,
+			)(conflict.PrecedenceTestGrammar)
 			contributions := conflict.NewContributionSet(
 				conflict.NewShiftContribution(),
 				conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxPlus),

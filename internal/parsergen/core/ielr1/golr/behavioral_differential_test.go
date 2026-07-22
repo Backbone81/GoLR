@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
 	lalr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lalr1/golr"
@@ -40,7 +41,7 @@ var _ = Describe("IELR(1) behavioral differential test", func() {
 	DescribeTable(
 		"should agree action for action with resolved canonical LR(1) on curated grammars",
 		func(grammar frontend.Grammar) {
-			behaviorMatchesCanonicalLR1(grammar, inputsPerGrammar, rand.New(rand.NewSource(1)), "curated grammar")
+			behaviorMatchesCanonicalLR1(grammar, inputsPerGrammar, rand.New(rand.NewSource(GinkgoRandomSeed())), "curated grammar")
 		},
 		Entry("the unambiguous test grammar for Fig. 1", ielr1golrcore.UnambiguousTestGrammarFig1),
 		Entry("the ambiguous test grammar for Fig. 2", ielr1golrcore.AmbiguousTestGrammarFig2),
@@ -136,21 +137,21 @@ func behaviorMatchesCanonicalLR1(grammar frontend.Grammar, inputsPerGrammar int,
 	// to address is skipped, not a failure of the builder under test; any other error means conflict resolution failed,
 	// which the default policy never should for a generated grammar (no precedence declarations), so asserting the error
 	// is the state limit doubles as the plan's precondition that resolution does not error.
-	oracleParser, lr1Conflicts, err := lr1golrcore.GrammarToParser(grammar)
+	oracleParser, lr1Conflicts, err := lr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
 	if err != nil {
 		Expect(err).To(MatchError(lr1golrcore.ErrStateLimitExceeded), append([]any{description}, args...)...)
 		return grammarComparison{compared: false}
 	}
 
 	// The system under test: the IELR(1) table, resolved with the same policy by its GrammarToParser.
-	sutParser, _, err := ielr1golrcore.GrammarToParser(grammar)
+	sutParser, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
 	Expect(err).ToNot(HaveOccurred(), append([]any{description}, args...)...)
 
 	// The LALR(1) table, built the same way, is the lower bound of the size invariant and the source of the
 	// discriminating signal. It is always no larger than canonical LR(1), so if the oracle built without hitting the
 	// state limit this one does too; the default policy resolves every conflict of a generated grammar, so any error is
 	// a real failure.
-	lalrParser, lalrConflicts, err := lalr1golrcore.GrammarToParser(grammar)
+	lalrParser, lalrConflicts, err := lalr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
 	Expect(err).ToNot(HaveOccurred(), append([]any{description}, args...)...)
 
 	// Size invariant |LALR(1)| <= |IELR(1)| <= |canonical LR(1)| (CLAUDE.md). Conflict resolution never adds or removes

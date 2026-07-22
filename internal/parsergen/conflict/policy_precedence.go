@@ -4,7 +4,20 @@ import (
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
 
-// PrecedencePolicy resolves a shift/reduce conflict from the precedence and the associativity which the grammar
+// PrecedencePolicy returns the policy which resolves a shift/reduce conflict from the precedence and the
+// associativity declared in the grammar. The grammar MUST be an augmented grammar, see PolicyFactory.
+//
+//nolint:ireturn // Returning the interface is what makes this usable as a PolicyFactory.
+func PrecedencePolicy(augmentedGrammar frontend.Grammar) Policy {
+	return &precedencePolicy{
+		augmentedGrammar: augmentedGrammar,
+	}
+}
+
+// PrecedencePolicy is a PolicyFactory.
+var _ PolicyFactory = PrecedencePolicy
+
+// precedencePolicy resolves a shift/reduce conflict from the precedence and the associativity which the grammar
 // declares. The conflicted terminal is the terminal which would be shifted, and the production of a reduction inherits
 // its precedence from a terminal, see ProductionPrecedence.
 //
@@ -16,9 +29,11 @@ import (
 // The policy only decides between a shift and a reduction, never between two reductions, which the grammar has no way
 // of expressing with precedence declarations. It leaves a reduction and the shift untouched whenever the declarations
 // do not decide between them, so a compound policy needs the policies behind this one to decide those conflicts.
-type PrecedencePolicy struct {
-	// grammar is where the precedence and the associativity of the terminals and the productions come from.
-	grammar frontend.Grammar
+type precedencePolicy struct {
+	// augmentedGrammar is where the precedence and the associativity of the terminals and the productions come from. It
+	// has to be the augmented grammar, because the terminal and production indexes the policy is asked about are the ones
+	// of the parser tables, which are built from the augmented grammar, see PolicyFactory.
+	augmentedGrammar frontend.Grammar
 
 	// lastResolveRejecters and lastResolveShiftBeaters record why the most recent Resolve decided the conflict as it did.
 	// Resolve fills them while it narrows the candidates, so that ContributeSplitStability can judge whether the narrowing
@@ -36,16 +51,8 @@ type PrecedencePolicy struct {
 	lastResolveShiftBeaters []Contribution
 }
 
-// PrecedencePolicy implements Policy.
-var _ Policy = (*PrecedencePolicy)(nil)
-
-// NewPrecedencePolicy returns the policy which resolves a shift/reduce conflict from the precedence and the
-// associativity declared in the grammar.
-func NewPrecedencePolicy(grammar frontend.Grammar) *PrecedencePolicy {
-	return &PrecedencePolicy{
-		grammar: grammar,
-	}
-}
+// precedencePolicy implements Policy.
+var _ Policy = (*precedencePolicy)(nil)
 
 // Resolve decides every reduction of the candidates against the shift of the conflicted terminal.
 //
@@ -54,7 +61,7 @@ func NewPrecedencePolicy(grammar frontend.Grammar) *PrecedencePolicy {
 // reduction which beat the shift, or several candidates which the policies behind this one have to decide between. As
 // soon as one reduction asks for the terminal to be rejected, the whole conflict is decided that way, because a
 // rejected terminal leaves no action for any other reduction to win.
-func (p *PrecedencePolicy) Resolve(terminalIdx int, candidates ContributionSet) ContributionSet {
+func (p *precedencePolicy) Resolve(terminalIdx int, candidates ContributionSet) ContributionSet {
 	// The reasons of any earlier Resolve are reset to zero length, so that they hold the reasons of this call only while
 	// reusing the memory the earlier call already allocated.
 	p.lastResolveRejecters = p.lastResolveRejecters[:0]
@@ -65,7 +72,7 @@ func (p *PrecedencePolicy) Resolve(terminalIdx int, candidates ContributionSet) 
 		// This is a conflict between reductions only, which precedence declarations cannot express.
 		return candidates
 	}
-	terminal := p.grammar.Terminals[terminalIdx]
+	terminal := p.augmentedGrammar.Terminals[terminalIdx]
 	if IsNoPrecedence(terminal.Precedence) {
 		// The terminal has no precedence declared, so there is nothing to compare the productions against.
 		return candidates
@@ -131,7 +138,7 @@ func (p *PrecedencePolicy) Resolve(terminalIdx int, candidates ContributionSet) 
 // would make precedence's narrowing itself conditional, because precedence only decides a conflict which has a shift:
 // in the isocores which did not make the shift, the reductions it removed as losers would survive and could change the
 // dominant contribution. Since a potential shift cannot occur, this is not handled.
-func (p *PrecedencePolicy) ContributeSplitStability(terminalIdx int, splitStability *SplitStability) {
+func (p *precedencePolicy) ContributeSplitStability(terminalIdx int, splitStability *SplitStability) {
 	// Resolve narrows the candidates and fills lastResolveRejecters and lastResolveShiftBeaters, which are read right
 	// after with no other Resolve call in between.
 	splitStability.remaining = p.Resolve(terminalIdx, splitStability.remaining)
@@ -156,7 +163,7 @@ func (p *PrecedencePolicy) ContributeSplitStability(terminalIdx int, splitStabil
 // This is the same narrowing a Policy does, applied to a conflict of exactly two contributions: both survive when the
 // declarations do not decide, the winner survives alone when they do, and neither survives when the declarations reject
 // the terminal.
-func (p *PrecedencePolicy) resolveShiftReduce(
+func (p *precedencePolicy) resolveShiftReduce(
 	terminalPrecedence int,
 	terminalAssociativity frontend.Associativity,
 	shift Contribution,
@@ -164,7 +171,7 @@ func (p *PrecedencePolicy) resolveShiftReduce(
 ) ContributionSet {
 	undecided := NewContributionSet(shift, reduce)
 
-	productionPrecedence := ProductionPrecedence(p.grammar, reduce.ProductionIdx())
+	productionPrecedence := ProductionPrecedence(p.augmentedGrammar, reduce.ProductionIdx())
 	if IsNoPrecedence(productionPrecedence) {
 		// The production has no precedence declared, so there is nothing to compare the terminal against.
 		return undecided

@@ -3,28 +3,45 @@ package conflict
 import (
 	"errors"
 
+	"github.com/backbone81/golr/internal/parsergen/frontend"
 	"github.com/backbone81/golr/internal/utils"
 )
 
-// CompoundPolicy resolves a conflict by applying its policies in order until a single contribution is left. This is how
-// the rules by which conflicts are resolved are composed: a rule which is not part of the compound policy is not
-// applied. The order matters, because an earlier policy decides a conflict which a later policy would have decided
-// differently.
+// CompoundPolicy composes the policies of the factories into a single policy, which resolves a conflict by applying
+// them in order until a single contribution is left. This is how the rules by which conflicts are resolved are put
+// together: a rule whose factory is not part of the composition is not applied. The order matters, because an earlier
+// policy decides a conflict which a later policy would have decided differently.
 //
 // A compound policy does not have to decide every conflict. A composition which narrows a conflict down to more than
 // one contribution leaves the conflict unresolved, which DominantContribution reports as such. That is how a grammar
-// author insists on explicit precedence declarations: without NewShiftOverReducePolicy in the composition, a
-// shift/reduce conflict which no declaration decides is reported instead of silently going to the shift. Ending the
-// compound policy with a policy which always decides, like EarliestProductionPolicy, is what guarantees that every
-// reduce/reduce conflict is decided.
-type CompoundPolicy []Policy
+// author insists on explicit precedence declarations: without ShiftOverReducePolicy in the composition, a shift/reduce
+// conflict which no declaration decides is reported instead of silently going to the shift. Ending the composition with
+// a policy which always decides, like EarliestProductionPolicy, is what guarantees that every reduce/reduce conflict is
+// decided. A composition of no factories at all decides nothing, which NullPolicy says more plainly.
+//
+// The composition is itself a PolicyFactory, so it can be handed to a core as it is, and it stays grammar independent
+// until it is applied. Every application makes its own policies, which matters because a policy may keep state across
+// the calls of a single build, see PolicyFactory.
+func CompoundPolicy(policyFactories ...PolicyFactory) PolicyFactory {
+	return func(augmentedGrammar frontend.Grammar) Policy {
+		result := make(compoundPolicy, 0, len(policyFactories))
+		for _, policyFactory := range policyFactories {
+			result = append(result, policyFactory(augmentedGrammar))
+		}
+		return result
+	}
+}
 
-// CompoundPolicy implements Policy.
-var _ Policy = (CompoundPolicy)(nil)
+// compoundPolicy is the applied form of a composition: the policies of CompoundPolicy, in the order they are applied
+// in, all made from the same augmented grammar. See CompoundPolicy for what composing them means.
+type compoundPolicy []Policy
+
+// compoundPolicy implements Policy.
+var _ Policy = (compoundPolicy)(nil)
 
 // Resolve applies the policies of the compound policy in order, and stops as soon as a single contribution is left or
 // every contribution was removed.
-func (p CompoundPolicy) Resolve(terminalIdx int, candidates ContributionSet) ContributionSet {
+func (p compoundPolicy) Resolve(terminalIdx int, candidates ContributionSet) ContributionSet {
 	result := candidates
 	for _, policy := range p {
 		if result.Length() <= 1 {
@@ -52,7 +69,7 @@ func (p CompoundPolicy) Resolve(terminalIdx int, candidates ContributionSet) Con
 // the remaining contribution even when it is the only one left. Replaying the policies on candidates which the early
 // stopping Resolve would never hand them stays faithful to Resolve because the Policy contract demands that a Resolve
 // returns one or no candidate unchanged, see Policy.
-func (p CompoundPolicy) ContributeSplitStability(terminalIdx int, splitStability *SplitStability) {
+func (p compoundPolicy) ContributeSplitStability(terminalIdx int, splitStability *SplitStability) {
 	for _, policy := range p {
 		policy.ContributeSplitStability(terminalIdx, splitStability)
 	}

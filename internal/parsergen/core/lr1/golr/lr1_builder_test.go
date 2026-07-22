@@ -8,7 +8,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	ielr1golr "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
+	lalr1golr "github.com/backbone81/golr/internal/parsergen/core/lalr1/golr"
 	lr1golr "github.com/backbone81/golr/internal/parsergen/core/lr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
@@ -41,22 +43,29 @@ var _ = Describe("LR(1) Builder", func() {
 		Entry("the LR(1) but not LALR(1) grammar", ielr1golr.ReduceReduceConflictTestGrammar, 15),
 	)
 
+	// The two tests below are about which conflicts a table is left with, so they go through
+	// GrammarToUnresolvedParser: the conflicts are what GrammarToParser would have resolved away.
 	It("should not report a conflict for a grammar which is LR(1) but not LALR(1)", func() {
 		// This is the whole point of canonical LR(1) as an oracle: the reduce/reduce conflict which LALR(1) reports for
 		// this grammar is an artifact of merging the two "c" states, not a property of the grammar.
-		lalr1Builder := ielr1golr.NewLALR1Builder(frontend.AugmentGrammar(ielr1golr.ReduceReduceConflictTestGrammar))
-		lalr1Builder.Build()
-		Expect(getConflictDescriptions(lalr1Builder.Parser())).ToNot(BeEmpty())
+		lalr1Parser := lalr1golr.GrammarToUnresolvedParser(
+			ielr1golr.ReduceReduceConflictTestGrammar,
+			conflict.DefaultPolicy,
+		)
+		Expect(getConflictDescriptions(lalr1Parser)).ToNot(BeEmpty())
 
-		lr1Builder := lr1golr.NewLR1Builder(frontend.AugmentGrammar(ielr1golr.ReduceReduceConflictTestGrammar))
-		Expect(lr1Builder.Build()).To(Succeed())
-		Expect(getConflictDescriptions(lr1Builder.Parser())).To(BeEmpty())
+		lr1Parser, err := lr1golr.GrammarToUnresolvedParser(
+			ielr1golr.ReduceReduceConflictTestGrammar,
+			conflict.DefaultPolicy,
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(getConflictDescriptions(lr1Parser)).To(BeEmpty())
 	})
 
 	It("should report a conflict for an ambiguous grammar", func() {
-		lr1Builder := lr1golr.NewLR1Builder(frontend.AugmentGrammar(ielr1golr.AmbiguousTestGrammarFig2))
-		Expect(lr1Builder.Build()).To(Succeed())
-		Expect(getConflictDescriptions(lr1Builder.Parser())).ToNot(BeEmpty())
+		lr1Parser, err := lr1golr.GrammarToUnresolvedParser(ielr1golr.AmbiguousTestGrammarFig2, conflict.DefaultPolicy)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(getConflictDescriptions(lr1Parser)).ToNot(BeEmpty())
 	})
 })
 

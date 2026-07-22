@@ -16,7 +16,14 @@ import (
 )
 
 // GrammarToParser calculates a parser from the context free grammar.
-func GrammarToParser(grammar frontend.Grammar) (backend.Parser, []conflict.Conflict, error) {
+//
+// The policy factory is ignored. GNU Bison resolves the conflicts itself, with its own precedence and associativity
+// rules, and this core only reads the tables it reports back. The parameter is there so that this core has the same
+// signature as the GoLR one and a caller can switch between them.
+func GrammarToParser(
+	grammar frontend.Grammar,
+	policyFactory conflict.PolicyFactory,
+) (backend.Parser, []conflict.Conflict, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: LR1: GrammarToParser").End()
 
 	builder := NewLR1(grammar)

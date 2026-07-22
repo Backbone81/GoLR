@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
@@ -55,7 +56,7 @@ var nullablePairGrammar = frontend.Grammar{
 // valid membership oracle for conflict-free grammars, where the resolved table accepts exactly the language; hence the
 // assertion that the grammar resolves without conflicts.
 func acceptsSentence(grammar frontend.Grammar, sentence []int) bool {
-	parser, conflicts, err := ielr1golrcore.GrammarToParser(grammar)
+	parser, conflicts, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(conflicts).To(BeEmpty())
 
@@ -69,15 +70,15 @@ var _ = Describe("Input Generator", func() {
 	Describe("reproducibility", func() {
 		It("produces the same stream of sentences for the same seed", func() {
 			augmented := frontend.AugmentGrammar(parensGrammar)
-			first := oracle.NewInputGenerator(augmented, rand.New(rand.NewSource(1)))
-			second := oracle.NewInputGenerator(augmented, rand.New(rand.NewSource(1)))
+			first := oracle.NewInputGenerator(augmented, rand.New(rand.NewSource(GinkgoRandomSeed())))
+			second := oracle.NewInputGenerator(augmented, rand.New(rand.NewSource(GinkgoRandomSeed())))
 			for range 50 {
 				Expect(first.Generate()).To(Equal(second.Generate()))
 			}
 		})
 
 		It("produces different sentences across a run for a recursive grammar", func() {
-			generator := oracle.NewInputGenerator(frontend.AugmentGrammar(parensGrammar), rand.New(rand.NewSource(1)))
+			generator := oracle.NewInputGenerator(frontend.AugmentGrammar(parensGrammar), rand.New(rand.NewSource(GinkgoRandomSeed())))
 			seen := map[string][]int{}
 			for range 50 {
 				sentence := generator.Generate()

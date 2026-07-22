@@ -10,8 +10,8 @@ import (
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/conflict"
 	ielr1golr "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
+	lalr1golr "github.com/backbone81/golr/internal/parsergen/core/lalr1/golr"
 	lr1golr "github.com/backbone81/golr/internal/parsergen/core/lr1/golr"
-	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
 
 var _ = Describe("Resolve", func() {
@@ -19,13 +19,14 @@ var _ = Describe("Resolve", func() {
 	// conflicts usable for a parser. It works on the parser tables alone, so it does not matter which algorithm
 	// computed them.
 	It("should resolve every conflict of an ambiguous grammar with the policy of GNU Bison", func() {
-		parser := buildLR1Parser(conflict.PrecedenceTestGrammar)
+		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(conflictedTerminals(parser)).ToNot(
 			BeEmpty(),
 			"the test grammar is ambiguous, so the parser tables are expected to have conflicts to resolve",
 		)
 
-		conflicts, err := conflict.Resolve(&parser, conflict.NewDefaultPolicy(conflict.PrecedenceTestGrammar))
+		conflicts, err := conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
 
 		// The conflicts are resolved in the parser tables we passed in. The policy is total, so it decides every
 		// conflict, no conflict is left unresolved to error about, and no terminal is left with more than one action for
@@ -39,9 +40,10 @@ var _ = Describe("Resolve", func() {
 	// error when it sees the terminal there. This is the one case where resolving a conflict removes every action
 	// instead of keeping the one which won.
 	It("should remove every action for a conflicted terminal which does not associate", func() {
-		parser := buildLR1Parser(conflict.PrecedenceTestGrammar)
+		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		Expect(err).ToNot(HaveOccurred())
 
-		conflicts, err := conflict.Resolve(&parser, conflict.NewDefaultPolicy(conflict.PrecedenceTestGrammar))
+		conflicts, err := conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
 
 		// A terminal which is rejected is a conflict the policy decided, so it is no reason to error.
 		Expect(err).ToNot(HaveOccurred())
@@ -58,7 +60,9 @@ var _ = Describe("Resolve", func() {
 		)
 
 		for _, c := range errorConflicts {
-			Expect(c.TerminalIdx).To(Equal(conflict.PrecedenceTestGrammarTerminalIdxCompare))
+			// The conflict names a terminal of the augmented grammar, so it is checked by name rather than against the
+			// index constants of PrecedenceTestGrammar, which are the indexes before augmenting shifted them.
+			Expect(parser.Grammar.Terminals[c.TerminalIdx].Name).To(Equal("<"))
 			Expect(actionCount(parser.States[c.StateIdx], c.TerminalIdx)).To(
 				BeZero(),
 				"the state is expected to have no action left for the terminal which does not associate",
@@ -69,14 +73,15 @@ var _ = Describe("Resolve", func() {
 	// A policy which decides nothing leaves every conflict unresolved. The parser tables are left with more than one
 	// action for the conflicted terminals, which no parser can be generated from, so this is an error.
 	It("should fail on the conflicts the policy leaves unresolved", func() {
-		parser := buildLR1Parser(conflict.PrecedenceTestGrammar)
+		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		Expect(err).ToNot(HaveOccurred())
 		wantConflictedTerminals := conflictedTerminals(parser)
 		Expect(wantConflictedTerminals).ToNot(
 			BeEmpty(),
 			"the test grammar is ambiguous, so the parser tables are expected to have conflicts",
 		)
 
-		conflicts, err := conflict.Resolve(&parser, conflict.CompoundPolicy{})
+		conflicts, err := conflict.Resolve(&parser, conflict.NullPolicy(parser.Grammar))
 
 		// The error joins one error per unresolved conflict, so every conflict which was left undecided is reported.
 		Expect(err).To(HaveOccurred())
@@ -111,12 +116,9 @@ var _ = Describe("Resolve", func() {
 	It("should resolve a reduce/reduce conflict in favor of the production which was declared first", func() {
 		// The LALR(1) parser tables of this grammar have a reduce/reduce conflict which is an artifact of merging
 		// states, see the canonical LR(1) tests. It gives us a reduce/reduce conflict to resolve.
-		augmentedGrammar := frontend.AugmentGrammar(ielr1golr.ReduceReduceConflictTestGrammar)
-		lalr1Builder := ielr1golr.NewLALR1Builder(augmentedGrammar)
-		lalr1Builder.Build()
-		parser := lalr1Builder.Parser()
+		parser := lalr1golr.GrammarToUnresolvedParser(ielr1golr.ReduceReduceConflictTestGrammar, conflict.DefaultPolicy)
 
-		conflicts, err := conflict.Resolve(&parser, conflict.NewDefaultPolicy(augmentedGrammar))
+		conflicts, err := conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(conflicts).ToNot(BeEmpty())
@@ -140,13 +142,6 @@ var _ = Describe("Resolve", func() {
 		Expect(conflictedTerminals(parser)).To(BeEmpty())
 	})
 })
-
-// buildLR1Parser returns the canonical LR(1) parser tables of the grammar, conflicts and all.
-func buildLR1Parser(grammar frontend.Grammar) backend.Parser {
-	builder := lr1golr.NewLR1Builder(frontend.AugmentGrammar(grammar))
-	Expect(builder.Build()).To(Succeed())
-	return builder.Parser()
-}
 
 // conflictedTerminals returns the terminals the parser tables have more than one action for, keyed by state index.
 func conflictedTerminals(parser backend.Parser) map[int][]int {

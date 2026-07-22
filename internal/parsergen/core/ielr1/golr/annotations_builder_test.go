@@ -64,9 +64,9 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 		BeforeEach(func() {
 			// The paper walks the grammar of figure 5 through phase 2 with a conflict-preserving policy: it presents the
 			// annotations as computed, and only section 3.4.3 points out that a shift-over-reduce policy would make them
-			// split-stable and discard them. The empty compound policy resolves nothing, so it keeps every annotation the
+			// split-stable and discard them. The null policy resolves nothing, so it keeps every annotation the
 			// annotation computation produces, which is what this walk-through checks.
-			annotationsBuilder = newAnnotationsBuilder(ielr1golrcore.GotoFollowsTestGrammarFig5, conflict.CompoundPolicy{})
+			annotationsBuilder = newAnnotationsBuilder(ielr1golrcore.GotoFollowsTestGrammarFig5, conflict.NullPolicy)
 
 			// The walk-through of the paper only makes sense when our LALR(1) tables have the states it talks about at
 			// the state indexes the expectations below use.
@@ -177,9 +177,8 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 	// concludes that "phase 3 would have no reason to split any LALR(1) states", so phase 2 annotates nothing.
 	It("should discard every annotation of figure 5 when shift over reduce resolves the conflict", func() {
 		grammar := ielr1golrcore.GotoFollowsTestGrammarFig5
-		conflictPolicy := conflict.NewDefaultPolicy(frontend.AugmentGrammar(grammar))
 
-		annotationsBuilder := newAnnotationsBuilder(grammar, conflictPolicy)
+		annotationsBuilder := newAnnotationsBuilder(grammar, conflict.DefaultPolicy)
 
 		// The conflict is still found, it is only its annotation which the split stability makes useless.
 		Expect(annotationsBuilder.Inadequacies()).ToNot(BeEmpty())
@@ -194,8 +193,8 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 			// A conflict-preserving policy keeps every annotation which is not split-stable on its own, so that the
 			// termination of the reverse iteration is what this test exercises rather than the policy discarding
 			// annotations.
-			conflictPolicy := conflict.CompoundPolicy{}
-			annotationsBuilder := newAnnotationsBuilder(grammar, conflictPolicy)
+			conflictPolicy := conflict.NullPolicy(frontend.AugmentGrammar(grammar))
+			annotationsBuilder := newAnnotationsBuilder(grammar, conflict.NullPolicy)
 
 			Expect(annotationsBuilder.Inadequacies()).ToNot(BeEmpty())
 			for _, annotations := range annotationsBuilder.AnnotationLists() {
@@ -263,7 +262,7 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 			// The property that every LR(1)-relative inadequacy is annotated only holds under a policy which resolves no
 			// conflict: a policy which resolves a conflict split-stably would rightly discard its annotation, which is the
 			// separate concern of the general case of definition 3.35. So this test uses the conflict-preserving policy.
-			annotationsBuilder := newAnnotationsBuilder(grammar, conflict.CompoundPolicy{})
+			annotationsBuilder := newAnnotationsBuilder(grammar, conflict.NullPolicy)
 
 			// An annotation is attached to every state along the lane of the conflict, not only to the conflicted state
 			// itself, and a state may carry annotations of conflicts it is not the conflicted state of. So we collect the
@@ -395,8 +394,12 @@ func actionCountOnTerminal(state backend.State, terminalIdx int) int {
 // annotations builder needs on top of them are relative to the LALR(1) automaton and stay valid, so those are taken from
 // the IELR(1) builder. Both builders construct the same LALR(1) automaton from the same grammar, so their state indexes
 // agree.
-func newAnnotationsBuilder(grammar frontend.Grammar, conflictPolicy conflict.Policy) *ielr1golrcore.AnnotationsBuilder {
+func newAnnotationsBuilder(
+	grammar frontend.Grammar,
+	policyFactory conflict.PolicyFactory,
+) *ielr1golrcore.AnnotationsBuilder {
 	augmentedGrammar := frontend.AugmentGrammar(grammar)
+	conflictPolicy := policyFactory(augmentedGrammar)
 
 	lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
 	lalr1Builder.Build()

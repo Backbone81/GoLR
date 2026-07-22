@@ -6,6 +6,7 @@ import (
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/conflict"
+	lr1golr "github.com/backbone81/golr/internal/parsergen/core/lr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
 
@@ -151,8 +152,9 @@ var _ = Describe("RemoveUnreachableStates", func() {
 	// generator resolves them. Whatever resolution stranded has to be gone afterwards, and every state which is left
 	// has to be reachable and to transition into states which exist.
 	It("should leave every state of a resolved parser table reachable", func() {
-		parser := buildLR1Parser(conflict.PrecedenceTestGrammar)
-		conflicts, err := conflict.Resolve(&parser, conflict.NewDefaultPolicy(conflict.PrecedenceTestGrammar))
+		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		Expect(err).ToNot(HaveOccurred())
+		conflicts, err := conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
 		Expect(err).ToNot(HaveOccurred())
 		stateCountBefore := len(parser.States)
 

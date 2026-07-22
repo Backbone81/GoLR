@@ -28,7 +28,7 @@ var _ = Describe("IELR(1)", func() {
 	// their own predecessors generate.
 	DescribeTable("should correctly compute the IELR(1) parser table",
 		func(grammar frontend.Grammar, wantIELR1Parser backend.Parser) {
-			ielr1Parser, _, err := ielr1golrcore.GrammarToParser(grammar)
+			ielr1Parser, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ielr1Parser).To(Equal(wantIELR1Parser))
 		},
@@ -40,18 +40,18 @@ var _ = Describe("IELR(1)", func() {
 	)
 
 	// Phase 5 of IELR(1) (section 3.7 of the paper) resolves the conflicts which splitting cannot remove, the genuine
-	// ones canonical LR(1) has too. It runs at the GrammarToParser interface through conflict.Resolve, not inside the
-	// builder, so the raw table BuildParser returns still carries the conflict while the table GrammarToParser returns is
-	// free of it. The ambiguous grammar of figure 2 has such a genuine conflict and is the sharpest case for this split of
-	// responsibilities.
+	// ones canonical LR(1) has too. It runs at the GrammarToParser interface through conflict.Resolve, not in the phases
+	// which build the tables, so the table GrammarToUnresolvedParser returns still carries the conflict while the table
+	// GrammarToParser returns is free of it. The ambiguous grammar of figure 2 has such a genuine conflict and is the
+	// sharpest case for this split of responsibilities.
 	It("should resolve the genuine conflict of the ambiguous grammar only at the GrammarToParser interface", func() {
-		augmentedGrammar := frontend.AugmentGrammar(ielr1golrcore.AmbiguousTestGrammarFig2)
-
-		rawBuilder := ielr1golrcore.NewIELR1(augmentedGrammar, conflict.NewDefaultPolicy(augmentedGrammar))
-		rawParser := rawBuilder.BuildParser()
+		rawParser := ielr1golrcore.GrammarToUnresolvedParser(
+			ielr1golrcore.AmbiguousTestGrammarFig2,
+			conflict.DefaultPolicy,
+		)
 		Expect(hasConflict(rawParser)).To(BeTrue(), "the raw split table is expected to keep the genuine conflict")
 
-		resolvedParser, _, err := ielr1golrcore.GrammarToParser(ielr1golrcore.AmbiguousTestGrammarFig2)
+		resolvedParser, _, err := ielr1golrcore.GrammarToParser(ielr1golrcore.AmbiguousTestGrammarFig2, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hasConflict(resolvedParser)).To(BeFalse(), "phase 5 is expected to resolve the genuine conflict")
 	})
@@ -67,7 +67,7 @@ var _ = Describe("IELR(1)", func() {
 	DescribeTable("should compute the follow kernel items of definition 3.16",
 		func(grammar frontend.Grammar, wantFollowKernelItems map[string][]int) {
 			augmentedGrammar := frontend.AugmentGrammar(grammar)
-			ielr1 := ielr1golrcore.NewIELR1(augmentedGrammar, conflict.NewDefaultPolicy(augmentedGrammar))
+			ielr1 := ielr1golrcore.NewIELR1(augmentedGrammar, conflict.DefaultPolicy(augmentedGrammar))
 			ielr1.BuildParser()
 
 			gotFollowKernelItems := make(map[string][]int)
@@ -125,9 +125,9 @@ var _ = Describe("IELR(1)", func() {
 				bisonIELR1Parser, _, err := ielr1bisoncore.GrammarToParser(grammar)
 				Expect(err).ToNot(HaveOccurred())
 
-				golrLALR1Parser, _, err := lalr1golrcore.GrammarToParser(grammar)
+				golrLALR1Parser, _, err := lalr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
 				Expect(err).ToNot(HaveOccurred())
-				golrIELR1Parser, _, err := ielr1golrcore.GrammarToParser(grammar)
+				golrIELR1Parser, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
 				Expect(err).ToNot(HaveOccurred())
 
 				if wellKnownGrammar.IsLALR1 {
@@ -164,7 +164,7 @@ func BenchmarkGrammarToParser(b *testing.B) {
 			}
 
 			for b.Loop() {
-				_, _, err := ielr1golrcore.GrammarToParser(grammar)
+				_, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
 				if err != nil {
 					b.Fatal(err)
 				}

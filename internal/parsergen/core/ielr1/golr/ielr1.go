@@ -17,25 +17,28 @@ import (
 // terminal. The tables accept the same language and produce the same parses as canonical LR(1) ones while staying close
 // to the size of LALR(1) ones, which is what IELR(1) is for.
 //
+// The policy factory decides the conflicts, see conflict.PolicyFactory. Pass conflict.DefaultPolicy to decide them
+// the way GNU Bison and Yacc do. The policy is not only what phase 5 resolves the conflicts with, it is also what
+// phase 3 splits the states with, see GrammarToUnresolvedParser.
+//
 // Every conflict which was found is returned, whether it was decided or not, because a parser generator reports the
 // conflicts of a grammar to the user even when it decided them on its own. The error reports the conflicts which were
 // left undecided, one conflict.UnresolvedConflictError each; no parser can be generated from such a grammar, so the
 // parser tables come back empty then and the conflicts are all there is left to report.
-func GrammarToParser(grammar frontend.Grammar) (backend.Parser, []conflict.Conflict, error) {
+func GrammarToParser(
+	grammar frontend.Grammar,
+	policyFactory conflict.PolicyFactory,
+) (backend.Parser, []conflict.Conflict, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: IELR1: GrammarToParser").End()
 
-	// The whole algorithm works on the augmented grammar, where a new start symbol derives the old one followed by the
-	// end of input marker, so the caller hands us the grammar as the frontend produced it and we augment it here.
-	augmentedGrammar := frontend.AugmentGrammar(grammar)
-
-	// The policy the builder splits states with in phase 3 is the very policy which resolves the remaining conflicts
-	// below, so a lookahead distinction the compatibility test of definition 3.43 preserved is resolved the same way
-	// phase 3 assumed it would be.
-	conflictPolicy := conflict.NewDefaultPolicy(augmentedGrammar)
-
 	// Phases 0 to 4 of IELR(1) build the parser.
-	builder := NewIELR1(augmentedGrammar, conflictPolicy)
-	parser := builder.BuildParser()
+	parser := GrammarToUnresolvedParser(grammar, policyFactory)
+
+	// The parser carries the augmented grammar the builder worked on, which is the grammar the policy has to be made
+	// from, see conflict.PolicyFactory. The policy phase 3 split the states with is made from the very same grammar by
+	// the very same factory, so a lookahead distinction the compatibility test of definition 3.43 preserved is resolved
+	// the way phase 3 assumed it would be.
+	conflictPolicy := policyFactory(parser.Grammar)
 
 	// Phase 5 of IELR(1) (section 3.7 of the paper).
 	conflicts, err := conflict.Resolve(&parser, conflictPolicy)
@@ -47,6 +50,30 @@ func GrammarToParser(grammar frontend.Grammar) (backend.Parser, []conflict.Confl
 	// This is the unreachable state removal of section 3.8.2, the optional phase 6 of the paper.
 	parser, conflicts = conflict.RemoveUnreachableStates(parser, conflicts)
 	return parser, conflicts, nil
+}
+
+// GrammarToUnresolvedParser runs phases 0 to 4 of IELR(1) and stops there, so the minimal LR(1) parser tables come back
+// with their conflicts intact and their unreachable states in place, before phase 5 decides anything.
+//
+// This is what the oracle and differential testing work is after: IELR(1) has a conflict exactly where canonical LR(1)
+// has one, which is the invariant phase 3 is judged by, and a table whose conflicts are already resolved has none left
+// to compare. It saves those callers from augmenting the grammar and driving the builder themselves, and it gives the
+// three GoLR cores one shape to be called with. Reach for GrammarToParser whenever the tables are meant for a backend,
+// because a table with conflicts in it is not a parser.
+//
+// Unlike the LALR(1) and canonical LR(1) cores, IELR(1) needs the policy to build at all: phase 3 decides the dominant
+// contribution of definition 3.42 with it, and the compatibility test of definition 3.43 is defined in terms of that
+// decision. So these tables are not policy free, they are only unresolved - which policy is passed in decides which
+// states phase 3 declines to split.
+func GrammarToUnresolvedParser(grammar frontend.Grammar, policyFactory conflict.PolicyFactory) backend.Parser {
+	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: IELR1: GrammarToUnresolvedParser").End()
+
+	// The whole algorithm works on the augmented grammar, where a new start symbol derives the old one followed by the
+	// end of input marker, so the caller hands us the grammar as the frontend produced it and we augment it here.
+	augmentedGrammar := frontend.AugmentGrammar(grammar)
+
+	builder := NewIELR1(augmentedGrammar, policyFactory(augmentedGrammar))
+	return builder.BuildParser()
 }
 
 // IELR1 provides an implementation of the IELR(1) algorithm as described by Denny and Malloy in "The IELR(1) algorithm
@@ -88,8 +115,9 @@ type IELR1 struct {
 // NewIELR1 returns a new IELR(1) builder for the augmented grammar. The split policy is the conflict resolution phase 3
 // uses to decide the dominant contribution of definition 3.42, so that it merges isocores whose only difference is a
 // conflict the policy resolves, which keeps the split automaton close to LALR(1) size. The caller passes it in rather
-// than the builder constructing its own, so the same policy can resolve the remaining conflicts of phase 5 after the
-// builder has run, see GrammarToParser.
+// than the builder constructing its own, because it has to be the same conflict resolution which phase 5 applies to the
+// finished tables, or phase 3 would decline to split a state over a decision phase 5 then makes differently. Both come
+// from the same conflict.PolicyFactory over the same augmented grammar, see GrammarToParser.
 func NewIELR1(augmentedGrammar frontend.Grammar, conflictPolicy conflict.Policy) IELR1 {
 	result := IELR1{
 		grammar: augmentedGrammar,

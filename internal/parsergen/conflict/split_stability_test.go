@@ -56,38 +56,42 @@ var _ = Describe("SplitStability", func() {
 			}
 		},
 		Entry("the default policy of GNU Bison",
-			conflict.PrecedenceTestGrammar, conflict.NewDefaultPolicy(conflict.PrecedenceTestGrammar)),
+			conflict.PrecedenceTestGrammar, conflict.DefaultPolicy(conflict.PrecedenceTestGrammar)),
 		Entry("the shift over reduce policy alone",
-			conflict.PrecedenceTestGrammar, conflict.NewShiftOverReducePolicy()),
+			conflict.PrecedenceTestGrammar, conflict.ShiftOverReducePolicy(conflict.PrecedenceTestGrammar)),
 		Entry("the earliest production policy alone",
-			conflict.PrecedenceTestGrammar, conflict.NewEarliestProductionPolicy()),
+			conflict.PrecedenceTestGrammar, conflict.EarliestProductionPolicy(conflict.PrecedenceTestGrammar)),
 		Entry("the precedence policy alone",
-			conflict.PrecedenceTestGrammar, conflict.NewPrecedencePolicy(conflict.PrecedenceTestGrammar)),
+			conflict.PrecedenceTestGrammar, conflict.PrecedencePolicy(conflict.PrecedenceTestGrammar)),
 		Entry("the conflict-preserving empty compound policy",
-			conflict.PrecedenceTestGrammar, conflict.CompoundPolicy{}),
+			conflict.PrecedenceTestGrammar, conflict.CompoundPolicy()(conflict.PrecedenceTestGrammar)),
+		Entry("the conflict-preserving null policy",
+			conflict.PrecedenceTestGrammar, conflict.NullPolicy(conflict.PrecedenceTestGrammar)),
 		Entry("the default policy of GNU Bison on the multi rejecter grammar",
-			conflict.MultiRejecterTestGrammar, conflict.NewDefaultPolicy(conflict.MultiRejecterTestGrammar)),
+			conflict.MultiRejecterTestGrammar, conflict.DefaultPolicy(conflict.MultiRejecterTestGrammar)),
 		Entry("the precedence policy alone on the multi rejecter grammar",
-			conflict.MultiRejecterTestGrammar, conflict.NewPrecedencePolicy(conflict.MultiRejecterTestGrammar)),
+			conflict.MultiRejecterTestGrammar, conflict.PrecedencePolicy(conflict.MultiRejecterTestGrammar)),
 	)
 
-	// The empty compound policy resolves nothing, so the general case of definition 3.35 collapses to observation 3.33:
-	// the dominant contribution is split-stable exactly when there is no potential contribution, because then every
-	// isocore makes the same contributions. This is the behavior phase 2 relies on for its conflict-preserving tests, so
-	// it is pinned down here.
-	It("should reduce to observation 3.33 for the empty compound policy", func() {
+	// The null policy resolves nothing, so the general case of definition 3.35 collapses to observation 3.33: the
+	// dominant contribution is split-stable exactly when there is no potential contribution, because then every isocore
+	// makes the same contributions. This is the behavior phase 2 relies on for its conflict-preserving tests, so it is
+	// pinned down here.
+	It("should reduce to observation 3.33 for the null policy", func() {
 		shift := conflict.NewShiftContribution()
 		reduce := conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxPlus)
 
 		onlyAlways := conflict.NewSplitStability(conflict.NewContributionSet(shift, reduce), conflict.ContributionSet{})
-		conflict.CompoundPolicy{}.ContributeSplitStability(conflict.PrecedenceTestGrammarTerminalIdxTimes, &onlyAlways)
+		conflict.NullPolicy(conflict.PrecedenceTestGrammar).
+			ContributeSplitStability(conflict.PrecedenceTestGrammarTerminalIdxTimes, &onlyAlways)
 		Expect(onlyAlways.IsSplitStable()).To(BeTrue())
 
 		withPotential := conflict.NewSplitStability(
 			conflict.NewContributionSet(shift),
 			conflict.NewContributionSet(reduce),
 		)
-		conflict.CompoundPolicy{}.ContributeSplitStability(conflict.PrecedenceTestGrammarTerminalIdxTimes, &withPotential)
+		conflict.NullPolicy(conflict.PrecedenceTestGrammar).
+			ContributeSplitStability(conflict.PrecedenceTestGrammarTerminalIdxTimes, &withPotential)
 		Expect(withPotential.IsSplitStable()).To(BeFalse())
 	})
 
@@ -102,7 +106,7 @@ var _ = Describe("SplitStability", func() {
 
 		// The identity production has no precedence, so precedence leaves the conflict to shift over reduce, which lets
 		// the shift win regardless of whether the reduction is made.
-		conflict.NewDefaultPolicy(conflict.PrecedenceTestGrammar).
+		conflict.DefaultPolicy(conflict.PrecedenceTestGrammar).
 			ContributeSplitStability(conflict.PrecedenceTestGrammarTerminalIdxIdentity, &splitStability)
 
 		Expect(splitStability.IsSplitStable()).To(BeTrue())
@@ -116,7 +120,7 @@ var _ = Describe("SplitStability", func() {
 	It("should decide split stability from the always rejecter among several rejecting reductions", func() {
 		lessReduce := conflict.NewReduceContribution(conflict.MultiRejecterTestGrammarProductionIdxLess)
 		lessEqualReduce := conflict.NewReduceContribution(conflict.MultiRejecterTestGrammarProductionIdxLessEqual)
-		policy := conflict.NewDefaultPolicy(conflict.MultiRejecterTestGrammar)
+		policy := conflict.DefaultPolicy(conflict.MultiRejecterTestGrammar)
 
 		// Both reductions reject the nonassociative "<", and the one on "E -> E < E" is an always contribution, so
 		// every isocore makes it and errors out.
@@ -148,7 +152,7 @@ var _ = Describe("SplitStability", func() {
 			conflict.NewContributionSet(conflict.NewShiftContribution()),
 			conflict.NewContributionSet(tildeReduce),
 		)
-		conflict.NewDefaultPolicy(conflict.MultiRejecterTestGrammar).
+		conflict.DefaultPolicy(conflict.MultiRejecterTestGrammar).
 			ContributeSplitStability(conflict.MultiRejecterTestGrammarTerminalIdxTilde, &underDefaultPolicy)
 		Expect(underDefaultPolicy.IsSplitStable()).To(BeTrue())
 
@@ -158,7 +162,7 @@ var _ = Describe("SplitStability", func() {
 			conflict.NewContributionSet(conflict.NewShiftContribution()),
 			conflict.NewContributionSet(tildeReduce),
 		)
-		conflict.NewPrecedencePolicy(conflict.MultiRejecterTestGrammar).
+		conflict.PrecedencePolicy(conflict.MultiRejecterTestGrammar).
 			ContributeSplitStability(conflict.MultiRejecterTestGrammarTerminalIdxTilde, &underPrecedenceAlone)
 		Expect(underPrecedenceAlone.IsSplitStable()).To(BeFalse())
 	})

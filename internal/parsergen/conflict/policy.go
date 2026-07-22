@@ -17,9 +17,9 @@ import (
 //
 // A conflict which is already decided must be left alone: Resolve must return candidates of one or no contribution
 // unchanged. A compound policy stops calling Resolve as soon as so few candidates are left, but its split stability
-// bookkeeping keeps replaying every policy on whatever remains, see CompoundPolicy.ContributeSplitStability. A Resolve
-// which narrowed a decided conflict further would make the bookkeeping diverge from what Resolve actually decides, and
-// the split stability verdict would be about a decision the policies never make.
+// bookkeeping keeps replaying every policy on whatever remains, see CompoundPolicy. A Resolve which narrowed a decided
+// conflict further would make the bookkeeping diverge from what Resolve actually decides, and the split stability
+// verdict would be about a decision the policies never make.
 type Policy interface {
 	Resolve(terminalIdx int, candidates ContributionSet) ContributionSet
 
@@ -30,13 +30,36 @@ type Policy interface {
 	ContributeSplitStability(terminalIdx int, splitStability *SplitStability)
 }
 
-// NewDefaultPolicy returns the compound policy which resolves conflicts the way GNU Bison and Yacc do: precedence and
+// PolicyFactory makes the policy for a grammar. A policy which reads the grammar has to be bound to one, and the
+// grammar it has to be bound to is the augmented grammar the parser tables are built from, not the grammar a frontend
+// produced: AugmentGrammar inserts the end of input terminal and the new start nonterminal at index 0 and shifts every
+// terminal, nonterminal and production index of the original grammar by one. A policy bound to the unaugmented grammar
+// would read the precedence of the neighbouring symbol for every index it looks up, which is wrong without looking
+// wrong.
+//
+// Augmenting the grammar is the business of the cores, so the caller is not in a position to bind the policy itself. It
+// hands over a factory instead, which the core calls once on the augmented grammar. That keeps a policy composition
+// grammar independent until it is applied, and it gives every build its own policy instances, which matters because a
+// policy may keep state across the calls of a single build, see PrecedencePolicy.
+//
+// A factory is called once per build, so it is also the place for a policy to precompute whatever it wants to derive
+// from the grammar.
+type PolicyFactory func(augmentedGrammar frontend.Grammar) Policy
+
+// DefaultPolicy returns the compound policy which resolves conflicts the way GNU Bison and Yacc do: precedence and
 // associativity decide first, a shift beats a reduction when precedence has nothing to say, and the production which
 // was declared first wins a conflict between two reductions.
-func NewDefaultPolicy(grammar frontend.Grammar) CompoundPolicy {
-	return CompoundPolicy{
-		NewPrecedencePolicy(grammar),
-		NewShiftOverReducePolicy(),
-		NewEarliestProductionPolicy(),
-	}
+//
+// This is a PolicyFactory, so it can be handed to a core as it is, and the grammar MUST be an augmented grammar.
+//
+//nolint:ireturn // Returning the interface is what makes this usable as a PolicyFactory.
+func DefaultPolicy(augmentedGrammar frontend.Grammar) Policy {
+	return CompoundPolicy(
+		PrecedencePolicy,
+		ShiftOverReducePolicy,
+		EarliestProductionPolicy,
+	)(augmentedGrammar)
 }
+
+// DefaultPolicy is a PolicyFactory.
+var _ PolicyFactory = DefaultPolicy

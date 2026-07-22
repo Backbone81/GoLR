@@ -9,6 +9,7 @@ import (
 	"github.com/backbone81/golr/internal/parsergen/conflict"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
+	lalr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lalr1/golr"
 	lr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
@@ -26,23 +27,16 @@ var _ = Describe("Split States Builder", func() {
 	//     canonical LR(1) does not have is a mysterious conflict which phase 3 removes by splitting; a conflict canonical
 	//     LR(1) has too is genuine and survives.
 	//
-	// The conflict invariant is about the raw automaton, before phase 5 resolves anything, so we compare the split table
-	// the builder returns from BuildParser, not the conflict-free table GrammarToParser produces. Resolving the conflicts
+	// The conflict invariant is about the raw automaton, before phase 5 resolves anything, so we compare the tables
+	// GrammarToUnresolvedParser returns, not the conflict-free ones GrammarToParser produces. Resolving the conflicts
 	// with the default policy would make hasConflict always false and defeat the comparison.
 	DescribeTable("should agree with canonical LR(1) on the state count bounds and the conflicts",
 		func(grammar frontend.Grammar) {
-			augmentedGrammar := frontend.AugmentGrammar(grammar)
+			lalr1Parser := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			ielr1Parser := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 
-			lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
-			lalr1Builder.Build()
-			lalr1Parser := lalr1Builder.Parser()
-
-			ielr1Builder := ielr1golrcore.NewIELR1(augmentedGrammar, conflict.NewDefaultPolicy(augmentedGrammar))
-			ielr1Parser := ielr1Builder.BuildParser()
-
-			lr1Builder := lr1golrcore.NewLR1Builder(augmentedGrammar)
-			Expect(lr1Builder.Build()).To(Succeed())
-			lr1Parser := lr1Builder.Parser()
+			lr1Parser, err := lr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			Expect(err).ToNot(HaveOccurred())
 
 			Expect(len(ielr1Parser.States)).To(BeNumerically(">=", len(lalr1Parser.States)))
 			Expect(len(ielr1Parser.States)).To(BeNumerically("<=", len(lr1Parser.States)))
@@ -60,14 +54,10 @@ var _ = Describe("Split States Builder", func() {
 	// disappear requires actually splitting a state. A phase 3 which never split would leave the conflict in place and
 	// silently degrade IELR(1) into LALR(1), which the state count check pins down alongside the conflict check.
 	It("should split a state to remove the mysterious conflict of the reduce/reduce grammar", func() {
-		augmentedGrammar := frontend.AugmentGrammar(ielr1golrcore.ReduceReduceConflictTestGrammar)
+		grammar := ielr1golrcore.ReduceReduceConflictTestGrammar
 
-		lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
-		lalr1Builder.Build()
-		lalr1Parser := lalr1Builder.Parser()
-
-		ielr1Builder := ielr1golrcore.NewIELR1(augmentedGrammar, conflict.NewDefaultPolicy(augmentedGrammar))
-		ielr1Parser := ielr1Builder.BuildParser()
+		lalr1Parser := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+		ielr1Parser := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 
 		Expect(hasConflict(lalr1Parser)).To(BeTrue(), "the LALR(1) parser tables are expected to have the mysterious conflict")
 		Expect(hasConflict(ielr1Parser)).To(BeFalse(), "phase 3 is expected to remove the mysterious conflict")
@@ -93,23 +83,17 @@ var _ = Describe("Split States Builder", func() {
 		for range grammarCount {
 			grammarSeed := masterRng.Int63()
 			grammar := oracle.DefaultGrammarGenerator(rand.New(rand.NewSource(grammarSeed))).Generate()
-			augmentedGrammar := frontend.AugmentGrammar(grammar)
 
-			lr1Builder := lr1golrcore.NewLR1Builder(augmentedGrammar)
-			if err := lr1Builder.Build(); err != nil {
+			lr1Parser, err := lr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			if err != nil {
 				// A grammar whose canonical LR(1) automaton exceeds the addressable state limit cannot be the oracle. It
 				// is skipped, not a failure of the builder under test.
 				Expect(err).To(MatchError(lr1golrcore.ErrStateLimitExceeded), "grammar seed %d:\n%s", grammarSeed, grammar.String())
 				continue
 			}
-			lr1Parser := lr1Builder.Parser()
 
-			lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
-			lalr1Builder.Build()
-			lalr1Parser := lalr1Builder.Parser()
-
-			ielr1Builder := ielr1golrcore.NewIELR1(augmentedGrammar, conflict.NewDefaultPolicy(augmentedGrammar))
-			ielr1Parser := ielr1Builder.BuildParser()
+			lalr1Parser := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			ielr1Parser := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 
 			Expect(len(ielr1Parser.States)).To(
 				BeNumerically(">=", len(lalr1Parser.States)),

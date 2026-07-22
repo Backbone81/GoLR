@@ -25,7 +25,7 @@ import (
 // alone, because the contributions are all the dominant contribution function looks at.
 var _ = Describe("Merge stability", func() {
 	It("should hold for the default policy", func() {
-		policy := conflict.NewDefaultPolicy(conflict.PrecedenceTestGrammar)
+		policy := conflict.DefaultPolicy(conflict.PrecedenceTestGrammar)
 		contributionSets := allPossibleContributionSets()
 
 		for terminalIdx := range conflict.PrecedenceTestGrammar.Terminals {

@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
@@ -126,7 +127,7 @@ var _ = Describe("Parser Interpreter", func() {
 		var parser backend.Parser
 		BeforeEach(func() {
 			var err error
-			parser, _, err = ielr1golrcore.GrammarToParser(ielr1golrcore.UnambiguousTestGrammarFig1)
+			parser, _, err = ielr1golrcore.GrammarToParser(ielr1golrcore.UnambiguousTestGrammarFig1, conflict.DefaultPolicy)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
