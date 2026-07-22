@@ -73,6 +73,10 @@ type Item struct {
 	Dot        int `xml:"dot,attr"`
 }
 
+func (i Item) IsKernelItem() bool {
+	return i.Dot > 0 || i.RuleNumber == 0
+}
+
 type Transition struct {
 	Type   string `xml:"type,attr"`
 	Symbol string `xml:"symbol,attr"`

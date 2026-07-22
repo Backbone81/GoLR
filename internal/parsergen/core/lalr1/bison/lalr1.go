@@ -124,12 +124,17 @@ func (i *LALR1) buildProductionList(report bisonutils.BisonXMLReport, parser *ba
 	}
 }
 
-//nolint:gocognit // The state construction loop is inherently branchy; splitting it would obscure the flow.
+//nolint:gocognit,funlen // The state construction loop is inherently branchy; splitting it would obscure the flow.
 func (i *LALR1) buildStateList(report bisonutils.BisonXMLReport, parser *backend.Parser) error {
 	for _, state := range report.Automaton.States {
 		var newState backend.State
 
 		for _, item := range state.ItemSet {
+			if !item.IsKernelItem() {
+				// The XML report of GNU Bison lists the full closure of a state. We keep only the kernel items, as
+				// the closure can always be recalculated from them and the GoLR cores provide the kernel items only.
+				continue
+			}
 			newState.KernelItems.Add(backend.NewCore(item.RuleNumber, item.Dot))
 		}
 
