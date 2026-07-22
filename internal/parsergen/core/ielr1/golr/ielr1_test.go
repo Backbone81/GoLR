@@ -49,11 +49,11 @@ var _ = Describe("IELR(1)", func() {
 			ielr1golrcore.AmbiguousTestGrammarFig2,
 			conflict.DefaultPolicy,
 		)
-		Expect(hasConflict(rawParser)).To(BeTrue(), "the raw split table is expected to keep the genuine conflict")
+		Expect(conflict.HasConflict(rawParser)).To(BeTrue(), "the raw split table is expected to keep the genuine conflict")
 
 		resolvedParser, _, err := ielr1golrcore.GrammarToParser(ielr1golrcore.AmbiguousTestGrammarFig2, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(hasConflict(resolvedParser)).To(BeFalse(), "phase 5 is expected to resolve the genuine conflict")
+		Expect(conflict.HasConflict(resolvedParser)).To(BeFalse(), "phase 5 is expected to resolve the genuine conflict")
 	})
 
 	// The follow kernel items of definition 3.16 of IELR(1) are the kernel items whose lookahead sets a goto follow set

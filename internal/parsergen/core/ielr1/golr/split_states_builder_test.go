@@ -29,7 +29,7 @@ var _ = Describe("Split States Builder", func() {
 	//
 	// The conflict invariant is about the raw automaton, before phase 5 resolves anything, so we compare the tables
 	// GrammarToUnresolvedParser returns, not the conflict-free ones GrammarToParser produces. Resolving the conflicts
-	// with the default policy would make hasConflict always false and defeat the comparison.
+	// with the default policy would leave conflict.Detect with nothing to report and defeat the comparison.
 	DescribeTable("should agree with canonical LR(1) on the state count bounds and the conflicts",
 		func(grammar frontend.Grammar) {
 			lalr1Parser := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
@@ -40,7 +40,10 @@ var _ = Describe("Split States Builder", func() {
 
 			Expect(len(ielr1Parser.States)).To(BeNumerically(">=", len(lalr1Parser.States)))
 			Expect(len(ielr1Parser.States)).To(BeNumerically("<=", len(lr1Parser.States)))
-			Expect(hasConflict(ielr1Parser)).To(Equal(hasConflict(lr1Parser)))
+
+			// The two automatons have different states, so they can differ in how many conflicts they report; what has to
+			// agree is whether they are left with a conflict at all.
+			Expect(conflict.HasConflict(ielr1Parser)).To(Equal(conflict.HasConflict(lr1Parser)))
 		},
 		Entry("the unambiguous test grammar for Fig. 1", ielr1golrcore.UnambiguousTestGrammarFig1),
 		Entry("the ambiguous test grammar for Fig. 2", ielr1golrcore.AmbiguousTestGrammarFig2),
@@ -59,8 +62,8 @@ var _ = Describe("Split States Builder", func() {
 		lalr1Parser := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 		ielr1Parser := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 
-		Expect(hasConflict(lalr1Parser)).To(BeTrue(), "the LALR(1) parser tables are expected to have the mysterious conflict")
-		Expect(hasConflict(ielr1Parser)).To(BeFalse(), "phase 3 is expected to remove the mysterious conflict")
+		Expect(conflict.HasConflict(lalr1Parser)).To(BeTrue(), "the LALR(1) parser tables are expected to have the mysterious conflict")
+		Expect(conflict.HasConflict(ielr1Parser)).To(BeFalse(), "phase 3 is expected to remove the mysterious conflict")
 		Expect(len(ielr1Parser.States)).To(
 			BeNumerically(">", len(lalr1Parser.States)),
 			"phase 3 is expected to have split at least one state",
@@ -103,13 +106,13 @@ var _ = Describe("Split States Builder", func() {
 				BeNumerically("<=", len(lr1Parser.States)),
 				"IELR(1) split further than canonical LR(1), grammar seed %d:\n%s", grammarSeed, grammar.String(),
 			)
-			Expect(hasConflict(ielr1Parser)).To(
-				Equal(hasConflict(lr1Parser)),
+			Expect(conflict.HasConflict(ielr1Parser)).To(
+				Equal(conflict.HasConflict(lr1Parser)),
 				"IELR(1) and canonical LR(1) disagree on the conflicts, grammar seed %d:\n%s", grammarSeed, grammar.String(),
 			)
 
 			compared++
-			if hasConflict(lalr1Parser) && !hasConflict(lr1Parser) {
+			if conflict.HasConflict(lalr1Parser) && !conflict.HasConflict(lr1Parser) {
 				// The LALR(1) parser tables have a mysterious conflict which canonical LR(1) does not have, and IELR(1)
 				// removed it, as the conflict check above just confirmed. These are the grammars which actually exercise
 				// the state splitting, so we track how many the corpus reaches to guard its discriminating power.

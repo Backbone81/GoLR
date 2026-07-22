@@ -1,7 +1,6 @@
 package golr_test
 
 import (
-	"fmt"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -52,61 +51,22 @@ var _ = Describe("LR(1) Builder", func() {
 			ielr1golr.ReduceReduceConflictTestGrammar,
 			conflict.DefaultPolicy,
 		)
-		Expect(getConflictDescriptions(lalr1Parser)).ToNot(BeEmpty())
+		Expect(conflict.HasConflict(lalr1Parser)).To(BeTrue())
 
 		lr1Parser, err := lr1golr.GrammarToUnresolvedParser(
 			ielr1golr.ReduceReduceConflictTestGrammar,
 			conflict.DefaultPolicy,
 		)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(getConflictDescriptions(lr1Parser)).To(BeEmpty())
+		Expect(conflict.HasConflict(lr1Parser)).To(BeFalse())
 	})
 
 	It("should report a conflict for an ambiguous grammar", func() {
 		lr1Parser, err := lr1golr.GrammarToUnresolvedParser(ielr1golr.AmbiguousTestGrammarFig2, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(getConflictDescriptions(lr1Parser)).ToNot(BeEmpty())
+		Expect(conflict.HasConflict(lr1Parser)).To(BeTrue())
 	})
 })
-
-// getConflictDescriptions returns a description for every shift/reduce and reduce/reduce conflict of the parser.
-func getConflictDescriptions(parser backend.Parser) []string {
-	var result []string
-	for stateIdx := range parser.States {
-		state := &parser.States[stateIdx]
-
-		for _, transitionAction := range state.TransitionActions.All() {
-			if transitionAction.SymbolRef().IsNonterminal() {
-				continue
-			}
-			for _, reduceAction := range state.ReduceActions.All() {
-				if reduceAction.LookaheadSet.Contains(transitionAction.SymbolRef().Idx()) {
-					result = append(result, fmt.Sprintf(
-						"state %d: shift/reduce conflict on terminal %d with production %d",
-						stateIdx, transitionAction.SymbolRef().Idx(), reduceAction.ProductionIdx,
-					))
-				}
-			}
-		}
-
-		for leftIdx, leftReduceAction := range state.ReduceActions.All() {
-			for rightIdx, rightReduceAction := range state.ReduceActions.All() {
-				if leftIdx >= rightIdx {
-					continue
-				}
-				for terminalIdx := range leftReduceAction.LookaheadSet.All() {
-					if rightReduceAction.LookaheadSet.Contains(terminalIdx) {
-						result = append(result, fmt.Sprintf(
-							"state %d: reduce/reduce conflict on terminal %d between production %d and production %d",
-							stateIdx, terminalIdx, leftReduceAction.ProductionIdx, rightReduceAction.ProductionIdx,
-						))
-					}
-				}
-			}
-		}
-	}
-	return result
-}
 
 func BenchmarkComputeLR1ParserTables(b *testing.B) {
 	benchmarks := []struct {

@@ -143,6 +143,65 @@ var _ = Describe("Resolve", func() {
 	})
 })
 
+var _ = Describe("Detect", func() {
+	// Detect is what a caller of GrammarToUnresolvedParser uses to learn which conflicts its tables are left with. It
+	// has to see exactly the conflicts Resolve sees, because Resolve is the only other thing which reports them, and it
+	// has to leave the tables alone, because the caller still wants the conflicting actions.
+	It("should report the conflicts Resolve reports, undecided and without touching the parser tables", func() {
+		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		Expect(err).ToNot(HaveOccurred())
+		wantConflictedTerminals := conflictedTerminals(parser)
+		Expect(wantConflictedTerminals).ToNot(
+			BeEmpty(),
+			"the test grammar is ambiguous, so the parser tables are expected to have conflicts",
+		)
+
+		detectedConflicts := conflict.Detect(parser)
+
+		Expect(detectedConflicts).ToNot(BeEmpty())
+		for _, c := range detectedConflicts {
+			Expect(c.Decision.Kind).To(
+				Equal(conflict.DecisionUndefined),
+				"no policy was applied, so the conflict is expected to carry no decision",
+			)
+		}
+		Expect(conflictedTerminals(parser)).To(
+			Equal(wantConflictedTerminals),
+			"detecting the conflicts is expected to leave the parser tables alone",
+		)
+
+		resolvedConflicts, err := conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
+		Expect(err).ToNot(HaveOccurred())
+
+		// The decision is the one thing which sets the two apart, so it is dropped before comparing what is left: the
+		// same conflicted terminals, in the same order, with the same contributions competing for them.
+		for i := range resolvedConflicts {
+			resolvedConflicts[i].Decision = conflict.Decision{}
+		}
+		Expect(detectedConflicts).To(Equal(resolvedConflicts))
+	})
+
+	It("should report nothing for parser tables whose conflicts were resolved", func() {
+		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(conflict.Detect(parser)).To(BeEmpty())
+	})
+
+	It("should answer HasConflict for parser tables with and without conflicts", func() {
+		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(conflict.HasConflict(parser)).To(BeTrue())
+
+		_, err = conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(conflict.HasConflict(parser)).To(BeFalse())
+	})
+})
+
 // conflictedTerminals returns the terminals the parser tables have more than one action for, keyed by state index.
 func conflictedTerminals(parser backend.Parser) map[int][]int {
 	result := make(map[int][]int)

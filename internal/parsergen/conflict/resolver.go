@@ -73,6 +73,28 @@ func Resolve(parser *backend.Parser, policy Policy) ([]Conflict, error) {
 	return conflicts, errors.Join(errs...)
 }
 
+// Detect returns every conflict of the parser tables, in the same order Resolve reports them, without applying a policy
+// and without modifying the tables.
+//
+// This is what Resolve looks at before it decides anything, so the Decision of every returned conflict is
+// DecisionUndefined. It is meant for callers which built their tables with one of the GrammarToUnresolvedParser
+// functions of the cores and want the conflict list which GrammarToParser would have returned, and for anyone who wants
+// to know whether tables hold a conflict at all without giving up the conflicting actions to a policy.
+func Detect(parser backend.Parser) []Conflict {
+	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Conflict: Detect").End()
+
+	result := make([]Conflict, 0, 64)
+	for stateIdx := range parser.States {
+		result = append(result, getConflicts(parser.States[stateIdx], stateIdx)...)
+	}
+	return result
+}
+
+// HasConflict reports if the parser tables hold any conflict at all, which is the question most callers of Detect have.
+func HasConflict(parser backend.Parser) bool {
+	return len(Detect(parser)) > 0
+}
+
 // getConflicts returns every conflict of the state, which are the terminals the state has more than one action for. The
 // decision of the conflicts is not filled in yet, that is what resolveState does.
 func getConflicts(state backend.State, stateIdx int) []Conflict {

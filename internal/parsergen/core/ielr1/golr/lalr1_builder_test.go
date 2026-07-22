@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
@@ -161,7 +162,7 @@ var _ = Describe("LALR(1) Builder", func() {
 					// builder can disagree on, so we track how many of them the corpus reaches.
 					withMerging++
 				}
-				if hasConflict(gotParser) {
+				if conflict.HasConflict(gotParser) {
 					// A conflict is where a wrong lookahead set actually changes the parser, so grammars whose LALR(1)
 					// table has a conflict are the sharpest test of the lookahead computation. We track them to make
 					// sure the corpus keeps reaching them.
@@ -225,33 +226,6 @@ func hasEmptyProduction(grammar frontend.Grammar) bool {
 	for _, production := range grammar.Productions {
 		if len(production.SymbolRefs) == 0 {
 			return true
-		}
-	}
-	return false
-}
-
-// hasConflict reports if any state of the parser table has a shift/reduce or reduce/reduce conflict: a reduce action
-// whose lookahead set contains a terminal the state also shifts on, or which a reduce action seen earlier in the same
-// state also reduces on.
-func hasConflict(parser backend.Parser) bool {
-	for stateIdx := range parser.States {
-		state := &parser.States[stateIdx]
-
-		shiftTerminals := make(map[int]bool)
-		for _, transitionAction := range state.TransitionActions.All() {
-			if transitionAction.SymbolRef().IsTerminal() {
-				shiftTerminals[transitionAction.SymbolRef().Idx()] = true
-			}
-		}
-
-		var claimedTerminals backend.LookaheadSet
-		for _, reduceAction := range state.ReduceActions.All() {
-			for terminalIdx := range reduceAction.LookaheadSet.All() {
-				if shiftTerminals[terminalIdx] || claimedTerminals.Contains(terminalIdx) {
-					return true
-				}
-			}
-			claimedTerminals.Merge(&reduceAction.LookaheadSet)
 		}
 	}
 	return false
