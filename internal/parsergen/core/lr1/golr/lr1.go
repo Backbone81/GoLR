@@ -28,21 +28,17 @@ func GrammarToParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
 ) (backend.Parser, []conflict.Conflict, error) {
-	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: LR1: GrammarToParser").End()
+	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: LR1: GoLR: GrammarToParser").End()
 
 	parser, err := GrammarToUnresolvedParser(grammar, policyFactory)
 	if err != nil {
 		return backend.Parser{}, nil, err
 	}
 
-	// The parser carries the augmented grammar the builder worked on, which is the grammar the policy has to be made
-	// from, see conflict.PolicyFactory.
-	conflictPolicy := policyFactory(parser.Grammar)
-
 	// Phase 5 of IELR(1) (section 3.7 of the paper), which the LALR(1) and IELR(1) cores run in the same place. A
 	// grammar which is not LR(1) has conflicts here too - canonical LR(1) removes the mysterious LALR(1) conflicts of
 	// section 2.5, not the genuine ones - so this is what keeps a conflict-laden table from reaching a backend.
-	conflicts, err := conflict.Resolve(&parser, conflictPolicy)
+	conflicts, err := conflict.Resolve(&parser, policyFactory(parser.Grammar))
 	if err != nil {
 		return backend.Parser{}, conflicts, err
 	}
@@ -69,7 +65,7 @@ func GrammarToUnresolvedParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
 ) (backend.Parser, error) {
-	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: LR1: GrammarToUnresolvedParser").End()
+	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: LR1: GoLR: GrammarToUnresolvedParser").End()
 
 	// The builder works on the augmented grammar, so the caller hands us the grammar as the frontend produced it and
 	// we augment it here, the same way the LALR(1) and IELR(1) cores do.

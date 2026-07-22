@@ -13,6 +13,7 @@ go run ./cmd/golr scanner \
 go run ./cmd/golr parser \
   --frontend bison \
   --frontend-file-path internal/parsergen/frontend/bison/spec/bison-3.8.2.y \
+  --core ielr1-bison \
   --backend go \
   --backend-file-path internal/parsergen/frontend/bison/parser/parser.go
 
@@ -25,6 +26,7 @@ go run ./cmd/golr scanner \
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path internal/parsergen/frontend/golr/spec/golr.golr \
+  --core ielr1-bison \
   --backend go \
   --backend-file-path internal/parsergen/frontend/golr/parser/parser.go
 
@@ -45,6 +47,7 @@ go run ./cmd/golr scanner \
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
+  --core ielr1-bison \
   --backend go \
   --backend-file-path examples/calculator/golang/parser/parser.go
 go run ./cmd/golr scanner \
@@ -67,6 +70,7 @@ go run ./cmd/golr scanner \
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/golang/spec/golang.golr \
+  --core ielr1-bison \
   --backend go \
   --backend-file-path examples/golang/parser/parser.go
 

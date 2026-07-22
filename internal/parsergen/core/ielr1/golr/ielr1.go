@@ -29,19 +29,13 @@ func GrammarToParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
 ) (backend.Parser, []conflict.Conflict, error) {
-	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: IELR1: GrammarToParser").End()
+	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: IELR1: GoLR: GrammarToParser").End()
 
 	// Phases 0 to 4 of IELR(1) build the parser.
 	parser := GrammarToUnresolvedParser(grammar, policyFactory)
 
-	// The parser carries the augmented grammar the builder worked on, which is the grammar the policy has to be made
-	// from, see conflict.PolicyFactory. The policy phase 3 split the states with is made from the very same grammar by
-	// the very same factory, so a lookahead distinction the compatibility test of definition 3.43 preserved is resolved
-	// the way phase 3 assumed it would be.
-	conflictPolicy := policyFactory(parser.Grammar)
-
 	// Phase 5 of IELR(1) (section 3.7 of the paper).
-	conflicts, err := conflict.Resolve(&parser, conflictPolicy)
+	conflicts, err := conflict.Resolve(&parser, policyFactory(parser.Grammar))
 	if err != nil {
 		return backend.Parser{}, conflicts, err
 	}
@@ -66,7 +60,7 @@ func GrammarToParser(
 // decision. So these tables are not policy free, they are only unresolved - which policy is passed in decides which
 // states phase 3 declines to split.
 func GrammarToUnresolvedParser(grammar frontend.Grammar, policyFactory conflict.PolicyFactory) backend.Parser {
-	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: IELR1: GrammarToUnresolvedParser").End()
+	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: IELR1: GoLR: GrammarToUnresolvedParser").End()
 
 	// The whole algorithm works on the augmented grammar, where a new start symbol derives the old one followed by the
 	// end of input marker, so the caller hands us the grammar as the frontend produced it and we augment it here.

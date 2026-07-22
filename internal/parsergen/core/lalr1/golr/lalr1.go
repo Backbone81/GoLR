@@ -28,16 +28,12 @@ func GrammarToParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
 ) (backend.Parser, []conflict.Conflict, error) {
-	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: LALR1: GrammarToParser").End()
+	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: LALR1: GoLR: GrammarToParser").End()
 
 	parser := GrammarToUnresolvedParser(grammar, policyFactory)
 
-	// The parser carries the augmented grammar the builder worked on, which is the grammar the policy has to be made
-	// from, see conflict.PolicyFactory.
-	conflictPolicy := policyFactory(parser.Grammar)
-
 	// Phase 5 of IELR(1) (section 3.7 of the paper).
-	conflicts, err := conflict.Resolve(&parser, conflictPolicy)
+	conflicts, err := conflict.Resolve(&parser, policyFactory(parser.Grammar))
 	if err != nil {
 		return backend.Parser{}, conflicts, err
 	}
@@ -61,7 +57,7 @@ func GrammarToParser(
 // causes are decided afterwards. The factory is taken all the same, so that the three GoLR cores agree on their
 // signature and a caller can switch between them, and because IELR(1) does need the policy while it builds.
 func GrammarToUnresolvedParser(grammar frontend.Grammar, policyFactory conflict.PolicyFactory) backend.Parser {
-	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: LALR1: GrammarToUnresolvedParser").End()
+	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: LALR1: GoLR: GrammarToUnresolvedParser").End()
 
 	// The builder works on the augmented grammar, so the caller hands us the grammar as the frontend produced it and
 	// we augment it here.

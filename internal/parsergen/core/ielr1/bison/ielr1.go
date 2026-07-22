@@ -24,7 +24,7 @@ func GrammarToParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
 ) (backend.Parser, []conflict.Conflict, error) {
-	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Cores: IELR1: GrammarToParser").End()
+	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: IELR1: Bison: GrammarToParser").End()
 
 	builder := NewIELR1(grammar)
 	parser, err := builder.BuildParser()
