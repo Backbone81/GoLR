@@ -91,6 +91,13 @@ func (w *TreeWalker) BuildGrammar(node parser.Node) ([]scannergenfrontend.Rule, 
 	if len(w.grammar.Productions) < 1 {
 		return nil, parsergenfrontend.Grammar{}, errors.New("grammar requires at least one production")
 	}
+
+	// Nonterminals are interned in order of first appearance, which counts right hand side references (see
+	// visitProductionDecl and visitSymbolInAlternative for the interning sites). That makes a nonterminal referenced
+	// before it is defined get a lower index than nonterminals declared earlier. Renumber them into declaration order so
+	// the indices match what the Bison-backed core assigns, which keeps generated parsers diff-friendly across cores.
+	parsergenfrontend.RenumberNonterminalsInDeclarationOrder(&w.grammar)
+
 	return w.rules, w.grammar, nil
 }
 

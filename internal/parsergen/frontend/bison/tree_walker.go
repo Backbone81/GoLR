@@ -61,6 +61,14 @@ func (w *TreeWalker) BuildGrammar(node parser.Node) (frontend.Grammar, error) {
 		}
 		w.grammar.StartNonterminalIdx = idx
 	}
+
+	// Nonterminals are interned in order of first appearance, which counts right hand side references (see
+	// visitRulesOrGrammarDeclaration for the interning sites). That makes a nonterminal referenced before it is defined
+	// get a lower index than nonterminals declared earlier (see visitRules and visitSymbol for the interning sites).
+	// Renumber them into declaration order so the indices match what the Bison-backed core assigns, which keeps
+	// generated parsers diff-friendly across cores.
+	frontend.RenumberNonterminalsInDeclarationOrder(&w.grammar)
+
 	return w.grammar, nil
 }
 

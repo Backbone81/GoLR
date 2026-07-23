@@ -56,6 +56,59 @@ func (g Grammar) Validate() error {
 	return nil
 }
 
+// RenumberNonterminalsInDeclarationOrder rewrites all nonterminal indices of the grammar so they follow declaration
+// order, the order in which nonterminals first appear on a production left hand side. Frontends intern nonterminals in
+// order of first appearance, which also counts right hand side references and therefore can assign a lower index to a
+// nonterminal that is used before it is declared. Renumbering into declaration order matches the numbering the
+// Bison-backed core assigns, which keeps generated parsers diff-friendly when switching cores.
+//
+// This is a free function rather than a method so it does not become part of the public Grammar API which is re-exported
+// to users. Frontends call it as the last step of building their grammar.
+//
+// Any nonterminal that never appears on a left hand side (referenced but never defined) keeps a stable position after
+// the declared ones, in its original order, so this function is safe to call on grammars which have not been validated.
+func RenumberNonterminalsInDeclarationOrder(grammar *Grammar) {
+	// Build the permutation from old index to new index by walking the productions in source order and assigning the
+	// next new index the first time a left hand side nonterminal is seen.
+	newIdxByOldIdx := make([]int, len(grammar.Nonterminals))
+	for i := range newIdxByOldIdx {
+		newIdxByOldIdx[i] = -1
+	}
+	nextNewIdx := 0
+	for _, production := range grammar.Productions {
+		if newIdxByOldIdx[production.NonterminalIdx] == -1 {
+			newIdxByOldIdx[production.NonterminalIdx] = nextNewIdx
+			nextNewIdx++
+		}
+	}
+	for oldIdx := range grammar.Nonterminals {
+		if newIdxByOldIdx[oldIdx] == -1 {
+			newIdxByOldIdx[oldIdx] = nextNewIdx
+			nextNewIdx++
+		}
+	}
+
+	// Reorder the nonterminal symbols into their new positions.
+	reorderedNonterminals := make([]Symbol, len(grammar.Nonterminals))
+	for oldIdx, newIdx := range newIdxByOldIdx {
+		reorderedNonterminals[newIdx] = grammar.Nonterminals[oldIdx]
+	}
+	grammar.Nonterminals = reorderedNonterminals
+
+	// Remap every reference to a nonterminal: the left hand side of each production, the nonterminal symbols on the
+	// right hand sides and the start nonterminal.
+	for i := range grammar.Productions {
+		production := &grammar.Productions[i]
+		production.NonterminalIdx = newIdxByOldIdx[production.NonterminalIdx]
+		for j, symbolRef := range production.SymbolRefs {
+			if symbolRef.IsNonterminal() {
+				production.SymbolRefs[j] = NewNonterminalRef(newIdxByOldIdx[symbolRef.Idx()])
+			}
+		}
+	}
+	grammar.StartNonterminalIdx = newIdxByOldIdx[grammar.StartNonterminalIdx]
+}
+
 // Grammar implements fmt.Stringer.
 var _ fmt.Stringer = (*Grammar)(nil)
 
