@@ -11,6 +11,7 @@ import (
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/conflict"
+	"github.com/backbone81/golr/internal/parsergen/core"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
 	lalr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lalr1/golr"
@@ -137,14 +138,20 @@ func behaviorMatchesCanonicalLR1(grammar frontend.Grammar, inputsPerGrammar int,
 	// to address is skipped, not a failure of the builder under test; any other error means conflict resolution failed,
 	// which the default policy never should for a generated grammar (no precedence declarations), so asserting the error
 	// is the state limit doubles as the plan's precondition that resolution does not error.
-	oracleParser, lr1Conflicts, err := lr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
+	// Both the oracle and the system under test are built without the default-reduction compaction: the test compares
+	// them action for action, and a default reduction reduces where canonical LR(1) would report an error, on a
+	// lookahead partition that differs between the two automata. That is a correct optimization (same language, same
+	// parses, only the error is reported one or more reductions later), but it is not what this test is checking, so it
+	// is switched off on both sides to keep the comparison on the canonical resolved tables.
+	oracleParser, lr1Conflicts, err := lr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy, core.WithoutDefaultReductions())
 	if err != nil {
 		Expect(err).To(MatchError(lr1golrcore.ErrStateLimitExceeded), append([]any{description}, args...)...)
 		return grammarComparison{compared: false}
 	}
 
-	// The system under test: the IELR(1) table, resolved with the same policy by its GrammarToParser.
-	sutParser, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
+	// The system under test: the IELR(1) table, resolved with the same policy by its GrammarToParser and, like the
+	// oracle above, without the default-reduction compaction so the two are compared as canonical resolved tables.
+	sutParser, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy, core.WithoutDefaultReductions())
 	Expect(err).ToNot(HaveOccurred(), append([]any{description}, args...)...)
 
 	// The LALR(1) table, built the same way, is the lower bound of the size invariant and the source of the

@@ -6,6 +6,7 @@ import (
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/conflict"
+	"github.com/backbone81/golr/internal/parsergen/core"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	"github.com/backbone81/golr/internal/utils"
 )
@@ -28,8 +29,11 @@ import (
 func GrammarToParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
+	options ...core.Option,
 ) (backend.Parser, []conflict.Conflict, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: IELR1: GoLR: GrammarToParser").End()
+
+	config := core.ConfigFromOptions(options...)
 
 	// Phases 0 to 4 of IELR(1) build the parser.
 	parser := GrammarToUnresolvedParser(grammar, policyFactory)
@@ -38,6 +42,10 @@ func GrammarToParser(
 	conflicts, err := conflict.Resolve(&parser, policyFactory(parser.Grammar))
 	if err != nil {
 		return backend.Parser{}, conflicts, err
+	}
+
+	if config.DefaultReductions {
+		backend.ApplyDefaultReductions(&parser)
 	}
 
 	// Resolving a conflict can delete the only shift into a state, which strands that state and everything behind it.

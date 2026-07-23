@@ -15,6 +15,7 @@ import (
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/conflict"
+	"github.com/backbone81/golr/internal/parsergen/core"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
@@ -28,7 +29,10 @@ var _ = Describe("IELR(1)", func() {
 	// their own predecessors generate.
 	DescribeTable("should correctly compute the IELR(1) parser table",
 		func(grammar frontend.Grammar, wantIELR1Parser backend.Parser) {
-			ielr1Parser, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
+			// The pinned table lists every reduce action explicitly, keyed on its lookahead, because this test is about
+			// the split lookahead sets, not the table compaction. WithoutDefaultReductions keeps GrammarToParser from
+			// folding one of them into the state's default arm, which would only obscure what is being checked here.
+			ielr1Parser, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy, core.WithoutDefaultReductions())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ielr1Parser).To(Equal(wantIELR1Parser))
 		},
