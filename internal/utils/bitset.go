@@ -86,6 +86,15 @@ func (b *Bitset) Remove(idx int) {
 	}
 }
 
+// Clear removes every bit from the bitset, leaving it empty.
+//
+// The storage the bitset has grown to is kept, so a bitset which is cleared and filled again does not have to grow a
+// second time. That is what makes a bitset reusable as scratch space across many rounds of whatever fills it, which is
+// the reason to clear a bitset instead of replacing it with a fresh one.
+func (b *Bitset) Clear() {
+	clear(b.chunks)
+}
+
 // Clone returns a copy of the bitset which shares no storage with the original. A plain copy of a bitset keeps
 // referencing the chunks of the original, so setting or removing a bit on the copy would change the original as well.
 // Clone is what you want when the original must stay untouched.
@@ -122,6 +131,32 @@ func (b *Bitset) Merge(other *Bitset) bool {
 		changed = changed || other.chunks[commonChunks+i] != 0
 	}
 	b.chunks = append(b.chunks, other.chunks[commonChunks:]...)
+	return changed
+}
+
+// MergeIntersection adds every bit to the bitset which is set in both of the other bitsets, leaving the bits it already
+// holds untouched. The return value reports if a bit was set which was not set before.
+//
+// This is Merge of the intersection of the two others, without the intersection having to be built as a bitset of its
+// own first. It is meant for the callers which combine bitsets in a loop and would otherwise have to clone one of them
+// per round only to intersect and throw it away again.
+func (b *Bitset) MergeIntersection(lhs *Bitset, rhs *Bitset) bool {
+	// A bit can only be set when both of the others hold it, so the chunks beyond the shorter of the two cannot
+	// contribute anything.
+	sharedChunks := min(len(lhs.chunks), len(rhs.chunks))
+	if len(b.chunks) < sharedChunks {
+		newChunks := make([]bitsetChunk, sharedChunks)
+		copy(newChunks, b.chunks)
+		b.chunks = newChunks
+	}
+
+	changed := false
+	for i := range sharedChunks {
+		intersection := lhs.chunks[i] & rhs.chunks[i]
+		// The chunk changes when the intersection holds a bit which this chunk does not hold yet.
+		changed = changed || intersection&^b.chunks[i] != 0
+		b.chunks[i] |= intersection
+	}
 	return changed
 }
 

@@ -226,18 +226,15 @@ func (b *AnnotationsBuilder) getGotoIdx(stateIdx int, nonterminalIdx int) (int, 
 // initInadequacies initializes inadequaciesByStateIdx as specified in definition 3.27 of IELR(1).
 func (b *AnnotationsBuilder) initInadequacies() {
 	b.inadequaciesByStateIdx = make(map[int][]*Inadequacy)
+	var scanner conflict.Scanner
 	for stateIdx := range b.parser.States {
-		contributionsByTerminalIdx := conflict.ContributionsByTerminalIdx(b.parser.States[stateIdx])
-		for _, terminalIdx := range slices.Sorted(maps.Keys(contributionsByTerminalIdx)) {
-			contributions := contributionsByTerminalIdx[terminalIdx]
-			if contributions.Length() <= 1 {
-				// The terminal has a single action only, so there is no conflict and no inadequacy.
-				continue
-			}
+		// The scanner reports the conflicted terminals in ascending order, so the inadequacies of a state come in a
+		// stable order without us having to sort them.
+		for _, conflicted := range scanner.Conflicts(&b.parser.States[stateIdx]) {
 			b.inadequaciesByStateIdx[stateIdx] = append(b.inadequaciesByStateIdx[stateIdx], &Inadequacy{
 				StateIdx:      stateIdx,
-				TerminalIdx:   terminalIdx,
-				Contributions: contributions,
+				TerminalIdx:   conflicted.TerminalIdx,
+				Contributions: conflicted.Contributions,
 			})
 		}
 	}

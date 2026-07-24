@@ -2,7 +2,6 @@ package conflict_test
 
 import (
 	"errors"
-	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -206,23 +205,36 @@ var _ = Describe("Detect", func() {
 	})
 })
 
-// conflictedTerminals returns the terminals the parser tables have more than one action for, keyed by state index.
+// conflictedTerminals returns the terminals the parser tables have more than one action for, keyed by state index. The
+// terminals of a state come out in ascending order, because that is the order the scanner reports them in.
 func conflictedTerminals(parser backend.Parser) map[int][]int {
 	result := make(map[int][]int)
+	var scanner conflict.Scanner
 	for stateIdx := range parser.States {
-		for terminalIdx, contributions := range conflict.ContributionsByTerminalIdx(parser.States[stateIdx]) {
-			if contributions.Length() <= 1 {
-				continue
-			}
-			result[stateIdx] = append(result[stateIdx], terminalIdx)
+		for _, conflicted := range scanner.Conflicts(&parser.States[stateIdx]) {
+			result[stateIdx] = append(result[stateIdx], conflicted.TerminalIdx)
 		}
-		slices.Sort(result[stateIdx])
 	}
 	return result
 }
 
-// actionCount returns the number of actions the state has on the terminal.
+// actionCount returns the number of actions the state has on the terminal. It counts the actions of the state directly,
+// so that a test which wants to know what resolving a conflict left behind does not have to trust the conflict
+// machinery it is testing.
 func actionCount(state backend.State, terminalIdx int) int {
-	contributions := conflict.ContributionsByTerminalIdx(state)[terminalIdx]
-	return contributions.Length()
+	var result int
+	for _, transition := range state.TransitionActions.All() {
+		if transition.SymbolRef().IsNonterminal() {
+			continue
+		}
+		if transition.SymbolRef().Idx() == terminalIdx {
+			result++
+		}
+	}
+	for _, reduction := range state.ReduceActions.All() {
+		if reduction.LookaheadSet.Contains(terminalIdx) {
+			result++
+		}
+	}
+	return result
 }

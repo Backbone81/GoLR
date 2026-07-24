@@ -1,6 +1,7 @@
 package utils_test
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 
@@ -112,6 +113,34 @@ var _ = Describe("Bitset", func() {
 		Expect(iteration).To(Equal(bits))
 	})
 
+	It("should correctly clear", func() {
+		bitset := utils.NewBitset(3, 2, 64+32, 7, 4)
+		bitset.Clear()
+
+		Expect(bitset.IsEmpty()).To(BeTrue())
+		Expect(bitset.Length()).To(Equal(0))
+		for bit := range bitset.All() {
+			Fail(fmt.Sprintf("cleared bitset still holds bit %d", bit))
+		}
+
+		// A cleared bitset has to behave like a fresh one for everyone who looks at its bits.
+		Expect(bitset.Equal(utils.Bitset{})).To(BeTrue())
+		Expect(bitset.Bytes()).To(BeNil())
+	})
+
+	It("should keep the storage it has grown to when cleared", func() {
+		// The whole point of clearing a bitset instead of replacing it with a fresh one is that it can be refilled
+		// without having to grow again, which is what makes a bitset usable as scratch space.
+		var bitset utils.Bitset
+		bitset.Add(64 + 32)
+		bitset.Clear()
+
+		Expect(testing.AllocsPerRun(100, func() {
+			bitset.Add(64 + 32)
+			bitset.Clear()
+		})).To(BeNumerically("==", 0))
+	})
+
 	It("should correctly merge", func() {
 		one := utils.NewBitset(3, 2, 64+32, 7, 4)
 		two := utils.NewBitset(8, 7, 64+40, 130)
@@ -141,6 +170,31 @@ var _ = Describe("Bitset", func() {
 		Entry("right-hand side repeats a bit in a later chunk", []int{1, 64 + 1}, []int{64 + 1}, false),
 		Entry("right-hand side skips over an empty chunk", []int{1}, []int{128 + 1}, true),
 		Entry("left-hand side reaches further than the right-hand side", []int{1, 128 + 1}, []int{1}, false),
+	)
+
+	DescribeTable("should correctly merge an intersection",
+		func(dstBits []int, lhsBits []int, rhsBits []int, wantBits []int, wantChanged bool) {
+			dstBitset := utils.NewBitset(dstBits...)
+			lhsBitset := utils.NewBitset(lhsBits...)
+			rhsBitset := utils.NewBitset(rhsBits...)
+
+			Expect(dstBitset.MergeIntersection(&lhsBitset, &rhsBitset)).To(Equal(wantChanged))
+			Expect(dstBitset.Equal(utils.NewBitset(wantBits...))).To(BeTrue())
+
+			// Merging an intersection has to leave the bitsets it reads alone.
+			Expect(lhsBitset.Equal(utils.NewBitset(lhsBits...))).To(BeTrue())
+			Expect(rhsBitset.Equal(utils.NewBitset(rhsBits...))).To(BeTrue())
+		},
+		// Only the bits which both sides hold are added, and only those which are not held already are a change.
+		Entry("all empty", nil, nil, nil, nil, false),
+		Entry("disjoint sides contribute nothing", nil, []int{1}, []int{2}, nil, false),
+		Entry("shared bit is added", nil, []int{1, 2}, []int{2, 3}, []int{2}, true),
+		Entry("destination already holds the shared bit", []int{2}, []int{1, 2}, []int{2, 3}, []int{2}, false),
+		Entry("destination keeps its own bits", []int{9}, []int{1, 2}, []int{2}, []int{2, 9}, true),
+		Entry("one side empty contributes nothing", []int{9}, nil, []int{1}, []int{9}, false),
+		Entry("shared bit in a later chunk", nil, []int{64 + 1}, []int{64 + 1}, []int{64 + 1}, true),
+		Entry("sides overlap only in an early chunk", nil, []int{1, 64 + 1}, []int{1}, []int{1}, true),
+		Entry("destination shorter than the shared bit", []int{1}, []int{128 + 5}, []int{128 + 5}, []int{1, 128 + 5}, true),
 	)
 
 	It("should correctly intersect", func() {

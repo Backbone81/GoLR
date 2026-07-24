@@ -3,9 +3,7 @@ package conflict
 import (
 	"context"
 	"errors"
-	"maps"
 	"runtime/trace"
-	"slices"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
@@ -53,10 +51,11 @@ func Resolve(parser *backend.Parser, policy Policy) ([]Conflict, error) {
 
 	var conflicts []Conflict
 	var errs []error
+	var scanner Scanner
 	for stateIdx := range parser.States {
 		// The conflicts of the state are collected before any action is removed from it, because removing the actions
 		// which lost is what makes the state stop being conflicted.
-		stateConflicts := getConflicts(parser.States[stateIdx], stateIdx)
+		stateConflicts := getConflicts(&scanner, &parser.States[stateIdx], stateIdx)
 		resolveState(&parser.States[stateIdx], stateConflicts, policy)
 
 		for _, stateConflict := range stateConflicts {
@@ -84,8 +83,9 @@ func Detect(parser backend.Parser) []Conflict {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Conflict: Detect").End()
 
 	result := make([]Conflict, 0, 64)
+	var scanner Scanner
 	for stateIdx := range parser.States {
-		result = append(result, getConflicts(parser.States[stateIdx], stateIdx)...)
+		result = append(result, getConflicts(&scanner, &parser.States[stateIdx], stateIdx)...)
 	}
 	return result
 }
@@ -97,22 +97,16 @@ func HasConflict(parser backend.Parser) bool {
 
 // getConflicts returns every conflict of the state, which are the terminals the state has more than one action for. The
 // decision of the conflicts is not filled in yet, that is what resolveState does.
-func getConflicts(state backend.State, stateIdx int) []Conflict {
-	contributionsByTerminalIdx := ContributionsByTerminalIdx(state)
+func getConflicts(scanner *Scanner, state *backend.State, stateIdx int) []Conflict {
+	result := make([]Conflict, 0, 2)
 
-	var result []Conflict
-	// The keys of a map come in no particular order, but the conflicts end up in a report for the user, so we want them
-	// to be stable across runs.
-	for _, terminalIdx := range slices.Sorted(maps.Keys(contributionsByTerminalIdx)) {
-		contributions := contributionsByTerminalIdx[terminalIdx]
-		if contributions.Length() <= 1 {
-			// The terminal has a single action only, so there is nothing which competes for it.
-			continue
-		}
+	// The scanner reports the conflicted terminals in ascending order, because the conflicts end up in a report for the
+	// user and we want them to be stable across runs.
+	for _, conflicted := range scanner.Conflicts(state) {
 		result = append(result, Conflict{
 			StateIdx:      stateIdx,
-			TerminalIdx:   terminalIdx,
-			Contributions: contributions,
+			TerminalIdx:   conflicted.TerminalIdx,
+			Contributions: conflicted.Contributions,
 		})
 	}
 	return result
