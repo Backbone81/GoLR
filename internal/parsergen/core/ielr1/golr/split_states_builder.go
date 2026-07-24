@@ -280,6 +280,14 @@ func (b *SplitStatesBuilder) propagateLookaheads(fromStateIdx int, successorStat
 
 	result := make([]backend.LookaheadSet, b.states[successorStateIdx].KernelItems.Length())
 	for successorItemIdx, successorCore := range b.states[successorStateIdx].KernelItems.All() {
+		filter := &filters[successorItemIdx]
+		if filter.IsEmpty() {
+			// No annotation examines any terminal of this kernel item, so the filter of definition 3.38 reduces whatever
+			// is propagated to the empty set. The lookahead set is left empty instead of being computed and intersected
+			// away again.
+			continue
+		}
+
 		var lookaheadSet backend.LookaheadSet
 		switch {
 		case successorCore.Position() > 1:
@@ -295,7 +303,7 @@ func (b *SplitStatesBuilder) propagateLookaheads(fromStateIdx int, successorStat
 			})
 			if ok {
 				itemLookaheadSet := b.itemLookaheadSet(fromStateIdx, kernelItemIdx)
-				lookaheadSet = itemLookaheadSet.Clone()
+				lookaheadSet.MergeIntersection(&itemLookaheadSet, filter)
 			}
 		default:
 			// This is point 2 of definition 3.40. The successor kernel item has seen a single symbol, so it was added by
@@ -308,9 +316,8 @@ func (b *SplitStatesBuilder) propagateLookaheads(fromStateIdx int, successorStat
 				return nil
 			})
 			nonterminalIdx := b.grammar.Productions[successorCore.ProductionIdx()].NonterminalIdx
-			lookaheadSet = b.computeGotoFollowSet(fromStateIdx, nonterminalIdx)
+			lookaheadSet = b.computeGotoFollowSet(fromStateIdx, nonterminalIdx, filter)
 		}
-		lookaheadSet.Intersect(&filters[successorItemIdx])
 		result[successorItemIdx] = lookaheadSet
 	}
 	return result
@@ -321,7 +328,17 @@ func (b *SplitStatesBuilder) propagateLookaheads(fromStateIdx int, successorStat
 //
 // The goto is the one on the nonterminal from the LALR(1) isocore of the state. Its follow set is the always follows of
 // the goto together with the recomputed lookahead sets of the kernel items the goto follow set depends on.
-func (b *SplitStatesBuilder) computeGotoFollowSet(stateIdx int, nonterminalIdx int) backend.LookaheadSet {
+//
+// The lookahead set filter of definition 3.38 the caller applies is taken as a parameter and applied to every set which
+// goes into the result, instead of to the finished result. That is the same set, because intersection distributes over
+// union, but the result never grows past the terminals the filter admits. The unfiltered goto follow set holds a bit for
+// most terminals of the grammar while the filter admits a handful, so this is the difference between an allocation per
+// call and none at all.
+func (b *SplitStatesBuilder) computeGotoFollowSet(
+	stateIdx int,
+	nonterminalIdx int,
+	filter *backend.LookaheadSet,
+) backend.LookaheadSet {
 	lalr1IsocoreStateIdx := b.lalr1IsocoreByStateIdx[stateIdx]
 
 	var result backend.LookaheadSet
@@ -329,10 +346,10 @@ func (b *SplitStatesBuilder) computeGotoFollowSet(stateIdx int, nonterminalIdx i
 		if b.gotoRecords[gotoIdx].NonterminalIdx != nonterminalIdx {
 			continue
 		}
-		result.Merge(&b.alwaysFollows[gotoIdx])
+		result.MergeIntersection(&b.alwaysFollows[gotoIdx], filter)
 		for kernelItemIdx := range b.followKernelItemsByGotoIdx[gotoIdx].All() {
 			itemLookaheadSet := b.itemLookaheadSet(stateIdx, kernelItemIdx)
-			result.Merge(&itemLookaheadSet)
+			result.MergeIntersection(&itemLookaheadSet, filter)
 		}
 	}
 	return result
