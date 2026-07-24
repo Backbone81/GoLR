@@ -9,6 +9,13 @@ builds:
   - main: ./cmd/golr
     env:
       - CGO_ENABLED=0
+    # Debug assertions are enabled by default and cost ~9-17% of parser
+    # generation runtime. Shipped binaries build without them.
+    tags:
+      - no_debug_assert
+    # Reproducible builds: keep local file system paths out of the binary.
+    flags:
+      - -trimpath
     goos:
       - linux
       - windows
