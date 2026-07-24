@@ -26,6 +26,9 @@ type LALR1Builder struct {
 	// grammar is the augmented context free grammar for which LALR(1) parser tables should be created.
 	grammar frontend.Grammar
 
+	// maxStates is the number of states after which the construction gives up with backend.ErrStateLimitExceeded.
+	maxStates int
+
 	// productionIdxsByNonterminalIdx maps a nonterminal index to a slice of production indexes. This makes it easier to
 	// find all productions which have the given nonterminal on the left hand side of the production.
 	productionIdxsByNonterminalIdx map[int][]int
@@ -46,9 +49,11 @@ type LALR1Builder struct {
 }
 
 // NewLALR1Builder returns a new builder for LALR(1) parser tables. The grammar provided MUST be an augmented grammar.
+// The builder gives up with backend.ErrStateLimitExceeded once the table grows beyond maxStates states.
 func NewLALR1Builder(grammar frontend.Grammar) LALR1Builder {
 	return LALR1Builder{
-		grammar: grammar,
+		grammar:   grammar,
+		maxStates: backend.MaxAddressableStates(grammar),
 		// The map keyed by nonterminal index holds at most one entry per nonterminal, so the exact size serves as the
 		// allocation hint.
 		productionIdxsByNonterminalIdx: make(map[int][]int, len(grammar.Nonterminals)),
@@ -60,17 +65,25 @@ func NewLALR1Builder(grammar frontend.Grammar) LALR1Builder {
 }
 
 // Build constructs LALR(1) parser tables. You can retrieve the generated parser with a call to Parser afterward.
-func (b *LALR1Builder) Build() {
+//
+// It gives up with backend.ErrStateLimitExceeded on a grammar whose LR(0) automaton needs more states than a parser
+// table can address. Reaching that with LALR(1) takes a grammar far larger than any known one, because LALR(1) merges
+// every state with the same core and so gives the smallest tables of all the cores, but the table encoding is the same
+// for every core and the limit is reported the same way.
+func (b *LALR1Builder) Build() error {
 	defer trace.StartRegion(context.TODO(), "Build LALR(1) parser tables").End()
 
 	b.initProductionIdxsByNonterminalIdx()
-	b.buildLR0States()
+	if err := b.buildLR0States(); err != nil {
+		return err
+	}
 
 	// The LR(0) states now describe the automaton on their own, so the reduction lookahead builder can derive the goto
 	// follows from them and compute the reduction lookahead sets.
 	b.lookaheads = NewReductionLookaheadBuilder(b.grammar, b.states)
 	b.lookaheads.Build()
 	applyReductionLookaheads(b.states, b.lookaheads.ReduceActions())
+	return nil
 }
 
 // initProductionIdxsByNonterminalIdx initializes the helper variable productionIdxsByNonterminalIdx.
@@ -86,7 +99,7 @@ func (b *LALR1Builder) initProductionIdxsByNonterminalIdx() {
 // buildLR0States constructs the LR(0) states and records information needed for LALR(1) construction later on. This
 // method is doing a fixed-point computation to find all possible states by calculating the closure for the cores of
 // each state and advancing the position of each core by one.
-func (b *LALR1Builder) buildLR0States() {
+func (b *LALR1Builder) buildLR0States() error {
 	defer trace.StartRegion(context.TODO(), "Build LR(0) parser tables").End()
 
 	// We keep those variables outside the loop to re-use their allocated memory in subsequent loops.
@@ -113,10 +126,18 @@ func (b *LALR1Builder) buildLR0States() {
 			b.recordTransition(stateIdx, symbolRef, destinationStateIdx)
 		}
 
+		// A single state can push us over the limit with more than one new state. We accept that overshoot and check
+		// only once per state instead of on every new state, which keeps the check at the level where the states are
+		// grown as a whole.
+		if err := backend.CheckStateLimit("LALR(1)", len(b.states), b.maxStates); err != nil {
+			return err
+		}
+
 		// clean up our temporary variables, so they are ready to go in the next loop
 		clear(nextKernelItemsBySymbolRef)
 		emptyProductionIdxs = emptyProductionIdxs[:0]
 	}
+	return nil
 }
 
 // initStartState constructs the start state of the parser and sets up the work list with that state.

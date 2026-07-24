@@ -62,9 +62,6 @@ func (g Grammar) Validate() error {
 // nonterminal that is used before it is declared. Renumbering into declaration order matches the numbering the
 // Bison-backed core assigns, which keeps generated parsers diff-friendly when switching cores.
 //
-// This is a free function rather than a method so it does not become part of the public Grammar API which is re-exported
-// to users. Frontends call it as the last step of building their grammar.
-//
 // Any nonterminal that never appears on a left hand side (referenced but never defined) keeps a stable position after
 // the declared ones, in its original order, so this function is safe to call on grammars which have not been validated.
 func RenumberNonterminalsInDeclarationOrder(grammar *Grammar) {

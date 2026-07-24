@@ -2,8 +2,6 @@ package golr
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"runtime/trace"
 	"slices"
 
@@ -11,9 +9,6 @@ import (
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	"github.com/backbone81/golr/internal/utils"
 )
-
-// ErrStateLimitExceeded is returned when the parser table grows beyond the state limit of the builder.
-var ErrStateLimitExceeded = errors.New("the number of states exceeds the state limit")
 
 // LR1Builder is implementing the algorithm for building canonical LR(1) parser tables.
 //
@@ -26,7 +21,7 @@ type LR1Builder struct {
 	// grammar is the augmented context free grammar for which canonical LR(1) parser tables should be created.
 	grammar frontend.Grammar
 
-	// maxStates is the number of states after which the construction gives up with ErrStateLimitExceeded.
+	// maxStates is the number of states after which the construction gives up with backend.ErrStateLimitExceeded.
 	maxStates int
 
 	// productionIdxsByNonterminalIdx maps a nonterminal index to a slice of production indexes. This makes it easier to
@@ -52,24 +47,13 @@ type LR1Builder struct {
 }
 
 // NewLR1Builder returns a new builder for canonical LR(1) parser tables. The grammar provided MUST be an augmented
-// grammar. The builder gives up with ErrStateLimitExceeded once the table grows beyond maxStates states.
+// grammar. The builder gives up with backend.ErrStateLimitExceeded once the table grows beyond maxStates states.
 func NewLR1Builder(grammar frontend.Grammar) LR1Builder {
 	return LR1Builder{
 		grammar:                   grammar,
-		maxStates:                 maxAddressableStates(grammar),
+		maxStates:                 backend.MaxAddressableStates(grammar),
 		stateIdxsByKernelItemHash: make(map[uint64][]int, 128),
 	}
-}
-
-// maxAddressableStates returns the number of states which the construction can build without ever handing a state index
-// to backend.NewTransitionAction which a transition action cannot address.
-//
-// The state limit is only checked once per state of the work list, which means the last state of the work list can push
-// the construction over the limit by as many states as it has transitions. Every symbol of the grammar can contribute
-// at most one transition, so leaving room for one state per symbol keeps that overshoot addressable.
-func maxAddressableStates(grammar frontend.Grammar) int {
-	symbolCount := len(grammar.Terminals) + len(grammar.Nonterminals)
-	return backend.TransitionActionMaxState + 1 - symbolCount
 }
 
 // Build constructs canonical LR(1) parser tables. You can retrieve the generated parser with a call to Parser
@@ -179,8 +163,8 @@ func (b *LR1Builder) buildStates() error {
 		// A single state can push us over the limit with more than one new state. We accept that overshoot and check
 		// only once per state instead of on every new state, which keeps the check at the level where the states are
 		// grown as a whole.
-		if len(b.states) > b.maxStates {
-			return fmt.Errorf("%w of %d states", ErrStateLimitExceeded, b.maxStates)
+		if err := backend.CheckStateLimit("canonical LR(1)", len(b.states), b.maxStates); err != nil {
+			return err
 		}
 
 		// clean up our temporary variables, so they are ready to go in the next loop

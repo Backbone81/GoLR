@@ -24,7 +24,8 @@ import (
 // Every conflict which was found is returned, whether it was decided or not, because a parser generator reports the
 // conflicts of a grammar to the user even when it decided them on its own. The error reports the conflicts which were
 // left undecided, one conflict.UnresolvedConflictError each; no parser can be generated from such a grammar, so the
-// parser tables come back empty then and the conflicts are all there is left to report.
+// parser tables come back empty then and the conflicts are all there is left to report. The construction also gives up
+// with backend.ErrStateLimitExceeded on a grammar which needs more states than a parser table can address.
 func GrammarToParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
@@ -34,7 +35,10 @@ func GrammarToParser(
 
 	config := core.ConfigFromOptions(options...)
 
-	parser := GrammarToUnresolvedParser(grammar, policyFactory)
+	parser, err := GrammarToUnresolvedParser(grammar, policyFactory)
+	if err != nil {
+		return backend.Parser{}, nil, err
+	}
 
 	// Phase 5 of IELR(1) (section 3.7 of the paper).
 	conflicts, err := conflict.Resolve(&parser, policyFactory(parser.Grammar))
@@ -64,7 +68,12 @@ func GrammarToParser(
 // LALR(1) needs no policy to be constructed: it merges every state with the same core, no matter how the conflicts that
 // causes are decided afterwards. The factory is taken all the same, so that the three GoLR cores agree on their
 // signature and a caller can switch between them, and because IELR(1) does need the policy while it builds.
-func GrammarToUnresolvedParser(grammar frontend.Grammar, policyFactory conflict.PolicyFactory) backend.Parser {
+//
+// It gives up with backend.ErrStateLimitExceeded on a grammar which needs more states than a parser table can address.
+func GrammarToUnresolvedParser(
+	grammar frontend.Grammar,
+	policyFactory conflict.PolicyFactory,
+) (backend.Parser, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: LALR1: GoLR: GrammarToUnresolvedParser").End()
 
 	// The builder works on the augmented grammar, so the caller hands us the grammar as the frontend produced it and
@@ -74,6 +83,8 @@ func GrammarToUnresolvedParser(grammar frontend.Grammar, policyFactory conflict.
 	// Phase 0 of IELR(1) is LALR(1) in full, so this core is that phase on its own, without the phases which split the
 	// states it merged too eagerly.
 	builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
-	builder.Build()
-	return builder.Parser()
+	if err := builder.Build(); err != nil {
+		return backend.Parser{}, err
+	}
+	return builder.Parser(), nil
 }

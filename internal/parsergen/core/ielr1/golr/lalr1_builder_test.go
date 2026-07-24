@@ -26,7 +26,7 @@ var _ = Describe("LALR(1) Builder", func() {
 		func(grammar frontend.Grammar, wantLALR1Parser backend.Parser) {
 			augmentedGrammar := frontend.AugmentGrammar(grammar)
 			lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
-			lalr1Builder.Build()
+			Expect(lalr1Builder.Build()).To(Succeed())
 			Expect(lalr1Builder.Parser()).To(Equal(wantLALR1Parser))
 		},
 		Entry(
@@ -69,7 +69,7 @@ var _ = Describe("LALR(1) Builder", func() {
 				augmentedGrammar := frontend.AugmentGrammar(grammar)
 
 				lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
-				lalr1Builder.Build()
+				Expect(lalr1Builder.Build()).To(Succeed())
 				gotParser := lalr1Builder.Parser()
 
 				lr1Builder := lr1golrcore.NewLR1Builder(augmentedGrammar)
@@ -133,7 +133,7 @@ var _ = Describe("LALR(1) Builder", func() {
 				if err := lr1Builder.Build(); err != nil {
 					// A grammar whose canonical LR(1) automaton exceeds the addressable state limit cannot be handled by
 					// the oracle. It is skipped, not a failure of the builder under test.
-					Expect(err).To(MatchError(lr1golrcore.ErrStateLimitExceeded), "grammar seed %d:\n%s", grammarSeed, grammar.String())
+					Expect(err).To(MatchError(backend.ErrStateLimitExceeded), "grammar seed %d:\n%s", grammarSeed, grammar.String())
 					continue
 				}
 				lr1Parser := lr1Builder.Parser()
@@ -142,7 +142,7 @@ var _ = Describe("LALR(1) Builder", func() {
 				Expect(err).ToNot(HaveOccurred(), "grammar seed %d:\n%s", grammarSeed, grammar.String())
 
 				lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
-				lalr1Builder.Build()
+				Expect(lalr1Builder.Build()).To(Succeed(), "grammar seed %d:\n%s", grammarSeed, grammar.String())
 				gotParser := lalr1Builder.Parser()
 
 				Expect(oracle.DiffLALR1ParserKernelItems(wantParser, gotParser)).To(
@@ -211,7 +211,7 @@ var _ = Describe("LALR(1) Builder", func() {
 
 				augmentedGrammar := frontend.AugmentGrammar(grammar)
 				lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
-				lalr1Builder.Build()
+				Expect(lalr1Builder.Build()).To(Succeed())
 				golrParser := lalr1Builder.Parser()
 
 				Expect(len(golrParser.States)).To(Equal(len(bisonParser.States)))
@@ -247,7 +247,9 @@ func BenchmarkComputeLALR1ParserTables(b *testing.B) {
 			augmentedGrammar := frontend.AugmentGrammar(benchmark.grammar)
 			for range b.N {
 				lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
-				lalr1Builder.Build()
+				if err := lalr1Builder.Build(); err != nil {
+					b.Fatal(err)
+				}
 			}
 		})
 	}
@@ -282,7 +284,9 @@ func BenchmarkRandomGrammarOracleComparison(b *testing.B) {
 		}
 
 		lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
-		lalr1Builder.Build()
+		if err := lalr1Builder.Build(); err != nil {
+			b.Fatal(err)
+		}
 		gotParser := lalr1Builder.Parser()
 
 		oracle.DiffLALR1ParserKernelItems(wantParser, gotParser)

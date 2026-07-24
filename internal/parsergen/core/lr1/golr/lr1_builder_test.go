@@ -47,10 +47,11 @@ var _ = Describe("LR(1) Builder", func() {
 	It("should not report a conflict for a grammar which is LR(1) but not LALR(1)", func() {
 		// This is the whole point of canonical LR(1) as an oracle: the reduce/reduce conflict which LALR(1) reports for
 		// this grammar is an artifact of merging the two "c" states, not a property of the grammar.
-		lalr1Parser := lalr1golr.GrammarToUnresolvedParser(
+		lalr1Parser, err := lalr1golr.GrammarToUnresolvedParser(
 			ielr1golr.ReduceReduceConflictTestGrammar,
 			conflict.DefaultPolicy,
 		)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(conflict.HasConflict(lalr1Parser)).To(BeTrue())
 
 		lr1Parser, err := lr1golr.GrammarToUnresolvedParser(

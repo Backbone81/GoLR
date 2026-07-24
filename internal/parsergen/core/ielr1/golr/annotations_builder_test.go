@@ -251,7 +251,7 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 				// A grammar whose canonical LR(1) automaton exceeds the addressable state limit cannot be handled by the
 				// oracle. It is skipped, not a failure of phase 2.
 				Expect(err).To(
-					MatchError(lr1golrcore.ErrStateLimitExceeded),
+					MatchError(backend.ErrStateLimitExceeded),
 					"grammar seed %d:\n%s", grammarSeed, grammar.String(),
 				)
 				continue
@@ -402,10 +402,10 @@ func newAnnotationsBuilder(
 	conflictPolicy := policyFactory(augmentedGrammar)
 
 	lalr1Builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
-	lalr1Builder.Build()
+	Expect(lalr1Builder.Build()).To(Succeed())
 
 	ielr1 := ielr1golrcore.NewIELR1(augmentedGrammar, conflictPolicy)
-	ielr1.BuildParser()
+	Expect(ielr1.BuildParser()).Error().ToNot(HaveOccurred())
 
 	annotationsBuilder := ielr1golrcore.NewAnnotationsBuilder(
 		lalr1Builder.Parser(),

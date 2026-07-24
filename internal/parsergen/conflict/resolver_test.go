@@ -116,7 +116,11 @@ var _ = Describe("Resolve", func() {
 	It("should resolve a reduce/reduce conflict in favor of the production which was declared first", func() {
 		// The LALR(1) parser tables of this grammar have a reduce/reduce conflict which is an artifact of merging
 		// states, see the canonical LR(1) tests. It gives us a reduce/reduce conflict to resolve.
-		parser := lalr1golr.GrammarToUnresolvedParser(ielr1golr.ReduceReduceConflictTestGrammar, conflict.DefaultPolicy)
+		parser, err := lalr1golr.GrammarToUnresolvedParser(
+			ielr1golr.ReduceReduceConflictTestGrammar,
+			conflict.DefaultPolicy,
+		)
+		Expect(err).ToNot(HaveOccurred())
 
 		conflicts, err := conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
 

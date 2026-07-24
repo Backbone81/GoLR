@@ -27,6 +27,9 @@ type SplitStatesBuilder struct {
 	// grammar is the augmented context free grammar the automaton was built from.
 	grammar frontend.Grammar
 
+	// maxStates is the number of states after which the splitting gives up with backend.ErrStateLimitExceeded.
+	maxStates int
+
 	// policy is the conflict resolution by which the dominant contribution of definition 3.42 is decided. It is the
 	// paper's Delta. A policy which leaves conflicts unresolved makes phase 3 preserve every lookahead distinction
 	// canonical LR(1) makes, which is what keeps the builder conflict-preserving.
@@ -105,6 +108,7 @@ func NewSplitStatesBuilder(
 ) SplitStatesBuilder {
 	return SplitStatesBuilder{
 		grammar:                           grammar,
+		maxStates:                         backend.MaxAddressableStates(grammar),
 		policy:                            policy,
 		states:                            states,
 		annotationListsByStateIdx:         annotationListsByStateIdx,
@@ -119,7 +123,12 @@ func NewSplitStatesBuilder(
 // Build runs phase 3: it splits the LALR(1) states into the isocores of the minimal LR(1) parser tables. The result
 // is only valid after Build has run, and it must run exactly once. This is the split_states routine of definition
 // 3.45 of IELR(1).
-func (b *SplitStatesBuilder) Build() {
+//
+// It gives up with backend.ErrStateLimitExceeded once the splitting grows the automaton beyond what a parser table can
+// address. Phase 3 is bounded above by canonical LR(1) and normally stays close to LALR(1), so this needs a grammar
+// which is both large and heavily non-LALR, but nothing in the algorithm rules that out and the split states are handed
+// to backend.NewTransitionAction like any others.
+func (b *SplitStatesBuilder) Build() error {
 	defer trace.StartRegion(context.TODO(), "IELR(1): Phase 3: split states").End()
 
 	// This is the initialization of lines 1-4 of definition 3.45 for the original LALR(1) states. The isocores which
@@ -141,7 +150,15 @@ func (b *SplitStatesBuilder) Build() {
 		for _, symbolRef := range b.transitionSymbolRefs(stateIdx) {
 			b.computeState(stateIdx, symbolRef)
 		}
+
+		// Every transition of the state can split off at most one isocore, so a single state can push us over the limit
+		// by as many states as it has transitions. That overshoot is what MaxAddressableStates leaves room for, which
+		// lets us check once per state instead of on every isocore.
+		if err := backend.CheckStateLimit("IELR(1)", len(b.states), b.maxStates); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // States returns the states of the split automaton. The result is only valid after Build has run.

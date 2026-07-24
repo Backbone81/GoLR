@@ -25,7 +25,8 @@ import (
 // Every conflict which was found is returned, whether it was decided or not, because a parser generator reports the
 // conflicts of a grammar to the user even when it decided them on its own. The error reports the conflicts which were
 // left undecided, one conflict.UnresolvedConflictError each; no parser can be generated from such a grammar, so the
-// parser tables come back empty then and the conflicts are all there is left to report.
+// parser tables come back empty then and the conflicts are all there is left to report. The construction also gives up
+// with backend.ErrStateLimitExceeded on a grammar which needs more states than a parser table can address.
 func GrammarToParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
@@ -36,7 +37,10 @@ func GrammarToParser(
 	config := core.ConfigFromOptions(options...)
 
 	// Phases 0 to 4 of IELR(1) build the parser.
-	parser := GrammarToUnresolvedParser(grammar, policyFactory)
+	parser, err := GrammarToUnresolvedParser(grammar, policyFactory)
+	if err != nil {
+		return backend.Parser{}, nil, err
+	}
 
 	// Phase 5 of IELR(1) (section 3.7 of the paper).
 	conflicts, err := conflict.Resolve(&parser, policyFactory(parser.Grammar))
@@ -67,7 +71,11 @@ func GrammarToParser(
 // contribution of definition 3.42 with it, and the compatibility test of definition 3.43 is defined in terms of that
 // decision. So these tables are not policy free, they are only unresolved - which policy is passed in decides which
 // states phase 3 declines to split.
-func GrammarToUnresolvedParser(grammar frontend.Grammar, policyFactory conflict.PolicyFactory) backend.Parser {
+// It gives up with backend.ErrStateLimitExceeded on a grammar which needs more states than a parser table can address.
+func GrammarToUnresolvedParser(
+	grammar frontend.Grammar,
+	policyFactory conflict.PolicyFactory,
+) (backend.Parser, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: IELR1: GoLR: GrammarToUnresolvedParser").End()
 
 	// The whole algorithm works on the augmented grammar, where a new start symbol derives the old one followed by the
@@ -131,29 +139,40 @@ func NewIELR1(augmentedGrammar frontend.Grammar, conflictPolicy conflict.Policy)
 	return result
 }
 
-func (i *IELR1) BuildParser() backend.Parser {
+// BuildParser runs phases 0 to 4 and returns the minimal LR(1) parser tables.
+//
+// It gives up with backend.ErrStateLimitExceeded when phase 0 or phase 3 grows the automaton beyond what a parser table
+// can address.
+func (i *IELR1) BuildParser() (backend.Parser, error) {
 	defer trace.StartRegion(context.TODO(), "IELR(1): BuildParser").End()
 
-	i.phase0ComputeLALR1ParserTables()
+	if err := i.phase0ComputeLALR1ParserTables(); err != nil {
+		return backend.Parser{}, err
+	}
 	i.phase1ComputeAuxiliaryTables()
 	i.phase2ComputeAnnotations()
-	i.phase3SplitStates()
+	if err := i.phase3SplitStates(); err != nil {
+		return backend.Parser{}, err
+	}
 	i.phase4ComputeReductionLookaheads()
 	// Phase 5 of IELR(1) (section 3.7 of the paper), resolving the remaining conflicts, is deliberately not a step of the
 	// builder. It runs outside, in GrammarToParser, through conflict.Resolve, so that BuildParser returns the minimal
 	// LR(1) tables with their conflicts intact for oracle and differential testing.
-	return i.parser
+	return i.parser, nil
 }
 
 func (i *IELR1) Parser() backend.Parser {
 	return i.parser
 }
 
-func (i *IELR1) phase0ComputeLALR1ParserTables() {
+func (i *IELR1) phase0ComputeLALR1ParserTables() error {
 	defer trace.StartRegion(context.TODO(), "IELR(1): Phase 0: LALR(1)").End()
 	i.lalr1Builder = NewLALR1Builder(i.grammar)
-	i.lalr1Builder.Build()
+	if err := i.lalr1Builder.Build(); err != nil {
+		return err
+	}
 	i.parser = i.lalr1Builder.Parser()
+	return nil
 }
 
 // phase1ComputeAuxiliaryTables computes the auxiliary tables of section 3.3 of IELR(1).
@@ -321,7 +340,7 @@ func (i *IELR1) AnnotationLists() map[int][]Annotation {
 // phase3SplitStates splits the LALR(1) states into the isocores of the minimal LR(1) parser tables, as described in
 // section 3.5 of IELR(1). The split automaton replaces the LALR(1) automaton in the parser tables. Its reduce actions
 // still carry the LALR(1) reduction lookahead sets, which phase 4 recomputes for the split automaton.
-func (i *IELR1) phase3SplitStates() {
+func (i *IELR1) phase3SplitStates() error {
 	defer trace.StartRegion(context.TODO(), "IELR(1): Phase 3: Split states").End()
 
 	splitStatesBuilder := NewSplitStatesBuilder(
@@ -334,8 +353,11 @@ func (i *IELR1) phase3SplitStates() {
 		i.lalr1Builder.lookaheads.AlwaysFollows(),
 		i.followKernelItemsByGotoIdx,
 	)
-	splitStatesBuilder.Build()
+	if err := splitStatesBuilder.Build(); err != nil {
+		return err
+	}
 	i.parser.States = splitStatesBuilder.States()
+	return nil
 }
 
 // phase4ComputeReductionLookaheads recomputes the reduction lookahead sets for the split automaton and writes them back

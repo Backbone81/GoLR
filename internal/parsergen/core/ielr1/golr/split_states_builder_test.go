@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/conflict"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
@@ -32,8 +33,10 @@ var _ = Describe("Split States Builder", func() {
 	// with the default policy would leave conflict.Detect with nothing to report and defeat the comparison.
 	DescribeTable("should agree with canonical LR(1) on the state count bounds and the conflicts",
 		func(grammar frontend.Grammar) {
-			lalr1Parser := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
-			ielr1Parser := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			lalr1Parser, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			Expect(err).ToNot(HaveOccurred())
+			ielr1Parser, err := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			Expect(err).ToNot(HaveOccurred())
 
 			lr1Parser, err := lr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 			Expect(err).ToNot(HaveOccurred())
@@ -59,8 +62,10 @@ var _ = Describe("Split States Builder", func() {
 	It("should split a state to remove the mysterious conflict of the reduce/reduce grammar", func() {
 		grammar := ielr1golrcore.ReduceReduceConflictTestGrammar
 
-		lalr1Parser := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
-		ielr1Parser := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+		lalr1Parser, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+		Expect(err).ToNot(HaveOccurred())
+		ielr1Parser, err := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(conflict.HasConflict(lalr1Parser)).To(BeTrue(), "the LALR(1) parser tables are expected to have the mysterious conflict")
 		Expect(conflict.HasConflict(ielr1Parser)).To(BeFalse(), "phase 3 is expected to remove the mysterious conflict")
@@ -91,12 +96,16 @@ var _ = Describe("Split States Builder", func() {
 			if err != nil {
 				// A grammar whose canonical LR(1) automaton exceeds the addressable state limit cannot be the oracle. It
 				// is skipped, not a failure of the builder under test.
-				Expect(err).To(MatchError(lr1golrcore.ErrStateLimitExceeded), "grammar seed %d:\n%s", grammarSeed, grammar.String())
+				Expect(err).To(MatchError(backend.ErrStateLimitExceeded), "grammar seed %d:\n%s", grammarSeed, grammar.String())
 				continue
 			}
 
-			lalr1Parser := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
-			ielr1Parser := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			// Both are bounded above by the canonical LR(1) automaton which just fit, so neither can reach the state
+			// limit here.
+			lalr1Parser, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			Expect(err).ToNot(HaveOccurred(), "grammar seed %d:\n%s", grammarSeed, grammar.String())
+			ielr1Parser, err := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			Expect(err).ToNot(HaveOccurred(), "grammar seed %d:\n%s", grammarSeed, grammar.String())
 
 			Expect(len(ielr1Parser.States)).To(
 				BeNumerically(">=", len(lalr1Parser.States)),

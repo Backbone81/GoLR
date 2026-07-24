@@ -49,10 +49,11 @@ var _ = Describe("IELR(1)", func() {
 	// GrammarToParser returns is free of it. The ambiguous grammar of figure 2 has such a genuine conflict and is the
 	// sharpest case for this split of responsibilities.
 	It("should resolve the genuine conflict of the ambiguous grammar only at the GrammarToParser interface", func() {
-		rawParser := ielr1golrcore.GrammarToUnresolvedParser(
+		rawParser, err := ielr1golrcore.GrammarToUnresolvedParser(
 			ielr1golrcore.AmbiguousTestGrammarFig2,
 			conflict.DefaultPolicy,
 		)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(conflict.HasConflict(rawParser)).To(BeTrue(), "the raw split table is expected to keep the genuine conflict")
 
 		resolvedParser, _, err := ielr1golrcore.GrammarToParser(ielr1golrcore.AmbiguousTestGrammarFig2, conflict.DefaultPolicy)
@@ -72,7 +73,7 @@ var _ = Describe("IELR(1)", func() {
 		func(grammar frontend.Grammar, wantFollowKernelItems map[string][]int) {
 			augmentedGrammar := frontend.AugmentGrammar(grammar)
 			ielr1 := ielr1golrcore.NewIELR1(augmentedGrammar, conflict.DefaultPolicy(augmentedGrammar))
-			ielr1.BuildParser()
+			Expect(ielr1.BuildParser()).Error().ToNot(HaveOccurred())
 
 			gotFollowKernelItems := make(map[string][]int)
 			for gotoIdx, gotoRecord := range ielr1.GotoRecords() {

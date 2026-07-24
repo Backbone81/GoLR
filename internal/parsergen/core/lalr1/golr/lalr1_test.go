@@ -1,4 +1,4 @@
-package bison_test
+package golr_test
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	lalr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/lalr1/bison"
+	lalr1golrcore "github.com/backbone81/golr/pkg/parsergen/core/lalr1/golr"
 	bisonfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/bison"
 	"github.com/backbone81/golr/testdata"
 )
@@ -22,7 +22,7 @@ var _ = Describe("LALR(1)", func() {
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(lalr1bisoncore.GrammarToParser(grammar)).Error().ToNot(HaveOccurred())
+				Expect(lalr1golrcore.GrammarToParser(grammar)).Error().ToNot(HaveOccurred())
 			})
 		}
 	})
@@ -40,7 +40,7 @@ func BenchmarkGrammarToParser(b *testing.B) {
 			}
 
 			for b.Loop() {
-				if _, _, err := lalr1bisoncore.GrammarToParser(grammar); err != nil {
+				if _, _, err := lalr1golrcore.GrammarToParser(grammar); err != nil {
 					b.Fatal(err)
 				}
 			}

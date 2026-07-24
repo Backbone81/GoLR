@@ -145,7 +145,7 @@ func behaviorMatchesCanonicalLR1(grammar frontend.Grammar, inputsPerGrammar int,
 	// is switched off on both sides to keep the comparison on the canonical resolved tables.
 	oracleParser, lr1Conflicts, err := lr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy, core.WithoutDefaultReductions())
 	if err != nil {
-		Expect(err).To(MatchError(lr1golrcore.ErrStateLimitExceeded), append([]any{description}, args...)...)
+		Expect(err).To(MatchError(backend.ErrStateLimitExceeded), append([]any{description}, args...)...)
 		return grammarComparison{compared: false}
 	}
 
