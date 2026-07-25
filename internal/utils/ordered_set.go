@@ -87,6 +87,22 @@ func (s *OrderedSet[T]) Contains(value T) bool {
 	return found
 }
 
+// IndexOf returns the index of the value within the ordered set. The return value reports if the value is part of the
+// ordered set. The index is the same index the value has when iterating the ordered set with All.
+func (s *OrderedSet[T]) IndexOf(value T) (int, bool) {
+	return slices.BinarySearch(s.data, value)
+}
+
+// LowerBound returns the index of the first value which is greater than or equal to the given value. The length of the
+// ordered set is returned when all values are less than the given value.
+//
+// This is what you want for values which pack multiple fields into a single ordered value: searching for the smallest
+// value of the leading field lands on the first entry with that field, without knowing the trailing fields.
+func (s *OrderedSet[T]) LowerBound(value T) int {
+	index, _ := slices.BinarySearch(s.data, value)
+	return index
+}
+
 // GetByIndex returns the value by its index of the ordered set.
 func (s *OrderedSet[T]) GetByIndex(index int) T { //nolint:ireturn // This is in fact a concrete type.
 	return s.data[index]

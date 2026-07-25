@@ -464,7 +464,13 @@ func (b *SplitStatesBuilder) transitionSymbolRefs(stateIdx int) []frontend.Symbo
 
 // transitionTarget returns the state index the transition on the symbol currently leads to.
 func (b *SplitStatesBuilder) transitionTarget(stateIdx int, symbolRef frontend.SymbolRef) int {
-	for _, transitionAction := range b.states[stateIdx].TransitionActions.All() {
+	// A transition action packs the symbol above the state index, so the transition action set is ordered
+	// symbol-major. The transition on the symbol - if there is one - is therefore the first transition action which is
+	// not less than the transition action of that symbol into state 0.
+	transitionActions := &b.states[stateIdx].TransitionActions
+	index := transitionActions.LowerBound(backend.NewTransitionAction(symbolRef, 0))
+	if index < transitionActions.Length() {
+		transitionAction := transitionActions.GetByIndex(index)
 		if transitionAction.SymbolRef() == symbolRef {
 			return transitionAction.StateIdx()
 		}
@@ -489,12 +495,9 @@ func (b *SplitStatesBuilder) redirectTransition(stateIdx int, symbolRef frontend
 // kernelItemIdx returns the index of a core within the kernel items of a state. Cores are unique within a state, so the
 // index is unique when the core is present.
 func (b *SplitStatesBuilder) kernelItemIdx(stateIdx int, core backend.Core) (int, bool) {
-	for kernelItemIdx, kernelItem := range b.states[stateIdx].KernelItems.All() {
-		if kernelItem == core {
-			return kernelItemIdx, true
-		}
-	}
-	return 0, false
+	// The kernel items are ordered, so we can binary search the core instead of scanning the whole kernel. The index
+	// of the core within the ordered set is the index we would have gotten from iterating the kernel items.
+	return b.states[stateIdx].KernelItems.IndexOf(core)
 }
 
 // itemLookaheadSet returns the recomputed lookahead set of a kernel item of a state. A state phase 3 has not propagated
