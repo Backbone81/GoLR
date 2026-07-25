@@ -112,6 +112,10 @@ func writeBisonGrammarTokens(writer io.Writer, grammar frontend.Grammar) error {
 		return err
 	}
 	for _, symbol := range grammar.Terminals {
+		if symbol.Name == frontend.SymbolError.Name {
+			// GNU Bison predefines the error symbol and rejects a grammar which declares it as a token.
+			continue
+		}
 		if _, err := fmt.Fprintf(writer, "  %s\n", symbol.Name); err != nil {
 			return err
 		}
@@ -157,7 +161,8 @@ func writeBisonAssociativityAndPrecedence(writer io.Writer, grammar frontend.Gra
 		}
 
 		for _, idx := range group.TerminalIdxs {
-			if _, err := fmt.Fprintf(writer, " %s", grammar.Terminals[idx].Name); err != nil {
+			name := ToBisonSymbolName(grammar.Terminals[idx].Name)
+			if _, err := fmt.Fprintf(writer, " %s", name); err != nil {
 				return err
 			}
 		}
@@ -289,7 +294,8 @@ func writeBisonGrammarProductionRhs(writer io.Writer, grammar frontend.Grammar, 
 
 	for _, symbolRef := range production.SymbolRefs {
 		if symbolRef.IsTerminal() {
-			if _, err := fmt.Fprintf(writer, " %s", grammar.Terminals[symbolRef.Idx()].Name); err != nil {
+			name := ToBisonSymbolName(grammar.Terminals[symbolRef.Idx()].Name)
+			if _, err := fmt.Fprintf(writer, " %s", name); err != nil {
 				return err
 			}
 		} else {

@@ -10,6 +10,7 @@ import (
 	"github.com/backbone81/golr/internal/parsergen/frontend/golr/parser"
 	"github.com/backbone81/golr/internal/parsergen/frontend/golr/regex"
 	scannergenfrontend "github.com/backbone81/golr/internal/scannergen/frontend"
+	"github.com/backbone81/golr/internal/utils"
 	"github.com/backbone81/golr/pkg/scannergen/frontend/dsl"
 )
 
@@ -101,6 +102,27 @@ func (w *TreeWalker) BuildGrammar(node parser.Node) ([]scannergenfrontend.Rule, 
 	return w.rules, w.grammar, nil
 }
 
+// internErrorTerminal adds the error symbol to the grammar the first time a production references it and returns its
+// name, so that the symbol lookups which follow resolve it through the same terminal lookup as any other symbol. The
+// name carries a leading dollar sign, which the NAME pattern of the GoLR grammar does not allow, so no terminal a
+// scanner section declares can collide with it.
+//
+// The symbol is added on first use rather than seeded up front, so that a grammar which does not ask for error recovery
+// does not carry it. It gets no scanner rule: no input can produce it, and the generated scanner declares the constant
+// which names it among its reserved tokens rather than deriving it from a rule. Adding a terminal without a rule is
+// safe here because the two lists only have to line up while the scanner section is read, which has finished by the
+// time a production can reference the symbol.
+func (w *TreeWalker) internErrorTerminal() string {
+	name := parsergenfrontend.SymbolError.Name
+	if _, ok := w.terminalIdxByName[name]; ok {
+		return name
+	}
+
+	w.grammar.Terminals = append(w.grammar.Terminals, parsergenfrontend.SymbolError)
+	w.terminalIdxByName[name] = len(w.grammar.Terminals) - 1
+	return name
+}
+
 func (w *TreeWalker) visitFile(node *parser.Node) error {
 	if nonterminal, ok := node.Symbol.Nonterminal(); !ok || nonterminal != parser.NonterminalFile {
 		panic("unexpected nonterminal")
@@ -146,6 +168,21 @@ func (w *TreeWalker) visitScannerSection(node *parser.Node) error {
 }
 
 func (w *TreeWalker) resolvePatterns() error {
+	// The loop below reaches a scanner rule and its terminal with the same index, which makes this the one place where
+	// the two lists have to line up. They do while the scanner section is read, because every declaration appends to
+	// both. Afterwards they are allowed to drift apart: the error symbol is added as a terminal when a production first
+	// references it and gets no scanner rule, because no input can produce it.
+	utils.DebugAssert(func() error {
+		if len(w.rules) != len(w.grammar.Terminals) {
+			return fmt.Errorf(
+				"scanner rules and terminals are out of sync: %d rules, %d terminals",
+				len(w.rules),
+				len(w.grammar.Terminals),
+			)
+		}
+		return nil
+	})
+
 	// Fragments are lexemes which are not terminals
 	fragments := make(map[string][]byte)
 	for name, lexeme := range w.lexemeByName {
@@ -776,6 +813,8 @@ func (w *TreeWalker) getSymbolName(node *parser.Node) (string, error) {
 	switch terminal {
 	case parser.TokenName:
 		return string(child.Lexeme), nil
+	case parser.TokenError:
+		return w.internErrorTerminal(), nil
 	case parser.TokenString:
 		// Strings in symbol position reference a terminal by its alias.
 		alias := string(child.Lexeme)

@@ -679,8 +679,8 @@ func (p *Parser) state1() error {
 func (p *Parser) state2() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// error
-	case TokenError:
+	// $error
+	case ErrorToken:
 		// Shift action
 		p.stateStack = append(p.stateStack, 4)
 		p.nodeStack = append(p.nodeStack, Node{
@@ -1877,8 +1877,8 @@ func (p *Parser) state37() error {
 func (p *Parser) state38() error {
 	terminal := p.scanner.Token()
 	switch terminal {
-	// error
-	case TokenError:
+	// $error
+	case ErrorToken:
 		// Shift action
 		p.stateStack = append(p.stateStack, 81)
 		p.nodeStack = append(p.nodeStack, Node{
@@ -2268,7 +2268,7 @@ func (p *Parser) state48() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: prologue_declaration -> error SEMICOLON
+		// Reduce: prologue_declaration -> $error SEMICOLON
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalPrologueDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -3224,8 +3224,8 @@ func (p *Parser) state84() error {
 		}
 		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
-	// error
-	case TokenError:
+	// $error
+	case ErrorToken:
 		// Shift action
 		p.stateStack = append(p.stateStack, 81)
 		p.nodeStack = append(p.nodeStack, Node{
@@ -4205,7 +4205,7 @@ func (p *Parser) state112() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: rules_or_grammar_declaration -> error SEMICOLON
+		// Reduce: rules_or_grammar_declaration -> $error SEMICOLON
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalRulesOrGrammarDeclaration(p.stateStack[len(p.stateStack)-1])
 		if err != nil {

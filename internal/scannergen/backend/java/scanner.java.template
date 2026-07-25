@@ -19,6 +19,10 @@ public class Scanner implements TokenSkipperScanner {
     public enum Token {
         INVALID_TOKEN,
         END_TOKEN,
+
+        // ERROR_TOKEN is a terminal which does not exist. It is the symbol a grammar marks its error recovery points
+        // with, which no input can produce: the parser shifts it itself while recovering from a syntax error.
+        ERROR_TOKEN,
     {{ range $i, $rule := .DFA.Rules }}
         {{ tokenName $i $rule }},
     {{- end }}
@@ -29,6 +33,7 @@ public class Scanner implements TokenSkipperScanner {
             switch (this) {
                 case INVALID_TOKEN: return "invalid token";
                 case END_TOKEN: return "end token";
+                case ERROR_TOKEN: return "error token";
     {{- range $i, $rule := .DFA.Rules }}
                 case {{ tokenName $i $rule }}: return "{{ $rule.Name }}";
     {{- end }}

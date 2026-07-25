@@ -9,6 +9,9 @@ pub enum Token {
     InvalidToken,
     /// EndToken is a terminal which does not exist. Used when the end of the source was reached.
     EndToken,
+    /// ErrorToken is a terminal which does not exist. It is the symbol a grammar marks its error recovery points with,
+    /// which no input can produce: the parser shifts it itself while recovering from a syntax error.
+    ErrorToken,
 
     TokenWhitespace,
     TokenInteger,
@@ -26,6 +29,7 @@ impl std::fmt::Display for Token {
         match self {
             Token::InvalidToken => write!(f, "invalid token"),
             Token::EndToken => write!(f, "end token"),
+            Token::ErrorToken => write!(f, "error token"),
             Token::TokenWhitespace => write!(f, "WHITESPACE"),
             Token::TokenInteger => write!(f, "INTEGER"),
             Token::TokenPlus => write!(f, "PLUS"),

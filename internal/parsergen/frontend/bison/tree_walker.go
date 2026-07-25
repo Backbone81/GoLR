@@ -42,11 +42,14 @@ func NewTreeWalker() *TreeWalker {
 	}
 
 	// We add the special GNU Bison error token as the first terminal to the grammar. This avoids acidentally adding it
-	// as nonterminal.
-	result.grammar.Terminals = append(result.grammar.Terminals, frontend.Symbol{
-		Name: "error",
-	})
-	result.terminalIdxByName["error"] = 0
+	// as nonterminal. Unlike the GoLR frontend, which adds the error symbol only once a production references it, this
+	// has to happen up front and whether the grammar ends up using it or not: `error` is a plain identifier in a GNU
+	// Bison grammar, so waiting for the first use would intern it as a nonterminal instead.
+	//
+	// The terminal is interned under the name GNU Bison uses, because that is the name the grammar files we read spell
+	// it with, while the symbol itself carries the reserved GoLR name.
+	result.grammar.Terminals = append(result.grammar.Terminals, frontend.SymbolError)
+	result.terminalIdxByName[ErrorTokenName] = len(result.grammar.Terminals) - 1
 	return &result
 }
 

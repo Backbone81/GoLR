@@ -18,6 +18,7 @@
     NONE:       "@none";
     SKIP:       "@skip";
     EMPTY:      "@empty";
+    ERROR:      "@error";
     FRAGMENT:   "@fragment";
     LBRACE:     "{";
     RBRACE:     "}";
@@ -145,5 +146,6 @@
     symbol
         : NAME
         | STRING
+        | "@error"
         ;
 }

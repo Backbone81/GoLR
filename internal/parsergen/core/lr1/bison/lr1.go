@@ -91,9 +91,11 @@ func (i *LR1) BuildParser() (parser backend.Parser, err error) { //nolint:noname
 
 func (i *LR1) buildTerminalList(report bisonutils.BisonXMLReport, parser *backend.Parser) {
 	for _, terminal := range report.Grammar.Terminals {
+		// The lookup stays keyed on the name the report uses, because that is the name the productions of the report
+		// reference. Only the symbol itself carries the GoLR name of the error symbol.
 		i.terminalIdxByName[terminal.Name] = len(parser.Grammar.Terminals)
 		parser.Grammar.Terminals = append(parser.Grammar.Terminals, frontend.Symbol{
-			Name: terminal.Name,
+			Name: bisonfrontend.FromBisonSymbolName(terminal.Name),
 		})
 	}
 }

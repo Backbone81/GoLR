@@ -493,6 +493,107 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 	})
 
+	Context("Error recovery", func() {
+		It("should not add the error symbol to a grammar which does not reference it", func() {
+			source := `
+				@scanner {
+					FOO: /foo/;
+				}
+				@parser {
+					file: FOO;
+				}
+			`
+			rules, grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			for _, terminal := range grammar.Terminals {
+				Expect(terminal.Name).ToNot(Equal(frontend.SymbolError.Name))
+			}
+			for _, rule := range rules {
+				Expect(rule.Name).ToNot(Equal(frontend.SymbolError.Name))
+			}
+		})
+
+		It("should add the error symbol as a terminal without a scanner rule when @error is referenced", func() {
+			source := `
+				@scanner {
+					SEMI: ";";
+				}
+				@parser {
+					file
+						: SEMI
+						| @error ";"
+						;
+				}
+			`
+			rules, grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar.Terminals).To(HaveLen(2))
+			Expect(grammar.Terminals[1].Name).To(Equal(frontend.SymbolError.Name))
+
+			// No input can produce the error symbol, so it gets no scanner rule. The generated scanner declares the
+			// constant which names it among its reserved tokens instead.
+			Expect(rules).To(HaveLen(1))
+			Expect(rules[0].Name).To(Equal("SEMI"))
+
+			Expect(grammar.Productions[1].SymbolRefs).To(Equal([]frontend.SymbolRef{
+				frontend.NewTerminalRef(1),
+				frontend.NewTerminalRef(0),
+			}))
+		})
+
+		It("should add the error symbol only once when @error is referenced repeatedly", func() {
+			source := `
+				@scanner {
+					SEMI: ";";
+				}
+				@parser {
+					file
+						: @error ";"
+						| file @error ";"
+						;
+				}
+			`
+			_, grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar.Terminals).To(HaveLen(2))
+		})
+
+		It("should accept @error in a precedence declaration", func() {
+			// GNU Bison permits giving the error token a precedence and grammars in the wild rely on it, so GoLR has to
+			// be able to express it as well.
+			source := `
+				@scanner {
+					FOO: /foo/;
+				}
+				@parser {
+					@precedence {
+						@left: @error;
+					}
+					file: FOO;
+				}
+			`
+			_, grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar.Terminals[1].Name).To(Equal(frontend.SymbolError.Name))
+			Expect(grammar.Terminals[1].Associativity).To(Equal(frontend.AssociativityLeft))
+		})
+
+		It("should not let a scanner section declare a terminal which collides with the error symbol", func() {
+			// The reserved name carries a leading dollar sign, which the NAME pattern does not allow, so a collision
+			// can only be attempted and never succeed.
+			source := `
+				@scanner {
+					$error: /foo/;
+				}
+				@parser {
+					file: @empty;
+				}
+			`
+			_, _, err := golr.GrammarFromString(source)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
 	Context("Productions", func() {
 		It("should accept tokens with regex, literal string and empty on the right hand side", func() {
 			source := `

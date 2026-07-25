@@ -1,9 +1,5 @@
 package parser
 
-const (
-	TokenError Token = ^0
-)
-
 // ReadEpilogue is an extension of the generated scanner providing functionality to consume the epilogue.
 func (s *Scanner) ReadEpilogue() {
 	s.lexemeStartIdx = s.lexemeEndIdx

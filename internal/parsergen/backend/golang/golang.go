@@ -257,6 +257,11 @@ func terminalName(symbol frontend.Symbol) string {
 	if symbol.Name == "$end" {
 		return "EndToken"
 	}
+	if symbol.Name == frontend.SymbolError.Name {
+		// The error symbol reaches the generated scanner as a rule which matches nothing, where it is named the same
+		// way. See the tokenName helper of the scanner backend.
+		return "ErrorToken"
+	}
 	name := utils.GoIdentifier(symbol.Name)
 	return "Token" + name
 }

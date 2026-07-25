@@ -87,10 +87,18 @@ func writeGoLRScannerSection(writer io.Writer, rules []frontend2.Rule, grammar f
 
 	var maxNameLen int
 	for _, terminal := range grammar.Terminals {
+		if terminal.Name == frontend.SymbolError.Name {
+			continue
+		}
 		maxNameLen = max(maxNameLen, len(terminal.Name))
 	}
 
 	for _, terminal := range grammar.Terminals {
+		if terminal.Name == frontend.SymbolError.Name {
+			// The error symbol is not a token a scanner section can declare: its name is reserved and no input
+			// produces it. Reading the document back seeds it again.
+			continue
+		}
 		if err := writeGoLRTerminalDecl(writer, terminal, ruleByName, maxNameLen); err != nil {
 			return err
 		}
@@ -324,6 +332,10 @@ func golrProductionRHS(prod frontend.Production, grammar frontend.Grammar) strin
 	parts := make([]string, len(prod.SymbolRefs))
 	for i, ref := range prod.SymbolRefs {
 		if ref.IsTerminal() {
+			if grammar.Terminals[ref.Idx()].Name == frontend.SymbolError.Name {
+				parts[i] = "@error"
+				continue
+			}
 			parts[i] = grammar.Terminals[ref.Idx()].String()
 		} else {
 			parts[i] = grammar.Nonterminals[ref.Idx()].Name

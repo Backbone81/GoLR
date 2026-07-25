@@ -70,6 +70,31 @@ The JSON input looks like this:
 }
 ```
 
+## Error Symbol
+
+A terminal named `$error` is the error symbol, which marks the places in the grammar where the parser is
+allowed to resume after a syntax error. Reference it from a production right-hand side like any other
+terminal:
+
+```json
+{
+  "terminals": [
+    {
+      "name": "$error"
+    },
+    {
+      "name": "SEMI"
+    }
+  ]
+}
+```
+
+It may be declared at any position in the terminal list, and a grammar which does not use error recovery
+leaves it out entirely. No scanner ever produces it: the parser produces it itself while recovering. It
+corresponds to `@error` in the GoLR format and to the `error` token of GNU Bison.
+
+The leading dollar sign is what makes the name reserved, so an ordinary terminal must not be given it.
+
 ## Benchmarks
 
 ```text

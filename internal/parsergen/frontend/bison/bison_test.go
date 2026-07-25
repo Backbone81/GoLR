@@ -24,7 +24,7 @@ var _ = Describe("Bison Grammar Files", func() {
 		Expect(grammar).To(Equal(frontend.Grammar{
 			Terminals: []frontend.Symbol{
 				{
-					Name: "error",
+					Name: "$error",
 				},
 			},
 			Nonterminals: []frontend.Symbol{
@@ -42,6 +42,42 @@ var _ = Describe("Bison Grammar Files", func() {
 		}))
 	})
 
+	Context("error recovery", func() {
+		It("should read the error token as the reserved error symbol", func() {
+			bisonGrammar := `
+				%token SEMI
+				%%
+				s: SEMI | error SEMI
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar.Terminals[0].Name).To(Equal(frontend.SymbolError.Name))
+			Expect(grammar.Productions[1].SymbolRefs[0]).To(Equal(
+				frontend.NewTerminalRef(0),
+			))
+		})
+
+		It("should write the error symbol back under the name GNU Bison knows", func() {
+			// GNU Bison predefines the error token, so it must not be declared as a token and has to be spelled without
+			// the leading dollar sign of the reserved GoLR name. Writing it any other way produces a grammar file GNU
+			// Bison rejects, which is what the Bison backed parser cores feed it.
+			bisonGrammar := `
+				%token SEMI
+				%left error
+				%%
+				s: SEMI | error SEMI
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+
+			written, err := bison.GrammarToString(grammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(written).ToNot(ContainSubstring(frontend.SymbolError.Name))
+			Expect(written).To(ContainSubstring("%left error"))
+			Expect(written).To(ContainSubstring("error SEMI"))
+		})
+	})
+
 	It("should accept %empty", func() {
 		bisonGrammar := `
 			%%
@@ -52,7 +88,7 @@ var _ = Describe("Bison Grammar Files", func() {
 		Expect(grammar).To(Equal(frontend.Grammar{
 			Terminals: []frontend.Symbol{
 				{
-					Name: "error",
+					Name: "$error",
 				},
 			},
 			Nonterminals: []frontend.Symbol{
@@ -82,7 +118,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name: "FOO",
@@ -114,7 +150,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:  "FOO",
@@ -147,7 +183,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:  "FOO",
@@ -182,7 +218,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name: "FOO",
@@ -222,7 +258,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:  "FOO",
@@ -265,7 +301,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:  "FOO",
@@ -306,7 +342,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name: "FOO",
@@ -344,7 +380,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:  "FOO",
@@ -385,7 +421,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:  "FOO",
@@ -428,7 +464,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -457,7 +493,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -498,7 +534,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -538,7 +574,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -569,7 +605,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -598,7 +634,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -639,7 +675,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -679,7 +715,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -710,7 +746,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -739,7 +775,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -780,7 +816,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -820,7 +856,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -851,7 +887,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -880,7 +916,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -921,7 +957,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -961,7 +997,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:          "FOO",
@@ -992,7 +1028,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name: "FOO",
@@ -1025,7 +1061,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 				},
 				Nonterminals: []frontend.Symbol{
@@ -1059,7 +1095,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name: "FOO",
@@ -1104,7 +1140,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 				},
 				Nonterminals: []frontend.Symbol{
@@ -1155,7 +1191,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 				},
 				Nonterminals: []frontend.Symbol{
@@ -1203,7 +1239,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 				},
 				Nonterminals: []frontend.Symbol{
@@ -1255,7 +1291,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name:  "FOO",
@@ -1301,7 +1337,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name: "FOO",
@@ -1337,7 +1373,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name: "FOO",
@@ -1382,7 +1418,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 					{
 						Name: "FOO",
@@ -1421,7 +1457,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 				},
 				Nonterminals: []frontend.Symbol{
@@ -1452,7 +1488,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 				},
 				Nonterminals: []frontend.Symbol{
@@ -1480,7 +1516,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 				},
 				Nonterminals: []frontend.Symbol{
@@ -1506,7 +1542,7 @@ var _ = Describe("Bison Grammar Files", func() {
 			Expect(grammar).To(Equal(frontend.Grammar{
 				Terminals: []frontend.Symbol{
 					{
-						Name: "error",
+						Name: "$error",
 					},
 				},
 				Nonterminals: []frontend.Symbol{

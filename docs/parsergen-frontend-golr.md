@@ -256,6 +256,30 @@ Each alternative is a sequence of one or more symbols. A symbol is either:
 
 - A **terminal** — referenced by its token name (e.g. `NUMBER`) or by its string alias (e.g. `"+"`)
 - A **nonterminal** — referenced by its name (e.g. `expr`)
+- The **error symbol** — written `@error`, see below
+
+### Error Symbol
+
+`@error` marks the places in the grammar where the parser is allowed to resume after a syntax error:
+
+```
+stmt
+    : expr ";"
+    | @error ";"
+    ;
+```
+
+The error symbol behaves like a terminal while the parse tables are built, so the parser gets a shift action
+on it wherever a production allows one. No scanner ever produces it: it has no pattern and never appears in
+the `@scanner` section. The parser produces it itself while recovering.
+
+Where the parse resumes follows from the position `@error` is written at. Writing `"{" @error "}"` resumes at
+the closing brace of that block.
+
+In the JSON and YAML grammar formats the symbol appears under the name `$error`, and the generated scanner
+declares it as `ErrorToken`. It corresponds to the `error` token of GNU Bison and converts to and from it.
+
+Like any other terminal it can be given a precedence in the `@precedence` section.
 
 ### Empty Alternative
 

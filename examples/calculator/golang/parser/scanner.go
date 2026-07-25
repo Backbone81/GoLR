@@ -17,6 +17,10 @@ const (
 	// EndToken is a terminal which does not exist. It is used for situations where the end of the source was reached.
 	EndToken
 
+	// ErrorToken is a terminal which does not exist. It is the symbol a grammar marks its error recovery points with,
+	// which no input can produce: the parser shifts it itself while recovering from a syntax error.
+	ErrorToken
+
 	TokenWhitespace
 	TokenInteger
 	TokenPlus
@@ -38,6 +42,8 @@ func (t Token) String() string {
 		return "invalid token"
 	case EndToken:
 		return "end token"
+	case ErrorToken:
+		return "error token"
 	case TokenWhitespace:
 		return `WHITESPACE`
 	case TokenInteger:
