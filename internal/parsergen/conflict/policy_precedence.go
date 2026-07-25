@@ -169,12 +169,10 @@ func (p *precedencePolicy) resolveShiftReduce(
 	shift Contribution,
 	reduce Contribution,
 ) ContributionSet {
-	undecided := NewContributionSet(shift, reduce)
-
 	productionPrecedence := ProductionPrecedence(p.augmentedGrammar, reduce.ProductionIdx())
 	if IsNoPrecedence(productionPrecedence) {
 		// The production has no precedence declared, so there is nothing to compare the terminal against.
-		return undecided
+		return NewContributionSet(shift, reduce)
 	}
 
 	if productionPrecedence > terminalPrecedence {
@@ -201,7 +199,7 @@ func (p *precedencePolicy) resolveShiftReduce(
 	case frontend.AssociativityUndeclared:
 		// The terminal has a precedence, but no associativity was declared for it. There is nothing left to decide the
 		// conflict with, so both actions stay candidates.
-		return undecided
+		return NewContributionSet(shift, reduce)
 	}
-	return undecided
+	return NewContributionSet(shift, reduce)
 }
