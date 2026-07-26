@@ -1,0 +1,2 @@
+description: The LALR(1) and IELR(1) cores now report an error when a grammar needs
+  more states than the parser tables can address. Previously only the LR(1) core did.

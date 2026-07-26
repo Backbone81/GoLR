@@ -1,0 +1,3 @@
+description: The LALR(1) and LR(1) parser cores are now native Go implementations
+  as well and are used by default. The Bison backed cores are still available as "lalr1-bison"
+  and "lr1-bison".

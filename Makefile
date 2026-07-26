@@ -76,8 +76,16 @@ release-test:
 	goreleaser build --snapshot --clean
 	goreleaser release --snapshot --clean --skip=publish
 
+.PHONY: release-notes
+release-notes:
+	mkdir -p tmp
+	scripts/release-notes.sh > tmp/release-notes.md
+	@echo
+	@echo "========== Release notes =========="
+	@cat tmp/release-notes.md
+
 .PHONY: release
-release: release-test
+release: release-test release-notes
 release: export GITHUB_TOKEN ?= unknown
 release:
-	goreleaser release --clean
+	goreleaser release --clean --release-notes tmp/release-notes.md

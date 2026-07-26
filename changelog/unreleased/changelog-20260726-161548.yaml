@@ -1,0 +1,3 @@
+description: The `parser` command now reports shift/reduce and reduce/reduce conflicts
+  on stderr. The new `--verbose` flag additionally lists every conflict which was
+  resolved automatically.

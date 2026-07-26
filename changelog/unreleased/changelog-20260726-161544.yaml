@@ -1,0 +1,3 @@
+description: The IELR(1) parser core is now a native Go implementation and is used
+  by default. GNU Bison is no longer required to generate a parser. The Bison backed
+  core is still available as "ielr1-bison".
