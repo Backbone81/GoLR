@@ -34,7 +34,8 @@ const (
 	// ParserActionAccept reports a successful parse (a reduce by the augmented start production).
 	ParserActionAccept
 
-	// ParserActionReject reports that no action applies for the current state and input terminal.
+	// ParserActionReject reports that the parser takes no action for the current state and input terminal, either
+	// because the state has none for it or because the state rejects the terminal on purpose.
 	ParserActionReject
 )
 
@@ -240,6 +241,16 @@ func (i *ParserInterpreter) advance() {
 
 	state := &i.parser.States[i.stateStack[len(i.stateStack)-1]]
 	terminal := i.input[i.offset]
+
+	// A terminal the state rejects is an error here, even when the state reduces on anything else. The rejection
+	// removed every action for the terminal, so no explicit reduce and no shift below can match it anyway and only the
+	// order against the default reduce matters: the generated parser renders the rejection as an arm of its own, which
+	// is taken before the `default:` case, and the interpreter has to reject where the generated parser reports the
+	// error rather than reduce past it.
+	if state.RejectedTerminals.Contains(terminal) {
+		i.parserAction = i.rejectAction()
+		return
+	}
 
 	// An explicit reduce action takes priority over a shift, mirroring the generated parser which lists reduce and
 	// shift actions in one switch keyed by terminal. The accept production's reduce carries an empty lookahead set by

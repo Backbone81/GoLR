@@ -1,6 +1,8 @@
 package oracle_test
 
 import (
+	"slices"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -114,6 +116,54 @@ var _ = Describe("Parser Interpreter", func() {
 			// Next reports no further progress, and Value keeps yielding the accept.
 			Expect(interpreter.Next()).To(BeFalse())
 			Expect(interpreter.Value().Kind).To(Equal(oracle.ParserActionAccept))
+		})
+
+		// A state which rejects a terminal has to report the error right there, even though it has a default reduce
+		// action which would otherwise cover the terminal. This is what a nonassociative declaration asks for, and the
+		// generated parser renders it as an arm which is taken before its `default:` case, so the interpreter has to
+		// reject where the generated parser reports the error rather than reduce past it.
+		Describe("on a table whose state rejects a terminal", func() {
+			// The same table, with state 2 rejecting `a` while reducing on every other lookahead. Only that one state
+			// differs, so any difference in behavior can only come from the rejection. The state is replaced as a whole
+			// rather than modified, so the table of the other tests stays untouched.
+			rejectingParser := backend.Parser{
+				Grammar: grammar,
+				States:  slices.Clone(parser.States),
+			}
+			defaultReduceProductionIdx := 1
+			rejectingParser.States[2] = backend.State{
+				KernelItems:                backend.NewCoreSet(backend.NewCore(1, 1)),
+				DefaultReduceProductionIdx: &defaultReduceProductionIdx,
+				RejectedTerminals:          backend.NewLookaheadSet(1), // a
+			}
+
+			It("rejects the terminal instead of taking the default reduce action", func() {
+				final, sequence := runToCompletion(rejectingParser, []int{1, 1}) // a a
+
+				Expect(final.Kind).To(Equal(oracle.ParserActionReject))
+				Expect(sequence).To(
+					Equal([]oracle.ParserAction{
+						{Kind: oracle.ParserActionShift, TerminalIdx: 1, ProductionIdx: -1}, // shift the first a
+						{Kind: oracle.ParserActionReject, TerminalIdx: -1, ProductionIdx: -1},
+					}),
+					"the parse is expected to end at the rejected terminal, without the default reduce action of the "+
+						"state firing on it first",
+				)
+			})
+
+			It("keeps taking the default reduce action for a terminal it does not reject", func() {
+				final, sequence := runToCompletion(rejectingParser, []int{1}) // a
+
+				// The rejection is keyed on a single terminal, so the $end lookahead still reaches the default reduce
+				// action and the sentence parses as it does without any rejection.
+				Expect(final.Kind).To(Equal(oracle.ParserActionAccept))
+				Expect(sequence).To(Equal([]oracle.ParserAction{
+					{Kind: oracle.ParserActionShift, TerminalIdx: 1, ProductionIdx: -1},  // shift a
+					{Kind: oracle.ParserActionReduce, TerminalIdx: -1, ProductionIdx: 1}, // reduce S -> a
+					{Kind: oracle.ParserActionShift, TerminalIdx: 0, ProductionIdx: -1},  // shift $end
+					{Kind: oracle.ParserActionAccept, TerminalIdx: -1, ProductionIdx: -1},
+				}))
+			})
 		})
 	})
 

@@ -126,7 +126,7 @@ func (i *LALR1) buildProductionList(report bisonutils.BisonXMLReport, parser *ba
 	}
 }
 
-//nolint:gocognit,funlen // The state construction loop is inherently branchy; splitting it would obscure the flow.
+//nolint:gocognit,funlen,cyclop // The state construction loop is branchy; splitting it would obscure the flow.
 func (i *LALR1) buildStateList(report bisonutils.BisonXMLReport, parser *backend.Parser) error {
 	for _, state := range report.Automaton.States {
 		var newState backend.State
@@ -150,6 +150,17 @@ func (i *LALR1) buildStateList(report bisonutils.BisonXMLReport, parser *backend
 				return fmt.Errorf("unknown transition on %q", transition.Symbol)
 			}
 			newState.TransitionActions.Add(backend.NewTransitionAction(symbolRef, transition.State))
+		}
+
+		// GNU Bison reports the terminals which the state rejects on purpose, which are the ones a nonassociative
+		// declaration removed every action for. They have to be kept, because a state which has a default reduce action
+		// would otherwise take that action for them, see backend.State.RejectedTerminals.
+		for _, stateError := range state.Errors {
+			idx, ok := i.terminalIdxByName[stateError.Symbol]
+			if !ok {
+				return fmt.Errorf("unknown error on %q", stateError.Symbol)
+			}
+			newState.RejectedTerminals.Add(idx)
 		}
 
 		// A single production can reduce on multiple lookahead terminals. Bison reports those as separate reduction

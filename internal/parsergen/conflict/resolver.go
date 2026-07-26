@@ -118,6 +118,14 @@ func resolveState(state *backend.State, conflicts []Conflict, policy Policy) {
 	for i := range conflicts {
 		conflicts[i].Decision = DominantContribution(policy, conflicts[i].TerminalIdx, conflicts[i].Contributions)
 
+		if conflicts[i].Decision.Kind == DecisionError {
+			// Removing every action for the terminal is not enough to make the parser reject it, because a state which
+			// has a default reduce action takes that action for every lookahead it has no explicit action for. The
+			// terminal is recorded as rejected so that the state keeps an action for it which is the syntax error the
+			// policy asked for, see backend.State.RejectedTerminals.
+			state.RejectedTerminals.Add(conflicts[i].TerminalIdx)
+		}
+
 		survivors := conflicts[i].Decision.Survivors()
 		for _, contribution := range conflicts[i].Contributions.All() {
 			if survivors.Contains(contribution) {

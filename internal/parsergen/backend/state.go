@@ -20,6 +20,11 @@ type State struct {
 	// if not set.
 	//nolint:lll // Go tag lines cannot be broken onto multiple lines.
 	DefaultReduceProductionIdx *int `json:"defaultReduceProductionIdx,omitempty" yaml:"defaultReduceProductionIdx,omitempty"`
+
+	// RejectedTerminals provides the set of terminals which the state deliberately rejects: seeing one of them here is a
+	// syntax error, even though the state has a default reduce action which would otherwise cover it. This is what a
+	// terminal declared as nonassociative asks for, see conflict.DecisionError.
+	RejectedTerminals LookaheadSet `json:"rejectedTerminals" yaml:"rejectedTerminals"`
 }
 
 // State implements fmt.Stringer.
@@ -40,6 +45,12 @@ func (s *State) String() string {
 	builder.WriteString("\treduce actions: ")
 	builder.WriteString(s.ReduceActions.String())
 	builder.WriteString("\n")
+
+	if !s.RejectedTerminals.IsEmpty() {
+		builder.WriteString("\trejected terminals: ")
+		builder.WriteString(s.RejectedTerminals.String())
+		builder.WriteString("\n")
+	}
 
 	return builder.String()
 }

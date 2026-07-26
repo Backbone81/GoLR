@@ -65,6 +65,7 @@ type State struct {
 	Number      int          `xml:"number,attr"`
 	ItemSet     []Item       `xml:"itemset>item"`
 	Transitions []Transition `xml:"actions>transitions>transition"`
+	Errors      []Error      `xml:"actions>errors>error"`
 	Reductions  []Reduction  `xml:"actions>reductions>reduction"`
 }
 
@@ -81,6 +82,11 @@ type Transition struct {
 	Type   string `xml:"type,attr"`
 	Symbol string `xml:"symbol,attr"`
 	State  int    `xml:"state,attr"`
+}
+
+type Error struct {
+	Symbol string `xml:"symbol,attr"`
+	Reason string `xml:",chardata"`
 }
 
 type Reduction struct {

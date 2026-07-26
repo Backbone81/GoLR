@@ -66,6 +66,46 @@ var _ = Describe("Resolve", func() {
 				BeZero(),
 				"the state is expected to have no action left for the terminal which does not associate",
 			)
+			Expect(parser.States[c.StateIdx].RejectedTerminals.Contains(c.TerminalIdx)).To(
+				BeTrue(),
+				"the state is expected to record the terminal which does not associate as rejected, so that a "+
+					"default reduce action does not cover it later on",
+			)
+		}
+	})
+
+	// Removing every action for a terminal is not enough to reject it. A state which has a default reduce action takes
+	// that action for every lookahead it has no explicit action for, so the rejection only survives the default
+	// reduction because the state records it separately.
+	It("should keep a rejected terminal rejected when the tables are compressed afterwards", func() {
+		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		Expect(err).ToNot(HaveOccurred())
+
+		conflicts, err := conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
+		Expect(err).ToNot(HaveOccurred())
+
+		var rejectedStateIdxs []int
+		for _, c := range conflicts {
+			if c.Decision.Kind == conflict.DecisionError {
+				rejectedStateIdxs = append(rejectedStateIdxs, c.StateIdx)
+			}
+		}
+		Expect(rejectedStateIdxs).ToNot(
+			BeEmpty(),
+			"the nonassociative terminal of the test grammar is expected to be rejected somewhere",
+		)
+
+		backend.ApplyDefaultReductions(&parser)
+
+		for _, stateIdx := range rejectedStateIdxs {
+			// The state of this grammar reduces on everything but the rejected terminal, so it is compressed into a
+			// default reduce action. The rejection has to outlive that compression.
+			Expect(parser.States[stateIdx].DefaultReduceProductionIdx).ToNot(
+				BeNil(),
+				"the state is expected to be compressed into a default reduce action, which is what the rejection "+
+					"has to survive",
+			)
+			Expect(parser.States[stateIdx].RejectedTerminals.IsEmpty()).To(BeFalse())
 		}
 	})
 

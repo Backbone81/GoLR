@@ -357,6 +357,13 @@ func (p *Parser) state{{ $i }}() error {
             return nil
         {{- end }}
     {{- end }}
+    {{- $rejectedTerminals := rejectedTerminals $.Parser.Grammar $state }}
+    {{- if $rejectedTerminals }}
+        // The grammar rejects the following terminals here, so they are an error even when this state reduces on
+        // anything else: {{ range $j, $symbol := $rejectedTerminals }}{{ if gt $j 0 }}, {{ end }}{{ $symbol.Name }}{{ end }}
+        case {{ range $j, $terminal := $rejectedTerminals }}{{ if gt $j 0 }}, {{ end }}{{ terminalName $terminal }}{{ end }}:
+            return p.raiseError(fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
+    {{- end }}
     default:
         {{- $stateAction := defaultReduce $.Parser.Grammar $state }}
         {{- if $stateAction }}

@@ -23,6 +23,7 @@ var parserTemplate string
 
 var parsedTemplate = template.Must(template.New("parser.go.template").Funcs(template.FuncMap{
 	"stateActions":         buildStateActions,
+	"rejectedTerminals":    buildRejectedTerminals,
 	"defaultReduce":        buildDefaultReduce,
 	"gotoAfterNonterminal": buildGotoAfterNonterminal,
 	"errorShiftStates":     buildErrorShiftStates,
@@ -172,6 +173,28 @@ func buildStateActions(grammar frontend.Grammar, state backend.State) ([]StateAc
 		result = append(result, action)
 	}
 	return result, nil
+}
+
+// buildRejectedTerminals returns the terminals the state rejects on purpose, which the state renders as an arm of its
+// own which reports a syntax error.
+//
+// The arm is what makes the rejection survive the default reduction of the state: an explicit arm is taken before the
+// `default` arm, so a state which rejects a terminal and reduces on anything else reports the error for the rejected
+// terminal instead of reducing.
+//
+// The error symbol is left out for the same reason the shift on it is, see buildStateActions: no scanner delivers it,
+// so an arm for it could never be taken. A grammar can reject it by declaring it nonassociative.
+func buildRejectedTerminals(grammar frontend.Grammar, state backend.State) []frontend.Symbol {
+	errorRef, hasErrorTerminal := frontend.ErrorTerminalRef(grammar)
+
+	var result []frontend.Symbol
+	for terminalIdx := range state.RejectedTerminals.All() {
+		if hasErrorTerminal && frontend.NewTerminalRef(terminalIdx) == errorRef {
+			continue
+		}
+		result = append(result, grammar.Terminals[terminalIdx])
+	}
+	return result
 }
 
 // buildDefaultReduce returns the action for the `default` arm of a state, or nil when the state has none and an
