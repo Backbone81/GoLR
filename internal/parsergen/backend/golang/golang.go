@@ -25,6 +25,8 @@ var parsedTemplate = template.Must(template.New("parser.go.template").Funcs(temp
 	"stateActions":         buildStateActions,
 	"defaultReduce":        buildDefaultReduce,
 	"gotoAfterNonterminal": buildGotoAfterNonterminal,
+	"errorShiftStates":     buildErrorShiftStates,
+	"hasErrorRecovery":     hasErrorRecovery,
 	"displayProduction":    displayProduction,
 	"terminalName":         terminalName,
 	"nonterminalName":      nonterminalName,
@@ -123,6 +125,8 @@ type StateAction struct {
 }
 
 func buildStateActions(grammar frontend.Grammar, state backend.State) ([]StateAction, error) {
+	errorRef, hasErrorTerminal := frontend.ErrorTerminalRef(grammar)
+
 	var result []StateAction
 	for _, reduceAction := range state.ReduceActions.All() {
 		if reduceAction.ProductionIdx == acceptProductionIdx {
@@ -153,6 +157,12 @@ func buildStateActions(grammar frontend.Grammar, state backend.State) ([]StateAc
 	}
 	for _, transitionAction := range state.TransitionActions.All() {
 		if transitionAction.SymbolRef().IsNonterminal() {
+			continue
+		}
+		if hasErrorTerminal && transitionAction.SymbolRef() == errorRef {
+			// The shift on the error symbol is not keyed on a lookahead the scanner can deliver: no scanner ever produces
+			// the error symbol, the parser shifts it itself while recovering. The arm would be unreachable, so the shift
+			// is rendered as an entry of errorShiftState instead, which is where the recovery reads it.
 			continue
 		}
 		var action StateAction
@@ -228,6 +238,54 @@ func buildGotoAfterNonterminal(parser backend.Parser, nonterminalIdx int) []Goto
 		}
 	}
 	return result
+}
+
+// buildErrorShiftStates returns the transitions on the error symbol of the whole parser, as the pairs of source and
+// destination state the errorShiftState function of the generated parser is built from. Those are the
+// resynchronization points of the error recovery productions: the states the recovery pops the stack down to, and the
+// states the parse continues in after it shifted the error symbol there.
+//
+// The result is empty for a grammar which does not use the error symbol, which renders into an errorShiftState that
+// never reports a state. Such a parser cannot recover and reports the first syntax error it hits.
+func buildErrorShiftStates(parser backend.Parser) []Goto {
+	errorRef, hasErrorTerminal := frontend.ErrorTerminalRef(parser.Grammar)
+	if !hasErrorTerminal {
+		return nil
+	}
+
+	var result []Goto
+	for stateIdx := range parser.States {
+		destinationStateIdx, ok := backend.ErrorShiftStateIdx(&parser.States[stateIdx], errorRef)
+		if !ok {
+			continue
+		}
+		result = append(result, Goto{
+			SourceStateIdx:      stateIdx,
+			DestinationStateIdx: destinationStateIdx,
+		})
+	}
+	return result
+}
+
+// hasErrorRecovery reports if any state of the parser can shift the error symbol, which is the case for a grammar which
+// marks places to resume at after a syntax error. The generated parser leaves out the parts of the recovery which cost
+// something on the hot path when no state can, see the countdown of tokens to shift in the parser template.
+//
+// The presence of the error terminal in the grammar is not the test to use here: the Bison backed cores seed the symbol
+// into every grammar they hand back, whether the grammar uses it or not, so most grammars carry a terminal which
+// nothing ever shifts.
+func hasErrorRecovery(parser backend.Parser) bool {
+	errorRef, hasErrorTerminal := frontend.ErrorTerminalRef(parser.Grammar)
+	if !hasErrorTerminal {
+		return false
+	}
+
+	for stateIdx := range parser.States {
+		if _, ok := backend.ErrorShiftStateIdx(&parser.States[stateIdx], errorRef); ok {
+			return true
+		}
+	}
+	return false
 }
 
 func displayProduction(grammar frontend.Grammar, productionIdx int) string {

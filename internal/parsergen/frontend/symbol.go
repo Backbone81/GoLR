@@ -54,3 +54,18 @@ var SymbolEOF = Symbol{
 var SymbolError = Symbol{
 	Name: "$error",
 }
+
+// ErrorTerminalRef returns the symbol reference for the error symbol of the grammar and reports if the grammar carries
+// the symbol at all. A grammar which never references the error symbol does not carry the terminal, in which case
+// nothing in it can shift the symbol.
+//
+// The error symbol is identified by its name and sits at no fixed terminal index, see SymbolError, so resolving it
+// costs a scan over the terminals and is meant to happen once per grammar.
+func ErrorTerminalRef(grammar Grammar) (SymbolRef, bool) {
+	for idx := range grammar.Terminals {
+		if grammar.Terminals[idx].Name == SymbolError.Name {
+			return NewTerminalRef(idx), true
+		}
+	}
+	return 0, false
+}

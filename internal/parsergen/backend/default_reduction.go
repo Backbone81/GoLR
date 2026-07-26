@@ -17,41 +17,17 @@ func ApplyDefaultReductions(parser *Parser) {
 	// The error symbol sits at no fixed terminal index, so it is resolved once for the whole grammar here and compared
 	// by symbol reference per state afterwards. A grammar which never mentions @error does not carry the terminal at
 	// all, in which case no state can shift it and the check is skipped entirely.
-	errorRef, hasErrorTerminal := errorTerminalRef(parser.Grammar)
+	errorRef, hasErrorTerminal := frontend.ErrorTerminalRef(parser.Grammar)
 
 	for stateIdx := range parser.States {
 		state := &parser.States[stateIdx]
-		if hasErrorTerminal && shiftsErrorSymbol(state, errorRef) {
-			continue
+		if hasErrorTerminal {
+			if _, shiftsErrorSymbol := ErrorShiftStateIdx(state, errorRef); shiftsErrorSymbol {
+				continue
+			}
 		}
 		applyDefaultReduction(state)
 	}
-}
-
-// errorTerminalRef returns the symbol reference for the error symbol of the grammar and reports if the grammar carries
-// the symbol at all. The error symbol is identified by its name and sits at no fixed terminal index, see
-// frontend.SymbolError, so resolving it costs a scan over the terminals and is meant to happen once per grammar.
-func errorTerminalRef(grammar frontend.Grammar) (frontend.SymbolRef, bool) {
-	for idx := range grammar.Terminals {
-		if grammar.Terminals[idx].Name == frontend.SymbolError.Name {
-			return frontend.NewTerminalRef(idx), true
-		}
-	}
-	return 0, false
-}
-
-// shiftsErrorSymbol reports if the state has a transition on the error symbol, which is the case for the states of an
-// error recovery production where the parser resumes after a syntax error.
-//
-// A transition action packs the symbol reference into the bits above the target state, so the transition action set is
-// ordered by symbol first. Searching for the smallest transition action carrying the error symbol therefore lands on
-// the transition on that symbol if the state has one, without knowing the target state.
-func shiftsErrorSymbol(state *State, errorRef frontend.SymbolRef) bool {
-	idx := state.TransitionActions.LowerBound(NewTransitionAction(errorRef, 0))
-	if idx == state.TransitionActions.Length() {
-		return false
-	}
-	return state.TransitionActions.GetByIndex(idx).SymbolRef() == errorRef
 }
 
 // applyDefaultReduction turns the reduce action with the widest lookahead set of the state into its default reduction:
