@@ -17,7 +17,7 @@ class GolrLexer : LexerBase() {
 
         private val SECTION_KEYWORDS = setOf("scanner", "parser")
         private val CONTROL_KEYWORDS =
-            setOf("skip", "fragment", "empty", "start", "left", "right", "none", "precedence")
+            setOf("skip", "fragment", "empty", "error", "start", "left", "right", "none", "precedence")
     }
 
     override fun start(buffer: CharSequence, startOffset: Int, endOffset: Int, initialState: Int) {

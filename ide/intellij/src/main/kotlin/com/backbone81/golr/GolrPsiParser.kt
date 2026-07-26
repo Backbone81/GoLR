@@ -234,7 +234,9 @@ class GolrPsiParser : PsiParser {
                     advanceIf(builder, GolrTokenTypes.RPAREN)
                 }
 
-                // @empty, "|", string literals, and anything else — consume without wrapping
+                // @empty, @error, "|", string literals, and anything else — consume without
+                // wrapping. @error is a symbol in the body, but it is built in rather than
+                // declared anywhere, so there is nothing to resolve it to.
                 else -> builder.advanceLexer()
             }
         }

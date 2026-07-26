@@ -63,6 +63,7 @@ class GolrSyntaxHighlighterTest : BasePlatformTestCase() {
             @left : PLUS ;
             }
             expression : expression PLUS expression @precedence(PLUS) | term ;
+            statement : expression | @error ";" ;
             }
             """.trimIndent(),
         )
@@ -70,6 +71,7 @@ class GolrSyntaxHighlighterTest : BasePlatformTestCase() {
         assertHighlight(highlights, "@parser", GolrSyntaxHighlighter.KEYWORD_SECTION)
         assertHighlight(highlights, "@precedence", GolrSyntaxHighlighter.KEYWORD_CONTROL)
         assertHighlight(highlights, "@left", GolrSyntaxHighlighter.KEYWORD_CONTROL)
+        assertHighlight(highlights, "@error", GolrSyntaxHighlighter.KEYWORD_CONTROL)
         assertHighlight(highlights, "expression", GolrSyntaxHighlighter.IDENTIFIER)
         assertHighlight(highlights, "|", GolrSyntaxHighlighter.OPERATION_SIGN)
         assertHighlight(highlights, "(", GolrSyntaxHighlighter.PARENTHESES)

@@ -44,6 +44,15 @@ suite("tokenizer", () => {
     ]);
   });
 
+  test("@error in a rule body is a control keyword", () => {
+    assert.deepStrictEqual(pairs('stmt : @error ";"'), [
+      [TokenType.Identifier, "stmt"],
+      [TokenType.Colon, ":"],
+      [TokenType.KeywordControl, "@error"],
+      [TokenType.String, '";"'],
+    ]);
+  });
+
   test("line comment runs to end of line, not past the newline", () => {
     const tokens = significant("// hello\nx");
     assert.strictEqual(tokens[0].type, TokenType.CommentLine);

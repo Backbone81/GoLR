@@ -186,7 +186,9 @@ class Parser {
         }
         this.expectIf(TokenType.RParen);
       } else {
-        this.advance(); // strings, @empty, "|", etc.
+        // Strings, "|", @empty, @error, etc. @error is a symbol in the body, but it is
+        // built in rather than declared anywhere, so there is nothing to resolve it to.
+        this.advance();
       }
     }
 
