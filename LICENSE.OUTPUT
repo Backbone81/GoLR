@@ -1,0 +1,50 @@
+                             GoLR OUTPUT EXCEPTION
+                          Version 1.0, 26 July 2026
+
+GoLR is licensed under the Apache License, Version 2.0 (the "License"), a copy
+of which is provided in the file LICENSE next to this one.
+
+This file grants an additional permission that applies to the output GoLR
+produces. It only grants rights; it takes none away. Everything the License
+permits, it still permits.
+
+
+0. Definitions
+
+   "GoLR" means this program and its source code, including its code-generation
+   templates.
+
+   "Output" means the files GoLR produces when you run it on input of your own,
+   such as the generated parsers and scanners. Output includes those portions of
+   GoLR's code-generation templates that GoLR copies into the files it produces.
+
+
+1. Grant of Additional Permission
+
+   The copyright holders of GoLR give you unlimited permission to use, copy,
+   modify, and distribute Output under terms of your choosing. You do not need
+   to comply with the conditions of Section 4 of the License with respect to
+   Output.
+
+   In particular, you do not need to place your Output under the Apache License,
+   ship a copy of the License with it, attribute GoLR in it, or carry any notice
+   in it.
+
+   This permission covers Output produced by GoLR and Output produced by
+   modified versions of GoLR that were distributed together with this exception.
+
+
+2. Scope
+
+   This exception applies to Output only.
+
+   It does not apply to GoLR itself. GoLR, including its code-generation
+   templates, remains licensed under the Apache License, Version 2.0. If you
+   copy, modify, or distribute GoLR, the License applies to it in full.
+
+
+3. No Other Changes
+
+   Except as stated above, the License applies unchanged. This includes its
+   patent grant in Section 3 and its warranty and liability disclaimers in
+   Sections 7 and 8, which continue to apply to GoLR and to Output alike.

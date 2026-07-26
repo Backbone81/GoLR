@@ -257,3 +257,15 @@ JSON to stdout, the output of GoLR can be piped into your own backend applicatio
 ## Roadmap
 
 See the [roadmap](docs/roadmap.md) for topics which will be addressed in the future.
+
+## License
+
+GoLR is licensed under the [Apache License, Version 2.0](LICENSE).
+
+The parsers and scanners GoLR generates for you are exempt from that license. The
+[GoLR Output Exception](LICENSE.OUTPUT) gives you unlimited permission to use, modify and distribute the generated
+files under terms of your choosing. You do not need to place them under the Apache License, ship a copy of the license
+with them, or attribute GoLR in them.
+
+The exception covers the generated output only. GoLR itself, including its code-generation templates, stays under the
+Apache License.
