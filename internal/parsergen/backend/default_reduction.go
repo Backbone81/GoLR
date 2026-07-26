@@ -1,5 +1,9 @@
 package backend
 
+import (
+	"github.com/backbone81/golr/internal/parsergen/frontend"
+)
+
 // ApplyDefaultReductions picks a default reduce action for every state which does not already have one, compressing the
 // reduce actions of the parser tables. It is the equivalent of GNU Bison's default behavior.
 //
@@ -7,10 +11,47 @@ package backend
 // no state has more than one action for any one terminal, so that the reduce actions it reads are the reduce actions
 // the parser will actually take. It is idempotent - a state which already carries a default reduction is left
 // untouched, so running it over the Bison backed tables, which already have their defaults, changes nothing.
+//
+// States which shift the error symbol are left uncompressed, see applyDefaultReduction for why.
 func ApplyDefaultReductions(parser *Parser) {
+	// The error symbol sits at no fixed terminal index, so it is resolved once for the whole grammar here and compared
+	// by symbol reference per state afterwards. A grammar which never mentions @error does not carry the terminal at
+	// all, in which case no state can shift it and the check is skipped entirely.
+	errorRef, hasErrorTerminal := errorTerminalRef(parser.Grammar)
+
 	for stateIdx := range parser.States {
-		applyDefaultReduction(&parser.States[stateIdx])
+		state := &parser.States[stateIdx]
+		if hasErrorTerminal && shiftsErrorSymbol(state, errorRef) {
+			continue
+		}
+		applyDefaultReduction(state)
 	}
+}
+
+// errorTerminalRef returns the symbol reference for the error symbol of the grammar and reports if the grammar carries
+// the symbol at all. The error symbol is identified by its name and sits at no fixed terminal index, see
+// frontend.SymbolError, so resolving it costs a scan over the terminals and is meant to happen once per grammar.
+func errorTerminalRef(grammar frontend.Grammar) (frontend.SymbolRef, bool) {
+	for idx := range grammar.Terminals {
+		if grammar.Terminals[idx].Name == frontend.SymbolError.Name {
+			return frontend.NewTerminalRef(idx), true
+		}
+	}
+	return 0, false
+}
+
+// shiftsErrorSymbol reports if the state has a transition on the error symbol, which is the case for the states of an
+// error recovery production where the parser resumes after a syntax error.
+//
+// A transition action packs the symbol reference into the bits above the target state, so the transition action set is
+// ordered by symbol first. Searching for the smallest transition action carrying the error symbol therefore lands on
+// the transition on that symbol if the state has one, without knowing the target state.
+func shiftsErrorSymbol(state *State, errorRef frontend.SymbolRef) bool {
+	idx := state.TransitionActions.LowerBound(NewTransitionAction(errorRef, 0))
+	if idx == state.TransitionActions.Length() {
+		return false
+	}
+	return state.TransitionActions.GetByIndex(idx).SymbolRef() == errorRef
 }
 
 // applyDefaultReduction turns the reduce action with the widest lookahead set of the state into its default reduction:
@@ -41,6 +82,21 @@ func ApplyDefaultReductions(parser *Parser) {
 // The compression is applied to every state that has a reduction, including states which also shift. A shift is always
 // an explicit action keyed on its terminal, so it takes precedence over the default arm and is never replaced by it;
 // only the reduce-or-error lookaheads of the state fall through to the default.
+//
+// # Why states which shift the error symbol are exempt
+//
+// The argument above rests on the parser never shifting an erroneous token, which makes the delayed error report the
+// only observable difference. A state which shifts the error symbol is the one place where that does not hold: it is a
+// resynchronization point of an error recovery production, and the recovery handler reaches it by popping the stack
+// until it finds a state which shifts the error symbol. That search inspects states, not lookaheads, so it depends on
+// the state still being on the stack when the error is reported. A default reduction in such a state fires on the
+// offending lookahead before the error is ever reported, pops the state and gotos elsewhere, and the resynchronization
+// point the grammar author marked is gone by the time recovery starts. So ApplyDefaultReductions skips those states and
+// lets them report the error where it happens.
+//
+// Only a shift on the error symbol has this effect. A reduce action whose lookahead set happens to contain the error
+// symbol does not, because the error symbol never arrives from the scanner as a lookahead - the parser shifts it
+// itself.
 //
 // The accept action is left alone. The GoLR cores encode it as a reduce of the accept production with an empty
 // reduction lookahead set, which the backend already renders as the unconditional default of its state. Such an action
