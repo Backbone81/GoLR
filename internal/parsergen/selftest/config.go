@@ -59,7 +59,7 @@ var DefaultConfig = Config{
 	StopOnFailure:                    false,
 	MemoryLimitMiB:                   512,
 	MaxTerminalCount:                 5,
-	MaxNonterminalCount:              6,
+	MaxNonterminalCount:              8,
 	MaxProductionCountPerNonterminal: 6,
 	MaxRHSSymbolCount:                4,
 }
