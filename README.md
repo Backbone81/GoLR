@@ -84,6 +84,7 @@ Available Commands:
   help        Help about any command
   parser      Generates a LR(1) parser.
   scanner     Generates a DFA scanner.
+  selftest    Checks the IELR(1) parser core against a canonical LR(1) oracle.
 
 Flags:
   -h, --help   help for golr
@@ -161,6 +162,42 @@ Flags:
 Note that the conversion is incomplete most of the time. GNU Bison grammar files do not describe regular expressions
 of tokens, for example. But the conversion can be a starting point to have a GoLR grammar quickly with only a few
 manual corrections needed.
+
+The `selftest` sub-command checks the IELR(1) parser core against a canonical LR(1) oracle:
+
+```text
+Checks the IELR(1) parser core against a canonical LR(1) oracle.
+
+Usage:
+  golr selftest [flags]
+
+Flags:
+      --duration duration                          How long to keep checking grammars, for example 30m or 8h. Zero means no time limit.
+      --failure-dir string                         The directory to dump a failing grammar and its action traces into. Empty only reports the seed.
+      --grammar-count int                          The number of grammars to check in total. Zero keeps checking until the duration is up or the run is interrupted.
+  -h, --help                                       help for selftest
+      --inputs-per-grammar int                     The number of generated sentences each grammar is checked with. (default 16)
+      --max-nonterminal-count int                  The largest number of nonterminals a generated grammar may have. Zero uses the generator default.
+      --max-production-count-per-nonterminal int   The largest number of productions a generated nonterminal may have. Zero uses the generator default.
+      --max-rhs-symbol-count int                   The largest number of symbols on the right hand side of a generated production. Zero uses the generator default.
+      --max-terminal-count int                     The largest number of terminals a generated grammar may have. Zero uses the generator default.
+      --progress-interval duration                 How often to print a progress line. (default 10s)
+      --stop-on-failure                            End the whole run as soon as one grammar fails, instead of counting the failure and carrying on.
+      --workers int                                The number of grammars to check concurrently. Defaults to the number of CPU cores.
+```
+
+This is a soak test for GoLR itself, not a step of generating a parser. Random grammars are turned into an IELR(1) and
+a canonical LR(1) parser table, and both tables are driven through the same generated sentences. They have to take the
+identical sequence of LR actions every time, because that is what IELR(1) guarantees: the same language and the same
+parses as canonical LR(1), only with fewer states. Any disagreement is a bug in the IELR(1) core.
+
+A run saturates every core it is given and keeps going until the grammar count or the duration is reached, so a run
+with neither only ends on Ctrl-C. Interrupting it is fine at any point, the summary still covers everything checked so
+far:
+
+```shell
+golr selftest --duration 8h --failure-dir ./selftest-failures | tee selftest.log
+```
 
 ## Parser Generator
 

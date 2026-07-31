@@ -19,6 +19,7 @@
 - Fixed terminals declared with `%precedence` being dropped when handing the grammar to the Bison backed cores, which silently changed how conflicts were resolved.
 - Fixed the precedence of a production getting lost while the grammar is augmented.
 - BREAKING: `GrammarToParser` of the `pkg/parsergen/core/...` packages now returns the list of conflicts as an additional result. Call sites need to be updated.
+- Added the `golr selftest` command, which checks the IELR(1) parser core against a canonical LR(1) oracle on randomly generated grammars across all CPU cores for as long as you let it run.
 
 ## v0.1.0 (2026-07-11)
 

@@ -35,6 +35,9 @@ unreleased:
 - description: 'BREAKING: `GrammarToParser` of the `pkg/parsergen/core/...` packages
     now returns the list of conflicts as an additional result. Call sites need to
     be updated.'
+- description: Added the `golr selftest` command, which checks the IELR(1) parser
+    core against a canonical LR(1) oracle on randomly generated grammars across all
+    CPU cores for as long as you let it run.
 releases:
 - version: |
     v0.1.0
