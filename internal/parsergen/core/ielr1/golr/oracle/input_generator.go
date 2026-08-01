@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 
@@ -59,10 +60,10 @@ type InputGenerator struct {
 }
 
 // NewInputGenerator returns an input generator for the given augmented grammar (see frontend.AugmentGrammar). The
-// grammar must be productive (every nonterminal derives some terminal string), which every grammar from GrammarGenerator
-// and every hand-written corpus grammar is; a non-productive grammar is a programming error and is caught by a debug
-// assertion. The generator precomputes the auxiliary tables the derivation needs, so constructing it once per grammar
-// and calling Generate repeatedly is cheaper than reconstructing it per sentence.
+// grammar must be productive (every nonterminal derives some terminal string), which every grammar from
+// GrammarGenerator and every hand-written corpus grammar is; a non-productive grammar is a programming error and is
+// caught by a debug assertion. The generator precomputes the auxiliary tables the derivation needs, so constructing it
+// once per grammar and calling Generate repeatedly is cheaper than reconstructing it per sentence.
 func NewInputGenerator(grammar frontend.Grammar, rng *rand.Rand) *InputGenerator {
 	utils.DebugAssert(func() error {
 		return assertAugmented(grammar)
@@ -90,7 +91,7 @@ func assertAugmented(grammar frontend.Grammar) error {
 		return fmt.Errorf("accept production must have exactly 2 symbols, got %d", len(acceptProduction.SymbolRefs))
 	}
 	if !acceptProduction.SymbolRefs[0].IsNonterminal() {
-		return fmt.Errorf("first symbol of the accept production must be the start nonterminal")
+		return errors.New("first symbol of the accept production must be the start nonterminal")
 	}
 	if !acceptProduction.SymbolRefs[1].IsTerminal() || acceptProduction.SymbolRefs[1].Idx() != eofTerminalIdx {
 		return fmt.Errorf("second symbol of the accept production must be the EOF terminal %d", eofTerminalIdx)
@@ -179,9 +180,9 @@ func (g *InputGenerator) productionHeight(production frontend.Production, known 
 }
 
 // Generate produces one random sentence the grammar derives, as a slice of terminal indexes into the augmented grammar
-// (EOF excluded — see the type doc). Consecutive calls with the same generator draw a stream of different sentences; two
-// generators with identically seeded randomness produce the same stream. The result may be empty when Start derives the
-// empty string, which is a valid sentence the caller feeds as empty input.
+// (EOF excluded — see the type doc). Consecutive calls with the same generator draw a stream of different sentences;
+// two generators with identically seeded randomness produce the same stream. The result may be empty when Start derives
+// the empty string, which is a valid sentence the caller feeds as empty input.
 func (g *InputGenerator) Generate() []int {
 	var sentence []int
 	remainingExpansions := g.MaxExpansions

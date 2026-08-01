@@ -38,7 +38,8 @@ func DiffLALR1ParserStates(want backend.Parser, got backend.Parser) []string {
 // A state is identified by the raw bytes of its kernel items rather than by its state index, because two parser table
 // constructions which agree on the automaton are free to number their states differently. An LALR(1) state is uniquely
 // determined by its kernel items, which makes them a usable identity. The bytes are exact and collision-free, but not
-// readable, so a reported difference renders the readable kernel items of a state on demand, see wantLabel and gotLabel.
+// readable, so a reported difference renders the readable kernel items of a state on demand, see wantLabel and
+// gotLabel.
 //
 // The states of both parser tables are indexed once up front. Every wantXxx field has a gotXxx counterpart holding the
 // same derived data for the other parser table.
@@ -61,8 +62,8 @@ type LALR1ParserDiffer struct {
 	differences []string
 }
 
-// NewLALR1ParserDiffer returns a LALR1ParserDiffer for the two parser tables, with the states of both indexed by their kernel
-// items.
+// NewLALR1ParserDiffer returns a LALR1ParserDiffer for the two parser tables, with the states of both indexed by their
+// kernel items.
 func NewLALR1ParserDiffer(want backend.Parser, got backend.Parser) LALR1ParserDiffer {
 	result := LALR1ParserDiffer{
 		wantParser: want,
@@ -83,8 +84,8 @@ func (d *LALR1ParserDiffer) gotLabel(key string) string {
 	return d.gotParser.States[d.gotStateIdxByKey[key]].KernelItems.String()
 }
 
-// report records a difference between the two parser tables.
-func (d *LALR1ParserDiffer) report(format string, args ...any) {
+// reportf records a difference between the two parser tables.
+func (d *LALR1ParserDiffer) reportf(format string, args ...any) {
 	d.differences = append(d.differences, fmt.Sprintf(format, args...))
 }
 
@@ -106,7 +107,7 @@ func (d *LALR1ParserDiffer) indexStates(label string, parser backend.Parser) (ma
 		keyByStateIdx[stateIdx] = key
 
 		if earlierStateIdx, exists := stateIdxByKey[key]; exists {
-			d.report(
+			d.reportf(
 				"%s: state %d repeats the kernel items %s of state %d, which no LALR(1) parser table can do",
 				label, stateIdx, kernelItems.String(), earlierStateIdx,
 			)
@@ -129,12 +130,12 @@ func sortedKeys(stateIdxByKey map[string]int) []string {
 func (d *LALR1ParserDiffer) diffKernelItems() {
 	for _, key := range sortedKeys(d.wantStateIdxByKey) {
 		if _, exists := d.gotStateIdxByKey[key]; !exists {
-			d.report("state %s is missing", d.wantLabel(key))
+			d.reportf("state %s is missing", d.wantLabel(key))
 		}
 	}
 	for _, key := range sortedKeys(d.gotStateIdxByKey) {
 		if _, exists := d.wantStateIdxByKey[key]; !exists {
-			d.report("state %s is unexpected", d.gotLabel(key))
+			d.reportf("state %s is unexpected", d.gotLabel(key))
 		}
 	}
 }
@@ -166,12 +167,12 @@ func (d *LALR1ParserDiffer) diffTransitions(key string, wantState *backend.State
 	for _, symbolRef := range slices.Sorted(maps.Keys(wantTransitions)) {
 		switch gotDestinationKey, exists := gotTransitions[symbolRef]; {
 		case !exists:
-			d.report(
+			d.reportf(
 				"state %s: missing transition on %s to %s",
 				d.wantLabel(key), d.symbolString(symbolRef), d.wantLabel(wantTransitions[symbolRef]),
 			)
 		case gotDestinationKey != wantTransitions[symbolRef]:
-			d.report(
+			d.reportf(
 				"state %s: transition on %s leads to %s, want %s",
 				d.wantLabel(key), d.symbolString(symbolRef),
 				d.gotLabel(gotDestinationKey), d.wantLabel(wantTransitions[symbolRef]),
@@ -180,7 +181,7 @@ func (d *LALR1ParserDiffer) diffTransitions(key string, wantState *backend.State
 	}
 	for _, symbolRef := range slices.Sorted(maps.Keys(gotTransitions)) {
 		if _, exists := wantTransitions[symbolRef]; !exists {
-			d.report(
+			d.reportf(
 				"state %s: unexpected transition on %s to %s",
 				d.wantLabel(key), d.symbolString(symbolRef), d.gotLabel(gotTransitions[symbolRef]),
 			)
@@ -208,14 +209,14 @@ func (d *LALR1ParserDiffer) diffReduceActions(key string, wantState *backend.Sta
 		wantLookaheadSet := wantLookaheadSets[productionIdx]
 		gotLookaheadSet, exists := gotLookaheadSets[productionIdx]
 		if !exists {
-			d.report(
+			d.reportf(
 				"state %s: missing reduce action for production %d on %s",
 				d.wantLabel(key), productionIdx, d.lookaheadSetString(wantLookaheadSet),
 			)
 			continue
 		}
 		if !gotLookaheadSet.Equal(wantLookaheadSet) {
-			d.report(
+			d.reportf(
 				"state %s: reduce action for production %d on %s, want %s",
 				d.wantLabel(key), productionIdx,
 				d.lookaheadSetString(gotLookaheadSet), d.lookaheadSetString(wantLookaheadSet),
@@ -224,7 +225,7 @@ func (d *LALR1ParserDiffer) diffReduceActions(key string, wantState *backend.Sta
 	}
 	for _, productionIdx := range slices.Sorted(maps.Keys(gotLookaheadSets)) {
 		if _, exists := wantLookaheadSets[productionIdx]; !exists {
-			d.report(
+			d.reportf(
 				"state %s: unexpected reduce action for production %d on %s",
 				d.wantLabel(key), productionIdx, d.lookaheadSetString(gotLookaheadSets[productionIdx]),
 			)
@@ -236,12 +237,16 @@ func (d *LALR1ParserDiffer) diffReduceActions(key string, wantState *backend.Sta
 // action per production, as two reduce actions for the same production are one reduce action whose lookahead set was
 // never merged. Such a pair is reported as a difference, because it makes the two reduce actions incomparable with the
 // single reduce action the other parser table has.
-func (d *LALR1ParserDiffer) reduceActions(sideLabel string, key string, state *backend.State) map[int]backend.LookaheadSet {
+func (d *LALR1ParserDiffer) reduceActions(
+	sideLabel string,
+	key string,
+	state *backend.State,
+) map[int]backend.LookaheadSet {
 	result := make(map[int]backend.LookaheadSet, state.ReduceActions.Length())
 
 	for _, reduceAction := range state.ReduceActions.All() {
 		if _, exists := result[reduceAction.ProductionIdx]; exists {
-			d.report(
+			d.reportf(
 				"%s: state %s: production %d has more than one reduce action",
 				sideLabel, d.wantLabel(key), reduceAction.ProductionIdx,
 			)

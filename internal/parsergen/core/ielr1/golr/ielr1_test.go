@@ -5,11 +5,6 @@ import (
 	"slices"
 	"testing"
 
-	lalr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lalr1/golr"
-	bisonfrontend "github.com/backbone81/golr/internal/parsergen/frontend/bison"
-	ielr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/bison"
-	lalr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/lalr1/bison"
-	"github.com/backbone81/golr/testdata"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -17,7 +12,12 @@ import (
 	"github.com/backbone81/golr/internal/parsergen/conflict"
 	"github.com/backbone81/golr/internal/parsergen/core"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
+	lalr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lalr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
+	bisonfrontend "github.com/backbone81/golr/internal/parsergen/frontend/bison"
+	ielr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/bison"
+	lalr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/lalr1/bison"
+	"github.com/backbone81/golr/testdata"
 )
 
 var _ = Describe("IELR(1)", func() {
@@ -32,7 +32,11 @@ var _ = Describe("IELR(1)", func() {
 			// The pinned table lists every reduce action explicitly, keyed on its lookahead, because this test is about
 			// the split lookahead sets, not the table compaction. WithoutDefaultReductions keeps GrammarToParser from
 			// folding one of them into the state's default arm, which would only obscure what is being checked here.
-			ielr1Parser, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy, core.WithoutDefaultReductions())
+			ielr1Parser, _, err := ielr1golrcore.GrammarToParser(
+				grammar,
+				conflict.DefaultPolicy,
+				core.WithoutDefaultReductions(),
+			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ielr1Parser).To(Equal(wantIELR1Parser))
 		},
@@ -56,7 +60,10 @@ var _ = Describe("IELR(1)", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(conflict.HasConflict(rawParser)).To(BeTrue(), "the raw split table is expected to keep the genuine conflict")
 
-		resolvedParser, _, err := ielr1golrcore.GrammarToParser(ielr1golrcore.AmbiguousTestGrammarFig2, conflict.DefaultPolicy)
+		resolvedParser, _, err := ielr1golrcore.GrammarToParser(
+			ielr1golrcore.AmbiguousTestGrammarFig2,
+			conflict.DefaultPolicy,
+		)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(conflict.HasConflict(resolvedParser)).To(BeFalse(), "phase 5 is expected to resolve the genuine conflict")
 	})
@@ -136,13 +143,13 @@ var _ = Describe("IELR(1)", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				if wellKnownGrammar.IsLALR1 {
-					Expect(len(bisonIELR1Parser.States)).To(Equal(len(bisonLALR1Parser.States)))
-					Expect(len(golrIELR1Parser.States)).To(Equal(len(golrLALR1Parser.States)))
-					Expect(len(golrLALR1Parser.States)).To(Equal(len(bisonLALR1Parser.States)))
-					Expect(len(golrIELR1Parser.States)).To(Equal(len(bisonIELR1Parser.States)))
+					Expect(bisonIELR1Parser.States).To(HaveLen(len(bisonLALR1Parser.States)))
+					Expect(golrIELR1Parser.States).To(HaveLen(len(golrLALR1Parser.States)))
+					Expect(golrLALR1Parser.States).To(HaveLen(len(bisonLALR1Parser.States)))
+					Expect(golrIELR1Parser.States).To(HaveLen(len(bisonIELR1Parser.States)))
 				} else {
-					Expect(len(bisonIELR1Parser.States)).ToNot(Equal(len(bisonLALR1Parser.States)))
-					Expect(len(golrIELR1Parser.States)).ToNot(Equal(len(golrLALR1Parser.States)))
+					Expect(bisonIELR1Parser.States).ToNot(HaveLen(len(bisonLALR1Parser.States)))
+					Expect(golrIELR1Parser.States).ToNot(HaveLen(len(golrLALR1Parser.States)))
 
 					// We expect our own IELR(1) implementation to land within 2% of the state count of GNU Bison.
 					// An exact match is not possible right now and requires deeper analysis into why we do not match

@@ -7,18 +7,18 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
-	lr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lr1/golr"
-	bisonfrontend "github.com/backbone81/golr/internal/parsergen/frontend/bison"
-	lalr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/lalr1/bison"
-	"github.com/backbone81/golr/testdata"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/conflict"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
+	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
+	lr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
+	bisonfrontend "github.com/backbone81/golr/internal/parsergen/frontend/bison"
+	lalr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/lalr1/bison"
+	"github.com/backbone81/golr/testdata"
 )
 
 var _ = Describe("LALR(1) Builder", func() {
@@ -179,7 +179,10 @@ var _ = Describe("LALR(1) Builder", func() {
 			// grammars each scenario actually reaches, rather than against the raw weights: because a cluster scenario is
 			// dropped once it no longer fits the nonterminal budget, the reached fraction can differ markedly from the
 			// weight.
-			GinkgoWriter.Printf("scenario distribution over %d generated grammars (grammars using the scenario, total fires):\n", grammarCount)
+			GinkgoWriter.Printf(
+				"scenario distribution over %d generated grammars (grammars using the scenario, total fires):\n",
+				grammarCount,
+			)
 			for _, scenario := range slices.Sorted(maps.Keys(scenarioGrammarCounts)) {
 				grammars := scenarioGrammarCounts[scenario]
 				GinkgoWriter.Printf(
@@ -214,7 +217,7 @@ var _ = Describe("LALR(1) Builder", func() {
 				Expect(lalr1Builder.Build()).To(Succeed())
 				golrParser := lalr1Builder.Parser()
 
-				Expect(len(golrParser.States)).To(Equal(len(bisonParser.States)))
+				Expect(golrParser.States).To(HaveLen(len(bisonParser.States)))
 			})
 		}
 	})

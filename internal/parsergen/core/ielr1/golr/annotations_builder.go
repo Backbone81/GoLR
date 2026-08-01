@@ -360,7 +360,11 @@ func (b *AnnotationsBuilder) annotateManifestation(inadequacy *Inadequacy) Annot
 // the nonterminal no matter what the kernel item lookahead sets of the state are, so the contribution is an always
 // contribution. Otherwise the terminal can only reach the goto follow set through the kernel items the goto follow set
 // depends on, so the contribution depends on exactly those kernel items which currently see the terminal.
-func (b *AnnotationsBuilder) computeLhsContributions(stateIdx int, nonterminalIdx int, terminalIdx int) ContributionRow {
+func (b *AnnotationsBuilder) computeLhsContributions(
+	stateIdx int,
+	nonterminalIdx int,
+	terminalIdx int,
+) ContributionRow {
 	gotoIdx, ok := b.getGotoIdx(stateIdx, nonterminalIdx)
 	utils.DebugAssert(func() error {
 		if !ok {

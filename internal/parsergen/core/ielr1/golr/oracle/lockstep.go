@@ -15,9 +15,10 @@ import "fmt"
 // divergences. This mirrors the well-known way LALR(1) delays error detection relative to canonical LR(1).
 //
 // It returns nil when the two agree under that rule, and otherwise an error describing the step and the differing
-// actions, which is all a differential test needs to report a reproducible failure. Each interpreter keeps its own state
-// stack and input cursor, so a divergence surfaces as a differing action. The two interpreters are expected to have been
-// built from the same input; feeding them different inputs is a programming error the comparison does not try to detect.
+// actions, which is all a differential test needs to report a reproducible failure. Each interpreter keeps its own
+// state stack and input cursor, so a divergence surfaces as a differing action. The two interpreters are expected to
+// have been built from the same input; feeding them different inputs is a programming error the comparison does not try
+// to detect.
 func RunInLockstep(a *ParserInterpreter, b *ParserInterpreter) error {
 	for step := 0; ; step++ {
 		progressedA := a.Next()
@@ -68,6 +69,7 @@ func RunInLockstep(a *ParserInterpreter, b *ParserInterpreter) error {
 // disagree on the language).
 func drainReductionsUntilReject(label string, interpreter *ParserInterpreter, current ParserAction, step int) error {
 	for {
+		//nolint:exhaustive // We are only interested in reject and reduce actions.
 		switch current.Kind {
 		case ParserActionReject:
 			return nil
@@ -75,7 +77,8 @@ func drainReductionsUntilReject(label string, interpreter *ParserInterpreter, cu
 			// The allowed slack: a harmless reduction on the way to the same rejection. Keep draining.
 		default:
 			return fmt.Errorf(
-				"diverged at step %d: %s took %s after the other table rejected, expected only reductions until it rejects too (input offset %d)",
+				"diverged at step %d: %s took %s after the other table rejected, expected only reductions until"+
+					" it rejects too (input offset %d)",
 				step, label, current, interpreter.Offset(),
 			)
 		}

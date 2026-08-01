@@ -126,8 +126,8 @@ func WithMaxSteps(maxSteps int) ParserInterpreterOption {
 
 // WithTrace makes the interpreter write one readable line per step to the writer, describing the state the action was
 // decided in, the lookahead, and the action taken (a reduce expanded into its named production). It turns the
-// interpreter into its own tracer, so debugging a divergence between two tables is a matter of tracing each of them to a
-// buffer and reading the two side by side. Passing nil disables tracing, which is also the default.
+// interpreter into its own tracer, so debugging a divergence between two tables is a matter of tracing each of them to
+// a buffer and reading the two side by side. Passing nil disables tracing, which is also the default.
 func WithTrace(writer io.Writer) ParserInterpreterOption {
 	return func(i *ParserInterpreter) {
 		i.trace = writer
@@ -137,7 +137,8 @@ func WithTrace(writer io.Writer) ParserInterpreterOption {
 // DefaultMaxSteps returns the runaway step bound for an input of the given length (EOF included) parsed over a table
 // with the given number of states. It is a loose but safe guard: every shift consumes input and every reduce without a
 // shift is bounded by the automaton size, so this comfortably exceeds the steps any well-formed parse needs while still
-// capping a reduce loop. It is exported so a lockstep comparison can size one shared bound off the larger of two tables.
+// capping a reduce loop. It is exported so a lockstep comparison can size one shared bound off the larger of two
+// tables.
 func DefaultMaxSteps(inputLen int, stateCount int) int {
 	return (inputLen+1)*(stateCount+1)*4 + 1024
 }
@@ -323,7 +324,7 @@ func (i *ParserInterpreter) reduce(productionIdx int) {
 // line describes the decision rather than its after-effect. It is only called when a trace writer is set.
 func (i *ParserInterpreter) writeTraceLine(stackBeforeStep []int, lookaheadBeforeStep int) {
 	topStateIdx := stackBeforeStep[len(stackBeforeStep)-1]
-	fmt.Fprintf(
+	_, _ = fmt.Fprintf(
 		i.trace,
 		"step %-5d state %-4d lookahead %-6s %-40s stack %v\n",
 		i.stepCount, topStateIdx, i.formatTerminal(lookaheadBeforeStep), i.formatAction(), stackBeforeStep,
@@ -333,6 +334,7 @@ func (i *ParserInterpreter) writeTraceLine(stackBeforeStep []int, lookaheadBefor
 // formatAction renders the last action for a trace line in the grammar's own vocabulary: a reduce expanded into its
 // named production and a shift naming the terminal it consumes, so a reader does not have to translate indexes by hand.
 func (i *ParserInterpreter) formatAction() string {
+	//nolint:exhaustive // We are only interested in shift and reduce actions for specific output.
 	switch i.parserAction.Kind {
 	case ParserActionShift:
 		return "shift " + i.formatTerminal(i.parserAction.TerminalIdx)
@@ -365,8 +367,8 @@ func (i *ParserInterpreter) formatSymbolRef(symbolRef frontend.SymbolRef) string
 	return i.parser.Grammar.Nonterminals[symbolRef.Idx()].Name
 }
 
-// formatTerminal renders a terminal index as its name, or as "$" for the EOF terminal, so a trace reads in the grammar's
-// own vocabulary rather than in indexes.
+// formatTerminal renders a terminal index as its name, or as "$" for the EOF terminal, so a trace reads in the
+// grammar's own vocabulary rather than in indexes.
 func (i *ParserInterpreter) formatTerminal(terminalIdx int) string {
 	if terminalIdx == eofTerminalIdx {
 		return "$"

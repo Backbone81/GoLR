@@ -22,7 +22,8 @@ type DigraphAlgorithm struct {
 
 	// successorGotoIdxs holds the target goto index of every edge in the relation, grouped by source goto, so that
 	// traverse only looks at the outgoing edges of a goto instead of scanning the whole edge list on every call. The
-	// successors of source goto g are the slice successorGotoIdxs[successorGotoIdxOffsets[g]:successorGotoIdxOffsets[g+1]].
+	// successors of source goto g are the slice
+	// successorGotoIdxs[successorGotoIdxOffsets[g]:successorGotoIdxOffsets[g+1]].
 	// This compressed-sparse-row layout keeps the whole relation in two allocations regardless of the number of gotos,
 	// and stores the successors of each goto contiguously.
 	successorGotoIdxs       []int

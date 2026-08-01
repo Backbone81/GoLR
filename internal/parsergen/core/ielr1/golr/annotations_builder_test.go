@@ -62,9 +62,9 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 		var annotationsBuilder *ielr1golrcore.AnnotationsBuilder
 
 		BeforeEach(func() {
-			// The paper walks the grammar of figure 5 through phase 2 with a conflict-preserving policy: it presents the
-			// annotations as computed, and only section 3.4.3 points out that a shift-over-reduce policy would make them
-			// split-stable and discard them. The null policy resolves nothing, so it keeps every annotation the
+			// The paper walks the grammar of figure 5 through phase 2 with a conflict-preserving policy: it presents
+			// the annotations as computed, and only section 3.4.3 points out that a shift-over-reduce policy would make
+			// them split-stable and discard them. The null policy resolves nothing, so it keeps every annotation the
 			// annotation computation produces, which is what this walk-through checks.
 			annotationsBuilder = newAnnotationsBuilder(ielr1golrcore.GotoFollowsTestGrammarFig5, conflict.NullPolicy)
 
@@ -81,9 +81,9 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 			}
 		})
 
-		// This is definition 3.26 of IELR(1). The lookahead set of the single kernel item of the conflicted state has to
-		// contain the conflicted terminal, otherwise the conflict could not manifest there at all. The paper spells this
-		// out for the conflicted state and for its predecessor.
+		// This is definition 3.26 of IELR(1). The lookahead set of the single kernel item of the conflicted state has
+		// to contain the conflicted terminal, otherwise the conflict could not manifest there at all. The paper spells
+		// this out for the conflicted state and for its predecessor.
 		It("should compute the item lookahead sets", func() {
 			conflictedLookaheadSet := annotationsBuilder.ItemLookaheadSet(stateIdxConflicted, 0)
 			Expect(conflictedLookaheadSet.Contains(terminalIdxA)).To(BeTrue())
@@ -117,8 +117,8 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 			}))
 		})
 
-		// This is definition 3.30 and definition 3.31 of IELR(1), which section 3.4.2 of the paper walks through for the
-		// conflicted state: the shift is an always contribution, so its contribution row stays undefined, and the
+		// This is definition 3.30 and definition 3.31 of IELR(1), which section 3.4.2 of the paper walks through for
+		// the conflicted state: the shift is an always contribution, so its contribution row stays undefined, and the
 		// reduction of the empty production is a potential contribution which the single kernel item of the state
 		// carries.
 		//
@@ -169,12 +169,13 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 		})
 	})
 
-	// This is the general case of definition 3.35, which section 3.4.3 of the paper spells out for the grammar of figure
-	// 5 on page 24: if the shift/reduce conflict on "a" is resolved by shift over reduce, then the shift dominates the
-	// conflict in every isocore which phase 3 could split from the conflicted state, because the shift is an always
-	// contribution and no reduction can beat it. The dominant contribution is therefore split-stable, so the annotation
-	// on the conflicted state is useless, as are all the annotations phase 2 computes from it along the lane. The paper
-	// concludes that "phase 3 would have no reason to split any LALR(1) states", so phase 2 annotates nothing.
+	// This is the general case of definition 3.35, which section 3.4.3 of the paper spells out for the grammar of
+	// figure 5 on page 24: if the shift/reduce conflict on "a" is resolved by shift over reduce, then the shift
+	// dominates the conflict in every isocore which phase 3 could split from the conflicted state, because the shift is
+	// an always contribution and no reduction can beat it. The dominant contribution is therefore split-stable, so the
+	// annotation on the conflicted state is useless, as are all the annotations phase 2 computes from it along the
+	// lane. The paper concludes that "phase 3 would have no reason to split any LALR(1) states", so phase 2 annotates
+	// nothing.
 	It("should discard every annotation of figure 5 when shift over reduce resolves the conflict", func() {
 		grammar := ielr1golrcore.GotoFollowsTestGrammarFig5
 
@@ -185,9 +186,9 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 		Expect(annotationsBuilder.AnnotationLists()).To(BeEmpty())
 	})
 
-	// The lanes of a conflicted state can be cyclic, so the reverse iteration of definition 3.29 only terminates because
-	// it stops as soon as it computes an annotation which the state carries already. A left recursive grammar is what
-	// puts a cycle into the lanes, so this makes sure we do not iterate forever on one.
+	// The lanes of a conflicted state can be cyclic, so the reverse iteration of definition 3.29 only terminates
+	// because it stops as soon as it computes an annotation which the state carries already. A left recursive grammar
+	// is what puts a cycle into the lanes, so this makes sure we do not iterate forever on one.
 	DescribeTable("should terminate the iteration along cyclic lanes",
 		func(grammar frontend.Grammar) {
 			// A conflict-preserving policy keeps every annotation which is not split-stable on its own, so that the
@@ -214,28 +215,28 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 	// work with and IELR(1) silently degrades into LALR(1).
 	//
 	// Failing to annotate is invisible in an end to end test which only checks that the parser accepts the right
-	// language, because LALR(1) parser tables accept the same language. So we check it here, with canonical LR(1) as the
-	// oracle.
+	// language, because LALR(1) parser tables accept the same language. So we check it here, with canonical LR(1) as
+	// the oracle.
 	//
 	// The oracle is asked about every inadequacy on its own, rather than about the grammar as a whole. A random grammar
-	// regularly has a genuine conflict somewhere, and a genuine conflict is one which no state splitting can remove: any
-	// isocore which phase 3 could split the conflicted state into still has it, so phase 2 is free to leave it
+	// regularly has a genuine conflict somewhere, and a genuine conflict is one which no state splitting can remove:
+	// any isocore which phase 3 could split the conflicted state into still has it, so phase 2 is free to leave it
 	// unannotated. Discarding a grammar because it has one would throw away all its other conflicts as well, and those
 	// are perfectly good LR(1)-relative inadequacies which we do want to check.
 	//
 	// A conflict is genuine exactly when canonical LR(1) has it too. Canonical LR(1) keeps apart the contexts which
 	// LALR(1) merges, so the isocores of a conflicted LALR(1) state are the canonical LR(1) states with the same kernel
-	// items, and they are the finest split phase 3 could ever produce. When one of them has a conflict on the conflicted
-	// terminal, splitting cannot help.
+	// items, and they are the finest split phase 3 could ever produce. When one of them has a conflict on the
+	// conflicted terminal, splitting cannot help.
 	It("should annotate every inadequacy which canonical LR(1) does not have", func() {
 		const grammarCount = 2000
 
-		// The corpus is seeded from the Ginkgo random seed, so every run explores a different set of grammars and a rare
-		// edge case surfaces eventually rather than being masked by a fixed corpus, while a failing run stays
-		// reproducible with `ginkgo --seed=...`. A master RNG derives a distinct seed for every grammar, so the corpus is
-		// grammarCount different grammars instead of the same grammar repeated. The derived seed is reported with a
-		// failure so a single failing grammar can be reconstructed directly, which is what shrinking it into a regression
-		// fixture needs.
+		// The corpus is seeded from the Ginkgo random seed, so every run explores a different set of grammars and a
+		// rare edge case surfaces eventually rather than being masked by a fixed corpus, while a failing run stays
+		// reproducible with `ginkgo --seed=...`. A master RNG derives a distinct seed for every grammar, so the corpus
+		// is grammarCount different grammars instead of the same grammar repeated. The derived seed is reported with a
+		// failure so a single failing grammar can be reconstructed directly, which is what shrinking it into a
+		// regression fixture needs.
 		masterRng := rand.New(rand.NewSource(GinkgoRandomSeed()))
 
 		var discriminatingGrammarCount, lr1RelativeInadequacyCount, genuineConflictCount int
@@ -243,13 +244,13 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 			grammarSeed := masterRng.Int63()
 			grammar := oracle.DefaultGrammarGenerator(rand.New(rand.NewSource(grammarSeed))).Generate()
 
-			// This oracle needs the raw canonical LR(1) table with its conflicts intact — the property tested below only
-			// holds under a conflict-preserving policy — so it builds it directly instead of through GrammarToParser,
-			// which resolves conflicts as a public parser interface should.
+			// This oracle needs the raw canonical LR(1) table with its conflicts intact — the property tested below
+			// only holds under a conflict-preserving policy — so it builds it directly instead of through
+			// GrammarToParser, which resolves conflicts as a public parser interface should.
 			lr1Builder := lr1golrcore.NewLR1Builder(frontend.AugmentGrammar(grammar))
 			if err := lr1Builder.Build(); err != nil {
-				// A grammar whose canonical LR(1) automaton exceeds the addressable state limit cannot be handled by the
-				// oracle. It is skipped, not a failure of phase 2.
+				// A grammar whose canonical LR(1) automaton exceeds the addressable state limit cannot be handled by
+				// the oracle. It is skipped, not a failure of phase 2.
 				Expect(err).To(
 					MatchError(backend.ErrStateLimitExceeded),
 					"grammar seed %d:\n%s", grammarSeed, grammar.String(),
@@ -259,14 +260,16 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 			lr1Parser := lr1Builder.Parser()
 			lr1StateIdxsByKernelItemsHash := stateIdxsByKernelItemsHash(lr1Parser)
 
-			// The property that every LR(1)-relative inadequacy is annotated only holds under a policy which resolves no
-			// conflict: a policy which resolves a conflict split-stably would rightly discard its annotation, which is the
-			// separate concern of the general case of definition 3.35. So this test uses the conflict-preserving policy.
+			// The property that every LR(1)-relative inadequacy is annotated only holds under a policy which resolves
+			// no conflict: a policy which resolves a conflict split-stably would rightly discard its annotation, which
+			// is the separate concern of the general case of definition 3.35. So this test uses the conflict-preserving
+			// policy.
 			annotationsBuilder := newAnnotationsBuilder(grammar, conflict.NullPolicy)
 
 			// An annotation is attached to every state along the lane of the conflict, not only to the conflicted state
-			// itself, and a state may carry annotations of conflicts it is not the conflicted state of. So we collect the
-			// inadequacies which are annotated anywhere, rather than looking at the annotations of the conflicted state.
+			// itself, and a state may carry annotations of conflicts it is not the conflicted state of. So we collect
+			// the inadequacies which are annotated anywhere, rather than looking at the annotations of the conflicted
+			// state.
 			annotatedInadequacies := make(map[*ielr1golrcore.Inadequacy]bool)
 			for _, annotations := range annotationsBuilder.AnnotationLists() {
 				for _, annotation := range annotations {
@@ -319,8 +322,8 @@ var _ = Describe("IELR(1) phase 2: compute annotations", func() {
 
 // stateIdxsByKernelItemsHash groups the states of the parser tables by the hash of their kernel items. Canonical LR(1)
 // keeps the contexts of a state apart which LALR(1) merges, so a single LALR(1) state generally corresponds to several
-// canonical LR(1) states with the same kernel items. Those are its isocores, and they are the finest split which phase 3
-// could ever produce from that LALR(1) state.
+// canonical LR(1) states with the same kernel items. Those are its isocores, and they are the finest split which phase
+// 3 could ever produce from that LALR(1) state.
 //
 // The hash is only what buckets the states. Two different sets of kernel items can end up in the same bucket, so the
 // lookup below still compares the kernel items themselves.
@@ -368,7 +371,8 @@ func isGenuineConflict(
 	return false
 }
 
-// actionCountOnTerminal returns the number of actions the state has on the terminal. More than one action is a conflict.
+// actionCountOnTerminal returns the number of actions the state has on the terminal. More than one action is a
+// conflict.
 func actionCountOnTerminal(state backend.State, terminalIdx int) int {
 	var actionCount int
 	for _, transitionAction := range state.TransitionActions.All() {
@@ -391,9 +395,9 @@ func actionCountOnTerminal(state backend.State, terminalIdx int) int {
 //
 // The LALR(1) states come from the LALR(1) builder rather than from the IELR(1) builder, because phase 3 of IELR(1)
 // splits those states and replaces them in the IELR(1) parser tables. The phase 0 and phase 1 auxiliary tables the
-// annotations builder needs on top of them are relative to the LALR(1) automaton and stay valid, so those are taken from
-// the IELR(1) builder. Both builders construct the same LALR(1) automaton from the same grammar, so their state indexes
-// agree.
+// annotations builder needs on top of them are relative to the LALR(1) automaton and stay valid, so those are taken
+// from the IELR(1) builder. Both builders construct the same LALR(1) automaton from the same grammar, so their state
+// indexes agree.
 func newAnnotationsBuilder(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,

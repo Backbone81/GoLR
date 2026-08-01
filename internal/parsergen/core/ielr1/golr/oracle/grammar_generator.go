@@ -183,10 +183,10 @@ type GrammarGenerator struct {
 //
 // The three heavy discriminating clusters carry roughly equal weight so the corpus reaches the shift-reduce merge, the
 // reduce-reduce conflict and the shared-nonterminal-across-a-nullable-gap shapes about equally often. Their weights are
-// not exactly equal because a cluster only fits while the nonterminal budget still has room for it, and once it does not
-// fit it is dropped for the rest of the grammar: the gap variant needs four fresh nonterminals against the three of the
-// others, so it only fits on an early roll and is under-represented at equal weight. Its weight is raised to bring the
-// three shapes back to parity in ObservedScenarioCounts (measured over a corpus of two thousand grammars).
+// not exactly equal because a cluster only fits while the nonterminal budget still has room for it, and once it does
+// not fit it is dropped for the rest of the grammar: the gap variant needs four fresh nonterminals against the three of
+// the others, so it only fits on an early roll and is under-represented at equal weight. Its weight is raised to bring
+// the three shapes back to parity in ObservedScenarioCounts (measured over a corpus of two thousand grammars).
 func DefaultGrammarGenerator(rng *rand.Rand) *GrammarGenerator {
 	return &GrammarGenerator{
 		MaxTerminalCount:                 5,
@@ -416,15 +416,15 @@ func (g *GrammarGenerator) buildSharedNonterminalRHS() ([]frontend.SymbolRef, bo
 	}, true
 }
 
-// buildNullableSuffixRHS builds a production of the form B -> alpha A gamma where gamma is a nullable, non-empty suffix.
-// Because gamma derives the empty string, whatever can follow B flows onto the transition on A, which is the includes
-// relation of the DeRemer-Pennello algorithm. The suffix is a fresh nonterminal whose only production is empty, so it is
-// guaranteed nullable and productive. The nonterminal A before it is any existing or fresh nonterminal, so it carries
-// reductions whose lookahead the includes edge propagates. The prefix alpha is a random right hand side which may be
-// empty, so the edge is exercised both with and without symbols in front of A.
+// buildNullableSuffixRHS builds a production of the form B -> alpha A gamma where gamma is a nullable, non-empty
+// suffix. Because gamma derives the empty string, whatever can follow B flows onto the transition on A, which is the
+// includes relation of the DeRemer-Pennello algorithm. The suffix is a fresh nonterminal whose only production is
+// empty, so it is guaranteed nullable and productive. The nonterminal A before it is any existing or fresh nonterminal,
+// so it carries reductions whose lookahead the includes edge propagates. The prefix alpha is a random right hand side
+// which may be empty, so the edge is exercised both with and without symbols in front of A.
 //
-// It needs one fresh nonterminal for the nullable suffix and reports failure when the nonterminal budget has no room for
-// it.
+// It needs one fresh nonterminal for the nullable suffix and reports failure when the nonterminal budget has no room
+// for it.
 func (g *GrammarGenerator) buildNullableSuffixRHS() ([]frontend.SymbolRef, bool) {
 	const neededNonterminalCount = 1
 	if len(g.grammar.Nonterminals)+neededNonterminalCount > g.MaxNonterminalCount {
@@ -444,16 +444,17 @@ func (g *GrammarGenerator) buildNullableSuffixRHS() ([]frontend.SymbolRef, bool)
 	return symbolRefs, true
 }
 
-// buildSharedNonterminalNullableGapRHS builds the ProductionScenarioSharedNonterminal cluster with a nullable nonterminal
-// inserted between the shared nonterminal and the distinguishing terminal of each call site. In the plain shared
-// scenario the distinguishing terminal sits directly behind the shared nonterminal, so its lookahead contribution is a
-// direct read; the nullable gap forces the contribution to reach the shared nonterminal across the gap through the reads
-// and includes relations, which is where a wrong nullable propagation of the lookahead computation would show up. A
-// single nullable gap nonterminal is shared by both call sites; being empty-only it just bridges the gap and does not
-// merge the two contexts of the shared nonterminal, which stay apart through their differing following terminals.
+// buildSharedNonterminalNullableGapRHS builds the ProductionScenarioSharedNonterminal cluster with a nullable
+// nonterminal inserted between the shared nonterminal and the distinguishing terminal of each call site. In the plain
+// shared scenario the distinguishing terminal sits directly behind the shared nonterminal, so its lookahead
+// contribution is a direct read; the nullable gap forces the contribution to reach the shared nonterminal across the
+// gap through the reads and includes relations, which is where a wrong nullable propagation of the lookahead
+// computation would show up. A single nullable gap nonterminal is shared by both call sites; being empty-only it just
+// bridges the gap and does not merge the two contexts of the shared nonterminal, which stay apart through their
+// differing following terminals.
 //
-// It needs four fresh nonterminals (the shared nonterminal, the nullable gap and the two call sites) and reports failure
-// when the nonterminal budget has no room for them.
+// It needs four fresh nonterminals (the shared nonterminal, the nullable gap and the two call sites) and reports
+// failure when the nonterminal budget has no room for them.
 func (g *GrammarGenerator) buildSharedNonterminalNullableGapRHS() ([]frontend.SymbolRef, bool) {
 	const neededNonterminalCount = 4
 	if len(g.grammar.Nonterminals)+neededNonterminalCount > g.MaxNonterminalCount {
@@ -522,7 +523,11 @@ func (g *GrammarGenerator) buildReduceReduceRHS() ([]frontend.SymbolRef, bool) {
 	firstFollow := frontend.NewTerminalRef(g.pickTerminal())
 	secondFollow := frontend.NewTerminalRef(g.pickTerminal())
 
-	driverIdx := g.addNonterminal([]frontend.SymbolRef{firstPrefix, frontend.NewNonterminalRef(firstReducerIdx), firstFollow})
+	driverIdx := g.addNonterminal([]frontend.SymbolRef{
+		firstPrefix,
+		frontend.NewNonterminalRef(firstReducerIdx),
+		firstFollow,
+	})
 	g.grammar.Productions = append(g.grammar.Productions,
 		frontend.Production{
 			NonterminalIdx: driverIdx,

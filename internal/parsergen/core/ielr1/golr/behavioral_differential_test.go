@@ -79,7 +79,8 @@ var _ = Describe("IELR(1) behavioral differential test", func() {
 			}
 
 			GinkgoWriter.Printf(
-				"random grammar corpus: %d compared, %d skipped (canonical LR(1) state limit), %d discriminating (LALR conflict LR(1) removes), %d split (|IELR| > |LALR|)\n",
+				"random grammar corpus: %d compared, %d skipped (canonical LR(1) state limit), %d discriminating"+
+					" (LALR conflict LR(1) removes), %d split (|IELR| > |LALR|)\n",
 				compared, skipped, discriminating, splittingFired,
 			)
 

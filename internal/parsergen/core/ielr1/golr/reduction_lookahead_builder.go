@@ -124,8 +124,8 @@ func NewReductionLookaheadBuilder(grammar frontend.Grammar, states []backend.Sta
 	}
 }
 
-// Build computes the reduction lookahead sets. You can retrieve them with a call to ReduceActions afterward. The results
-// are only valid after Build has run, and it must run exactly once.
+// Build computes the reduction lookahead sets. You can retrieve them with a call to ReduceActions afterward. The
+// results are only valid after Build has run, and it must run exactly once.
 func (b *ReductionLookaheadBuilder) Build() {
 	defer trace.StartRegion(context.TODO(), "Add reduction lookahead sets").End()
 
@@ -188,9 +188,9 @@ func (b *ReductionLookaheadBuilder) GotoFollowsInternalRelation() []Edge {
 	return b.gotoFollowsInternalRelation
 }
 
-// IsCoreTailEmpty reports if the position within the production is at the end of the production or the symbols following
-// the current position are all nullable. This is only valid after Build has run, because it depends on the nullable
-// nonterminals computed there.
+// IsCoreTailEmpty reports if the position within the production is at the end of the production or the symbols
+// following the current position are all nullable. This is only valid after Build has run, because it depends on the
+// nullable nonterminals computed there.
 func (b *ReductionLookaheadBuilder) IsCoreTailEmpty(core backend.Core) bool {
 	return b.isCoreTailEmpty(core)
 }

@@ -67,8 +67,14 @@ var _ = Describe("Split States Builder", func() {
 		ielr1Parser, err := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(conflict.HasConflict(lalr1Parser)).To(BeTrue(), "the LALR(1) parser tables are expected to have the mysterious conflict")
-		Expect(conflict.HasConflict(ielr1Parser)).To(BeFalse(), "phase 3 is expected to remove the mysterious conflict")
+		Expect(conflict.HasConflict(lalr1Parser)).To(
+			BeTrue(),
+			"the LALR(1) parser tables are expected to have the mysterious conflict",
+		)
+		Expect(conflict.HasConflict(ielr1Parser)).To(
+			BeFalse(),
+			"phase 3 is expected to remove the mysterious conflict",
+		)
 		Expect(len(ielr1Parser.States)).To(
 			BeNumerically(">", len(lalr1Parser.States)),
 			"phase 3 is expected to have split at least one state",

@@ -241,7 +241,10 @@ func (i *IELR1) initFollowKernelItems() {
 			i.followKernelItemsByGotoIdx[gotoIdx].Add(kernelItemIdx)
 		}
 	}
-	propagation := NewDigraphAlgorithm(i.followKernelItemsByGotoIdx, i.lalr1Builder.lookaheads.GotoFollowsInternalRelation())
+	propagation := NewDigraphAlgorithm(
+		i.followKernelItemsByGotoIdx,
+		i.lalr1Builder.lookaheads.GotoFollowsInternalRelation(),
+	)
 	propagation.Execute()
 }
 

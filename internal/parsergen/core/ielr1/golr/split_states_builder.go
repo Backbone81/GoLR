@@ -91,11 +91,11 @@ type SplitStatesBuilder struct {
 // definition 3.42.
 //
 // The builder takes ownership of the states slice and mutates it in place: it redirects transitions and appends the
-// isocores it splits off. This is sound because phase 3 never reads the original LALR(1) transitions again - it walks the
-// automaton through the transitions it is redirecting, and the goto follow sets it recomputes come from the auxiliary
-// tables keyed by the LALR(1) isocore state index, not from the transitions. The goto tables and annotations refer to
-// the LALR(1) states only by state index and kernel item, both of which stay stable, so mutating the transition and
-// reduce actions does not disturb them. The caller must not keep using the states it passes in.
+// isocores it splits off. This is sound because phase 3 never reads the original LALR(1) transitions again - it walks
+// the automaton through the transitions it is redirecting, and the goto follow sets it recomputes come from the
+// auxiliary tables keyed by the LALR(1) isocore state index, not from the transitions. The goto tables and annotations
+// refer to the LALR(1) states only by state index and kernel item, both of which stay stable, so mutating the
+// transition and reduce actions does not disturb them. The caller must not keep using the states it passes in.
 func NewSplitStatesBuilder(
 	grammar frontend.Grammar,
 	states []backend.State,
@@ -146,7 +146,7 @@ func (b *SplitStatesBuilder) Build() error {
 	// appended, and the loop processes those newly appended states as well. Every non-start state has a predecessor with
 	// a smaller index in the breadth-first order the LR(0) construction assigns, so a state's lookaheads are always
 	// recomputed by a predecessor before the loop reaches the state itself.
-	for stateIdx := 0; stateIdx < len(b.states); stateIdx++ {
+	for stateIdx := range len(b.states) {
 		for _, symbolRef := range b.transitionSymbolRefs(stateIdx) {
 			b.computeState(stateIdx, symbolRef)
 		}
@@ -240,8 +240,8 @@ func (b *SplitStatesBuilder) appendIsocore(successorStateIdx int, lookaheads []b
 	return newStateIdx
 }
 
-// mergeLookaheads merges the propagated lookaheads into the item lookahead sets of a state and re-propagates them to the
-// successors of that state if it gained new lookaheads. This is definition 3.46 of IELR(1).
+// mergeLookaheads merges the propagated lookaheads into the item lookahead sets of a state and re-propagates them to
+// the successors of that state if it gained new lookaheads. This is definition 3.46 of IELR(1).
 //
 // The re-propagation stops at the first successor phase 3 has not recomputed yet, because the main loop of split_states
 // has not propagated this state's lookaheads along that transition or any transition after it, so it will propagate the
@@ -273,8 +273,9 @@ func (b *SplitStatesBuilder) mergeLookaheads(stateIdx int, lookaheads []backend.
 //
 // A successor kernel item which has seen more than one symbol inherits the lookahead set of the kernel item it was
 // advanced from in the state. A successor kernel item which has seen a single symbol was added by the closure of the
-// state, so its lookahead set is the goto follow set of the nonterminal on the left hand side of its production. The dot
-// position d of the paper counts from one, so it is one more than the position of a core, which counts symbols seen.
+// state, so its lookahead set is the goto follow set of the nonterminal on the left hand side of its production. The
+// dot position d of the paper counts from one, so it is one more than the position of a core, which counts symbols
+// seen.
 func (b *SplitStatesBuilder) propagateLookaheads(fromStateIdx int, successorStateIdx int) []backend.LookaheadSet {
 	filters := b.lookaheadSetFilters(successorStateIdx)
 
@@ -331,9 +332,9 @@ func (b *SplitStatesBuilder) propagateLookaheads(fromStateIdx int, successorStat
 //
 // The lookahead set filter of definition 3.38 the caller applies is taken as a parameter and applied to every set which
 // goes into the result, instead of to the finished result. That is the same set, because intersection distributes over
-// union, but the result never grows past the terminals the filter admits. The unfiltered goto follow set holds a bit for
-// most terminals of the grammar while the filter admits a handful, so this is the difference between an allocation per
-// call and none at all.
+// union, but the result never grows past the terminals the filter admits. The unfiltered goto follow set holds a bit
+// for most terminals of the grammar while the filter admits a handful, so this is the difference between an allocation
+// per call and none at all.
 func (b *SplitStatesBuilder) computeGotoFollowSet(
 	stateIdx int,
 	nonterminalIdx int,
@@ -502,8 +503,8 @@ func (b *SplitStatesBuilder) kernelItemIdx(stateIdx int, core backend.Core) (int
 
 // itemLookaheadSet returns the recomputed lookahead set of a kernel item of a state. A state phase 3 has not propagated
 // any lookaheads to yet has no recomputed lookahead sets, so the lookahead set is empty. This is the start state, whose
-// goto follow sets never depend on any of its kernel items, and any state which is read before its first predecessor has
-// propagated to it, which the breadth-first ordering prevents.
+// goto follow sets never depend on any of its kernel items, and any state which is read before its first predecessor
+// has propagated to it, which the breadth-first ordering prevents.
 func (b *SplitStatesBuilder) itemLookaheadSet(stateIdx int, kernelItemIdx int) backend.LookaheadSet {
 	if b.itemLookaheadSetsByStateIdx[stateIdx] == nil {
 		return backend.LookaheadSet{}

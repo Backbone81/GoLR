@@ -201,7 +201,7 @@ var _ = Describe("Parser Interpreter", func() {
 		})
 
 		It("rejects `aaa`: valid in the language but unreachable once the conflict is resolved toward shift", func() {
-			// The resolved table commits to A -> a a on the shift, then runs out of input. This is the resolved-table
+			// The resolved table commits to A -> a on the shift, then runs out of input. This is the resolved-table
 			// behavior the interpreter must reproduce, not a claim that `aaa` is outside the language.
 			final, _ := runToCompletion(parser, []int{1, 1, 1})
 			Expect(final.Kind).To(Equal(oracle.ParserActionReject))
