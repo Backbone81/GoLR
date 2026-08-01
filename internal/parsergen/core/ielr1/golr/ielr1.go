@@ -100,13 +100,11 @@ type IELR1 struct {
 	// policy resolves away, keeping the tables close to LALR(1) size.
 	conflictPolicy conflict.Policy
 
-	// TODO: We should not store the LALR(1) builder. Instead we should copy over what we need and be done with it.
-	lalr1Builder LALR1Builder
-
-	// predecessorStateIdxsByStateIdx provides the state indexes for the states which are predecessors when accessed by
-	// a state index. This is definition 3.15 of IELR(1) and simply named "predecessors" there.
-	// TODO: This table might be valuable to calculate and use during LALR(1) construction already.
-	predecessorStateIdxsByStateIdx [][]int
+	// lookaheads is the reduction lookahead builder phase 0 ran on the LALR(1) automaton. The later phases need the
+	// auxiliary tables it computed on the way - the goto records, the goto follows, the always follows, the goto follows
+	// internal relation and the predecessors - so it is kept while the LALR(1) builder around it, which only holds state
+	// of the LR(0) construction, is dropped once phase 0 is done.
+	lookaheads ReductionLookaheadBuilder
 
 	// followKernelItemsByGotoIdx reports if the goto does depend on the kernel item's lookahead set. It holds the kernel
 	// item indexes of the state the goto is coming from. This is definition 3.16 of IELR(1) and named
@@ -167,41 +165,31 @@ func (i *IELR1) Parser() backend.Parser {
 
 func (i *IELR1) phase0ComputeLALR1ParserTables() error {
 	defer trace.StartRegion(context.TODO(), "IELR(1): Phase 0: LALR(1)").End()
-	i.lalr1Builder = NewLALR1Builder(i.grammar)
-	if err := i.lalr1Builder.Build(); err != nil {
+	lalr1Builder := NewLALR1Builder(i.grammar)
+	if err := lalr1Builder.Build(); err != nil {
 		return err
 	}
-	i.parser = i.lalr1Builder.Parser()
+	i.parser = lalr1Builder.Parser()
+	i.lookaheads = lalr1Builder.lookaheads
 	return nil
 }
 
 // phase1ComputeAuxiliaryTables computes the auxiliary tables of section 3.3 of IELR(1).
 //
-// Section 3.3 asks for three tables: predecessors, follow_kernel_items and always_follows. Only the first two are
-// computed here. The always_follows of definition 3.20 are already computed by the LALR(1) builder, because we follow
-// implementation 2 of section 3.3.5, which the paper recommends for a parser generator without an existing LALR(1)
-// implementation: the always follows are computed between the two steps of phase 0 and phase 0 derives its goto follows
-// from them with definition 3.24. That saves a closure computation and means successor follows are never computed at
-// all.
+// Section 3.3 asks for three tables: predecessors, follow_kernel_items and always_follows. Only follow_kernel_items is
+// computed here, the other two are already computed by the LALR(1) builder of phase 0.
+//
+// The always_follows of definition 3.20 come from phase 0 because we follow implementation 2 of section 3.3.5, which
+// the paper recommends for a parser generator without an existing LALR(1) implementation: the always follows are
+// computed between the two steps of phase 0 and phase 0 derives its goto follows from them with definition 3.24. That
+// saves a closure computation and means successor follows are never computed at all.
+//
+// The predecessors of definition 3.15 come from phase 0 because its reduction lookahead builder already inverts the
+// transition actions to trace a reduction back to the gotos which generated it, which is that very table.
 func (i *IELR1) phase1ComputeAuxiliaryTables() {
 	defer trace.StartRegion(context.TODO(), "IELR(1): Phase 1: Compute auxiliary tables").End()
 
-	i.initPredecessorStateIdxsByStateIdx()
 	i.initFollowKernelItems()
-}
-
-// initPredecessorStateIdxsByStateIdx initializes predecessorStateIdxsByStateIdx.
-func (i *IELR1) initPredecessorStateIdxsByStateIdx() {
-	i.predecessorStateIdxsByStateIdx = make([][]int, len(i.parser.States))
-	for stateIdx := range i.parser.States {
-		state := i.parser.States[stateIdx]
-		for _, transition := range state.TransitionActions.All() {
-			i.predecessorStateIdxsByStateIdx[transition.StateIdx()] = append(
-				i.predecessorStateIdxsByStateIdx[transition.StateIdx()],
-				stateIdx,
-			)
-		}
-	}
 }
 
 // initFollowKernelItems initializes followKernelItemsByGotoIdx as specified in definition 3.16 of IELR(1).
@@ -218,7 +206,7 @@ func (i *IELR1) initPredecessorStateIdxsByStateIdx() {
 // single state, but the internal relation only ever relates gotos which come from the same state, so the propagation
 // never mixes kernel item indexes of different states.
 func (i *IELR1) initFollowKernelItems() {
-	gotoRecords := i.lalr1Builder.lookaheads.GotoRecords()
+	gotoRecords := i.lookaheads.GotoRecords()
 	i.followKernelItemsByGotoIdx = make([]utils.Bitset, len(gotoRecords))
 	for gotoIdx, gotoRecord := range gotoRecords {
 		state := i.parser.States[gotoRecord.FromStateIdx]
@@ -233,7 +221,7 @@ func (i *IELR1) initFollowKernelItems() {
 				// The kernel item does not move over the nonterminal of the goto, so it does not take the goto.
 				continue
 			}
-			if !i.lalr1Builder.lookaheads.IsCoreTailEmpty(backend.NewCore(kernelItem.ProductionIdx(), kernelItem.Position()+1)) {
+			if !i.lookaheads.IsCoreTailEmpty(backend.NewCore(kernelItem.ProductionIdx(), kernelItem.Position()+1)) {
 				// The rest of the production after the nonterminal transition can not be empty, so the lookahead set of
 				// the kernel item can never follow the nonterminal of the goto.
 				continue
@@ -243,7 +231,7 @@ func (i *IELR1) initFollowKernelItems() {
 	}
 	propagation := NewDigraphAlgorithm(
 		i.followKernelItemsByGotoIdx,
-		i.lalr1Builder.lookaheads.GotoFollowsInternalRelation(),
+		i.lookaheads.GotoFollowsInternalRelation(),
 	)
 	propagation.Execute()
 }
@@ -264,16 +252,16 @@ func (i *IELR1) FollowKernelItems() []utils.Bitset {
 // The table is only valid after phase 0 has run. It describes the LALR(1) automaton of phase 0 and is not updated for
 // the split automaton of phases 3 and 4, so it must not be indexed with the states of the final parser.
 func (i *IELR1) GotoRecords() []GotoRecord {
-	return i.lalr1Builder.lookaheads.GotoRecords()
+	return i.lookaheads.GotoRecords()
 }
 
 // Predecessors returns the state indexes of the states which have a transition into the state, indexed by state index.
 // This is definition 3.15 of IELR(1) and named "predecessors" there.
 //
-// The table is only valid after phase 1 has run. It describes the LALR(1) automaton of phase 0 and is not updated for
+// The table is only valid after phase 0 has run. It describes the LALR(1) automaton of phase 0 and is not updated for
 // the split automaton of phases 3 and 4, so it must not be indexed with the states of the final parser.
 func (i *IELR1) Predecessors() [][]int {
-	return i.predecessorStateIdxsByStateIdx
+	return i.lookaheads.Predecessors()
 }
 
 // GotoIdxsByStateIdx returns the goto indexes of the gotos which come from a state, keyed by state index.
@@ -281,7 +269,7 @@ func (i *IELR1) Predecessors() [][]int {
 // The table is only valid after phase 0 has run. It describes the LALR(1) automaton of phase 0 and is not updated for
 // the split automaton of phases 3 and 4, so it must not be indexed with the states of the final parser.
 func (i *IELR1) GotoIdxsByStateIdx() map[int][]int {
-	return i.lalr1Builder.lookaheads.GotoIdxsByStateIdx()
+	return i.lookaheads.GotoIdxsByStateIdx()
 }
 
 // GotoFollows returns the goto follow set of every goto, indexed by goto index. This is "goto_follows" from definition
@@ -290,7 +278,7 @@ func (i *IELR1) GotoIdxsByStateIdx() map[int][]int {
 // The table is only valid after phase 0 has run. It describes the LALR(1) automaton of phase 0 and is not updated for
 // the split automaton of phases 3 and 4, so it must not be indexed with the states of the final parser.
 func (i *IELR1) GotoFollows() []backend.LookaheadSet {
-	return i.lalr1Builder.lookaheads.GotoFollows()
+	return i.lookaheads.GotoFollows()
 }
 
 // AlwaysFollows returns the terminals which follow a goto no matter what the lookahead sets of the kernel items of the
@@ -300,7 +288,7 @@ func (i *IELR1) GotoFollows() []backend.LookaheadSet {
 // The table is only valid after phase 0 has run. It describes the LALR(1) automaton of phase 0 and is not updated for
 // the split automaton of phases 3 and 4, so it must not be indexed with the states of the final parser.
 func (i *IELR1) AlwaysFollows() []backend.LookaheadSet {
-	return i.lalr1Builder.lookaheads.AlwaysFollows()
+	return i.lookaheads.AlwaysFollows()
 }
 
 func (i *IELR1) phase2ComputeAnnotations() {
@@ -309,11 +297,11 @@ func (i *IELR1) phase2ComputeAnnotations() {
 	annotationsBuilder := NewAnnotationsBuilder(
 		i.parser,
 		i.conflictPolicy,
-		i.lalr1Builder.lookaheads.GotoRecords(),
-		i.lalr1Builder.lookaheads.GotoIdxsByStateIdx(),
-		i.lalr1Builder.lookaheads.GotoFollows(),
-		i.lalr1Builder.lookaheads.AlwaysFollows(),
-		i.predecessorStateIdxsByStateIdx,
+		i.lookaheads.GotoRecords(),
+		i.lookaheads.GotoIdxsByStateIdx(),
+		i.lookaheads.GotoFollows(),
+		i.lookaheads.AlwaysFollows(),
+		i.lookaheads.Predecessors(),
 		i.followKernelItemsByGotoIdx,
 	)
 	annotationsBuilder.Execute()
@@ -351,9 +339,9 @@ func (i *IELR1) phase3SplitStates() error {
 		i.parser.States,
 		i.conflictPolicy,
 		i.annotationListsByStateIdx,
-		i.lalr1Builder.lookaheads.GotoRecords(),
-		i.lalr1Builder.lookaheads.GotoIdxsByStateIdx(),
-		i.lalr1Builder.lookaheads.AlwaysFollows(),
+		i.lookaheads.GotoRecords(),
+		i.lookaheads.GotoIdxsByStateIdx(),
+		i.lookaheads.AlwaysFollows(),
 		i.followKernelItemsByGotoIdx,
 	)
 	if err := splitStatesBuilder.Build(); err != nil {

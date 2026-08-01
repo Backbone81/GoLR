@@ -62,8 +62,11 @@ type ReductionLookaheadBuilder struct {
 	// internal dependencies, as we need access to all gotos within the same state.
 	gotoIdxsByStateIdx map[int][]int
 
-	// backwardTransitionsByStateIdx provides information about which transitions lead into the state index.
-	backwardTransitionsByStateIdx map[int]BackwardTransitionInfo
+	// predecessorStateIdxsByStateIdx provides the state indexes of the states which have a transition into the state,
+	// indexed by state index. It is the inverse of the transition actions and this is definition 3.15 of IELR(1), simply
+	// named "predecessors" there. The builder needs it to trace a reduction backward to the gotos which generated it,
+	// and phase 1 takes it from here rather than computing it a second time.
+	predecessorStateIdxsByStateIdx [][]int
 
 	// gotoFollowsSuccessorRelation is the digraph describing the successor dependencies as GFs(g, g') from IELR(1)
 	// definition 3.5.
@@ -120,7 +123,7 @@ func NewReductionLookaheadBuilder(grammar frontend.Grammar, states []backend.Sta
 
 		gotoIdxsByStateIdx: make(map[int][]int, len(states)),
 
-		backwardTransitionsByStateIdx: make(map[int]BackwardTransitionInfo, len(states)),
+		predecessorStateIdxsByStateIdx: make([][]int, len(states)),
 	}
 }
 
@@ -140,10 +143,6 @@ func (b *ReductionLookaheadBuilder) Build() {
 	// We follow implementation 2 from IELR(1) section 3.3.5, which computes goto follows from always follows
 	// (definition 3.24) and never computes successor follows (definition 3.6). Only the successor relation itself is
 	// needed, as an input to the always follows.
-	//
-	// TODO: Check if we can improve performance by not calculating all always and goto follows up front, but instead
-	// lazily calculate those which we need for reduce actions. This could result in a significant amount of follow
-	// sets not being calculated as they are not involved in any reduce action.
 	b.calculateAlwaysFollows()
 	b.calculateGotoFollows()
 
@@ -166,6 +165,14 @@ func (b *ReductionLookaheadBuilder) GotoRecords() []GotoRecord {
 // only valid after Build has run.
 func (b *ReductionLookaheadBuilder) GotoIdxsByStateIdx() map[int][]int {
 	return b.gotoIdxsByStateIdx
+}
+
+// Predecessors returns the state indexes of the states which have a transition into the state, indexed by state index.
+// This is definition 3.15 of IELR(1) and named "predecessors" there. The builder derives it from the transition actions
+// because it needs it to trace a reduction backward, which makes it available to phase 1 for free. The result is only
+// valid after Build has run.
+func (b *ReductionLookaheadBuilder) Predecessors() [][]int {
+	return b.predecessorStateIdxsByStateIdx
 }
 
 // GotoFollows returns the goto follow set of every goto, indexed by goto index. This is "goto_follows" from definition
@@ -278,23 +285,24 @@ func (b *ReductionLookaheadBuilder) deriveAutomatonTables() {
 			})
 		}
 
-		// The transition actions of a state are the forward edges of the automaton. We invert them into backward
-		// transitions and, for the nonterminal transitions, record the goto records and the goto follows dependency
-		// candidates.
+		// The transition actions of a state are the forward edges of the automaton. We invert them into the predecessors
+		// and, for the nonterminal transitions, record the goto records and the goto follows dependency candidates.
 		for _, transitionAction := range state.TransitionActions.All() {
 			symbolRef := transitionAction.SymbolRef()
 			toStateIdx := transitionAction.StateIdx()
+			b.predecessorStateIdxsByStateIdx[toStateIdx] = append(
+				b.predecessorStateIdxsByStateIdx[toStateIdx],
+				stateIdx,
+			)
 			if symbolRef.IsNonterminal() {
 				b.recordNonterminalTransition(stateIdx, symbolRef.Idx(), toStateIdx)
-			} else {
-				b.recordTerminalTransition(stateIdx, symbolRef.Idx(), toStateIdx)
 			}
 		}
 	}
 }
 
-// recordNonterminalTransition records the goto record, the backward transition and the goto follows dependency
-// candidates for a nonterminal transition.
+// recordNonterminalTransition records the goto record and the goto follows dependency candidates for a nonterminal
+// transition.
 func (b *ReductionLookaheadBuilder) recordNonterminalTransition(fromStateIdx int, nonterminalIdx int, toStateIdx int) {
 	// record goto record
 	b.gotoRecords = append(b.gotoRecords, GotoRecord{
@@ -304,17 +312,6 @@ func (b *ReductionLookaheadBuilder) recordNonterminalTransition(fromStateIdx int
 	})
 	gotoIdx := len(b.gotoRecords) - 1
 	b.gotoIdxsByStateIdx[fromStateIdx] = append(b.gotoIdxsByStateIdx[fromStateIdx], gotoIdx)
-
-	// record backward transition
-	transitions, exist := b.backwardTransitionsByStateIdx[toStateIdx]
-	if !exist {
-		transitions = NewBackwardTransitionInfo()
-	}
-	transitions.NonterminalTransitions[nonterminalIdx] = append(
-		transitions.NonterminalTransitions[nonterminalIdx],
-		fromStateIdx,
-	)
-	b.backwardTransitionsByStateIdx[toStateIdx] = transitions
 
 	// Record information needed to calculate goto follows later. The kernel items reached by this goto are the kernel
 	// items of the destination state: every kernel item of a state is an item advanced over the state's single entry
@@ -364,16 +361,6 @@ func (b *ReductionLookaheadBuilder) recordIncludesDependencyCandidate(nextKernel
 			})
 		}
 	}
-}
-
-// recordTerminalTransition records the backward transition for a terminal transition.
-func (b *ReductionLookaheadBuilder) recordTerminalTransition(fromStateIdx int, terminalIdx int, toStateIdx int) {
-	transitions, exist := b.backwardTransitionsByStateIdx[toStateIdx]
-	if !exist {
-		transitions = NewBackwardTransitionInfo()
-	}
-	transitions.TerminalTransitions[terminalIdx] = append(transitions.TerminalTransitions[terminalIdx], fromStateIdx)
-	b.backwardTransitionsByStateIdx[toStateIdx] = transitions
 }
 
 // calculateReduceActionLookaheads fills the reduction lookahead set of every reduce action. We do this by tracing the
@@ -495,9 +482,10 @@ func (b *ReductionLookaheadBuilder) getGeneratedGotoIdxs(stateIdx int, core back
 		stateIdx,
 	}
 
-	// We need to move back through the states until we are at the start of the item.
+	// We need to move back through the states until we are at the start of the item. One step back per symbol which is
+	// in front of the position of the core.
 	for position := core.Position(); position > 0; position-- {
-		predecessorStateIdxs = b.followCoreBackward(backend.NewCore(core.ProductionIdx(), position), predecessorStateIdxs)
+		predecessorStateIdxs = b.followStatesBackward(predecessorStateIdxs)
 	}
 
 	// Now let's look for the goto which has the left hand side of the production as a nonterminal transition.
@@ -517,26 +505,17 @@ func (b *ReductionLookaheadBuilder) getGeneratedGotoIdxs(stateIdx int, core back
 	return result
 }
 
-// followCoreBackward is moving the core one step back through the states and returns the list of state indexes the core
-// was coming from.
-func (b *ReductionLookaheadBuilder) followCoreBackward(core backend.Core, stateIdxs []int) []int {
-	production := b.grammar.Productions[core.ProductionIdx()]
-	symbolRef := production.SymbolRefs[core.Position()-1]
+// followStatesBackward is moving one step back through the states and returns the list of state indexes the given
+// states were reached from.
+//
+// The step does not need to know which symbol it is moving back over. A state is created as the destination of a
+// transition on a single symbol, and every kernel item of the state has that symbol in front of its position, so all
+// transitions into a state happen on the same symbol. Filtering the predecessors by the symbol in front of the position
+// of the core we are tracing would therefore keep all of them.
+func (b *ReductionLookaheadBuilder) followStatesBackward(stateIdxs []int) []int {
 	var predecessorStateIdxs []int
 	for _, stateIdx := range stateIdxs {
-		// TODO: It is not necessary to check for specific symbols. As we only have kernel item cores in each state,
-		// every predecessor must have the core in their state and every transition must be part of the core.
-		if symbolRef.IsNonterminal() {
-			predecessorStateIdxs = append(
-				predecessorStateIdxs,
-				b.backwardTransitionsByStateIdx[stateIdx].NonterminalTransitions[symbolRef.Idx()]...,
-			)
-		} else {
-			predecessorStateIdxs = append(
-				predecessorStateIdxs,
-				b.backwardTransitionsByStateIdx[stateIdx].TerminalTransitions[symbolRef.Idx()]...,
-			)
-		}
+		predecessorStateIdxs = append(predecessorStateIdxs, b.predecessorStateIdxsByStateIdx[stateIdx]...)
 	}
 	return predecessorStateIdxs
 }

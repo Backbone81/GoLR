@@ -22,6 +22,10 @@
 ## Parser Generator
 
 - Improve performance
+- The reduction lookahead builder of the IELR(1) core computes the always follows and the goto follows for every goto
+  up front. Check if computing them lazily, only for the gotos which a reduce action actually traces back to, is
+  faster. A significant number of follow sets could be left uncomputed that way. Note that the later IELR(1) phases
+  read both tables for arbitrary gotos, so laziness has to survive those accesses.
 - Introduce strongly typed wrappers for general purpose parse nodes. That way, users don't rely on children being a 
   specific count, but can instead use named methods for directly accessing the correct child. Make sure this is a
   zero overhead abstraction over the parse nodes.

@@ -44,18 +44,6 @@ type InternalDependencyCandidate struct {
 	NonterminalIdx int
 }
 
-type BackwardTransitionInfo struct {
-	TerminalTransitions    map[int][]int
-	NonterminalTransitions map[int][]int
-}
-
-func NewBackwardTransitionInfo() BackwardTransitionInfo {
-	return BackwardTransitionInfo{
-		TerminalTransitions:    make(map[int][]int),
-		NonterminalTransitions: make(map[int][]int),
-	}
-}
-
 type PredecessorDependencyCandidate struct {
 	// GotoIdx is the goto index this candidate is for.
 	GotoIdx int
