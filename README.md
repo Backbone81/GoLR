@@ -16,7 +16,9 @@ backend finally outputs the parser into different output formats.
 The generated parser constructs a parse tree which you can then walk and execute semantic actions
 accordingly.
 
-For more details about how this project came to be, see the documentation about [motivation](docs/motivation.md).
+For more details about how this project came to be, see the documentation about [motivation](docs/motivation.md). For
+details about how GoLR makes sure that the generated parser tables are right, see the documentation about
+[correctness](docs/correctness.md).
 
 ## Getting Started
 
@@ -199,6 +201,9 @@ far:
 golr selftest --duration 8h --failure-dir ./selftest-failures | tee selftest.log
 ```
 
+See the documentation about [correctness](docs/correctness.md) for where this fits into the overall verification of the
+IELR(1) implementation.
+
 ## Parser Generator
 
 The parser generator constructs an LR(1) parser from a context free grammar. Please be aware of the known
@@ -290,6 +295,40 @@ Are you missing a backend for your use case? Use the JSON backend of GoLR to out
 your own backend by loading the JSON and output it in whatever format you need. You do not even need to do that
 in Go. Any programming language which is able to load JSON can be used for such a custom backend. And with outputting
 JSON to stdout, the output of GoLR can be piped into your own backend application for maximum flexibility.
+
+## Correctness
+
+A parser generator fails quietly. A reduction lookahead set which is one terminal too large turns a perfectly good
+grammar into one with a conflict, and one which is one terminal too small produces a parser that builds, runs and then
+rejects a sentence the grammar clearly derives. Nothing crashes, and the damage surfaces only in whoever uses the
+generated parser. IELR(1) makes this worse: it is a five phase algorithm whose output is deliberately not comparable to
+any table you could write down by hand, so "diff it against the expected result" is not available as a test strategy.
+
+What IELR(1) does guarantee is behavioral — an IELR(1) parser accepts the same language and produces the same parses as
+a canonical LR(1) parser under the same conflict resolution policy, only with fewer states. GoLR builds its verification
+on that guarantee, in overlapping layers:
+
+- **The grammars from the [IELR(1) paper](https://doi.org/10.1016/j.scico.2009.08.001).** Parser tables, follow kernel
+  items, annotations and item lookahead sets are pinned against the definitions of the paper for the small grammars its
+  figures were constructed from.
+- **Real-world grammars cross-checked against GNU Bison.** The grammars of GNU Bison, GCC's C, Objective-C, C++ and
+  Java, Go, PHP and PostgreSQL are each built with the GoLR LALR(1) and IELR(1) cores and with GNU Bison itself — the
+  reference implementation whose authors wrote the paper. Where a grammar is LALR(1), all four tables must agree on the
+  state count. Where it is not, both implementations must split, and GoLR must land within 2% of Bison's state count.
+- **Differential testing against canonical LR(1).** Random grammars, generated from scenarios deliberately biased
+  toward the shapes where LALR(1) and canonical LR(1) diverge, are turned into an IELR(1) and a canonical LR(1) table.
+  Both tables are then driven through sentences derived from the grammar itself and have to take the identical sequence
+  of LR actions, step for step. Every run additionally asserts the size invariant
+  `|LALR(1)| <= |IELR(1)| <= |canonical LR(1)|`, and the corpus measures itself so it cannot pass vacuously on grammars
+  which never exercise the splitting.
+- **The `golr selftest` soak test.** The same comparison, running across every CPU core for hours instead of seconds.
+  Corpora of millions of grammars are routine, and a single seed reproduces any failure it finds.
+- **Mutation testing of the test suite itself.** Around 50 deliberate bugs, each derived from a specific definition in
+  the paper, were injected one at a time to confirm the self-test actually notices. Every mutation which changes a parse
+  was detected, most within a few dozen grammars.
+
+The [correctness](docs/correctness.md) documentation describes each layer in detail, including what these checks
+deliberately do not cover.
 
 ## Roadmap
 
