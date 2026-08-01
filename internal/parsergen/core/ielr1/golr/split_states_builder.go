@@ -146,7 +146,13 @@ func (b *SplitStatesBuilder) Build() error {
 	// appended, and the loop processes those newly appended states as well. Every non-start state has a predecessor with
 	// a smaller index in the breadth-first order the LR(0) construction assigns, so a state's lookaheads are always
 	// recomputed by a predecessor before the loop reaches the state itself.
-	for stateIdx := range len(b.states) {
+	//
+	// The condition MUST re-read the length on every iteration, because computeState appends the isocores it splits off
+	// to b.states. A "range len(b.states)" evaluates the length once when the loop starts and would never visit a single
+	// isocore, which silently degrades the result to something between LALR(1) and IELR(1).
+	//
+	//nolint:intrange // The loop bound grows while the loop runs, see above.
+	for stateIdx := 0; stateIdx < len(b.states); stateIdx++ {
 		for _, symbolRef := range b.transitionSymbolRefs(stateIdx) {
 			b.computeState(stateIdx, symbolRef)
 		}
