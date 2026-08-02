@@ -2,6 +2,8 @@
 
 ## General Topics
 
+- Fix the naming of "golang" in the documentation. We should use Go where possible. Use only golang when it collides
+  in go code with the reserved keyword.
 - Extend the documentation.
 - Add benchmarks to all documentation.
 - Publish Visual Studio Code extension for syntax highlighting of GoLR files
@@ -30,6 +32,12 @@
 ## Scanner Generator
 
 - Allow scanner to parse case independent (accept lower case and upper case characters if specified in one case only)
+- Make the table driven Go backend the default and drop the directly coded one, once the table driven backend has
+  proven itself. It is already faster and much smaller, so the remaining question is whether anything is lost by giving
+  up the readable per state functions of the directly coded backend.
+- Add a table driven backend for Java and Rust as well, replacing their directly coded ones. The tables are language
+  neutral, so each of those is a small driver instead of another encoding of the automaton.
+- Introduce a test harness to test drive all generated scanners in their native language.
 
 ## Formater
 

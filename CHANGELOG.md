@@ -24,6 +24,7 @@
 - Fixed the Bison frontend not recognizing the %lex-param and %parse-param directives.
 - Fixed the Bison frontend scanner swallowing input after char literals or strings ending in an escaped backslash, like '\\'.
 - Fixed the Bison frontend ignoring char literal token declarations like %token '\\' and misnaming escaped char literals: escape sequences are now decoded, so different spellings of the same character resolve to the same terminal.
+- Added the scanner backend go-table, which writes the scanner as lookup tables instead of as code.
 
 ## v0.1.0 (2026-07-11)
 

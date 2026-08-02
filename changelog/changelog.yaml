@@ -47,6 +47,8 @@ unreleased:
 - description: 'Fixed the Bison frontend ignoring char literal token declarations
     like %token ''\\'' and misnaming escaped char literals: escape sequences are now
     decoded, so different spellings of the same character resolve to the same terminal.'
+- description: Added the scanner backend go-table, which writes the scanner as lookup
+    tables instead of as code.
 releases:
 - version: |
     v0.1.0
