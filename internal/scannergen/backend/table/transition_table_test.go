@@ -12,18 +12,6 @@ import (
 	"github.com/backbone81/golr/internal/scannergen/frontend/dsl"
 )
 
-// transitionTarget looks the transition of a state up, by finding the byte range which contains the byte. It is the
-// reference the compressed lookup is compared against, and is deliberately written independently of the code under
-// test.
-func transitionTarget(state backend.State, byteValue int) int {
-	for _, transition := range state.Transitions {
-		if int(transition.ByteRange.Low) <= byteValue && byteValue <= int(transition.ByteRange.High) {
-			return transition.StateIdx
-		}
-	}
-	return table.NoTransition
-}
-
 // expectDecodeEquivalence asserts that for every state and every possible input byte the compressed lookup returns
 // exactly what reading the DFA directly returns. This is the property the whole compression rests on, and it holds
 // independently of how many classes the partition ended up with.

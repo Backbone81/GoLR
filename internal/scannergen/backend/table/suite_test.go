@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/backbone81/golr/internal/scannergen/backend"
+	"github.com/backbone81/golr/internal/scannergen/backend/table"
 	subsetcore "github.com/backbone81/golr/internal/scannergen/core/subset"
 	"github.com/backbone81/golr/internal/scannergen/frontend"
 	golrfrontend "github.com/backbone81/golr/internal/scannergen/frontend/golr"
@@ -33,4 +34,16 @@ func golrSpecDFA() backend.DFA {
 	Expect(rules).ToNot(BeEmpty())
 
 	return rulesToDFA(rules...)
+}
+
+// transitionTarget looks the transition of a state up, by finding the byte range which contains the byte. It is the
+// reference the compressed lookup is compared against, and is deliberately written independently of the code under
+// test.
+func transitionTarget(state backend.State, byteValue int) int {
+	for _, transition := range state.Transitions {
+		if int(transition.ByteRange.Low) <= byteValue && byteValue <= int(transition.ByteRange.High) {
+			return transition.StateIdx
+		}
+	}
+	return table.NoTransition
 }
