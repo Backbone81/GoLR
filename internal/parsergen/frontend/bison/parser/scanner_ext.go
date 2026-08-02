@@ -15,7 +15,7 @@ func (s *Scanner) ReadEpilogue() {
 func (s *Scanner) ReadTag() {
 	var nesting int
 	var previousRune byte
-	for {
+	for s.lexemePeekIdx < len(s.source) {
 		currRune := s.source[s.lexemePeekIdx]
 		switch currRune {
 		case '<':
@@ -35,9 +35,6 @@ func (s *Scanner) ReadTag() {
 		}
 		previousRune = currRune
 		s.lexemePeekIdx++
-		if s.lexemePeekIdx >= len(s.source) {
-			break
-		}
 	}
 
 	// The tag was not closed.
@@ -47,7 +44,7 @@ func (s *Scanner) ReadTag() {
 // ReadPrologue is an extension to the generated scanner providing functionality to consume the prologue.
 func (s *Scanner) ReadPrologue() {
 	var previousRune byte
-	for {
+	for s.lexemePeekIdx < len(s.source) {
 		currRune := s.source[s.lexemePeekIdx]
 		switch {
 		case previousRune == '%' && currRune == '}':
@@ -65,12 +62,14 @@ func (s *Scanner) ReadPrologue() {
 			s.skipString('\'')
 		}
 
-		// We do not use currRune here, because the skip helper methods might move the rune reader forward.
-		previousRune = s.source[s.lexemePeekIdx]
-		s.lexemePeekIdx++
+		// The skip helper methods might have moved the rune reader to the end of the source.
 		if s.lexemePeekIdx >= len(s.source) {
 			break
 		}
+
+		// We do not use currRune here, because the skip helper methods might move the rune reader forward.
+		previousRune = s.source[s.lexemePeekIdx]
+		s.lexemePeekIdx++
 	}
 
 	// The prologue was not closed.
@@ -91,7 +90,7 @@ func (s *Scanner) ReadBracedPredicate() {
 func (s *Scanner) readBracedContent(token Token) {
 	var previousRune byte
 	var nestingLevel int
-	for {
+	for s.lexemePeekIdx < len(s.source) {
 		currRune := s.source[s.lexemePeekIdx]
 		switch {
 		// <% is the C digraph for {
@@ -116,11 +115,13 @@ func (s *Scanner) readBracedContent(token Token) {
 			s.skipString('\'')
 		}
 
-		previousRune = s.source[s.lexemePeekIdx]
-		s.lexemePeekIdx++
+		// The skip helper methods might have moved the rune reader to the end of the source.
 		if s.lexemePeekIdx >= len(s.source) {
 			break
 		}
+
+		previousRune = s.source[s.lexemePeekIdx]
+		s.lexemePeekIdx++
 	}
 
 	// The braced content was not closed.
@@ -157,7 +158,6 @@ func (s *Scanner) skipLineComment() {
 }
 
 func (s *Scanner) skipString(quote byte) {
-	var previousRune byte
 	for {
 		s.lexemePeekIdx++
 		if s.lexemePeekIdx >= len(s.source) {
@@ -165,10 +165,14 @@ func (s *Scanner) skipString(quote byte) {
 		}
 		currRune := s.source[s.lexemePeekIdx]
 
-		if currRune == quote && previousRune != '\\' {
+		if currRune == '\\' {
+			// The escaped character is consumed by the increment at the top of the loop, so a quote or backslash
+			// following a backslash can never be misread as a delimiter.
+			s.lexemePeekIdx++
+			continue
+		}
+		if currRune == quote {
 			return
 		}
-
-		previousRune = currRune
 	}
 }

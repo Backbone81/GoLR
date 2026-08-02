@@ -175,6 +175,33 @@ var WellKnownGrammars = []WellKnownGrammar{
 
 		IsLALR1: false,
 	},
+	{
+		Title:    "Ruby 3.2.11",
+		FileName: "ruby-3.2.11.y",
+
+		// The RUBY_TOKEN(...) macros in the %token declarations of the original parse.y (normally substituted by
+		// ruby's tool/id2token.rb during the ruby build) were manually replaced with explicit token codes 128-150 so
+		// that the file is a self-contained grammar accepted by plain GNU Bison. The codes must stay above 127 to not
+		// collide with the codes bison implicitly assigns to char literal tokens like '\t'.
+
+		// All %token declarations + error token + %nonassoc/%right + char literals
+		// Note that only tLOWEST and tUMINUS_NUM are declared by precedence declarations alone, all other
+		// identifiers there are duplicates of %token declarations. The char literal count includes six char literals
+		// which are declared via %token ('.', '\\', '\t', '\f', '\r', '\13') and are not referenced by any rule.
+		// When counting %token identifiers, the words of the "precedence table" block comment in the declaration
+		// section must not be picked up.
+		Terminals: 127 + 1 + 2 + 32,
+
+		// All left hand sides of productions
+		Nonterminals: 223,
+
+		// All productions + alternatives
+		// Note that the reswords rule packs several alternatives on each line, so counting lines starting with a
+		// pipe undercounts the alternatives by 29.
+		Productions: 223 + 507,
+
+		IsLALR1: true,
+	},
 }
 
 func init() {

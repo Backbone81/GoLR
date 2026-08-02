@@ -10,5 +10,6 @@ This folder contains files of third party software which is covered by their own
 - go-1.5.4.y: This file is covered by the BSD-style Go license.
 - php-8.6.7.y: This file is covered by the PHP license.
 - postgres-18.4.y: This file is covered by the PostgreSQL license.
+- ruby-3.2.11.y: This file is covered by the Ruby license.
 
 In the context of the GNU General Public License Version 3 these files form an aggregate.

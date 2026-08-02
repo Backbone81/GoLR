@@ -1,0 +1,2 @@
+description: Fixed the Bison frontend scanner swallowing input after char literals
+  or strings ending in an escaped backslash, like '\\'.

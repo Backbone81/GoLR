@@ -1,0 +1,3 @@
+description: 'Fixed the Bison frontend ignoring char literal token declarations like
+  %token ''\\'' and misnaming escaped char literals: escape sequences are now decoded,
+  so different spellings of the same character resolve to the same terminal.'

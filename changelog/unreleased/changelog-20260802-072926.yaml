@@ -1,0 +1,2 @@
+description: Fixed index out of range panics in the Bison frontend scanner when a
+  grammar file ends inside a tag, prologue or braced code block.

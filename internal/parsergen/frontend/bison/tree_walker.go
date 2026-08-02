@@ -4,6 +4,7 @@ package bison
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	"github.com/backbone81/golr/internal/parsergen/frontend/bison/parser"
@@ -32,6 +33,10 @@ type TreeWalker struct {
 
 	// activePercentPrec keeps track if we are currently inside %prec
 	activePercentPrec bool
+
+	// errs collects the errors encountered while walking the parse tree. The visitors have no error return values, so
+	// they record errors here and BuildGrammar reports them to the caller.
+	errs []error
 }
 
 // NewTreeWalker creates a new TreeWalker.
@@ -57,6 +62,9 @@ func NewTreeWalker() *TreeWalker {
 // and returns the finished grammar afterward.
 func (w *TreeWalker) BuildGrammar(node parser.Node) (frontend.Grammar, error) {
 	w.visitInput(&node)
+	if err := errors.Join(w.errs...); err != nil {
+		return frontend.Grammar{}, err
+	}
 	if w.startNonterminalName != "" {
 		idx, ok := w.nonterminalIdxByName[w.startNonterminalName]
 		if !ok {
@@ -269,7 +277,11 @@ func (w *TreeWalker) visitTokenDecl(node *parser.Node) {
 	// id int.opt[num] alias
 	id, err := w.getID(node)
 	if err != nil {
-		return
+		id, err = w.getCharLiteralAsID(node)
+		if err != nil {
+			w.errs = append(w.errs, err)
+			return
+		}
 	}
 
 	if _, ok := w.terminalIdxByName[id]; ok {
@@ -277,9 +289,19 @@ func (w *TreeWalker) visitTokenDecl(node *parser.Node) {
 		return
 	}
 
-	w.grammar.Terminals = append(w.grammar.Terminals, frontend.Symbol{
-		Name: id,
-	})
+	symbol := frontend.Symbol{}
+	if id[0] == '\'' {
+		name, err := charLiteralTerminalName(id)
+		if err != nil {
+			w.errs = append(w.errs, err)
+			return
+		}
+		symbol.Name = name
+		symbol.Alias = id
+	} else {
+		symbol.Name = id
+	}
+	w.grammar.Terminals = append(w.grammar.Terminals, symbol)
 	w.terminalIdxByName[id] = len(w.grammar.Terminals) - 1
 
 	for _, child := range node.Children {
@@ -380,6 +402,7 @@ func (w *TreeWalker) visitTokenDeclForPrec(node *parser.Node) {
 		if err != nil {
 			id, err = w.getCharLiteralAsID(node)
 			if err != nil {
+				w.errs = append(w.errs, err)
 				return
 			}
 		}
@@ -397,7 +420,12 @@ func (w *TreeWalker) visitTokenDeclForPrec(node *parser.Node) {
 		Precedence:    w.currentPrecedence,
 	}
 	if id[0] == '\'' {
-		symbol.Name = fmt.Sprintf("CHAR_%d", int(id[1]))
+		name, err := charLiteralTerminalName(id)
+		if err != nil {
+			w.errs = append(w.errs, err)
+			return
+		}
+		symbol.Name = name
 		symbol.Alias = id
 	} else {
 		symbol.Name = id
@@ -542,6 +570,9 @@ func (w *TreeWalker) visitSymbol(node *parser.Node) {
 
 	id, err := w.getSymbolId(node)
 	if err != nil {
+		// Silently skipping the symbol would drop it from the production and produce a wrong grammar, so the error
+		// has to be reported.
+		w.errs = append(w.errs, err)
 		return
 	}
 
@@ -599,8 +630,12 @@ func (w *TreeWalker) getSymbolId(node *parser.Node) (string, error) {
 
 	// char literals are always terminals but need not be pre-declared with %token
 	if _, ok := w.terminalIdxByName[id]; !ok {
+		name, err := charLiteralTerminalName(id)
+		if err != nil {
+			return "", err
+		}
 		w.grammar.Terminals = append(w.grammar.Terminals, frontend.Symbol{
-			Name:  fmt.Sprintf("CHAR_%d", int(id[1])),
+			Name:  name,
 			Alias: id,
 		})
 		w.terminalIdxByName[id] = len(w.grammar.Terminals) - 1
@@ -668,7 +703,105 @@ func (w *TreeWalker) getCharLiteralAsID(node *parser.Node) (string, error) {
 	if idTerminal != parser.TokenCharLiteral {
 		return "", errors.New("expected token char literal")
 	}
-	return string(firstChildChild.Lexeme), nil
+
+	// We normalize the char literal so that different spellings of the same character (like '\v' and '\13') resolve
+	// to the same terminal, as they do in GNU Bison.
+	code, err := decodeCharLiteral(string(firstChildChild.Lexeme))
+	if err != nil {
+		return "", err
+	}
+	return canonicalCharLiteral(code), nil
+}
+
+// simpleCharEscapes maps the single-character escape sequences GNU Bison accepts in char literals and strings to the
+// character they encode (see scan-gram.l).
+var simpleCharEscapes = map[byte]byte{
+	'a':  '\a',
+	'b':  '\b',
+	'f':  '\f',
+	'n':  '\n',
+	'r':  '\r',
+	't':  '\t',
+	'v':  '\v',
+	'\\': '\\',
+	'\'': '\'',
+	'"':  '"',
+	'?':  '?',
+}
+
+// decodeCharLiteral returns the character encoded by a GNU Bison char literal lexeme like 'a', '\n' or '\013'.
+func decodeCharLiteral(lexeme string) (byte, error) {
+	if len(lexeme) < 3 || lexeme[0] != '\'' || lexeme[len(lexeme)-1] != '\'' {
+		return 0, fmt.Errorf("invalid char literal %s", lexeme)
+	}
+	content := lexeme[1 : len(lexeme)-1]
+
+	if content[0] != '\\' {
+		if len(content) != 1 {
+			return 0, fmt.Errorf("char literal %s contains more than one character", lexeme)
+		}
+		return content[0], nil
+	}
+
+	escape := content[1:]
+	if len(escape) == 0 {
+		return 0, fmt.Errorf("char literal %s contains an incomplete escape sequence", lexeme)
+	}
+	if code, ok := simpleCharEscapes[escape[0]]; ok && len(escape) == 1 {
+		return code, nil
+	}
+	var value uint64
+	var err error
+	switch {
+	case escape[0] == 'x':
+		value, err = strconv.ParseUint(escape[1:], 16, 16)
+	case escape[0] >= '0' && escape[0] <= '7':
+		value, err = strconv.ParseUint(escape, 8, 16)
+	default:
+		return 0, fmt.Errorf("char literal %s contains an unknown escape sequence", lexeme)
+	}
+	if err != nil || value > 0xFF {
+		return 0, fmt.Errorf("char literal %s contains an invalid escape sequence", lexeme)
+	}
+	return byte(value), nil
+}
+
+// canonicalCharLiteral renders a char code as a char literal lexeme with a single canonical spelling per character.
+func canonicalCharLiteral(code byte) string {
+	switch code {
+	case '\a':
+		return `'\a'`
+	case '\b':
+		return `'\b'`
+	case '\f':
+		return `'\f'`
+	case '\n':
+		return `'\n'`
+	case '\r':
+		return `'\r'`
+	case '\t':
+		return `'\t'`
+	case '\v':
+		return `'\v'`
+	case '\\':
+		return `'\\'`
+	case '\'':
+		return `'\''`
+	}
+	if code >= 0x20 && code < 0x7F {
+		return fmt.Sprintf("'%c'", code)
+	}
+	return fmt.Sprintf(`'\%03o'`, code)
+}
+
+// charLiteralTerminalName returns the terminal name for a char literal id. Returns an error if the id is not a valid
+// char literal.
+func charLiteralTerminalName(id string) (string, error) {
+	code, err := decodeCharLiteral(id)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("CHAR_%d", code), nil
 }
 
 func (w *TreeWalker) getIDColon(node *parser.Node) (string, error) {

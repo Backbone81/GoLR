@@ -49,18 +49,7 @@ For these grammars the tests do not compare behavior, they pin down internals ag
 ## Layer 2: Real-World Grammars Cross-Checked Against GNU Bison
 
 Small grammars from a paper do not reach the scale where an algorithm's complexity shows. The `testdata` directory
-therefore holds the full grammar files of a set of real languages:
-
-| Grammar             | Terminals | Nonterminals | Productions | LALR(1)? |
-|---------------------|-----------|--------------|-------------|----------|
-| GNU Bison 3.8.2     | 59        | 38           | 119         | yes      |
-| GCC 2.95.3 C        | 82        | 117          | 364         | yes      |
-| GCC 2.95.3 Obj-C    | 82        | 162          | 502         | yes      |
-| GCC 3.3.6 C++       | 112       | 238          | 871         | **no**   |
-| GCC 4.2.4 Java      | 110       | 153          | 505         | yes      |
-| Go 1.5.4            | 74        | 127          | 337         | yes      |
-| PHP 8.6.7           | 184       | 177          | 623         | yes      |
-| PostgreSQL 18.4     | 540       | 733          | 3434        | **no**   |
+therefore holds the full grammar files of a set of real languages.
 
 Every one of them is built four ways in the test suite: with the GoLR LALR(1) core, the GoLR IELR(1) core, the Bison
 LALR(1) core and the Bison IELR(1) core. The Bison-backed cores are not a reimplementation — they shell out to GNU

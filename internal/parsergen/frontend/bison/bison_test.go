@@ -1558,6 +1558,47 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 	})
 
+	Context("char literals", func() {
+		It("should resolve different spellings of the same character to the same terminal", func() {
+			bisonGrammar := `
+				%token <id> '\13' "vertical tab"
+				%%
+				s: '\v'
+			`
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar.Terminals).To(HaveLen(2))
+			Expect(grammar.Terminals[1].Name).To(Equal("CHAR_11"))
+			Expect(grammar.Productions[0].SymbolRefs[0]).To(Equal(frontend.NewTerminalRef(1)))
+		})
+
+		It("should return an error for a char literal with more than one character", func() {
+			bisonGrammar := `
+				%token <id> 'ab'
+				%%
+				s: 'ab'
+			`
+			Expect(bison.GrammarFromString(bisonGrammar)).Error().To(HaveOccurred())
+		})
+
+		It("should return an error for a char literal with an unknown escape sequence", func() {
+			bisonGrammar := `
+				%%
+				s: '\z'
+			`
+			Expect(bison.GrammarFromString(bisonGrammar)).Error().To(HaveOccurred())
+		})
+
+		It("should return an error for an empty char literal", func() {
+			bisonGrammar := `
+				%left ''
+				%%
+				s: %empty
+			`
+			Expect(bison.GrammarFromString(bisonGrammar)).Error().To(HaveOccurred())
+		})
+	})
+
 	Context("well known grammars", func() {
 		for _, wellKnownGrammar := range testdata.WellKnownGrammars {
 			It("should correctly parse the "+wellKnownGrammar.Title+" grammar", func() {
