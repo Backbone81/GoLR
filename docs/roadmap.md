@@ -43,13 +43,6 @@
 - Add default gotos to the parser tables. The goto table packs far less densely than the action table, because a goto
   row holds a handful of entries spread over all nonterminals, and the goto table of a large grammar is the biggest of
   the tables by some margin.
-- Keep the arena allocator of the generated parser around across parses. `allocateNodes` replaces the whole buffer once
-  it is exhausted, instead of keeping the chunks it filled before, so a parse of the Go grammar throws away about seven
-  chunks and allocates 3.7 MB in 10 allocations even though `Parse` resets the arena. Holding those chunks on a free
-  list and handing them out again from the start of the next parse would reclaim most of it. This needs no change to
-  the contract: resetting the arena at the start of `Parse` already invalidates the tree of the parse before, so reusing
-  the chunks takes away nothing a caller could rely on. This is the single biggest cost of a real parse, far bigger than
-  anything left to gain from compressing the tables further, and it applies to both Go parser backends alike.
 
 ## Scanner Generator
 
