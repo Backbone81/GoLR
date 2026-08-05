@@ -746,15 +746,15 @@ func BenchmarkGolangParser(b *testing.B) {
 	})
 
 	b.Run("GoLR Generated Parser", func(b *testing.B) {
+		golrScanner := parser.SemicolonInserter{
+			Scanner: parser.NewTokenSkipper(
+				parser.NewScanner(source, "in-memory"),
+			),
+		}
+		golrParser := parser.NewParser()
 		for b.Loop() {
-			golrScanner := parser.SemicolonInserter{
-				Scanner: parser.NewTokenSkipper(
-					parser.NewScanner(source, "in-memory"),
-				),
-			}
-			golrParser := parser.NewParser()
-			_, err := golrParser.Parse(&golrScanner)
-			if err != nil {
+			golrScanner.Reset(source, 0)
+			if _, err := golrParser.Parse(&golrScanner); err != nil {
 				b.Fatal(err)
 			}
 		}

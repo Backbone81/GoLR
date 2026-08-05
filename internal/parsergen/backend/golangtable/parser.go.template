@@ -113,6 +113,10 @@ var (
 // section 7 "Error Handling" of the yacc report.
 const errorRecoveryShifts = 3
 
+// arenaChunkSize is the number of nodes the arena allocator hands out from a single chunk. A parse which needs more
+// nodes than one chunk holds takes further chunks of the same size and keeps them for the parses after it.
+const arenaChunkSize = 16 * 1024
+
 // Error represents a single parse error.
 type Error struct {
     Token Token
@@ -239,6 +243,15 @@ type Parser struct {
     stateStack []int
     nodeStack  []Node
 
+    // arenaChunks holds every chunk of nodes the parser has allocated so far, in the order they are handed out. A
+    // parse starts over at the first chunk instead of allocating new ones, so only a parse which needs more nodes
+    // than every parse before it adds a chunk. Parse invalidates the tree of the parse before it in any case, so
+    // handing the memory of that tree out again takes away nothing a caller could rely on.
+    arenaChunks   [][]Node
+    arenaChunkIdx int
+
+    // arenaAllocator is the chunk nodes are handed out from at the moment, which aliases arenaChunks[arenaChunkIdx].
+    // Keeping it here lets allocateNodes read the room left in the chunk straight off the parser.
     arenaAllocator    []Node
     arenaAllocatorTop int
 
@@ -256,10 +269,11 @@ type Parser struct {
 // NewParser creates a new parser.
 func NewParser() *Parser {
     parser := Parser{
-        stateStack:     make([]int, 0, 1024),
-        nodeStack:      make([]Node, 0, 1024),
-        arenaAllocator: make([]Node, 16 * 1024),
+        stateStack:  make([]int, 0, 1024),
+        nodeStack:   make([]Node, 0, 1024),
+        arenaChunks: [][]Node{make([]Node, arenaChunkSize)},
     }
+    parser.resetArena()
     return &parser
 }
 
@@ -280,7 +294,7 @@ var errAccept = errors.New("accept")
 // many errors the parse found. Use errors.Is and errors.As to get at them, both of which look into a join.
 func (p *Parser) Parse(scanner ParserScanner) (Node, error) {
     p.scanner = scanner
-    p.arenaAllocatorTop = 0
+    p.resetArena()
     if !p.scanner.Next() {
         return Node{}, errors.New("Unexpected end of tokens")
     }
@@ -482,13 +496,38 @@ func (p *Parser) raiseError(cause error) error {
     }
 }
 
-// allocateNodes provides and arena allocator for slices of Node.
+// allocateNodes provides an arena allocator for slices of Node.
 func (p *Parser) allocateNodes(n int) []Node {
     if p.arenaAllocatorTop+n > len(p.arenaAllocator) {
-        p.arenaAllocator = make([]Node, max(n, 16 * 1024))
-        p.arenaAllocatorTop = 0
+        p.nextArenaChunk(n)
     }
     nodes := p.arenaAllocator[p.arenaAllocatorTop : p.arenaAllocatorTop+n]
     p.arenaAllocatorTop += n
     return nodes
+}
+
+// nextArenaChunk moves the arena on to the chunk after the current one, to serve a request of n nodes which the
+// current chunk has no room left for. Where an earlier parse left a chunk behind, that chunk is handed out again, so
+// a parser settles on the number of chunks its largest parse needed and allocates none after that.
+//
+// A reused chunk is not cleared. Every slice allocateNodes returns is filled completely by its caller before anything
+// reads it, so what an earlier parse left behind in the chunk is never observable.
+func (p *Parser) nextArenaChunk(n int) {
+    p.arenaChunkIdx++
+    if p.arenaChunkIdx == len(p.arenaChunks) {
+        p.arenaChunks = append(p.arenaChunks, make([]Node, max(n, arenaChunkSize)))
+    } else if len(p.arenaChunks[p.arenaChunkIdx]) < n {
+        // A single reduction which takes more nodes than a chunk holds gets a chunk sized to itself, so a chunk kept
+        // from an earlier parse is not guaranteed to have room for a later request.
+        p.arenaChunks[p.arenaChunkIdx] = make([]Node, n)
+    }
+    p.arenaAllocator = p.arenaChunks[p.arenaChunkIdx]
+    p.arenaAllocatorTop = 0
+}
+
+// resetArena puts the arena back to where it starts a parse, handing out from the beginning of the first chunk again.
+func (p *Parser) resetArena() {
+    p.arenaChunkIdx = 0
+    p.arenaAllocator = p.arenaChunks[0]
+    p.arenaAllocatorTop = 0
 }
