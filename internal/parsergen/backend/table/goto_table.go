@@ -16,7 +16,8 @@ const NoGoto = -1
 //
 // A goto is what the parser reads after a reduction, when it has popped the right hand side of a production off its
 // stack and asks where the nonterminal on the left hand side takes it. Only the states which such a reduction can
-// uncover have a goto on a given nonterminal, so the rows are sparse, which is what the row displacement packs.
+// uncover have a goto on a given nonterminal, so the rows are sparse, which is what the row displacement packs. Sparser
+// still once the default goto of every nonterminal has been taken out of them, see ApplyDefaultGotos.
 //
 // Unlike the action table, the goto table needs no entry which stands for an error. A reduction only ever asks for a
 // nonterminal in a state whose goto the LR construction created together with the production. An entry which is missing

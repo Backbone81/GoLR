@@ -40,9 +40,6 @@
 - Make the table driven Go backend the default and drop the directly coded one, once the table driven backend has
   proven itself. It is much smaller, and with the garbage collector out of the measurement it parses 23 % faster.
   Benchmark both in one process before deciding.
-- Add default gotos to the parser tables. The goto table packs far less densely than the action table, because a goto
-  row holds a handful of entries spread over all nonterminals, and the goto table of a large grammar is the biggest of
-  the tables by some margin.
 
 ## Scanner Generator
 

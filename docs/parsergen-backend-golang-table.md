@@ -46,11 +46,19 @@ into a single array in which the entries of one row fall into the holes of the o
 whether the cell a lookup lands on really belongs to the row which asked for it. Rows which are identical share one
 displacement.
 
-What makes the rows sparse enough for this to pay off is that the reduction a state performs on most of its lookaheads
-is taken out of its row and kept once as the default action of the state. This is the code reduction of section 3.1 of
-"Optimization of Parser Tables for Portable Compilers" by Dencker, Dürre and Heuft. A terminal which the grammar rejects
-on purpose, keeps an entry of its own, because an entry beats the default action while an absent one falls through to
-it.
+What makes the rows sparse enough for this to pay off is that what most entries of a table agree on is taken out of the
+rows and kept once as a default. The two tables default in different directions.
+
+The action table defaults per state: the reduction a state performs on most of its lookaheads is kept once as the
+default action of the state instead of once per lookahead. A terminal which the grammar rejects on purpose keeps an
+entry of its own, because an entry beats the default action while an absent one falls through to it.
+
+The goto table defaults per nonterminal: the state which a goto on a nonterminal leads to in most of the states which
+have such a goto is kept once as the default goto of that nonterminal, and only the states which deviate from it keep an
+entry. This matters because a goto row holds a handful of entries spread over all nonterminals, which makes the goto
+table of a large grammar the biggest of the tables. On the Go grammar of the `examples/golang` example it removes 82 %
+of the goto entries, which is 75 % of the bytes the goto tables take. The price is one more table lookup per reduction,
+which costs about 2 % of the parse time.
 
 The shift of the error symbol needs no table of its own. The error symbol is a terminal like any other, so its shifts
 are the entries of the action table in its column, which is where the error recovery reads the state to resume in.

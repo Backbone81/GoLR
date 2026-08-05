@@ -38,20 +38,25 @@ func handBuiltGrammar(terminalCount int, nonterminalCount int) frontend.Grammar 
 	return grammar
 }
 
+// occupiedCells returns the number of cells of the packed array which hold a real entry, which is how many entries the
+// rows had left after the defaults were taken out of them.
+func occupiedCells(displacement utils.RowDisplacement) int {
+	var result int
+	for _, colIdx := range displacement.Check {
+		if colIdx != utils.NoColumn {
+			result++
+		}
+	}
+	return result
+}
+
 // packingDensity returns the share of the packed array which holds a real entry. The remaining cells are the holes
 // which no row could be placed on, and are what the placement heuristic is judged by.
 func packingDensity(displacement utils.RowDisplacement) float64 {
 	if len(displacement.Check) == 0 {
 		return 1
 	}
-
-	var occupiedCells int
-	for _, colIdx := range displacement.Check {
-		if colIdx != utils.NoColumn {
-			occupiedCells++
-		}
-	}
-	return float64(occupiedCells) / float64(len(displacement.Check))
+	return float64(occupiedCells(displacement)) / float64(len(displacement.Check))
 }
 
 // expectDecodeEquivalence asserts that for every state, every terminal and every nonterminal the compressed lookup
@@ -88,6 +93,12 @@ func expectDecodeEquivalence(parser backend.Parser) table.CompressedParser {
 
 		for nonterminalIdx := range parser.Grammar.Nonterminals {
 			want := referenceGoto(state, nonterminalIdx)
+			if want == table.NoGoto {
+				// A state which has no goto on a nonterminal has nothing to compare. The default gotos make an
+				// absent entry indistinguishable from one the default covers, so the lookup answers with the
+				// default of the nonterminal, and no reduction ever asks it, see table.ApplyDefaultGotos.
+				continue
+			}
 			if got := compressed.Goto(stateIdx, nonterminalIdx); got != want {
 				Expect(got).To(Equal(want), "state %d on nonterminal %d", stateIdx, nonterminalIdx)
 			}
@@ -177,6 +188,54 @@ var _ = Describe("CompressedParser", func() {
 		Expect(golrCompressed.Action(0, 1)).To(Equal(table.NewAcceptAction()))
 	})
 
+	It("takes the default goto of the nonterminal for a state whose goto agrees with it", func() {
+		gotoTo := func(targetStateIdx int) backend.State {
+			return backend.State{
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewNonterminalRef(0), targetStateIdx),
+				),
+			}
+		}
+		parser := backend.Parser{
+			Grammar: handBuiltGrammar(2, 2),
+			States:  []backend.State{gotoTo(3), gotoTo(3), gotoTo(1), {}},
+		}
+
+		compressed := expectDecodeEquivalence(parser)
+
+		// The nonterminal the states disagree about defaults to the target the majority of them leads to, and the one
+		// no state has a goto on has no default at all.
+		Expect(compressed.DefaultGotoByNonterminalIdx).To(Equal([]int{3, table.NoGoto}))
+		Expect(compressed.Goto(0, 0)).To(Equal(3))
+		Expect(compressed.Goto(1, 0)).To(Equal(3))
+		Expect(compressed.Goto(2, 0)).To(Equal(1))
+
+		// Only the state which deviates from the default is left to pack, so three of the four gotos cost no cell.
+		Expect(occupiedCells(compressed.Gotos)).To(Equal(1))
+	})
+
+	It("defaults to the lowest state index when two targets are equally frequent", func() {
+		// Which of the two the default names does not change any lookup, only which entries are left to pack. Deciding
+		// it by the state index keeps the tables the same for every run of the generator.
+		gotoTo := func(targetStateIdx int) backend.State {
+			return backend.State{
+				TransitionActions: backend.NewTransitionActionSet(
+					backend.NewTransitionAction(frontend.NewNonterminalRef(0), targetStateIdx),
+				),
+			}
+		}
+		parser := backend.Parser{
+			Grammar: handBuiltGrammar(2, 1),
+			States:  []backend.State{gotoTo(5), gotoTo(2), gotoTo(5), gotoTo(2), {}, {}},
+		}
+
+		compressed := expectDecodeEquivalence(parser)
+
+		Expect(compressed.DefaultGotoByNonterminalIdx).To(Equal([]int{2}))
+		Expect(compressed.Goto(0, 0)).To(Equal(5))
+		Expect(compressed.Goto(1, 0)).To(Equal(2))
+	})
+
 	It("finds the resynchronization points of the error recovery in the column of the error terminal", func() {
 		grammar := handBuiltGrammar(3, 1)
 		errorRef, _ := frontend.ErrorTerminalRef(grammar)
@@ -224,6 +283,7 @@ var _ = Describe("CompressedParser", func() {
 		Expect(compressed.StateCount()).To(Equal(0))
 		Expect(compressed.Actions.Base).To(BeEmpty())
 		Expect(compressed.Gotos.Base).To(BeEmpty())
+		Expect(compressed.DefaultGotoByNonterminalIdx).To(BeEmpty())
 		Expect(compressed.ErrorTerminalIdx).To(Equal(table.NoTerminal))
 		Expect(compressed.HasErrorRecovery()).To(BeFalse())
 	})
@@ -235,9 +295,11 @@ var _ = Describe("CompressedParser", func() {
 			compressed := expectDecodeEquivalence(parser)
 
 			AddReportEntry("tables", fmt.Sprintf(
-				"%d states, %d terminals, %d nonterminals, %d action cells, %d goto cells",
+				"%d states, %d terminals, %d nonterminals, %d action cells (%.1f%% filled), "+
+					"%d goto cells (%.1f%% filled)",
 				len(parser.States), len(parser.Grammar.Terminals), len(parser.Grammar.Nonterminals),
-				len(compressed.Actions.Next), len(compressed.Gotos.Next),
+				len(compressed.Actions.Next), 100*packingDensity(compressed.Actions),
+				len(compressed.Gotos.Next), 100*packingDensity(compressed.Gotos),
 			))
 		})
 	}
@@ -272,7 +334,7 @@ var _ = Describe("CompressedParser", func() {
 		// the scanner tables pack to, and cannot: a scanner row has an entry in most of its few byte classes, while a
 		// parser row holds a handful of entries spread over all terminals or all nonterminals, and every row which is
 		// not identical to another one needs a displacement of its own. The Go grammar packs to roughly 74 percent of
-		// the action cells and 57 percent of the goto cells, so half the array holding real entries is the level at
+		// the action cells and 80 percent of the goto cells, so half the array holding real entries is the level at
 		// which something has regressed rather than the level to aim for.
 		Expect(packingDensity(compressed.Actions)).To(BeNumerically(">", 0.5))
 		Expect(packingDensity(compressed.Gotos)).To(BeNumerically(">", 0.5))

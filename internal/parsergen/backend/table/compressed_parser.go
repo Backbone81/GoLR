@@ -9,10 +9,12 @@ import (
 // parser as lookup tables instead of as control flow, which is what allows a backend for a new language to be a small
 // driver instead of another encoding of the state machine.
 //
-// The tables are compressed in two steps. The default actions take the reduction which a state performs on most of its
-// lookaheads out of the rows, which is backend.ApplyDefaultReductions and leaves the rows sparse, and the row
-// displacement then packs the remaining entries of all rows into a single array. Both steps are lossless, so a lookup
-// returns exactly the decision the state model describes.
+// The tables are compressed in two steps. A default first takes out of the rows what most of their entries agree on,
+// which leaves the rows sparse, and the row displacement then packs the entries which are left into a single array. The
+// action table defaults per state, to the reduction which the state performs on most of its lookaheads, which is
+// backend.ApplyDefaultReductions. The goto table defaults per nonterminal, to the state which a goto on it leads to in
+// most of the states which have one, see NewDefaultGotos. Both steps keep every decision the state model describes, so
+// a lookup returns exactly what reading the states returns.
 type CompressedParser struct {
 	// Actions holds the actions of all states packed into a single array, indexed by state and terminal. A terminal
 	// without an entry is one the state takes its default action for.
@@ -23,8 +25,13 @@ type CompressedParser struct {
 	DefaultActionByStateIdx []Action
 
 	// Gotos holds the gotos of all states packed into a single array, indexed by state and nonterminal. An entry is
-	// the index of the state the goto leads to.
+	// the index of the state the goto leads to. A nonterminal without an entry is one the state takes the default
+	// goto of that nonterminal for.
 	Gotos utils.RowDisplacement
+
+	// DefaultGotoByNonterminalIdx holds, for every nonterminal, the state a goto on it leads to when Gotos has no
+	// entry for it, or NoGoto when no state of the parser has a goto on it at all.
+	DefaultGotoByNonterminalIdx []int
 
 	// ErrorTerminalIdx is the terminal index of the error symbol, or NoTerminal when the grammar does not have it.
 	// This is the column of Actions which the error recovery reads, see ErrorShiftStateIdx.
@@ -33,11 +40,16 @@ type CompressedParser struct {
 
 // NewCompressedParser compresses the given parser into the tables a table driven parser uses.
 func NewCompressedParser(parser backend.Parser) CompressedParser {
+	defaultGotoByNonterminalIdx := NewDefaultGotos(parser)
+	gotoRows := NewGotoTable(parser)
+	ApplyDefaultGotos(gotoRows, defaultGotoByNonterminalIdx)
+
 	return CompressedParser{
-		Actions:                 utils.NewRowDisplacement(NewActionTable(parser), int(NoAction)),
-		DefaultActionByStateIdx: NewDefaultActions(parser),
-		Gotos:                   utils.NewRowDisplacement(NewGotoTable(parser), NoGoto),
-		ErrorTerminalIdx:        errorTerminalIdx(parser.Grammar),
+		Actions:                     utils.NewRowDisplacement(NewActionTable(parser), int(NoAction)),
+		DefaultActionByStateIdx:     NewDefaultActions(parser),
+		Gotos:                       utils.NewRowDisplacement(gotoRows, NoGoto),
+		DefaultGotoByNonterminalIdx: defaultGotoByNonterminalIdx,
+		ErrorTerminalIdx:            errorTerminalIdx(parser.Grammar),
 	}
 }
 
@@ -61,9 +73,19 @@ func (c *CompressedParser) Action(stateIdx int, terminalIdx int) Action {
 }
 
 // Goto returns the state the parser continues in when it has reduced to the given nonterminal and uncovered the given
-// state, or NoGoto when the state has no goto on that nonterminal.
+// state. This is the access code a generated table driver performs.
+//
+// The lookup is the whole decision, the default goto of the nonterminal included: an entry which the state has of its
+// own wins, and only a nonterminal without one falls through to the default goto.
+//
+// A state which has no goto on the nonterminal at all is not distinguishable from a state whose goto the default
+// covers, so this returns the default for it rather than NoGoto, see ApplyDefaultGotos. Only a nonterminal which no
+// state of the parser has a goto on yields NoGoto.
 func (c *CompressedParser) Goto(stateIdx int, nonterminalIdx int) int {
-	return c.Gotos.Lookup(stateIdx, nonterminalIdx)
+	if targetStateIdx := c.Gotos.Lookup(stateIdx, nonterminalIdx); targetStateIdx != NoGoto {
+		return targetStateIdx
+	}
+	return c.DefaultGotoByNonterminalIdx[nonterminalIdx]
 }
 
 // ErrorShiftStateIdx returns the state the parser continues in when it shifts the error symbol in the given state, and

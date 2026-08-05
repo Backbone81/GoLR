@@ -53,6 +53,10 @@ type Tables struct {
 	// nonterminal index, so no lookup can ever ask for it.
 	NoNonterminal int
 
+	// DefaultGotoByNonterminal holds, for every nonterminal, the state a goto on it leads to when GotoNext has no
+	// entry for it. A nonterminal which no state has a goto on carries a state index which is never read.
+	DefaultGotoByNonterminal utils.IntArray
+
 	// PopCountByProduction holds, for every production, the number of symbols a reduction by it takes off the
 	// stacks. This is the length of the right hand side of the production and needs no compression, so it is read
 	// off the grammar rather than built by the table package.
@@ -125,7 +129,8 @@ func NewTables(parser backend.Parser) Tables {
 			fillChecks(compressed.Gotos.Check, nonterminalCount),
 		),
 
-		NoNonterminal: nonterminalCount,
+		NoNonterminal:            nonterminalCount,
+		DefaultGotoByNonterminal: utils.NewIntArray(fillHoles(compressed.DefaultGotoByNonterminalIdx)),
 
 		PopCountByProduction:    utils.NewIntArray(newPopCounts(parser)),
 		NonterminalByProduction: utils.NewIntArray(newNonterminals(parser)),
@@ -189,8 +194,11 @@ func newNonterminals(parser backend.Parser) []int {
 	return result
 }
 
-// fillHoles replaces the holes of a packed table with zeros. A hole is never read, because the check table keeps the
-// driver from using it, so the value only has to keep the entry type free of a negative value.
+// fillHoles replaces the absent entries of a table with zeros, so that its entry type stays free of a negative value
+// and can be an unsigned one.
+//
+// Nothing reads what this writes. A hole of a packed table is a cell the check table keeps the driver from using, and
+// an absent default goto belongs to a nonterminal which no state has a goto on, so no reduction ever asks for it.
 func fillHoles(values []int) []int {
 	result := make([]int, len(values))
 	for cellIdx, value := range values {

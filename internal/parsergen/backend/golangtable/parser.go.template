@@ -147,9 +147,10 @@ func (e *Error) Unwrap() error {
 // displaced so that its entries fall into the holes of the other rows. This is the row displacement method described in
 // "Storing a Sparse Table" by Tarjan and Yao. The gotos are stored the same way, with the nonterminal as the column.
 //
-// The rows are sparse because the reduction a state performs on most of its lookaheads is taken out of them and kept as
-// the default action of the state, which is the code reduction of section 3.1 of "Optimization of Parser Tables for
-// Portable Compilers" by Dencker, Duerre and Heuft.
+// The rows are sparse because what most of their entries agree on is taken out of them and kept as a default. The
+// action table defaults per state, to the reduction the state performs on most of its lookaheads, and the goto table
+// defaults per nonterminal, to the state a goto on it leads to in most of the states which have one. Only the entries
+// which deviate from those defaults are in the tables at all, which is what leaves the holes the displacement fills.
 const (
     // actionKindBits is the number of low bits of an action which hold what the action does. The value the action
     // carries sits above them.
@@ -226,6 +227,11 @@ var (
     // gotoCheck holds the nonterminal every cell of gotoNext belongs to. A cell which no state occupies holds
     // noNonterminal.
     gotoCheck = [{{ len .Tables.GotoCheck.Values }}]{{ .Tables.GotoCheck.Type }}{ {{- .Tables.GotoCheck.Literal -}} }
+
+    // defaultGotoByNonterminal holds the state a goto on a nonterminal leads to for every state which gotoNext has
+    // no entry for. Most states agree on where a nonterminal takes them, so only the ones which deviate are in the
+    // table at all.
+    defaultGotoByNonterminal = [{{ len .Tables.DefaultGotoByNonterminal.Values }}]{{ .Tables.DefaultGotoByNonterminal.Type }}{ {{- .Tables.DefaultGotoByNonterminal.Literal -}} }
 
     // popCountByProduction holds the number of symbols a reduction takes off the stacks, which is the length of the
     // right hand side of the production.
@@ -368,7 +374,8 @@ func (p *Parser) step() error {
         {{- end }}
         return nil
     case actionKindReduce:
-        return p.reduce(action >> actionKindBits)
+        p.reduce(action >> actionKindBits)
+        return nil
     case actionKindAccept:
         // The parse is successfully finished.
         return errAccept
@@ -381,22 +388,22 @@ func (p *Parser) step() error {
 
 // reduce replaces the right hand side of the given production on the stacks with the nonterminal on its left hand side,
 // and continues in the state the goto of the uncovered state leads to.
-func (p *Parser) reduce(productionIdx uint32) error {
+func (p *Parser) reduce(productionIdx uint32) {
     popCount := int(popCountByProduction[productionIdx])
     nonterminal := uint32(nonterminalByProduction[productionIdx])
 
     p.stateStack = p.stateStack[:len(p.stateStack)-popCount]
 
     state := p.stateStack[len(p.stateStack)-1]
+    // A state which does not have a goto of its own on the nonterminal goes where most states go with it. The LR
+    // construction creates the goto together with the production, so a state which a reduction uncovers always has
+    // one, which is why the lookup needs no case for a nonterminal missing from both.
+    gotoState := uint32(defaultGotoByNonterminal[nonterminal])
     cellIdx := uint32(gotoBase[state]) + nonterminal
-    if uint32(gotoCheck[cellIdx]) != nonterminal {
-        // The LR construction creates the goto together with the production, so a state which a reduction uncovers
-        // always has one. A missing goto is a defect of the parse table and not an error in the input.
-        return p.raiseError(fmt.Errorf(
-            "%w: state %d has no goto on nonterminal %s", ErrInternal, state, Nonterminal(nonterminal),
-        ))
+    if uint32(gotoCheck[cellIdx]) == nonterminal {
+        gotoState = uint32(gotoNext[cellIdx])
     }
-    p.stateStack = append(p.stateStack, int(gotoNext[cellIdx]))
+    p.stateStack = append(p.stateStack, int(gotoState))
 
     newNode := Node{
         Symbol: NewNonterminal(Nonterminal(nonterminal)),
@@ -407,7 +414,6 @@ func (p *Parser) reduce(productionIdx uint32) error {
         p.nodeStack = p.nodeStack[:len(p.nodeStack)-popCount]
     }
     p.nodeStack = append(p.nodeStack, newNode)
-    return nil
 }
 
 // recoverFromError puts the parser back into a state where it can continue on the remaining input after a syntax error.
