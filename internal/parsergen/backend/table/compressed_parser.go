@@ -53,7 +53,7 @@ func (c *CompressedParser) StateCount() int {
 // wins, and only a terminal without one falls through to the default action. That order is what keeps a terminal the
 // state rejects on purpose an error even though the state reduces on everything else, see ActionKindError.
 func (c *CompressedParser) Action(stateIdx int, terminalIdx int) Action {
-	action := Action(c.Actions.Lookup(stateIdx, terminalIdx))
+	action := Action(c.Actions.Lookup(stateIdx, TerminalColumn(terminalIdx)))
 	if action == NoAction {
 		return c.DefaultActionByStateIdx[stateIdx]
 	}
@@ -80,7 +80,7 @@ func (c *CompressedParser) ErrorShiftStateIdx(stateIdx int) (int, bool) {
 	if c.ErrorTerminalIdx == NoTerminal {
 		return 0, false
 	}
-	action := Action(c.Actions.Lookup(stateIdx, c.ErrorTerminalIdx))
+	action := Action(c.Actions.Lookup(stateIdx, TerminalColumn(c.ErrorTerminalIdx)))
 	if action == NoAction || action.Kind() != ActionKindShift {
 		return 0, false
 	}

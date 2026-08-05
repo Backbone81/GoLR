@@ -24,11 +24,13 @@ type Action int
 const NoAction Action = -1
 
 const (
-	// actionKindBits is the number of low bits of an Action which hold its ActionKind.
-	actionKindBits = 2
+	// ActionKindBits is the number of low bits of an Action which hold its ActionKind. A generated parser shifts an
+	// action down by this much to get at the value it carries, which is why it is exported.
+	ActionKindBits = 2
 
-	// actionKindMask selects the ActionKind out of an Action.
-	actionKindMask = (1 << actionKindBits) - 1
+	// ActionKindMask selects the ActionKind out of an Action. A generated parser masks an action with it to find out
+	// what to do, which is why it is exported.
+	ActionKindMask = (1 << ActionKindBits) - 1
 
 	// actionValueMax is the largest value an Action can carry next to its kind. Both values it ever carries are
 	// capped at 16 bits by the parser tables themselves, the state index by backend.TransitionActionMaxState and the
@@ -63,7 +65,7 @@ const (
 // NewShiftAction returns the action which shifts the terminal and continues in the given state.
 func NewShiftAction(stateIdx int) Action {
 	utils.AssertValidIndex(stateIdx, actionValueMax)
-	return Action(stateIdx)<<actionKindBits | Action(ActionKindShift)
+	return Action(stateIdx)<<ActionKindBits | Action(ActionKindShift)
 }
 
 // NewReduceAction returns the action which reduces by the given production.
@@ -76,7 +78,7 @@ func NewReduceAction(productionIdx int) Action {
 	if productionIdx == acceptProductionIdx {
 		return NewAcceptAction()
 	}
-	return Action(productionIdx)<<actionKindBits | Action(ActionKindReduce)
+	return Action(productionIdx)<<ActionKindBits | Action(ActionKindReduce)
 }
 
 // NewAcceptAction returns the action which ends the parse successfully. It carries no value next to its kind, so
@@ -93,7 +95,7 @@ func NewErrorAction() Action {
 
 // Kind returns what the action does.
 func (a Action) Kind() ActionKind {
-	return ActionKind(a & actionKindMask)
+	return ActionKind(a & ActionKindMask)
 }
 
 // StateIdx returns the state a shift action continues in.
@@ -104,7 +106,7 @@ func (a Action) StateIdx() int {
 		}
 		return nil
 	})
-	return int(a >> actionKindBits)
+	return int(a >> ActionKindBits)
 }
 
 // ProductionIdx returns the production a reduce action reduces by.
@@ -115,7 +117,7 @@ func (a Action) ProductionIdx() int {
 		}
 		return nil
 	})
-	return int(a >> actionKindBits)
+	return int(a >> ActionKindBits)
 }
 
 // Action implements fmt.Stringer.

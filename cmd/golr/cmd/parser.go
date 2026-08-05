@@ -12,6 +12,7 @@ import (
 	"github.com/backbone81/golr/pkg/parsergen/backend"
 	dotbackend "github.com/backbone81/golr/pkg/parsergen/backend/dot"
 	golangbackend "github.com/backbone81/golr/pkg/parsergen/backend/golang"
+	golangtablebackend "github.com/backbone81/golr/pkg/parsergen/backend/golangtable"
 	jsonbackend "github.com/backbone81/golr/pkg/parsergen/backend/json"
 	yamlbackend "github.com/backbone81/golr/pkg/parsergen/backend/yaml"
 	"github.com/backbone81/golr/pkg/parsergen/conflict"
@@ -122,13 +123,22 @@ func executeParserBackend(parser backend.Parser) error {
 			return dotbackend.FromParser(os.Stdout, parser)
 		}
 		return dotbackend.ParserToFile(parserBackendFilePath, parser)
-	case "go":
+	case "go", "go-direct":
 		if parserBackendFilePath == "-" {
 			return golangbackend.FromParser(os.Stdout, parser, golangbackend.Config{
 				PackageName: parserBackendGoPackageName,
 			})
 		}
 		return golangbackend.ParserToFile(parserBackendFilePath, parser, golangbackend.Config{
+			PackageName: parserBackendGoPackageName,
+		})
+	case "go-table":
+		if parserBackendFilePath == "-" {
+			return golangtablebackend.FromParser(os.Stdout, parser, golangtablebackend.Config{
+				PackageName: parserBackendGoPackageName,
+			})
+		}
+		return golangtablebackend.ParserToFile(parserBackendFilePath, parser, golangtablebackend.Config{
 			PackageName: parserBackendGoPackageName,
 		})
 	case "json":
@@ -179,7 +189,7 @@ func init() {
 		&parserBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the parser. One of: dot, go, json, null, yaml.",
+		"The backend to use for writing the parser. One of: dot, go, go-direct, go-table, json, null, yaml.",
 	)
 	parserCmd.PersistentFlags().StringVar(
 		&parserBackendFilePath,

@@ -7,8 +7,8 @@ import (
 	"github.com/backbone81/golr/internal/utils"
 )
 
-// NewActionTable lays the actions of the given parser out as one row per state, indexed by terminal. This dense table
-// is the form the row displacement compression consumes. An entry is an Action.
+// NewActionTable lays the actions of the given parser out as one row per state, indexed by the column of a terminal,
+// see TerminalColumn. This dense table is the form the row displacement compression consumes. An entry is an Action.
 //
 // A terminal which the state has no action for is left as NoAction, so that the row displacement has holes to place the
 // other rows in. An empty entry does not mean the terminal is an error: the parser takes the default action of the
@@ -22,9 +22,9 @@ func NewActionTable(parser backend.Parser) [][]int {
 
 	rows := make([][]int, len(parser.States))
 	for stateIdx := range parser.States {
-		row := make([]int, len(parser.Grammar.Terminals))
-		for terminalIdx := range row {
-			row[terminalIdx] = int(NoAction)
+		row := make([]int, terminalColumnCount(parser.Grammar))
+		for colIdx := range row {
+			row[colIdx] = int(NoAction)
 		}
 		fillActionRow(row, stateIdx, &parser.States[stateIdx], errorIdx)
 		rows[stateIdx] = row
@@ -91,14 +91,15 @@ func assertNoErrorShift(stateIdx int, state *backend.State, errorIdx int) {
 // action twice is allowed, because a state may carry a reduce action explicitly which its default action covers as
 // well.
 func setAction(row []int, stateIdx int, terminalIdx int, action Action) {
+	colIdx := TerminalColumn(terminalIdx)
 	utils.DebugAssert(func() error {
-		if row[terminalIdx] != int(NoAction) && row[terminalIdx] != int(action) {
+		if row[colIdx] != int(NoAction) && row[colIdx] != int(action) {
 			return fmt.Errorf(
 				"state %d has the actions %s and %s for terminal %d",
-				stateIdx, Action(row[terminalIdx]), action, terminalIdx,
+				stateIdx, Action(row[colIdx]), action, terminalIdx,
 			)
 		}
 		return nil
 	})
-	row[terminalIdx] = int(action)
+	row[colIdx] = int(action)
 }

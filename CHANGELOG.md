@@ -25,6 +25,7 @@
 - Fixed the Bison frontend scanner swallowing input after char literals or strings ending in an escaped backslash, like '\\'.
 - Fixed the Bison frontend ignoring char literal token declarations like %token '\\' and misnaming escaped char literals: escape sequences are now decoded, so different spellings of the same character resolve to the same terminal.
 - Added the scanner backend go-table, which writes the scanner as lookup tables instead of as code.
+- Added the new parser backend 'go-table' which writes the parser as lookup tables instead of as control flow. The existing Go backend is now also available as 'go-direct', with 'go' remaining an alias for it.
 
 ## v0.1.0 (2026-07-11)
 

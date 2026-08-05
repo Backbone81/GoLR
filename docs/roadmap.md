@@ -6,6 +6,15 @@
   in go code with the reserved keyword.
 - Extend the documentation.
 - Add benchmarks to all documentation.
+- Add a benchmark mode which runs with the garbage collector disabled, by setting `GOGC=off` together with a
+  `GOMEMLIMIT` high enough that it never triggers, as a make target next to the normal one. Measured on the Go grammar,
+  a parse takes 8.9 ms with the collector on and 2.0 ms with it off, so roughly three quarters of the runtime is
+  collection - the parse allocates about 1.8 GB/s, far more than the collector keeps up with, so the parsing goroutine
+  is pulled into the collection itself through mutator assist. That cost is identical for every backend and swamps what
+  a benchmark is meant to compare: the run to run spread drops from 26 % to about 2 % with the collector off, which
+  turned a difference between the two Go parser backends that could not be quoted at all into a clear 23 %. Set the
+  limit through the environment rather than in code, so the committed benchmark keeps measuring what a user actually
+  gets, and discard the first few samples, which are consistently high.
 - Publish Visual Studio Code extension for syntax highlighting of GoLR files
 - Publish IntelliJ plugin for syntax highlighting of GoLR files
 - Add support for C backend
@@ -28,6 +37,19 @@
 - Introduce strongly typed wrappers for general purpose parse nodes. That way, users don't rely on children being a 
   specific count, but can instead use named methods for directly accessing the correct child. Make sure this is a
   zero overhead abstraction over the parse nodes.
+- Make the table driven Go backend the default and drop the directly coded one, once the table driven backend has
+  proven itself. It is much smaller, and with the garbage collector out of the measurement it parses 23 % faster.
+  Benchmark both in one process before deciding.
+- Add default gotos to the parser tables. The goto table packs far less densely than the action table, because a goto
+  row holds a handful of entries spread over all nonterminals, and the goto table of a large grammar is the biggest of
+  the tables by some margin.
+- Keep the arena allocator of the generated parser around across parses. `allocateNodes` replaces the whole buffer once
+  it is exhausted, instead of keeping the chunks it filled before, so a parse of the Go grammar throws away about seven
+  chunks and allocates 3.7 MB in 10 allocations even though `Parse` resets the arena. Holding those chunks on a free
+  list and handing them out again from the start of the next parse would reclaim most of it. This needs no change to
+  the contract: resetting the arena at the start of `Parse` already invalidates the tree of the parse before, so reusing
+  the chunks takes away nothing a caller could rely on. This is the single biggest cost of a real parse, far bigger than
+  anything left to gain from compressing the tables further, and it applies to both Go parser backends alike.
 
 ## Scanner Generator
 

@@ -103,7 +103,7 @@ Usage:
   golr parser [flags]
 
 Flags:
-      --backend string                   The backend to use for writing the parser. One of: dot, go, json, null, yaml. (default "go")
+      --backend string                   The backend to use for writing the parser. One of: dot, go, go-direct, go-table, json, null, yaml. (default "go")
       --backend-file-path string         The file path to write the parser to. Can be '-' to write to stdout.
       --backend-go-package-name string   The Go package name to use for the generated Go code. (default "parser")
       --core string                      The core to use for generating the parser from the context free grammar. One of: ielr1, ielr1-golr, ielr1-bison, lalr1, lalr1-golr, lalr1-bison, lr1, lr1-golr, lr1-bison. (default "ielr1")
@@ -245,6 +245,8 @@ These backends are currently supported:
 
 - [DOT](docs/parsergen-backend-dot.md)
 - [Go](docs/parsergen-backend-golang.md)
+- [Go Direct](docs/parsergen-backend-golang-direct.md)
+- [Go Table](docs/parsergen-backend-golang-table.md)
 - [JSON](docs/parsergen-backend-json.md)
 - [Null](docs/parsergen-backend-null.md)
 - [YAML](docs/parsergen-backend-yaml.md)

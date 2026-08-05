@@ -49,6 +49,9 @@ unreleased:
     decoded, so different spellings of the same character resolve to the same terminal.'
 - description: Added the scanner backend go-table, which writes the scanner as lookup
     tables instead of as code.
+- description: Added the new parser backend 'go-table' which writes the parser as
+    lookup tables instead of as control flow. The existing Go backend is now also
+    available as 'go-direct', with 'go' remaining an alias for it.
 releases:
 - version: |
     v0.1.0
