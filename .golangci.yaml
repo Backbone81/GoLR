@@ -113,6 +113,10 @@ linters:
         linters:
           - cyclop
           - dupl
+          # dupword collapses a run of repeated words, and with --fix it does so silently and inside string
+          # literals. Test data legitimately repeats a token - a parser test feeds inputs like "a; b b b b; c;" on
+          # purpose - so leaving this on rewrites the input of a test while reporting no issue at all.
+          - dupword
           - funlen
           - gocognit
           - goconst

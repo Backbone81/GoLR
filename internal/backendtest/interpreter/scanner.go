@@ -107,14 +107,24 @@ func (s *Scanner) Next() (Match, bool) {
 	return Match{RuleIdx: table.NoRule, Start: startIdx, End: s.offset}, true
 }
 
+// rule returns the rule which produced the given match, and reports whether a rule produced it at all. A match which no
+// rule produced is what a generated scanner hands on as its invalid token, which the parser then sees as a token which
+// is no terminal of its grammar, see Parser.
+func (s *Scanner) rule(match Match) (frontend.Rule, bool) {
+	if match.RuleIdx == table.NoRule {
+		return frontend.Rule{}, false
+	}
+	return s.rules[match.RuleIdx], true
+}
+
 // Event returns the trace event for the given match. A match which no rule produced becomes an error carrying the
 // offset it started at, and every other match becomes a token or a skip depending on the rule which matched.
 func (s *Scanner) Event(match Match) fmt.Stringer {
-	if match.RuleIdx == table.NoRule {
+	rule, ok := s.rule(match)
+	if !ok {
 		return backendtest.ScannerError{Offset: match.Start}
 	}
 
-	rule := s.rules[match.RuleIdx]
 	lexeme := string(s.source[match.Start:match.End])
 	if rule.Skip {
 		return backendtest.Skip{RuleName: rule.Name, Start: match.Start, End: match.End, Lexeme: lexeme}
