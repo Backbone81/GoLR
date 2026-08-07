@@ -1,5 +1,8 @@
 PACKAGE ?= ./internal/...
 
+# LANGUAGE restricts test-backends to a single language backend. It is empty by default, which runs all of them.
+LANGUAGE ?=
+
 .PHONY: all
 all: build
 
@@ -58,6 +61,13 @@ test-coverage: test-examples
 .PHONY: test-examples
 test-examples: prepare
 	$(MAKE) -C examples test
+
+# test-backends proves that the code every language backend emits behaves like the reference implementation in Go. It
+# is separate from test, because it compiles and runs the generated code in a container per language, which needs
+# docker and takes considerably longer than the unit tests.
+.PHONY: test-backends
+test-backends: prepare
+	go test ./internal/backendtest/... $(if $(LANGUAGE),-args --ginkgo.label-filter=$(LANGUAGE))
 
 .PHONY: benchmark
 benchmark: prepare
