@@ -1,0 +1,39 @@
+// Error recovery in full, over an input where the parse both fails and gets going again. `@error ";"` says that a
+// statement which went wrong may be resumed at the next semicolon, so the recovery pops the states of the half parsed
+// statement, shifts the error symbol in the state which allows it, and carries on.
+//
+// The order of the events is the whole content of this case, and it is report, discard, pop, resume. The token which
+// caused the error is kept rather than thrown away, because the state the recovery resumes in is usually waiting for
+// exactly it; only a parse which fails again on that very same token discards it. Every round reports the states it
+// popped, even when it popped none, so the number of events per round does not depend on how far the stack unwound.
+//
+// The statements around the broken one are there to show that the parse really continues: the trace has to contain the
+// complete parse of the third statement after the recovery, and the shift of the end of input symbol and the accept
+// after that.
+//
+// The scanner is not what this case is about, so its rules are single characters and runs of digits.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NUMBER:    /[0-9]+/;
+    PLUS:      "+";
+    SEMICOLON: ";";
+}
+
+@parser {
+    statements
+        : statements statement
+        | statement
+        ;
+
+    statement
+        : expression ";"
+        | @error ";"
+        ;
+
+    expression
+        : NUMBER
+        | expression "+" NUMBER
+        ;
+}

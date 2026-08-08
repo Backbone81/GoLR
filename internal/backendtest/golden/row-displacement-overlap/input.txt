@@ -1,0 +1,1 @@
+alpha 1; bravo two; charlie 3; delta four; echo 5; foxtrot six; golf 7;

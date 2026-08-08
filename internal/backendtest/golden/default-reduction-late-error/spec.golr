@@ -1,0 +1,36 @@
+// A default reduction delays the detection of an error, and the trace is where that delay becomes visible. A state
+// whose only action is a reduction performs it for every lookahead rather than only for the lookaheads it was computed
+// for, which is what takes the reduce entries out of the table. The price is that a token which is an error is not
+// recognized as one until the parser reaches a state which has no default reduction, and the reductions it performs on
+// the way happen even though the parse is already doomed.
+//
+// The chain of single productions is what makes that visible rather than merely true: reducing the heading uncovers a
+// state which reduces the section, which uncovers a state which reduces the document, so a single token which cannot
+// follow the heading produces three reductions before the error is reported. Without the default reductions the error
+// would be reported right after the first token was shifted and none of the three would appear.
+//
+// The offset the error is reported at is the second word, so the delay moves the reductions but not the position. Every
+// backend has to delay by exactly this much: reporting earlier means the default reductions were not applied, reporting
+// later means a state which should have refused the token did not.
+//
+// The scanner is not what this case is about, so its only rule is a run of letters.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NAME: /[a-z]+/;
+}
+
+@parser {
+    document
+        : section
+        ;
+
+    section
+        : heading
+        ;
+
+    heading
+        : NAME
+        ;
+}

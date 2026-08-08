@@ -1,0 +1,38 @@
+// Precedence and associativity resolve every conflict of an ambiguous expression grammar. The grammar is ambiguous as
+// written - `expression "+" expression` says nothing about how `1 - 2 - 3` groups - and the whole shape of the parse
+// comes out of the precedence declarations, so the trace is where that shape becomes visible: the order the reductions
+// happen in is the order the operators bind in.
+//
+// The input exercises all three of the things the declarations decide. `1 - 2 - 3` groups to the left because "-" is
+// declared @left. `3 * 4` binds tighter than the surrounding "-" because "*" sits on an earlier and therefore stronger
+// level. `4 ^ 5 ^ 6` groups to the right because "^" is declared @right, and it binds tighter than "*" for the same
+// reason "*" binds tighter than "-".
+//
+// The scanner is not what this case is about, so its rules are single characters and runs of digits.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NUMBER:   /[0-9]+/;
+
+    PLUS:     "+";
+    MINUS:    "-";
+    MULTIPLY: "*";
+    POWER:    "^";
+}
+
+@parser {
+    @precedence {
+        @right: "^";
+        @left:  "*";
+        @left:  "+" "-";
+    }
+
+    expression
+        : NUMBER
+        | expression "+" expression
+        | expression "-" expression
+        | expression "*" expression
+        | expression "^" expression
+        ;
+}

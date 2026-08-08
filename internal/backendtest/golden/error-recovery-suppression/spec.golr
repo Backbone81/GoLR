@@ -1,0 +1,41 @@
+// The three shift countdown, which decides which errors a trace does not carry. After a syntax error the parser is out
+// of step with the input, so the errors it runs into next are most likely consequences of the one already reported.
+// Suppressing them until three tokens of the input have been shifted again is what keeps a single mistake from producing
+// an avalanche of messages. It is the rule of yacc and of GNU Bison, and every generated driver has to suppress exactly
+// as much as every other.
+//
+// The input contains both halves of that rule. The second broken statement follows the first one immediately, so its
+// error falls inside the countdown and no error is reported for it at all - the recovery still happens, which is why the
+// trace has a round of recovery with no error in front of it. The last broken statement comes after a whole statement
+// was parsed successfully, so the countdown has run out and its error is reported again.
+//
+// The second recovery is also the one which pops nothing: the parser is already in a state which allows the error
+// symbol, so the round reports POP 0. That event is emitted even though it moves nothing, so that a round of recovery is
+// the same number of events wherever it happens.
+//
+// The scanner is not what this case is about, so its rules are single characters and runs of digits.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NUMBER:    /[0-9]+/;
+    PLUS:      "+";
+    SEMICOLON: ";";
+}
+
+@parser {
+    statements
+        : statements statement
+        | statement
+        ;
+
+    statement
+        : expression ";"
+        | @error ";"
+        ;
+
+    expression
+        : NUMBER
+        | expression "+" NUMBER
+        ;
+}

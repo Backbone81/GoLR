@@ -1,0 +1,23 @@
+// An input of zero bytes. The scanner reports the end of the input without ever having matched anything, and the parser
+// accepts, because the start symbol derives the empty string. It is the shortest possible complete parse: a reduction of
+// the empty list, the reduction to the start symbol, the shift of the end of input symbol, and the accept.
+//
+// A driver which reads its first token before looking at whether there is one, or which treats the end of the input as a
+// failure rather than as a terminal like any other, fails here and passes everything else.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    ITEM: "i";
+}
+
+@parser {
+    list
+        : items
+        ;
+
+    items
+        : items ITEM
+        | @empty
+        ;
+}

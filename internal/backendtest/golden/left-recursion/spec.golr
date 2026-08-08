@@ -1,0 +1,19 @@
+// Left recursion reduces as it goes. Every item is shifted and immediately reduced into the list which precedes it, so
+// the parse stack never holds more than the list and the item currently being read, however long the input is. The trace
+// is therefore a strict alternation of a shift and a reduction, which is what distinguishes this case from
+// [deep-right-recursion] with the same input.
+//
+// The scanner is not what this case is about, so its only rule is a single character.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    ITEM: "i";
+}
+
+@parser {
+    list
+        : list ITEM
+        | ITEM
+        ;
+}

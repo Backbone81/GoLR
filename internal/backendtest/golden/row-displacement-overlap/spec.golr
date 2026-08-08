@@ -1,0 +1,62 @@
+// Row displacement packs the rows of the action table into one shared array, so a state's entries end up interleaved
+// with the entries of other states. What keeps a lookup honest is the parallel check array, which records the column a
+// cell was written for: a state reading a cell which belongs to another state finds a column which is not the one it
+// asked for and falls through to its default action instead. A driver which omits that comparison, or which compares
+// against the wrong thing, still parses a grammar whose rows do not overlap, and goes wrong here.
+//
+// The grammar is shaped to produce that overlap. It has many terminals, which makes the rows wide, and every keyword
+// leads to a state which accepts exactly one or two of them, which makes the rows nearly empty. Placing rows that sparse
+// leaves each of them sitting inside the span of several others.
+//
+// It also produces the other half of the scheme. The states which follow "echo", "foxtrot" and "golf" accept the same
+// two terminals and shift them to the same states, so their action rows are identical and share a single displacement
+// rather than being placed twice. Three states reading the very same cells is exactly the situation the check array has
+// to survive. Their goto rows are not identical, because each of them continues into a different statement, so the two
+// tables place these states differently and a driver which confuses the two displacements goes wrong here.
+//
+// Note that a displacement is never negative here, because the placement clamps it at zero, so no driver has to index
+// its arrays with a negative offset.
+//
+// The input uses every keyword once, so that every one of those rows is actually read.
+//
+// The scanner is not what this case is about, but its rules do have to put the keywords before the general name rule,
+// or the keywords would never be matched.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    ALPHA:   "alpha";
+    BRAVO:   "bravo";
+    CHARLIE: "charlie";
+    DELTA:   "delta";
+    ECHO:    "echo";
+    FOXTROT: "foxtrot";
+    GOLF:    "golf";
+
+    NUMBER:  /[0-9]+/;
+    NAME:    /[a-z]+/;
+
+    SEMICOLON: ";";
+}
+
+@parser {
+    program
+        : program statement
+        | statement
+        ;
+
+    statement
+        : "alpha"   NUMBER ";"
+        | "bravo"   NAME ";"
+        | "charlie" NUMBER ";"
+        | "delta"   NAME ";"
+        | "echo"    value ";"
+        | "foxtrot" value ";"
+        | "golf"    value ";"
+        ;
+
+    value
+        : NUMBER
+        | NAME
+        ;
+}

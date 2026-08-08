@@ -1,0 +1,24 @@
+// Right recursion cannot reduce anything until it has read the whole input, so the parse stack grows by one state per
+// item and only unwinds at the end. The trace is every shift first and every reduction afterwards, which is the exact
+// opposite of [left-recursion] on the same input, and it is the case which holds a driver to a parse stack which really
+// grows.
+//
+// Forty items is not deep enough to force the Go driver to grow its stack, which starts out with room for 1024, and it
+// is not meant to be: a trace long enough for that is no longer a trace anyone reviews, and grammars of that scale
+// belong to the scale tier which runs the real grammars. Forty is past any small fixed size a hand written runner might
+// start out with, while keeping the trace short enough to read in one screen.
+//
+// The scanner is not what this case is about, so its only rule is a single character.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    ITEM: "i";
+}
+
+@parser {
+    list
+        : ITEM list
+        | ITEM
+        ;
+}

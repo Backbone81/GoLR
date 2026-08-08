@@ -1,0 +1,28 @@
+// An empty production is reduced before anything at all is shifted. The list of items starts out empty, so the parser
+// has to reduce `items -> @empty` while it is still looking at the very first token, and the trace records that as a
+// reduction of length zero. A backend which takes the length of the right hand side from the wrong place hands the goto
+// the wrong state here and nowhere else.
+//
+// The scanner is not what this case is about, so its rules are single characters.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    ITEM:      "i";
+    SEMICOLON: ";";
+}
+
+@parser {
+    list
+        : items
+        ;
+
+    items
+        : items item
+        | @empty
+        ;
+
+    item
+        : ITEM ";"
+        ;
+}

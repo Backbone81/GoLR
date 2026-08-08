@@ -1,0 +1,28 @@
+// A @none operator is not merely unresolved, it is rejected. Where @left and @right turn a shift/reduce conflict into a
+// shift or a reduction, @none turns it into an error action which is written into the table like any other action, so
+// `1 < 2 < 3` is a syntax error while `1 < 2` is not. That error action is the point of the case: it is the one way a
+// state can refuse a terminal which is otherwise perfectly well known to it, and a backend which drops such entries
+// while compressing the table accepts a sentence the grammar rejects.
+//
+// The grammar marks no place to resume at, so the recovery unwinds the whole stack in vain and the parse is over. The
+// offset the error is reported at is the second "<", which is the one the parser refused.
+//
+// The scanner is not what this case is about, so its rules are a single character and runs of digits.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NUMBER: /[0-9]+/;
+    LESS:   "<";
+}
+
+@parser {
+    @precedence {
+        @none: "<";
+    }
+
+    comparison
+        : NUMBER
+        | comparison "<" comparison
+        ;
+}

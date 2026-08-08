@@ -1,0 +1,47 @@
+// The goto table defaults per nonterminal rather than per state: the state a goto on a nonterminal leads to in most of
+// the states which have such a goto is taken out of the table, and only the states which disagree keep an entry. A
+// lookup therefore answers out of two different places depending on which state asks, and this case makes a parse walk
+// through both.
+//
+// The same sum is reduced inside three different brackets, so the gotos on it lead to three different states. One of
+// them is the default and the other two are entries of their own, which means the trace only comes out right if the
+// lookup consults the row before it falls back to the default. A backend which reads the default first parses the first
+// bracket correctly and continues in the wrong state for the other two, so the input has to close every bracket it
+// opens to catch that: the closing bracket is the token which only the correct state accepts.
+//
+// The sum is recursive so that a goto happens more than once per bracket, and the brackets are nested inside a list so
+// that the gotos on the surrounding nonterminals are exercised as well.
+//
+// The scanner is not what this case is about, so its rules are single characters and runs of digits.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NUMBER:   /[0-9]+/;
+    PLUS:     "+";
+
+    LPAREN:   "(";
+    RPAREN:   ")";
+    LBRACKET: "[";
+    RBRACKET: "]";
+    LBRACE:   "{";
+    RBRACE:   "}";
+}
+
+@parser {
+    groups
+        : groups group
+        | group
+        ;
+
+    group
+        : "(" sum ")"
+        | "[" sum "]"
+        | "{" sum "}"
+        ;
+
+    sum
+        : NUMBER
+        | sum "+" NUMBER
+        ;
+}

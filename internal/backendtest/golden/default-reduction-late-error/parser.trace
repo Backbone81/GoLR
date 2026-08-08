@@ -1,0 +1,6 @@
+SHIFT NAME 0 5
+REDUCE heading 1
+REDUCE section 1
+REDUCE document 1
+ERROR 6
+POP 1
