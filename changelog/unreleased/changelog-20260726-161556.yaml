@@ -1,2 +1,0 @@
-description: Fixed the Go backend generating broken accept actions, which could result
-  in generated code which does not compile.

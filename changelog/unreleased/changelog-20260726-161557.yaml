@@ -1,3 +1,0 @@
-description: Fixed terminals declared with `%precedence` being dropped when handing
-  the grammar to the Bison backed cores, which silently changed how conflicts were
-  resolved.

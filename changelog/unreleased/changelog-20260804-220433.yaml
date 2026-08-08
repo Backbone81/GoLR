@@ -1,3 +1,0 @@
-description: Added the new parser backend 'go-table' which writes the parser as lookup
-  tables instead of as control flow. The existing Go backend is now also available
-  as 'go-direct', with 'go' remaining an alias for it.

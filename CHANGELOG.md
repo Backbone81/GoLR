@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+
+## v0.2.0 (2026-08-08)
+
 - The IELR(1) parser core is now a native Go implementation and is used by default. GNU Bison is no longer required to generate a parser. The Bison backed core is still available as "ielr1-bison".
 - The LALR(1) and LR(1) parser cores are now native Go implementations as well and are used by default. The Bison backed cores are still available as "lalr1-bison" and "lr1-bison".
 - Generated parsers now recover from syntax errors. Mark the places to resume at with the error symbol (`@error` in GoLR grammars, `error` in GNU Bison grammars) and the parser reports several errors in one run instead of stopping at the first one.

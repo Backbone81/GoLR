@@ -1,3 +1,0 @@
-description: 'BREAKING: `GrammarToParser` of the `pkg/parsergen/core/...` packages
-  now returns the list of conflicts as an additional result. Call sites need to be
-  updated.'

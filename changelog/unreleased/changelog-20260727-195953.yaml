@@ -1,3 +1,0 @@
-description: Added the `golr selftest` command, which checks the IELR(1) parser core
-  against a canonical LR(1) oracle on randomly generated grammars across all CPU cores
-  for as long as you let it run.

@@ -1,2 +1,0 @@
-description: The released binaries are built without debug assertions, which makes
-  parser generation noticeably faster.

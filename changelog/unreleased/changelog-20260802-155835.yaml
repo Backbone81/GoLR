@@ -1,2 +1,0 @@
-description: Added the scanner backend go-table, which writes the scanner as lookup
-  tables instead of as code.

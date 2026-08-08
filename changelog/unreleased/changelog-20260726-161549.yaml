@@ -1,2 +1,0 @@
-description: Generated parser tables are smaller, because reductions are compacted
-  into a default reduction and unreachable states are removed.

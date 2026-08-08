@@ -1,2 +1,0 @@
-description: Fixed the Bison frontend not recognizing the %lex-param and %parse-param
-  directives.

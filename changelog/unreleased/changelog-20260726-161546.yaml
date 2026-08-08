@@ -1,4 +1,0 @@
-description: Generated parsers now recover from syntax errors. Mark the places to
-  resume at with the error symbol (`@error` in GoLR grammars, `error` in GNU Bison
-  grammars) and the parser reports several errors in one run instead of stopping at
-  the first one.
