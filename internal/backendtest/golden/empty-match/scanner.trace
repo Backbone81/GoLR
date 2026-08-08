@@ -1,0 +1,5 @@
+TOKEN MAYBE 0 2 "aa"
+ERROR 2
+TOKEN B 3 4 "b"
+ERROR 4
+EOF 5

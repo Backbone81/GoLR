@@ -1,0 +1,17 @@
+// A single token longer than the buffer a driver is likely to start with. A backend which collects the lexeme into a
+// fixed buffer, or which grows one incorrectly, truncates the token or reports the wrong end offset. Nothing about the
+// automaton is interesting here - the point is the size of the lexeme the driver has to carry around.
+//
+// The parser is not what this case is about, so the grammar is the single empty production the file format requires.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NAME: /[a-z]+/;
+}
+
+@parser {
+    tokens
+        : @empty
+        ;
+}

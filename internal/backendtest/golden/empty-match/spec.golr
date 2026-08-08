@@ -1,0 +1,20 @@
+// A rule which can match the empty string never produces an empty token. MAYBE accepts in the start state, so every
+// attempt starts out accepting, but an attempt which consumes nothing leaves the match empty and lands in the error
+// path instead. The space in the input is what triggers that, because MAYBE matches nothing there and no other rule
+// matches either.
+//
+// There is deliberately no rule for whitespace, so that the empty match is the only thing which can happen at the
+// space.
+//
+// The parser is not what this case is about, so the grammar is the single empty production the file format requires.
+
+@scanner {
+    MAYBE: /a*/;
+    B:     "b";
+}
+
+@parser {
+    tokens
+        : @empty
+        ;
+}

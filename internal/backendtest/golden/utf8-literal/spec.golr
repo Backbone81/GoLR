@@ -1,0 +1,20 @@
+// A multi-byte character in a literal. The automaton runs on bytes, so the é of "café" is two transitions and the
+// token covers five bytes for four characters. The trace reports byte offsets throughout, which is what every backend
+// has to agree on regardless of how its own language counts string positions.
+//
+// NAME only reaches "caf" of "café", so the longer match is the one which walks through the multi-byte character.
+//
+// The parser is not what this case is about, so the grammar is the single empty production the file format requires.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    CAFE: "café";
+    NAME: /[a-z]+/;
+}
+
+@parser {
+    tokens
+        : @empty
+        ;
+}

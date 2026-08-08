@@ -1,0 +1,22 @@
+// A DFA with more states than fit in a byte. The repetition expands to a chain of one state per repeated character, so
+// scanning the input walks through state indices past 127 and past 255. A backend which stores its transition table in
+// an 8 bit element type, or which indexes it with a signed byte the way Java would, wraps around along that chain and
+// stops matching.
+//
+// The 32767 boundary of a 16 bit element type is deliberately not covered here. It needs an automaton of more than
+// 32768 states, and the construction cost grows sharply with the state count.
+//
+// Nothing here is interesting about the shape of the automaton, only its size, so the rule is the simplest one which
+// reaches that size.
+//
+// The parser is not what this case is about, so the grammar is the single empty production the file format requires.
+
+@scanner {
+    LONG: /a{300}/;
+}
+
+@parser {
+    tokens
+        : @empty
+        ;
+}

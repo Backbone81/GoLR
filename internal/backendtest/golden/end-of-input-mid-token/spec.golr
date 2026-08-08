@@ -1,0 +1,16 @@
+// The input ends in the middle of a token. The automaton walks to the end of the input without ever reaching an
+// accepting state, so there is no match to fall back to and the whole remainder is one error. This is the case where a
+// scanner which looks one byte past the last one it consumed reads out of bounds, so the trace pins that the error ends
+// at the end of the input and not one byte behind it.
+//
+// The parser is not what this case is about, so the grammar is the single empty production the file format requires.
+
+@scanner {
+    ABCD: "abcd";
+}
+
+@parser {
+    tokens
+        : @empty
+        ;
+}

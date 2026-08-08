@@ -1,0 +1,16 @@
+// Input which is not valid UTF-8. The byte 0xFF can occur in no UTF-8 encoding at all and 0x80 is a continuation byte
+// with no leading byte in front of it, so no rule can ever match either of them and both are errors. A backend which
+// decodes the input into its own string type first, rather than scanning the bytes, either replaces these bytes or
+// refuses the input, and its offsets stop lining up with the ones here.
+//
+// The parser is not what this case is about, so the grammar is the single empty production the file format requires.
+
+@scanner {
+    LETTERS: /[a-z]+/;
+}
+
+@parser {
+    tokens
+        : @empty
+        ;
+}

@@ -1,0 +1,18 @@
+// Backing up to the last accepting state. Scanning "abc" walks past the accepting state of AB into the state which
+// only ABCD can complete, then runs out of transitions on "c" and has to fall back to the AB match it walked through.
+// A scanner which forgot the earlier match reports an error for the whole input instead.
+//
+// The parser is not what this case is about, so the grammar is the single empty production the file format requires.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    AB:   "ab";
+    ABCD: "abcd";
+}
+
+@parser {
+    tokens
+        : @empty
+        ;
+}

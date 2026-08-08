@@ -1,0 +1,18 @@
+// Skipped rules interleaved with real tokens. A skipped rule is matched like any other and reported in the scanner
+// trace, and only the parser never sees it. Keeping the skips in the trace is what makes the byte offsets of the
+// tokens around them checkable, so a backend which drops a skip silently cannot hide a wrong offset behind it.
+//
+// The parser is not what this case is about, so the grammar is the single empty production the file format requires.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+    COMMENT:    /#[^\n]*/  @skip;
+
+    NAME: /[a-z]+/;
+}
+
+@parser {
+    tokens
+        : @empty
+        ;
+}

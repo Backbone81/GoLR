@@ -1,0 +1,17 @@
+// Longest match wins. The scanner keeps walking the automaton as long as it has a transition and reports the longest
+// rule it walked through, so ABCD wins over AB even though AB is declared first and accepts earlier.
+//
+// The parser is not what this case is about, so the grammar is the single empty production the file format requires.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    AB:   "ab";
+    ABCD: "abcd";
+}
+
+@parser {
+    tokens
+        : @empty
+        ;
+}

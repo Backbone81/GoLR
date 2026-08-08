@@ -1,0 +1,21 @@
+// The low and high end of the single-byte range. The input carries the NUL byte 0x00, a tab, and DEL 0x7F, which is
+// the last code point UTF-8 encodes in a single byte. A backend which treats the input as C strings stops at the NUL,
+// and one which uses a signed byte type puts 0x7F next to the multi-byte range instead of at the end of the
+// single-byte one.
+//
+// NUL and CONTROL both match the NUL byte with one byte each, so the declaration order decides it, the same way
+// rule-order does for two ordinary rules.
+//
+// The parser is not what this case is about, so the grammar is the single empty production the file format requires.
+
+@scanner {
+    NUL:     /\0/;
+    CONTROL: /[[:cntrl:]]/;
+    LETTER:  /[a-z]/;
+}
+
+@parser {
+    tokens
+        : @empty
+        ;
+}

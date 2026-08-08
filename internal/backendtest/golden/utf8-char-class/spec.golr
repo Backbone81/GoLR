@@ -1,0 +1,18 @@
+// A character range over multi-byte characters. The range α-ω is a range of code points which the automaton has to
+// encode as byte ranges, so a backend which compares the raw bytes against the range bounds instead gets this wrong.
+// The Latin letters are there so the input mixes single-byte and multi-byte characters in the same scan.
+//
+// The parser is not what this case is about, so the grammar is the single empty production the file format requires.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    GREEK: /[α-ω]+/;
+    LATIN: /[a-z]+/;
+}
+
+@parser {
+    tokens
+        : @empty
+        ;
+}

@@ -1,0 +1,18 @@
+// Two rules which match the same number of bytes are decided by the order they are declared in, so "for" is the
+// keyword and not the name. Length still comes first: "fort" is one byte longer as a name than as a keyword, so there
+// the name wins even though the keyword is declared before it.
+//
+// The parser is not what this case is about, so the grammar is the single empty production the file format requires.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    KEYWORD: "for";
+    NAME:    /[a-z]+/;
+}
+
+@parser {
+    tokens
+        : @empty
+        ;
+}
