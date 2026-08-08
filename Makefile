@@ -64,10 +64,11 @@ test-examples: prepare
 
 # test-backends proves that the code every language backend emits behaves like the reference implementation in Go. It
 # is separate from test, because it compiles and runs the generated code in a container per language, which needs
-# docker and takes considerably longer than the unit tests.
+# docker and takes considerably longer than the unit tests. BACKEND_TESTS is what tells the suite that starting
+# containers is wanted, so the same package under a plain "make test" runs its host side only.
 .PHONY: test-backends
 test-backends: prepare
-	go test ./internal/backendtest/... $(if $(LANGUAGE),-args --ginkgo.label-filter=$(LANGUAGE))
+	BACKEND_TESTS=1 go test ./internal/backendtest/... $(if $(LANGUAGE),-args --ginkgo.label-filter=$(LANGUAGE))
 
 .PHONY: benchmark
 benchmark: prepare

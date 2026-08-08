@@ -1,0 +1,70 @@
+# This file is the single place in the repository where a language toolchain image is named. The Go side of the harness
+# knows language names only. Two things follow from that: Renovate's docker-compose manager finds services.*.image with
+# no configuration of its own, so an image update arrives as an ordinary pull request; and because this file is what
+# actually runs the tests, a service cannot quietly go stale while a list somewhere else claims it exists.
+#
+# The rules the services follow are constraints on the product and not merely on the harness. A generated scanner or
+# parser is meant to run on the bare language with nothing else installed, so an official language image with no
+# network is exactly the environment the emitted code claims to need. When one of them cannot compile the emitted code,
+# the fix belongs in the backend and never in a custom image - which is why this repository contains no Dockerfile.
+#
+#   - Official language images only, pinned to a major and a minor version where the publisher offers one.
+#   - network_mode none for every service. That isolates the run, not the image pull, which docker still performs over
+#     the host network the first time an image is used. A toolchain reaching out mid-run is the failure this catches.
+#   - No third party dependencies in the runners, which is what makes the missing network survivable.
+#   - The container runs as the invoking user so nothing under tmp/ ends up owned by root. GOLR_UID and GOLR_GID are
+#     set by compose.go rather than expected from the environment, because compose interpolates an unset variable to
+#     the empty string and "user: ':'" fails with a message pointing nowhere near the cause.
+#   - Everything a container reads or writes lives under tmp/backendtest, which is gitignored. Nothing a container
+#     produces is ever committed.
+#
+# The environment of a service is deliberately minimal. Every variable below was added because the probe test in
+# compose_test.go failed without it, and the comment next to it says what failed.
+
+# The part every language shares. An anchor and not a base service, so that "docker compose run" can never be pointed
+# at it by accident.
+x-common: &common
+  network_mode: none
+  user: "${GOLR_UID}:${GOLR_GID}"
+  working_dir: /work
+  volumes:
+    - ./tmp/backendtest:/work
+
+services:
+  go:
+    <<: *common
+    image: golang:1.26
+
+  # Temurin publishes a feature release and a build number rather than a minor version, so the major is as precise as
+  # this tag gets without pinning a build.
+  java:
+    <<: *common
+    image: eclipse-temurin:26-jdk
+
+  rust:
+    <<: *common
+    image: rust:1.97
+
+  javascript:
+    <<: *common
+    image: node:26.7
+
+  typescript:
+    <<: *common
+    image: node:26.7
+
+  python:
+    <<: *common
+    image: python:3.14
+
+  c:
+    <<: *common
+    image: gcc:16.1
+
+  cpp:
+    <<: *common
+    image: gcc:16.1
+
+  csharp:
+    <<: *common
+    image: mcr.microsoft.com/dotnet/sdk:10.0
