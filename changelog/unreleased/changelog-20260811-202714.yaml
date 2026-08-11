@@ -1,0 +1,3 @@
+description: Added a JavaScript parser generator backend, selected with --backend
+  javascript. The generated ECMAScript module imports the token constants from the
+  generated scanner, whose module specifier can be set with --backend-javascript-scanner-module.

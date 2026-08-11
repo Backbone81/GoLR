@@ -70,7 +70,6 @@ go run ./cmd/golr scanner \
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/golang/spec/golang.golr \
-  --core ielr1-bison \
   --backend go \
   --backend-file-path examples/golang/parser/parser.go
 

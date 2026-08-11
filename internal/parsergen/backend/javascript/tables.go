@@ -1,4 +1,4 @@
-package golangtable
+package javascript
 
 import (
 	"github.com/backbone81/golr/internal/parsergen/backend"
@@ -6,7 +6,8 @@ import (
 	"github.com/backbone81/golr/internal/utils"
 )
 
-// Tables holds the lookup tables of a table driven parser in the form the template writes them out.
+// Tables holds the lookup tables of a table driven parser in the form the template writes them out. It is the same data
+// the Go table driven backend emits, differing only in that a type here names a JavaScript typed array constructor.
 type Tables struct {
 	// TerminalColumnByToken translates a token the scanner delivers into the column of the action table which holds
 	// the decisions for it. A token which is not a terminal of this grammar is not in here and gets
@@ -101,7 +102,7 @@ func NewTables(parser backend.Parser) Tables {
 	// table and the check table are typed by that value and can be compared against each other directly.
 	maxColumn := table.TerminalColumn(len(parser.Grammar.Terminals) - 1)
 	noColumn := maxColumn + 1
-	columnType := utils.GoUintType(noColumn)
+	columnType := utils.JavaScriptUintArrayType(noColumn)
 
 	nonterminalCount := len(parser.Grammar.Nonterminals)
 
@@ -113,27 +114,27 @@ func NewTables(parser backend.Parser) Tables {
 	return Tables{
 		TerminalColumnByToken: newTerminalColumnByToken(parser),
 
-		ActionBase:  utils.NewIntArray(compressed.Actions.Base),
-		ActionNext:  utils.NewIntArray(table.FillHoles(compressed.Actions.Next)),
+		ActionBase:  utils.NewJavaScriptIntArray(compressed.Actions.Base),
+		ActionNext:  utils.NewJavaScriptIntArray(table.FillHoles(compressed.Actions.Next)),
 		ActionCheck: utils.NewTypedIntArray(columnType, table.FillChecks(compressed.Actions.Check, noColumn)),
 
 		NoColumn:         noColumn,
 		NoTerminalColumn: table.NoTerminalColumn,
 
-		DefaultActionByState: utils.NewIntArray(table.DefaultActions(compressed)),
+		DefaultActionByState: utils.NewJavaScriptIntArray(table.DefaultActions(compressed)),
 
-		GotoBase: utils.NewIntArray(compressed.Gotos.Base),
-		GotoNext: utils.NewIntArray(table.FillHoles(compressed.Gotos.Next)),
+		GotoBase: utils.NewJavaScriptIntArray(compressed.Gotos.Base),
+		GotoNext: utils.NewJavaScriptIntArray(table.FillHoles(compressed.Gotos.Next)),
 		GotoCheck: utils.NewTypedIntArray(
-			utils.GoUintType(nonterminalCount),
+			utils.JavaScriptUintArrayType(nonterminalCount),
 			table.FillChecks(compressed.Gotos.Check, nonterminalCount),
 		),
 
 		NoNonterminal:            nonterminalCount,
-		DefaultGotoByNonterminal: utils.NewIntArray(table.FillHoles(compressed.DefaultGotoByNonterminalIdx)),
+		DefaultGotoByNonterminal: utils.NewJavaScriptIntArray(table.FillHoles(compressed.DefaultGotoByNonterminalIdx)),
 
-		PopCountByProduction:    utils.NewIntArray(table.PopCounts(parser)),
-		NonterminalByProduction: utils.NewIntArray(table.Nonterminals(parser)),
+		PopCountByProduction:    utils.NewJavaScriptIntArray(table.PopCounts(parser)),
+		NonterminalByProduction: utils.NewJavaScriptIntArray(table.Nonterminals(parser)),
 
 		ErrorTerminalColumn: errorTerminalColumn,
 		HasErrorRecovery:    compressed.HasErrorRecovery(),

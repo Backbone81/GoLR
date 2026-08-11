@@ -13,6 +13,7 @@ import (
 	dotbackend "github.com/backbone81/golr/pkg/parsergen/backend/dot"
 	golangbackend "github.com/backbone81/golr/pkg/parsergen/backend/golang"
 	golangtablebackend "github.com/backbone81/golr/pkg/parsergen/backend/golangtable"
+	javascriptbackend "github.com/backbone81/golr/pkg/parsergen/backend/javascript"
 	jsonbackend "github.com/backbone81/golr/pkg/parsergen/backend/json"
 	yamlbackend "github.com/backbone81/golr/pkg/parsergen/backend/yaml"
 	"github.com/backbone81/golr/pkg/parsergen/conflict"
@@ -36,6 +37,8 @@ var (
 	parserBackendFilePath string
 
 	parserBackendGoPackageName string
+
+	parserBackendJavaScriptScannerModule string
 
 	parserVerbose bool
 )
@@ -141,6 +144,15 @@ func executeParserBackend(parser backend.Parser) error {
 		return golangtablebackend.ParserToFile(parserBackendFilePath, parser, golangtablebackend.Config{
 			PackageName: parserBackendGoPackageName,
 		})
+	case "javascript":
+		if parserBackendFilePath == "-" {
+			return javascriptbackend.FromParser(os.Stdout, parser, javascriptbackend.Config{
+				ScannerModule: parserBackendJavaScriptScannerModule,
+			})
+		}
+		return javascriptbackend.ParserToFile(parserBackendFilePath, parser, javascriptbackend.Config{
+			ScannerModule: parserBackendJavaScriptScannerModule,
+		})
 	case "json":
 		if parserBackendFilePath == "-" {
 			return jsonbackend.FromParser(os.Stdout, parser)
@@ -189,7 +201,7 @@ func init() {
 		&parserBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the parser. One of: dot, go, go-direct, go-table, json, null, yaml.",
+		"The backend to use for writing the parser. One of: dot, go, go-direct, go-table, javascript, json, null, yaml.",
 	)
 	parserCmd.PersistentFlags().StringVar(
 		&parserBackendFilePath,
@@ -206,6 +218,13 @@ func init() {
 		"backend-go-package-name",
 		"parser",
 		"The Go package name to use for the generated Go code.",
+	)
+
+	parserCmd.PersistentFlags().StringVar(
+		&parserBackendJavaScriptScannerModule,
+		"backend-javascript-scanner-module",
+		javascriptbackend.DefaultScannerModule,
+		"The module specifier the generated JavaScript parser imports the token constants from.",
 	)
 
 	parserCmd.PersistentFlags().BoolVarP(

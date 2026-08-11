@@ -1,8 +1,6 @@
 package javascript
 
 import (
-	"math"
-
 	"github.com/backbone81/golr/internal/scannergen/backend"
 	"github.com/backbone81/golr/internal/scannergen/backend/table"
 	"github.com/backbone81/golr/internal/utils"
@@ -65,7 +63,7 @@ func NewTables(dfa backend.DFA) Tables {
 
 	// The check entries hold a byte class or the one value past them which means the cell is unused, so both
 	// tables are typed by that value and can be compared against each other directly.
-	classType := uintArrayType(classCount)
+	classType := utils.JavaScriptUintArrayType(classCount)
 
 	byteClassByByte := make([]int, table.ByteValueCount)
 	for byteValue := range byteClassByByte {
@@ -95,42 +93,17 @@ func NewTables(dfa backend.DFA) Tables {
 	}
 
 	return Tables{
-		ByteClassByByte: newIntArray(byteClassByByte),
-		TransitionBase:  newIntArray(compressed.Transitions.Base),
-		TransitionNext:  newIntArray(transitionNext),
+		ByteClassByByte: utils.NewJavaScriptIntArray(byteClassByByte),
+		TransitionBase:  utils.NewJavaScriptIntArray(compressed.Transitions.Base),
+		TransitionNext:  utils.NewJavaScriptIntArray(transitionNext),
 		TransitionCheck: utils.NewTypedIntArray(classType, transitionCheck),
 
 		NoByteClass: classCount,
 		AcceptTokenByState: NameArray{
 			// The highest value the table can hold is the token of the last rule, because the synthetic tokens
 			// take the values below the tokens of the rules.
-			Type:   uintArrayType(tokenValue(len(dfa.Rules) - 1)),
+			Type:   utils.JavaScriptUintArrayType(tokenValue(len(dfa.Rules) - 1)),
 			Values: acceptTokenByState,
 		},
-	}
-}
-
-// newIntArray returns the given values as a table typed by the largest value it has to hold. It is the JavaScript
-// counterpart of utils.NewIntArray, which picks a Go type for the same values.
-func newIntArray(values []int) utils.IntArray {
-	var maxValue int
-	for _, value := range values {
-		maxValue = max(maxValue, value)
-	}
-	return utils.NewTypedIntArray(uintArrayType(maxValue), values)
-}
-
-// uintArrayType returns the name of the narrowest unsigned JavaScript typed array which can hold every value from zero
-// up to the given one. Picking the array from the values it actually holds is what keeps the generated tables small,
-// and it is also what makes the generated scanner run into the same width boundaries as every other backend instead of
-// hiding them behind the arbitrary precision of a plain JavaScript array.
-func uintArrayType(maxValue int) string {
-	switch {
-	case maxValue <= math.MaxUint8:
-		return "Uint8Array"
-	case maxValue <= math.MaxUint16:
-		return "Uint16Array"
-	default:
-		return "Uint32Array"
 	}
 }
