@@ -1,149 +1,75 @@
 package backendtest
 
 import (
-	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 )
 
-// The harness reaches every language toolchain through docker compose. This file knows the language names and the
-// invocation; it deliberately knows no image tag, because docker-compose.yaml is the single place where those live.
+// The harness reaches every language toolchain through docker compose. Starting the containers is the job of the
+// test-backends target of the Makefile, which knows which languages to run because LANGUAGE is its own focus; what is
+// left here is finding the traces that run left behind.
 const (
-	// composeFilePath is the compose file, relative to the repository root.
-	composeFilePath = "internal/backendtest/docker-compose.yaml"
-
-	// workPath is the one directory a container can see, relative to the repository root. It is below tmp/, which is
+	// workPath is the root of what the containers see, relative to the repository root. It is below tmp/, which is
 	// gitignored, so nothing a container produces can be committed by accident.
 	workPath = "tmp/backendtest"
 
-	// ContainerWorkPath is where workPath is mounted inside every container, and the working directory of every
-	// command the harness runs. A command therefore names its files relative to this and never needs a host path.
-	ContainerWorkPath = "/work"
-
-	// enabledEnvVar makes a run start containers. The container tests are not part of "make test": they need docker
-	// and take far longer than the unit tests, so they are opt in and "make test-backends" is what opts in.
-	enabledEnvVar = "BACKEND_TESTS"
+	// runnerPath holds one directory per language, with the hand written program which prints the trace and the
+	// entrypoint script which builds and runs it. It is also what the harness reads to find out which languages it
+	// can test, so a language exists exactly when its runner does.
+	runnerPath = "internal/backendtest/runners"
 )
 
-// Languages is every language the harness has a toolchain for, and the name of that language's service in
-// docker-compose.yaml. C and C++ share an image but not a service, so a language is always addressed by its own name.
-var Languages = []string{
-	"go",
-	"java",
-	"rust",
-	"javascript",
-	"typescript",
-	"python",
-	"c",
-	"cpp",
-	"csharp",
-}
+// The two roles a runner is asked for. They name the trace files a run produces, and they are separate artifacts
+// because the scanner trace and the parser trace are never interleaved into one stream.
+const (
+	ScannerRole = "scanner"
+	ParserRole  = "parser"
 
-// Enabled reports whether this run may start containers. It is the single reader of the environment variable, so the
-// tests which skip and the message which explains the skip can never disagree about what turns them on.
-func Enabled() bool {
-	return os.Getenv(enabledEnvVar) == "1"
-}
+	// TraceFileSuffix is appended to a role for the trace a runner produced, and LogFileSuffix for everything the
+	// generator and the runner said on standard error while producing it.
+	TraceFileSuffix = ".actual"
+	LogFileSuffix   = ".log"
+)
 
-// EnabledHint is what to tell a reader who wants the skipped container tests to run.
-func EnabledHint() string {
-	return fmt.Sprintf("run 'make test-backends', or set %s=1, to run the language backends in containers", enabledEnvVar)
-}
-
-// WorkPath returns the path on the host of a directory the containers see below ContainerWorkPath. The directory is
-// created, because docker creates a missing bind mount source itself and does so as root, which the container then
-// cannot write to as the invoking user.
-func WorkPath(elem ...string) (string, error) {
+// Languages returns every language the harness can test, which is every language with a runner directory. The list is
+// read from disk rather than written out here, so that adding a language is adding a directory and never editing Go.
+// The name of that directory is at once the compose service, the name of the backend the CLI generates with and the
+// Ginkgo label which selects the language.
+func Languages() ([]string, error) {
 	root, err := repositoryRoot()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	result := filepath.Join(append([]string{root, workPath}, elem...)...)
-	//nolint:gosec // World readable is deliberate: this holds generated test code below the gitignored tmp/.
-	if err := os.MkdirAll(result, 0o755); err != nil {
-		return "", fmt.Errorf("creating the working directory of the containers: %w", err)
+	entries, err := os.ReadDir(filepath.Join(root, runnerPath))
+	if err != nil {
+		return nil, fmt.Errorf("reading the runner directory: %w", err)
+	}
+
+	var result []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			result = append(result, entry.Name())
+		}
 	}
 	return result, nil
 }
 
-// Run executes command in the container of the given language and returns what it wrote to standard output. The
-// command runs in ContainerWorkPath, so it names its files relative to that. Standard error is kept out of the result
-// and reported with a failure instead, because standard output is what the trace comparison reads and a diagnostic
-// mixed into it would corrupt the comparison.
-//
-// The deadline comes from the caller rather than from a constant here, because the first run of a language pulls its
-// image and takes minutes while every run after that takes seconds, and no single constant serves both.
-func Run(ctx context.Context, language string, command ...string) (string, error) {
+// WorkPath returns the path on the host of a directory which a container wrote its traces to. It only names the path:
+// creating the directories is the job of the Makefile and of the harness script inside the container, which is what
+// keeps a run from being started by the act of looking for its output.
+func WorkPath(pathElements ...string) (string, error) {
 	root, err := repositoryRoot()
 	if err != nil {
 		return "", err
 	}
-	if _, err := WorkPath(); err != nil {
-		return "", err
-	}
-
-	//nolint:prealloc // A hand written capacity would have to be kept in sync with the number of flags below.
-	args := []string{
-		"compose",
-		"--file", filepath.Join(root, composeFilePath),
-
-		// A relative bind mount resolves against the project directory, which defaults to the directory holding the
-		// compose file. The mounts are written relative to the repository root, so the root has to be named here.
-		"--project-directory", root,
-
-		"run",
-
-		// The container exists for one command, and the harness starts one per case.
-		"--rm",
-
-		// A service has no dependencies, and asking compose not to look for any keeps a future one from being started
-		// silently.
-		"--no-deps",
-
-		// Without this, compose allocates a pseudo terminal, which rewrites every LF on the way out to CRLF and would
-		// corrupt every trace this harness compares.
-		"--no-TTY",
-
-		language,
-	}
-	args = append(args, command...)
-
-	//nolint:gosec // The arguments are built right here and controlled by ourselves.
-	cmd := exec.CommandContext(ctx, "docker", args...)
-	cmd.Dir = root
-
-	// The two variables the compose file interpolates are set here rather than expected from the environment. Compose
-	// turns an unset variable into the empty string, so a forgotten export would leave "user: ':'" and a failure which
-	// says nothing about the cause.
-	cmd.Env = append(
-		os.Environ(),
-		fmt.Sprintf("GOLR_UID=%d", os.Getuid()),
-		fmt.Sprintf("GOLR_GID=%d", os.Getgid()),
-	)
-
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return stdout.String(), fmt.Errorf(
-			"running '%s' in the %s container: %w\n%s",
-			strings.Join(command, " "),
-			language,
-			err,
-			stderr.String(),
-		)
-	}
-	return stdout.String(), nil
+	return filepath.Join(append([]string{root, workPath}, pathElements...)...), nil
 }
 
 // repositoryRoot finds the repository by walking up from the working directory until it sees the module file. The
-// harness needs the root for the compose file and for the bind mounts, and a test runs in the directory of its own
+// harness needs the root to find the traces below tmp/, and a test runs in the directory of its own
 // package, so the root cannot be assumed to be the working directory.
 func repositoryRoot() (string, error) {
 	result, err := os.Getwd()

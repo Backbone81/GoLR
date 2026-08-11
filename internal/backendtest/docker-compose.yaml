@@ -9,17 +9,47 @@
 # the fix belongs in the backend and never in a custom image - which is why this repository contains no Dockerfile.
 #
 #   - Official language images only, pinned to a major and a minor version where the publisher offers one.
-#   - network_mode none for every service. That isolates the run, not the image pull, which docker still performs over
-#     the host network the first time an image is used. A toolchain reaching out mid-run is the failure this catches.
+#   - network_mode none, unless a language cannot be brought up offline at all, see below. That isolates the run, not
+#     the image pull, which docker still performs over the host network the first time an image is used. A toolchain
+#     reaching out mid-run is the failure this catches.
 #   - No third party dependencies in the runners, which is what makes the missing network survivable.
 #   - The container runs as the invoking user so nothing under tmp/ ends up owned by root. GOLR_UID and GOLR_GID are
-#     set by compose.go rather than expected from the environment, because compose interpolates an unset variable to
-#     the empty string and "user: ':'" fails with a message pointing nowhere near the cause.
+#     set by the test-backends target of the Makefile, which is what starts these containers. Compose interpolates an
+#     unset variable to the empty string, so a forgotten one leaves "user: ':'" and a failure which says nothing about
+#     the cause.
 #   - Everything a container reads or writes lives under tmp/backendtest, which is gitignored. Nothing a container
 #     produces is ever committed.
 #
-# The environment of a service is deliberately minimal. Every variable below was added because the probe test in
-# compose_test.go failed without it, and the comment next to it says what failed.
+# One container runs the whole corpus for its language, not one case. The alternative is around 430 container starts
+# once every language has a runner, and the languages with a compile step pay their toolchain's warmup on every one of
+# them. So the container is handed the corpus, the runners and an output directory and works through it, and the Go side
+# only compares the traces which come back. Nothing is staged at all: everything a container reads is mounted straight
+# from the repository.
+#
+# A service is therefore its image and its name, and nothing else. The name has to be passed in because a container has
+# no other way of learning which service it is, and the shared entrypoint needs it to pick both the backend to generate
+# with and the runner to run. It is a literal here rather than a variable interpolated from the environment, so that
+# this file states outright what it does.
+#
+# What a language does with a case is runners/<language>/language.sh, and not a command line here, because a compiled
+# language needs to compile before it runs and needs to name its source the way its compiler insists on. That is far
+# more readable as a shell script, and it keeps this file down to the images.
+#
+# That file is two functions: setup, which the entrypoint runs once in the container before any case, and execute,
+# which it runs per case. A toolchain which has to bring something up - fetch a package, prime a cache, lay out a
+# project - does it in setup and pays for it once instead of twenty four times.
+#
+# A language whose setup cannot work offline turns the network on for its own service, and only for its own service:
+#
+#   typescript:
+#     <<: *common
+#     network_mode: bridge
+#     image: node:26.7
+#     command: ["typescript"]
+#
+# That is a deliberate hole in the isolation, and it stays the exception which has to be argued for in a comment on the
+# service. The network is then up for the cases of that language too, so the property that the emitted code needs
+# nothing but the bare language is no longer proven for it - only the ones which keep network_mode none prove it.
 
 # The part every language shares. An anchor and not a base service, so that "docker compose run" can never be pointed
 # at it by accident.
@@ -28,43 +58,69 @@ x-common: &common
   user: "${GOLR_UID}:${GOLR_GID}"
   working_dir: /work
   volumes:
+    # The shared entrypoint and the runner of every language, read only because a container has no business changing
+    # what it was handed.
+    - ./internal/backendtest/runners:/runners:ro
+
+    # The committed corpus, read only for the same reason.
+    - ./internal/backendtest/golden:/cases:ro
+
+    # The generator itself, which "make build" produces and "make test-backends" therefore depends on. Mounting it onto
+    # the PATH is what lets a container do the whole job on its own, so reproducing a failure by hand is one command and
+    # not a pipeline.
+    #
+    # The Makefile builds it with CGO disabled, so it is statically linked and the same binary runs in every one of the
+    # images below whatever libc they ship. An image which is not glibc based would otherwise be the first to notice.
+    - ./golr:/usr/local/bin/golr:ro
+
+    # Everything a run produces. Each language works below its own name in here.
     - ./tmp/backendtest:/work
+
+  # Invoked through sh rather than executed, so the script needs no executable bit and the mount can stay read only.
+  entrypoint: ["/bin/sh", "/runners/entrypoint.sh"]
 
 services:
   go:
     <<: *common
     image: golang:1.26
+    command: ["go"]
 
-  # Temurin publishes a feature release and a build number rather than a minor version, so the major is as precise as
-  # this tag gets without pinning a build.
   java:
     <<: *common
     image: eclipse-temurin:26-jdk
+    command: ["java"]
 
   rust:
     <<: *common
     image: rust:1.97
+    command: ["rust"]
 
   javascript:
     <<: *common
     image: node:26.7
+    command: ["javascript"]
 
   typescript:
     <<: *common
     image: node:26.7
+    command: ["typescript"]
 
   python:
     <<: *common
     image: python:3.14
+    command: ["python"]
 
   c:
     <<: *common
     image: gcc:16.1
+    command: ["c"]
 
   cpp:
     <<: *common
     image: gcc:16.1
+    command: ["cpp"]
 
   csharp:
     <<: *common
     image: mcr.microsoft.com/dotnet/sdk:10.0
+    command: ["csharp"]

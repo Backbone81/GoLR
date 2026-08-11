@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Added a JavaScript scanner backend.
 
 ## v0.2.0 (2026-08-08)
 

@@ -74,10 +74,10 @@ var _ = Describe("Scanner", func() {
 	})
 
 	Context("skipped rules", func() {
-		It("reports them as their own event between the tokens", func() {
+		It("reports them as ordinary tokens, because a runner is never told which rules are skipped", func() {
 			expectScannerTrace(keywordDFA(), "if fy",
 				`TOKEN IF 0 2 "if"`,
-				`SKIP WHITESPACE 2 3 " "`,
+				`TOKEN WHITESPACE 2 3 " "`,
 				`TOKEN NAME 3 5 "fy"`,
 				"EOF 5",
 			)
@@ -167,15 +167,15 @@ var _ = Describe("Scanner", func() {
 		It("traces a real scanner of non-trivial size", func() {
 			expectScannerTrace(golrSpecDFA(), `@parser { a: "b"; }`,
 				`TOKEN PARSER 0 7 "@parser"`,
-				`SKIP WHITESPACE 7 8 " "`,
+				`TOKEN WHITESPACE 7 8 " "`,
 				`TOKEN LBRACE 8 9 "{"`,
-				`SKIP WHITESPACE 9 10 " "`,
+				`TOKEN WHITESPACE 9 10 " "`,
 				`TOKEN NAME 10 11 "a"`,
 				`TOKEN COLON 11 12 ":"`,
-				`SKIP WHITESPACE 12 13 " "`,
+				`TOKEN WHITESPACE 12 13 " "`,
 				`TOKEN STRING 13 16 "\"b\""`,
 				`TOKEN SEMI 16 17 ";"`,
-				`SKIP WHITESPACE 17 18 " "`,
+				`TOKEN WHITESPACE 17 18 " "`,
 				`TOKEN RBRACE 18 19 "}"`,
 				"EOF 19",
 			)

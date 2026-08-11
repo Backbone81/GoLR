@@ -133,30 +133,30 @@ const (
 	NonterminalBreakstmt                      Nonterminal = 115 // BreakStmt
 	NonterminalContinuestmt                   Nonterminal = 116 // ContinueStmt
 	NonterminalGotostmt                       Nonterminal = 117 // GotoStmt
-	NonterminalDeferstmt                      Nonterminal = 118 // DeferStmt
-	NonterminalDeclaration                    Nonterminal = 119 // Declaration
-	NonterminalTopleveldecl                   Nonterminal = 120 // TopLevelDecl
-	NonterminalConstdecl                      Nonterminal = 121 // ConstDecl
-	NonterminalConstspec                      Nonterminal = 122 // ConstSpec
-	NonterminalZeroormoreconstspec            Nonterminal = 123 // ZeroOrMoreConstSpec
-	NonterminalTypedecl                       Nonterminal = 124 // TypeDecl
-	NonterminalZeroormoretypespecsemicolon    Nonterminal = 125 // ZeroOrMoreTypeSpecSemicolon
-	NonterminalAliasdecl                      Nonterminal = 126 // AliasDecl
-	NonterminalTypedef                        Nonterminal = 127 // TypeDef
-	NonterminalTypeparameters                 Nonterminal = 128 // TypeParameters
-	NonterminalTypeparamlist                  Nonterminal = 129 // TypeParamList
-	NonterminalTypeparamdecl                  Nonterminal = 130 // TypeParamDecl
-	NonterminalZeroormoreuniontypeterm        Nonterminal = 131 // ZeroOrMoreUnionTypeTerm
-	NonterminalFunctypeparameters             Nonterminal = 132 // FuncTypeParameters
-	NonterminalFunctypeparamlist              Nonterminal = 133 // FuncTypeParamList
-	NonterminalFunctypeparamdecl              Nonterminal = 134 // FuncTypeParamDecl
-	NonterminalVardecl                        Nonterminal = 135 // VarDecl
-	NonterminalVarspec                        Nonterminal = 136 // VarSpec
-	NonterminalZeroormorevarspecsemicolon     Nonterminal = 137 // ZeroOrMoreVarSpecSemicolon
-	NonterminalShortvardecl                   Nonterminal = 138 // ShortVarDecl
-	NonterminalFunctiondecl                   Nonterminal = 139 // FunctionDecl
-	NonterminalMethoddecl                     Nonterminal = 140 // MethodDecl
-	NonterminalFallthroughstmt                Nonterminal = 141 // FallthroughStmt
+	NonterminalFallthroughstmt                Nonterminal = 118 // FallthroughStmt
+	NonterminalDeferstmt                      Nonterminal = 119 // DeferStmt
+	NonterminalDeclaration                    Nonterminal = 120 // Declaration
+	NonterminalTopleveldecl                   Nonterminal = 121 // TopLevelDecl
+	NonterminalConstdecl                      Nonterminal = 122 // ConstDecl
+	NonterminalConstspec                      Nonterminal = 123 // ConstSpec
+	NonterminalZeroormoreconstspec            Nonterminal = 124 // ZeroOrMoreConstSpec
+	NonterminalTypedecl                       Nonterminal = 125 // TypeDecl
+	NonterminalZeroormoretypespecsemicolon    Nonterminal = 126 // ZeroOrMoreTypeSpecSemicolon
+	NonterminalAliasdecl                      Nonterminal = 127 // AliasDecl
+	NonterminalTypedef                        Nonterminal = 128 // TypeDef
+	NonterminalTypeparameters                 Nonterminal = 129 // TypeParameters
+	NonterminalTypeparamlist                  Nonterminal = 130 // TypeParamList
+	NonterminalTypeparamdecl                  Nonterminal = 131 // TypeParamDecl
+	NonterminalZeroormoreuniontypeterm        Nonterminal = 132 // ZeroOrMoreUnionTypeTerm
+	NonterminalFunctypeparameters             Nonterminal = 133 // FuncTypeParameters
+	NonterminalFunctypeparamlist              Nonterminal = 134 // FuncTypeParamList
+	NonterminalFunctypeparamdecl              Nonterminal = 135 // FuncTypeParamDecl
+	NonterminalVardecl                        Nonterminal = 136 // VarDecl
+	NonterminalVarspec                        Nonterminal = 137 // VarSpec
+	NonterminalZeroormorevarspecsemicolon     Nonterminal = 138 // ZeroOrMoreVarSpecSemicolon
+	NonterminalShortvardecl                   Nonterminal = 139 // ShortVarDecl
+	NonterminalFunctiondecl                   Nonterminal = 140 // FunctionDecl
+	NonterminalMethoddecl                     Nonterminal = 141 // MethodDecl
 )
 
 // Nonterminal implements fmt.Stringer.
@@ -401,6 +401,8 @@ func (n Nonterminal) String() string {
 		return `ContinueStmt`
 	case NonterminalGotostmt:
 		return `GotoStmt`
+	case NonterminalFallthroughstmt:
+		return `FallthroughStmt`
 	case NonterminalDeferstmt:
 		return `DeferStmt`
 	case NonterminalDeclaration:
@@ -447,8 +449,6 @@ func (n Nonterminal) String() string {
 		return `FunctionDecl`
 	case NonterminalMethoddecl:
 		return `MethodDecl`
-	case NonterminalFallthroughstmt:
-		return `FallthroughStmt`
 	default:
 		return "unknown"
 	}
@@ -3315,7 +3315,7 @@ func (p *Parser) state9() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: PackageClause -> package identifier
+		// Reduce: PackageClause -> "package" identifier
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalPackageclause(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -3447,7 +3447,7 @@ func (p *Parser) state15() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: SourceFile -> test_basic_lit BasicLit
+		// Reduce: SourceFile -> "@TestBasicLit" BasicLit
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalSourcefile(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -5965,7 +5965,7 @@ func (p *Parser) state39() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: SourceFile -> test_expression Expression
+		// Reduce: SourceFile -> "@TestExpression" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalSourcefile(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -6845,7 +6845,7 @@ func (p *Parser) state57() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: SourceFile -> test_type Type
+		// Reduce: SourceFile -> "@TestType" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalSourcefile(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -7107,7 +7107,7 @@ func (p *Parser) state68() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: BreakStmt -> break
+		// Reduce: BreakStmt -> "break"
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminalBreakstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -7167,7 +7167,7 @@ func (p *Parser) state70() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ContinueStmt -> continue
+		// Reduce: ContinueStmt -> "continue"
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminalContinuestmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -7397,7 +7397,7 @@ func (p *Parser) state72() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Statement -> fallthrough
+		// Reduce: Statement -> "fallthrough"
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminalStatement(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -8301,7 +8301,7 @@ func (p *Parser) state77() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ReturnStmt -> return
+		// Reduce: ReturnStmt -> "return"
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminalReturnstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -9454,7 +9454,7 @@ func (p *Parser) state87() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: SourceFile -> test_statement Statement
+		// Reduce: SourceFile -> "@TestStatement" Statement
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalSourcefile(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -10010,7 +10010,7 @@ func (p *Parser) state112() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: SourceFile -> test_decl TopLevelDecl
+		// Reduce: SourceFile -> "@TestDecl" TopLevelDecl
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalSourcefile(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -10320,7 +10320,7 @@ func (p *Parser) state119() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ChannelTypeNoChanReceive -> chan TypeNoChanReceive
+		// Reduce: ChannelTypeNoChanReceive -> "chan" TypeNoChanReceive
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalChanneltypenochanreceive(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -10710,7 +10710,7 @@ func (p *Parser) state131() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: FunctionType -> func Signature
+		// Reduce: FunctionType -> "func" Signature
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalFunctiontype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -11108,7 +11108,7 @@ func (p *Parser) state136() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnaryExpr -> add UnaryExpr
+		// Reduce: UnaryExpr -> "+" UnaryExpr
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnaryexpr(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -11130,7 +11130,7 @@ func (p *Parser) state137() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnaryExpr -> sub UnaryExpr
+		// Reduce: UnaryExpr -> "-" UnaryExpr
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnaryexpr(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -11152,7 +11152,7 @@ func (p *Parser) state138() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnaryExpr -> mul UnaryExpr
+		// Reduce: UnaryExpr -> "*" UnaryExpr
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnaryexpr(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -11174,7 +11174,7 @@ func (p *Parser) state139() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnaryExpr -> and UnaryExpr
+		// Reduce: UnaryExpr -> "&" UnaryExpr
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnaryexpr(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -11196,7 +11196,7 @@ func (p *Parser) state140() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnaryExpr -> xor UnaryExpr
+		// Reduce: UnaryExpr -> "^" UnaryExpr
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnaryexpr(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -11218,7 +11218,7 @@ func (p *Parser) state141() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnaryExpr -> arrow UnaryExpr
+		// Reduce: UnaryExpr -> "<-" UnaryExpr
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnaryexpr(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -11240,7 +11240,7 @@ func (p *Parser) state142() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnaryExpr -> not UnaryExpr
+		// Reduce: UnaryExpr -> "!" UnaryExpr
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnaryexpr(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -19198,7 +19198,7 @@ func (p *Parser) state197() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ChannelType -> chan TypeNoChanReceive
+		// Reduce: ChannelType -> "chan" TypeNoChanReceive
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalChanneltype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -19220,7 +19220,7 @@ func (p *Parser) state198() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: FunctionType -> func Signature
+		// Reduce: FunctionType -> "func" Signature
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalFunctiontype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -19260,7 +19260,7 @@ func (p *Parser) state200() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: PointerType -> mul Type
+		// Reduce: PointerType -> "*" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalPointertype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -19538,7 +19538,7 @@ func (p *Parser) state205() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: BreakStmt -> break identifier
+		// Reduce: BreakStmt -> "break" identifier
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalBreakstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -19742,7 +19742,7 @@ func (p *Parser) state209() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ConstDecl -> const ConstSpec
+		// Reduce: ConstDecl -> "const" ConstSpec
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalConstdecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -19764,7 +19764,7 @@ func (p *Parser) state210() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ContinueStmt -> continue identifier
+		// Reduce: ContinueStmt -> "continue" identifier
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalContinuestmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -19976,7 +19976,7 @@ func (p *Parser) state211() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: DeferStmt -> defer Expression
+		// Reduce: DeferStmt -> "defer" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalDeferstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -21976,7 +21976,7 @@ func (p *Parser) state226() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ForStmt -> for Block
+		// Reduce: ForStmt -> "for" Block
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalForstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -22887,7 +22887,7 @@ func (p *Parser) state241() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: GoStmt -> go Expression
+		// Reduce: GoStmt -> "go" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalGostmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -22909,7 +22909,7 @@ func (p *Parser) state242() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: GotoStmt -> goto identifier
+		// Reduce: GotoStmt -> "goto" identifier
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalGotostmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -23376,7 +23376,7 @@ func (p *Parser) state246() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ReturnStmt -> return ExpressionList
+		// Reduce: ReturnStmt -> "return" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalReturnstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -24287,7 +24287,7 @@ func (p *Parser) state257() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeDecl -> type AliasDecl
+		// Reduce: TypeDecl -> "type" AliasDecl
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalTypedecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -24309,7 +24309,7 @@ func (p *Parser) state258() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeDecl -> type TypeDef
+		// Reduce: TypeDecl -> "type" TypeDef
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalTypedecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -24477,7 +24477,7 @@ func (p *Parser) state261() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: VarDecl -> var VarSpec
+		// Reduce: VarDecl -> "var" VarSpec
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalVardecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -28037,7 +28037,7 @@ func (p *Parser) state280() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: IncDecStmt -> Expression increment
+		// Reduce: IncDecStmt -> Expression "++"
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalIncdecstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -28059,7 +28059,7 @@ func (p *Parser) state281() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: IncDecStmt -> Expression decrement
+		// Reduce: IncDecStmt -> Expression "--"
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalIncdecstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -28177,7 +28177,7 @@ func (p *Parser) state284() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: SourceFile -> PackageClause semicolon ZeroOrMoreImportDeclSemicolon
+		// Reduce: SourceFile -> PackageClause ";" ZeroOrMoreImportDeclSemicolon
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalSourcefile(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -28199,7 +28199,7 @@ func (p *Parser) state285() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ChannelTypeNoChanReceive -> chan arrow Type
+		// Reduce: ChannelTypeNoChanReceive -> "chan" "<-" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalChanneltypenochanreceive(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -28619,7 +28619,7 @@ func (p *Parser) state291() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Parameters -> left_paren right_paren
+		// Reduce: Parameters -> "(" ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalParameters(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -28713,7 +28713,7 @@ func (p *Parser) state295() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: FunctionLit -> func Signature Block
+		// Reduce: FunctionLit -> "func" Signature Block
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalFunctionlit(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -29005,7 +29005,7 @@ func (p *Parser) state303() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: InterfaceType -> interface left_brace right_brace
+		// Reduce: InterfaceType -> "interface" "{" "}"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalInterfacetype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -29384,7 +29384,7 @@ func (p *Parser) state315() error {
 	switch terminal {
 	// left_paren
 	case TokenLeftParen:
-		// Reduce: ChannelTypeNoChanReceive -> chan TypeNoChanReceive
+		// Reduce: ChannelTypeNoChanReceive -> "chan" TypeNoChanReceive
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalChanneltypenochanreceive(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -29400,7 +29400,7 @@ func (p *Parser) state315() error {
 		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	default:
-		// Reduce: ChannelType -> chan TypeNoChanReceive
+		// Reduce: ChannelType -> "chan" TypeNoChanReceive
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalChanneltype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -29422,7 +29422,7 @@ func (p *Parser) state316() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ConversionType -> mul ConversionType
+		// Reduce: ConversionType -> "*" ConversionType
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalConversiontype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -29570,7 +29570,7 @@ func (p *Parser) state319() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Operand -> left_paren Expression right_paren
+		// Reduce: Operand -> "(" Expression ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalOperand(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -29718,7 +29718,7 @@ func (p *Parser) state322() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: SliceType -> left_bracket right_bracket Type
+		// Reduce: SliceType -> "[" "]" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalSlicetype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -29848,7 +29848,7 @@ func (p *Parser) state324() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: LiteralValue -> left_brace right_brace
+		// Reduce: LiteralValue -> "{" "}"
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalLiteralvalue(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -30436,7 +30436,7 @@ func (p *Parser) state332() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Arguments -> left_paren right_paren
+		// Reduce: Arguments -> "(" ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalArguments(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -31328,7 +31328,7 @@ func (p *Parser) state347() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Selector -> period identifier
+		// Reduce: Selector -> "." identifier
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalSelector(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -31528,7 +31528,7 @@ func (p *Parser) state349() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Expression -> Expression add Expression
+		// Reduce: Expression -> Expression "+" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -31620,7 +31620,7 @@ func (p *Parser) state350() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Expression -> Expression sub Expression
+		// Reduce: Expression -> Expression "-" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -31642,7 +31642,7 @@ func (p *Parser) state351() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Expression -> Expression mul Expression
+		// Reduce: Expression -> Expression "*" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -31664,7 +31664,7 @@ func (p *Parser) state352() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Expression -> Expression quo Expression
+		// Reduce: Expression -> Expression "/" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -31686,7 +31686,7 @@ func (p *Parser) state353() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Expression -> Expression rem Expression
+		// Reduce: Expression -> Expression "%" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -31708,7 +31708,7 @@ func (p *Parser) state354() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Expression -> Expression and Expression
+		// Reduce: Expression -> Expression "&" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -31800,7 +31800,7 @@ func (p *Parser) state355() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Expression -> Expression or Expression
+		// Reduce: Expression -> Expression "|" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -31892,7 +31892,7 @@ func (p *Parser) state356() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Expression -> Expression xor Expression
+		// Reduce: Expression -> Expression "^" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -31914,7 +31914,7 @@ func (p *Parser) state357() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Expression -> Expression shift_left Expression
+		// Reduce: Expression -> Expression "<<" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -31936,7 +31936,7 @@ func (p *Parser) state358() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Expression -> Expression shift_right Expression
+		// Reduce: Expression -> Expression ">>" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -31958,7 +31958,7 @@ func (p *Parser) state359() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Expression -> Expression and_not Expression
+		// Reduce: Expression -> Expression "&^" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -32150,7 +32150,7 @@ func (p *Parser) state360() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Expression -> Expression logical_and Expression
+		// Reduce: Expression -> Expression "&&" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -32352,7 +32352,7 @@ func (p *Parser) state361() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Expression -> Expression logical_or Expression
+		// Reduce: Expression -> Expression "||" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -32484,7 +32484,7 @@ func (p *Parser) state362() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Expression -> Expression equal Expression
+		// Reduce: Expression -> Expression "==" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -32616,7 +32616,7 @@ func (p *Parser) state363() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Expression -> Expression less_than Expression
+		// Reduce: Expression -> Expression "<" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -32748,7 +32748,7 @@ func (p *Parser) state364() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Expression -> Expression greater_than Expression
+		// Reduce: Expression -> Expression ">" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -32880,7 +32880,7 @@ func (p *Parser) state365() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Expression -> Expression not_equal Expression
+		// Reduce: Expression -> Expression "!=" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -33012,7 +33012,7 @@ func (p *Parser) state366() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Expression -> Expression less_equal Expression
+		// Reduce: Expression -> Expression "<=" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -33144,7 +33144,7 @@ func (p *Parser) state367() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Expression -> Expression greater_equal Expression
+		// Reduce: Expression -> Expression ">=" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -34692,7 +34692,7 @@ func (p *Parser) state375() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ChannelType -> chan arrow Type
+		// Reduce: ChannelType -> "chan" "<-" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalChanneltype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -34714,7 +34714,7 @@ func (p *Parser) state376() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: QualifiedIdent -> identifier period identifier
+		// Reduce: QualifiedIdent -> identifier "." identifier
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalQualifiedident(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -34736,7 +34736,7 @@ func (p *Parser) state377() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ChannelType -> arrow chan Type
+		// Reduce: ChannelType -> "<-" "chan" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalChanneltype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -34758,7 +34758,7 @@ func (p *Parser) state378() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Type -> left_paren Type right_paren
+		// Reduce: Type -> "(" Type ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalType(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -35292,7 +35292,7 @@ func (p *Parser) state385() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: RangeClause -> range ExpressionNoBrace
+		// Reduce: RangeClause -> "range" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalRangeclause(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -35314,7 +35314,7 @@ func (p *Parser) state386() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnaryExprNoBrace -> add UnaryExprNoBrace
+		// Reduce: UnaryExprNoBrace -> "+" UnaryExprNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnaryexprnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -35336,7 +35336,7 @@ func (p *Parser) state387() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnaryExprNoBrace -> sub UnaryExprNoBrace
+		// Reduce: UnaryExprNoBrace -> "-" UnaryExprNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnaryexprnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -35358,7 +35358,7 @@ func (p *Parser) state388() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnaryExprNoBrace -> mul UnaryExprNoBrace
+		// Reduce: UnaryExprNoBrace -> "*" UnaryExprNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnaryexprnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -35380,7 +35380,7 @@ func (p *Parser) state389() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnaryExprNoBrace -> and UnaryExprNoBrace
+		// Reduce: UnaryExprNoBrace -> "&" UnaryExprNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnaryexprnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -35402,7 +35402,7 @@ func (p *Parser) state390() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnaryExprNoBrace -> xor UnaryExprNoBrace
+		// Reduce: UnaryExprNoBrace -> "^" UnaryExprNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnaryexprnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -35424,7 +35424,7 @@ func (p *Parser) state391() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnaryExprNoBrace -> arrow UnaryExprNoBrace
+		// Reduce: UnaryExprNoBrace -> "<-" UnaryExprNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnaryexprnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -35446,7 +35446,7 @@ func (p *Parser) state392() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnaryExprNoBrace -> not UnaryExprNoBrace
+		// Reduce: UnaryExprNoBrace -> "!" UnaryExprNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnaryexprnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -38610,7 +38610,7 @@ func (p *Parser) state409() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: IncDecStmtNoBrace -> ExpressionNoBrace increment
+		// Reduce: IncDecStmtNoBrace -> ExpressionNoBrace "++"
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalIncdecstmtnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -38632,7 +38632,7 @@ func (p *Parser) state410() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: IncDecStmtNoBrace -> ExpressionNoBrace decrement
+		// Reduce: IncDecStmtNoBrace -> ExpressionNoBrace "--"
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalIncdecstmtnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -39902,7 +39902,7 @@ func (p *Parser) state417() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ForStmt -> for ExpressionNoBrace Block
+		// Reduce: ForStmt -> "for" ExpressionNoBrace Block
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalForstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -43184,7 +43184,7 @@ func (p *Parser) state438() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ForStmt -> for ForClause Block
+		// Reduce: ForStmt -> "for" ForClause Block
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalForstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -43206,7 +43206,7 @@ func (p *Parser) state439() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ForStmt -> for RangeClause Block
+		// Reduce: ForStmt -> "for" RangeClause Block
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalForstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -43238,7 +43238,7 @@ func (p *Parser) state440() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: IfStmt -> if ExpressionNoBrace Block
+		// Reduce: IfStmt -> "if" ExpressionNoBrace Block
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalIfstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -45212,7 +45212,7 @@ func (p *Parser) state459() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: LabeledStmt -> identifier colon Statement
+		// Reduce: LabeledStmt -> identifier ":" Statement
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalLabeledstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -45234,7 +45234,7 @@ func (p *Parser) state460() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Block -> left_brace StatementList right_brace
+		// Reduce: Block -> "{" StatementList "}"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalBlock(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -45634,7 +45634,7 @@ func (p *Parser) state462() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Assignment -> ExpressionList add_assign ExpressionList
+		// Reduce: Assignment -> ExpressionList "+=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignment(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -45666,7 +45666,7 @@ func (p *Parser) state463() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Assignment -> ExpressionList sub_assign ExpressionList
+		// Reduce: Assignment -> ExpressionList "-=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignment(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -45698,7 +45698,7 @@ func (p *Parser) state464() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Assignment -> ExpressionList mul_assign ExpressionList
+		// Reduce: Assignment -> ExpressionList "*=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignment(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -45730,7 +45730,7 @@ func (p *Parser) state465() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Assignment -> ExpressionList quo_assign ExpressionList
+		// Reduce: Assignment -> ExpressionList "/=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignment(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -45762,7 +45762,7 @@ func (p *Parser) state466() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Assignment -> ExpressionList rem_assign ExpressionList
+		// Reduce: Assignment -> ExpressionList "%=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignment(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -45794,7 +45794,7 @@ func (p *Parser) state467() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Assignment -> ExpressionList and_assign ExpressionList
+		// Reduce: Assignment -> ExpressionList "&=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignment(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -45826,7 +45826,7 @@ func (p *Parser) state468() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Assignment -> ExpressionList or_assign ExpressionList
+		// Reduce: Assignment -> ExpressionList "|=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignment(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -45858,7 +45858,7 @@ func (p *Parser) state469() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Assignment -> ExpressionList xor_assign ExpressionList
+		// Reduce: Assignment -> ExpressionList "^=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignment(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -45890,7 +45890,7 @@ func (p *Parser) state470() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Assignment -> ExpressionList shift_left_assign ExpressionList
+		// Reduce: Assignment -> ExpressionList "<<=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignment(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -45922,7 +45922,7 @@ func (p *Parser) state471() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Assignment -> ExpressionList shift_right_assign ExpressionList
+		// Reduce: Assignment -> ExpressionList ">>=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignment(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -45954,7 +45954,7 @@ func (p *Parser) state472() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Assignment -> ExpressionList and_not_assign ExpressionList
+		// Reduce: Assignment -> ExpressionList "&^=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignment(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -45986,7 +45986,7 @@ func (p *Parser) state473() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: Assignment -> ExpressionList assign ExpressionList
+		// Reduce: Assignment -> ExpressionList "=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignment(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -46018,7 +46018,7 @@ func (p *Parser) state474() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ShortVarDecl -> ExpressionList define ExpressionList
+		// Reduce: ShortVarDecl -> ExpressionList ":=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalShortvardecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -46230,7 +46230,7 @@ func (p *Parser) state475() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExpressionList -> ExpressionList comma Expression
+		// Reduce: ExpressionList -> ExpressionList "," Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionlist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -46442,7 +46442,7 @@ func (p *Parser) state476() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: SendStmt -> Expression arrow Expression
+		// Reduce: SendStmt -> Expression "<-" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalSendstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -46492,7 +46492,7 @@ func (p *Parser) state478() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: FunctionDecl -> func identifier Signature
+		// Reduce: FunctionDecl -> "func" identifier Signature
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalFunctiondecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -46638,7 +46638,7 @@ func (p *Parser) state482() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: SourceFile -> PackageClause semicolon ZeroOrMoreImportDeclSemicolon OneOrMoreTopLevelDeclSemicolon
+		// Reduce: SourceFile -> PackageClause ";" ZeroOrMoreImportDeclSemicolon OneOrMoreTopLevelDeclSemicolon
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalSourcefile(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -46696,7 +46696,7 @@ func (p *Parser) state485() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeNoChanReceive -> left_paren Type right_paren
+		// Reduce: TypeNoChanReceive -> "(" Type ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalTypenochanreceive(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -47378,7 +47378,7 @@ func (p *Parser) state499() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ParameterDecl -> ellipsis Type
+		// Reduce: ParameterDecl -> "..." Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalParameterdecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -47546,7 +47546,7 @@ func (p *Parser) state502() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Parameters -> left_paren ParameterList right_paren
+		// Reduce: Parameters -> "(" ParameterList ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalParameters(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -47612,7 +47612,7 @@ func (p *Parser) state505() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: UnderlyingType -> tilde Type
+		// Reduce: UnderlyingType -> "~" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalUnderlyingtype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -47744,7 +47744,7 @@ func (p *Parser) state506() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: OneOrMoreInterfaceElem -> InterfaceElem semicolon
+		// Reduce: OneOrMoreInterfaceElem -> InterfaceElem ";"
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalOneormoreinterfaceelem(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -47884,7 +47884,7 @@ func (p *Parser) state508() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: InterfaceType -> interface left_brace OneOrMoreInterfaceElem right_brace
+		// Reduce: InterfaceType -> "interface" "{" OneOrMoreInterfaceElem "}"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalInterfacetype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -48014,7 +48014,7 @@ func (p *Parser) state510() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: StructType -> struct left_brace ZeroOrMoreFieldDecl right_brace
+		// Reduce: StructType -> "struct" "{" ZeroOrMoreFieldDecl "}"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalStructtype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -48235,7 +48235,7 @@ func (p *Parser) state514() error {
 	switch terminal {
 	// left_paren
 	case TokenLeftParen:
-		// Reduce: ChannelTypeNoChanReceive -> chan arrow Type
+		// Reduce: ChannelTypeNoChanReceive -> "chan" "<-" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalChanneltypenochanreceive(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -48251,7 +48251,7 @@ func (p *Parser) state514() error {
 		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	default:
-		// Reduce: ChannelType -> chan arrow Type
+		// Reduce: ChannelType -> "chan" "<-" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalChanneltype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -48821,7 +48821,7 @@ func (p *Parser) state525() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ConversionType -> left_paren ConversionType right_paren
+		// Reduce: ConversionType -> "(" ConversionType ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalConversiontype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -49051,7 +49051,7 @@ func (p *Parser) state527() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: LiteralType -> left_bracket ellipsis right_bracket Type
+		// Reduce: LiteralType -> "[" "..." "]" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalLiteraltype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -49073,7 +49073,7 @@ func (p *Parser) state528() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ArrayType -> left_bracket Expression right_bracket Type
+		// Reduce: ArrayType -> "[" Expression "]" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalArraytype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -49323,7 +49323,7 @@ func (p *Parser) state530() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: LiteralValue -> left_brace ElementList right_brace
+		// Reduce: LiteralValue -> "{" ElementList "}"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalLiteralvalue(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -49563,7 +49563,7 @@ func (p *Parser) state532() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ArgumentType -> mul ArgumentType
+		// Reduce: ArgumentType -> "*" ArgumentType
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalArgumenttype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -49831,7 +49831,7 @@ func (p *Parser) state535() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Arguments -> left_paren ArgumentType right_paren
+		// Reduce: Arguments -> "(" ArgumentType ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalArguments(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -50099,7 +50099,7 @@ func (p *Parser) state538() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Arguments -> left_paren ExpressionList right_paren
+		// Reduce: Arguments -> "(" ExpressionList ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalArguments(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -50121,7 +50121,7 @@ func (p *Parser) state539() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Slice -> left_bracket colon right_bracket
+		// Reduce: Slice -> "[" ":" "]"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalSlice(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -50579,7 +50579,7 @@ func (p *Parser) state542() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Index -> left_bracket IndexElemList right_bracket
+		// Reduce: Index -> "[" IndexElemList "]"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalIndex(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -50855,7 +50855,7 @@ func (p *Parser) state546() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> ArrayType left_paren Expression right_paren
+		// Reduce: Conversion -> ArrayType "(" Expression ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -50895,7 +50895,7 @@ func (p *Parser) state548() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> SliceType left_paren Expression right_paren
+		// Reduce: Conversion -> SliceType "(" Expression ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -50935,7 +50935,7 @@ func (p *Parser) state550() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> StructType left_paren Expression right_paren
+		// Reduce: Conversion -> StructType "(" Expression ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -50975,7 +50975,7 @@ func (p *Parser) state552() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> FunctionType left_paren Expression right_paren
+		// Reduce: Conversion -> FunctionType "(" Expression ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51015,7 +51015,7 @@ func (p *Parser) state554() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> InterfaceType left_paren Expression right_paren
+		// Reduce: Conversion -> InterfaceType "(" Expression ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51055,7 +51055,7 @@ func (p *Parser) state556() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> MapType left_paren Expression right_paren
+		// Reduce: Conversion -> MapType "(" Expression ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51095,7 +51095,7 @@ func (p *Parser) state558() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> ChannelTypeNoChanReceive left_paren Expression right_paren
+		// Reduce: Conversion -> ChannelTypeNoChanReceive "(" Expression ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51217,7 +51217,7 @@ func (p *Parser) state559() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: TypeList -> Type comma
+		// Reduce: TypeList -> Type ","
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalTypelist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51239,7 +51239,7 @@ func (p *Parser) state560() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeArgs -> left_bracket TypeList right_bracket
+		// Reduce: TypeArgs -> "[" TypeList "]"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalTypeargs(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51261,7 +51261,7 @@ func (p *Parser) state561() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ConstDecl -> const left_paren ZeroOrMoreConstSpec right_paren
+		// Reduce: ConstDecl -> "const" "(" ZeroOrMoreConstSpec ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalConstdecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51311,7 +51311,7 @@ func (p *Parser) state563() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ConstSpec -> IdentifierList assign ExpressionList
+		// Reduce: ConstSpec -> IdentifierList "=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalConstspec(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51333,7 +51333,7 @@ func (p *Parser) state564() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: IdentifierList -> IdentifierList comma identifier
+		// Reduce: IdentifierList -> IdentifierList "," identifier
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalIdentifierlist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51563,7 +51563,7 @@ func (p *Parser) state566() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: OperandNoBrace -> left_paren Expression right_paren
+		// Reduce: OperandNoBrace -> "(" Expression ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalOperandnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51655,7 +51655,7 @@ func (p *Parser) state567() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace add ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "+" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51747,7 +51747,7 @@ func (p *Parser) state568() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace sub ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "-" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51769,7 +51769,7 @@ func (p *Parser) state569() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace mul ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "*" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51791,7 +51791,7 @@ func (p *Parser) state570() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace quo ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "/" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51813,7 +51813,7 @@ func (p *Parser) state571() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace rem ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "%" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51835,7 +51835,7 @@ func (p *Parser) state572() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace and ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "&" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -51927,7 +51927,7 @@ func (p *Parser) state573() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace or ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "|" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -52019,7 +52019,7 @@ func (p *Parser) state574() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace xor ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "^" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -52041,7 +52041,7 @@ func (p *Parser) state575() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace shift_left ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "<<" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -52063,7 +52063,7 @@ func (p *Parser) state576() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace shift_right ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace ">>" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -52085,7 +52085,7 @@ func (p *Parser) state577() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace and_not ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "&^" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -52277,7 +52277,7 @@ func (p *Parser) state578() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace logical_and ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "&&" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -52479,7 +52479,7 @@ func (p *Parser) state579() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace logical_or ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "||" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -52691,7 +52691,7 @@ func (p *Parser) state580() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: SendStmtNoBrace -> ExpressionNoBrace arrow ExpressionNoBrace
+		// Reduce: SendStmtNoBrace -> ExpressionNoBrace "<-" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalSendstmtnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -52823,7 +52823,7 @@ func (p *Parser) state581() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace equal ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "==" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -52955,7 +52955,7 @@ func (p *Parser) state582() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace less_than ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "<" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -53087,7 +53087,7 @@ func (p *Parser) state583() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace greater_than ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace ">" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -53219,7 +53219,7 @@ func (p *Parser) state584() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace not_equal ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "!=" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -53351,7 +53351,7 @@ func (p *Parser) state585() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace less_equal ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace "<=" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -53483,7 +53483,7 @@ func (p *Parser) state586() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExpressionNoBrace -> ExpressionNoBrace greater_equal ExpressionNoBrace
+		// Reduce: ExpressionNoBrace -> ExpressionNoBrace ">=" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -53727,7 +53727,7 @@ func (p *Parser) state588() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace add_assign ExpressionListNoBrace
+		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace "+=" ExpressionListNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignmentnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -53759,7 +53759,7 @@ func (p *Parser) state589() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace sub_assign ExpressionListNoBrace
+		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace "-=" ExpressionListNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignmentnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -53791,7 +53791,7 @@ func (p *Parser) state590() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace mul_assign ExpressionListNoBrace
+		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace "*=" ExpressionListNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignmentnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -53823,7 +53823,7 @@ func (p *Parser) state591() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace quo_assign ExpressionListNoBrace
+		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace "/=" ExpressionListNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignmentnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -53855,7 +53855,7 @@ func (p *Parser) state592() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace rem_assign ExpressionListNoBrace
+		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace "%=" ExpressionListNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignmentnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -53887,7 +53887,7 @@ func (p *Parser) state593() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace and_assign ExpressionListNoBrace
+		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace "&=" ExpressionListNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignmentnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -53919,7 +53919,7 @@ func (p *Parser) state594() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace or_assign ExpressionListNoBrace
+		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace "|=" ExpressionListNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignmentnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -53951,7 +53951,7 @@ func (p *Parser) state595() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace xor_assign ExpressionListNoBrace
+		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace "^=" ExpressionListNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignmentnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -53983,7 +53983,7 @@ func (p *Parser) state596() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace shift_left_assign ExpressionListNoBrace
+		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace "<<=" ExpressionListNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignmentnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -54015,7 +54015,7 @@ func (p *Parser) state597() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace shift_right_assign ExpressionListNoBrace
+		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace ">>=" ExpressionListNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignmentnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -54047,7 +54047,7 @@ func (p *Parser) state598() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace and_not_assign ExpressionListNoBrace
+		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace "&^=" ExpressionListNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignmentnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -54287,7 +54287,7 @@ func (p *Parser) state600() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace assign ExpressionListNoBrace
+		// Reduce: AssignmentNoBrace -> ExpressionListNoBrace "=" ExpressionListNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAssignmentnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -54527,7 +54527,7 @@ func (p *Parser) state602() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ShortVarDeclNoBrace -> ExpressionListNoBrace define ExpressionListNoBrace
+		// Reduce: ShortVarDeclNoBrace -> ExpressionListNoBrace ":=" ExpressionListNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalShortvardeclnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -54739,7 +54739,7 @@ func (p *Parser) state603() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExpressionListNoBrace -> ExpressionListNoBrace comma ExpressionNoBrace
+		// Reduce: ExpressionListNoBrace -> ExpressionListNoBrace "," ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExpressionlistnobrace(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -55631,7 +55631,7 @@ func (p *Parser) state609() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: CommCase -> default
+		// Reduce: CommCase -> "default"
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminalCommcase(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -55653,7 +55653,7 @@ func (p *Parser) state610() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: SelectStmt -> select left_brace ZeroOrMoreCommClause right_brace
+		// Reduce: SelectStmt -> "select" "{" ZeroOrMoreCommClause "}"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalSelectstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -55923,7 +55923,7 @@ func (p *Parser) state614() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ExprSwitchCase -> default
+		// Reduce: ExprSwitchCase -> "default"
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminalExprswitchcase(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -55945,7 +55945,7 @@ func (p *Parser) state615() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ExprSwitchStmt -> switch left_brace ZeroOrMoreExprCaseClause right_brace
+		// Reduce: ExprSwitchStmt -> "switch" "{" ZeroOrMoreExprCaseClause "}"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalExprswitchstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -56539,7 +56539,7 @@ func (p *Parser) state626() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: AliasDecl -> identifier assign Type
+		// Reduce: AliasDecl -> identifier "=" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalAliasdecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -57153,7 +57153,7 @@ func (p *Parser) state634() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeDecl -> type left_paren ZeroOrMoreTypeSpecSemicolon right_paren
+		// Reduce: TypeDecl -> "type" "(" ZeroOrMoreTypeSpecSemicolon ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalTypedecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -57211,7 +57211,7 @@ func (p *Parser) state637() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: VarDecl -> var left_paren ZeroOrMoreVarSpecSemicolon right_paren
+		// Reduce: VarDecl -> "var" "(" ZeroOrMoreVarSpecSemicolon ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalVardecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -57261,7 +57261,7 @@ func (p *Parser) state639() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: VarSpec -> IdentifierList assign ExpressionList
+		// Reduce: VarSpec -> IdentifierList "=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalVarspec(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -57491,7 +57491,7 @@ func (p *Parser) state641() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: StatementList -> StatementList semicolon Statement
+		// Reduce: StatementList -> StatementList ";" Statement
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalStatementlist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -57691,7 +57691,7 @@ func (p *Parser) state645() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: FunctionDecl -> func identifier Signature Block
+		// Reduce: FunctionDecl -> "func" identifier Signature Block
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalFunctiondecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -57723,7 +57723,7 @@ func (p *Parser) state646() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: FunctionDecl -> func identifier FuncTypeParameters Signature
+		// Reduce: FunctionDecl -> "func" identifier FuncTypeParameters Signature
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalFunctiondecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -57755,7 +57755,7 @@ func (p *Parser) state647() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: MethodDecl -> func Parameters identifier Signature
+		// Reduce: MethodDecl -> "func" Parameters identifier Signature
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalMethoddecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -57853,7 +57853,7 @@ func (p *Parser) state652() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ImportDecl -> import ImportSpec
+		// Reduce: ImportDecl -> "import" ImportSpec
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalImportdecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -57893,7 +57893,7 @@ func (p *Parser) state654() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ZeroOrMoreImportDeclSemicolon -> ZeroOrMoreImportDeclSemicolon ImportDecl semicolon
+		// Reduce: ZeroOrMoreImportDeclSemicolon -> ZeroOrMoreImportDeclSemicolon ImportDecl ";"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalZeroormoreimportdeclsemicolon(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -57915,7 +57915,7 @@ func (p *Parser) state655() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: OneOrMoreTopLevelDeclSemicolon -> TopLevelDecl semicolon
+		// Reduce: OneOrMoreTopLevelDeclSemicolon -> TopLevelDecl ";"
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalOneormoretopleveldeclsemicolon(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -57937,7 +57937,7 @@ func (p *Parser) state656() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ParameterDecl -> identifier ellipsis Type
+		// Reduce: ParameterDecl -> identifier "..." Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalParameterdecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -58679,7 +58679,7 @@ func (p *Parser) state671() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ParameterDecl -> left_paren Type right_paren
+		// Reduce: ParameterDecl -> "(" Type ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalParameterdecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -58701,7 +58701,7 @@ func (p *Parser) state672() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Parameters -> left_paren ParameterList comma right_paren
+		// Reduce: Parameters -> "(" ParameterList "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalParameters(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -58723,7 +58723,7 @@ func (p *Parser) state673() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ParameterList -> ParameterList comma ParameterDecl
+		// Reduce: ParameterList -> ParameterList "," ParameterDecl
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalParameterlist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -58745,7 +58745,7 @@ func (p *Parser) state674() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: OneOrMoreInterfaceElem -> InterfaceElem semicolon OneOrMoreInterfaceElem
+		// Reduce: OneOrMoreInterfaceElem -> InterfaceElem ";" OneOrMoreInterfaceElem
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalOneormoreinterfaceelem(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -58767,7 +58767,7 @@ func (p *Parser) state675() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeElem -> TypeElem or TypeTerm
+		// Reduce: TypeElem -> TypeElem "|" TypeTerm
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalTypeelem(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -58789,7 +58789,7 @@ func (p *Parser) state676() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: MapType -> map left_bracket Type right_bracket Type
+		// Reduce: MapType -> "map" "[" Type "]" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalMaptype(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -58975,7 +58975,7 @@ func (p *Parser) state684() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ZeroOrMoreFieldDeclSemicolon -> ZeroOrMoreFieldDeclSemicolon FieldDecl semicolon
+		// Reduce: ZeroOrMoreFieldDeclSemicolon -> ZeroOrMoreFieldDeclSemicolon FieldDecl ";"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalZeroormorefielddeclsemicolon(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -59380,7 +59380,7 @@ func (p *Parser) state689() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: LiteralValue -> left_brace ElementList comma right_brace
+		// Reduce: LiteralValue -> "{" ElementList "," "}"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalLiteralvalue(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -59402,7 +59402,7 @@ func (p *Parser) state690() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ElementList -> ElementList comma KeyedElement
+		// Reduce: ElementList -> ElementList "," KeyedElement
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalElementlist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -59446,7 +59446,7 @@ func (p *Parser) state692() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: KeyedElement -> Key colon Element
+		// Reduce: KeyedElement -> Key ":" Element
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalKeyedelement(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -59698,7 +59698,7 @@ func (p *Parser) state695() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Arguments -> left_paren ArgumentType ellipsis right_paren
+		// Reduce: Arguments -> "(" ArgumentType "..." ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalArguments(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -59720,7 +59720,7 @@ func (p *Parser) state696() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Arguments -> left_paren ArgumentType comma right_paren
+		// Reduce: Arguments -> "(" ArgumentType "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalArguments(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -59798,7 +59798,7 @@ func (p *Parser) state699() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Arguments -> left_paren ExpressionList ellipsis right_paren
+		// Reduce: Arguments -> "(" ExpressionList "..." ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalArguments(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -59820,7 +59820,7 @@ func (p *Parser) state700() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Arguments -> left_paren ExpressionList comma right_paren
+		// Reduce: Arguments -> "(" ExpressionList "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalArguments(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -59842,7 +59842,7 @@ func (p *Parser) state701() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Slice -> left_bracket colon Expression right_bracket
+		// Reduce: Slice -> "[" ":" Expression "]"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalSlice(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -60072,7 +60072,7 @@ func (p *Parser) state703() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Index -> left_bracket IndexElemList comma right_bracket
+		// Reduce: Index -> "[" IndexElemList "," "]"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalIndex(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -60094,7 +60094,7 @@ func (p *Parser) state704() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: IndexElemList -> IndexElemList comma IndexElem
+		// Reduce: IndexElemList -> IndexElemList "," IndexElem
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalIndexelemlist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -60328,7 +60328,7 @@ func (p *Parser) state706() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Slice -> left_bracket Expression colon right_bracket
+		// Reduce: Slice -> "[" Expression ":" "]"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalSlice(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -60568,7 +60568,7 @@ func (p *Parser) state708() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeAssertion -> period left_paren Type right_paren
+		// Reduce: TypeAssertion -> "." "(" Type ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalTypeassertion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -60590,7 +60590,7 @@ func (p *Parser) state709() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> ArrayType left_paren Expression comma right_paren
+		// Reduce: Conversion -> ArrayType "(" Expression "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -60612,7 +60612,7 @@ func (p *Parser) state710() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> SliceType left_paren Expression comma right_paren
+		// Reduce: Conversion -> SliceType "(" Expression "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -60634,7 +60634,7 @@ func (p *Parser) state711() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> StructType left_paren Expression comma right_paren
+		// Reduce: Conversion -> StructType "(" Expression "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -60656,7 +60656,7 @@ func (p *Parser) state712() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> FunctionType left_paren Expression comma right_paren
+		// Reduce: Conversion -> FunctionType "(" Expression "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -60678,7 +60678,7 @@ func (p *Parser) state713() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> InterfaceType left_paren Expression comma right_paren
+		// Reduce: Conversion -> InterfaceType "(" Expression "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -60700,7 +60700,7 @@ func (p *Parser) state714() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> MapType left_paren Expression comma right_paren
+		// Reduce: Conversion -> MapType "(" Expression "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -60722,7 +60722,7 @@ func (p *Parser) state715() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> ChannelTypeNoChanReceive left_paren Expression comma right_paren
+		// Reduce: Conversion -> ChannelTypeNoChanReceive "(" Expression "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -60744,7 +60744,7 @@ func (p *Parser) state716() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeList -> Type comma TypeList
+		// Reduce: TypeList -> Type "," TypeList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalTypelist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -60766,7 +60766,7 @@ func (p *Parser) state717() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ZeroOrMoreConstSpec -> ZeroOrMoreConstSpec ConstSpec semicolon
+		// Reduce: ZeroOrMoreConstSpec -> ZeroOrMoreConstSpec ConstSpec ";"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalZeroormoreconstspec(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -60798,7 +60798,7 @@ func (p *Parser) state718() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ConstSpec -> IdentifierList Type assign ExpressionList
+		// Reduce: ConstSpec -> IdentifierList Type "=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalConstspec(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -61010,7 +61010,7 @@ func (p *Parser) state719() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: RangeClause -> ExpressionListNoBrace assign range ExpressionNoBrace
+		// Reduce: RangeClause -> ExpressionListNoBrace "=" "range" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalRangeclause(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -61222,7 +61222,7 @@ func (p *Parser) state720() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: RangeClause -> ExpressionListNoBrace define range ExpressionNoBrace
+		// Reduce: RangeClause -> ExpressionListNoBrace ":=" "range" ExpressionNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalRangeclause(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -61503,7 +61503,7 @@ func (p *Parser) state722() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ForClause -> SimpleStmtNoBrace semicolon semicolon SimpleStmtNoBrace
+		// Reduce: ForClause -> SimpleStmtNoBrace ";" ";" SimpleStmtNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalForclause(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -61787,7 +61787,7 @@ func (p *Parser) state726() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: IfStmt -> if ExpressionNoBrace Block else IfStmtOrBlock
+		// Reduce: IfStmt -> "if" ExpressionNoBrace Block "else" IfStmtOrBlock
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalIfstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -61819,7 +61819,7 @@ func (p *Parser) state727() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: IfStmt -> if SimpleStmtNoBrace semicolon ExpressionNoBrace Block
+		// Reduce: IfStmt -> "if" SimpleStmtNoBrace ";" ExpressionNoBrace Block
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalIfstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -62118,7 +62118,7 @@ func (p *Parser) state730() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: CommCase -> case SendStmt
+		// Reduce: CommCase -> "case" SendStmt
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalCommcase(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -62140,7 +62140,7 @@ func (p *Parser) state731() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: CommCase -> case RecvStmt
+		// Reduce: CommCase -> "case" RecvStmt
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalCommcase(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -62540,7 +62540,7 @@ func (p *Parser) state733() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExprSwitchCase -> case ExpressionList
+		// Reduce: ExprSwitchCase -> "case" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalExprswitchcase(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -62930,7 +62930,7 @@ func (p *Parser) state735() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ExprSwitchStmt -> switch ExpressionNoBrace left_brace ZeroOrMoreExprCaseClause right_brace
+		// Reduce: ExprSwitchStmt -> "switch" ExpressionNoBrace "{" ZeroOrMoreExprCaseClause "}"
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalExprswitchstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -63318,7 +63318,7 @@ func (p *Parser) state743() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeSwitchCase -> default
+		// Reduce: TypeSwitchCase -> "default"
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		nextState, err := p.gotoAfterNonterminalTypeswitchcase(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -63340,7 +63340,7 @@ func (p *Parser) state744() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeSwitchStmt -> switch TypeSwitchGuard left_brace ZeroOrMoreTypeCaseClause right_brace
+		// Reduce: TypeSwitchStmt -> "switch" TypeSwitchGuard "{" ZeroOrMoreTypeCaseClause "}"
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalTypeswitchstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -63662,7 +63662,7 @@ func (p *Parser) state749() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeParameters -> left_bracket TypeParamList right_bracket
+		// Reduce: TypeParameters -> "[" TypeParamList "]"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalTypeparameters(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -63884,7 +63884,7 @@ func (p *Parser) state750() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: TypeParamList -> TypeParamDecl comma
+		// Reduce: TypeParamList -> TypeParamDecl ","
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalTypeparamlist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -63906,7 +63906,7 @@ func (p *Parser) state751() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: AliasDecl -> identifier TypeParameters assign Type
+		// Reduce: AliasDecl -> identifier TypeParameters "=" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalAliasdecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -63928,7 +63928,7 @@ func (p *Parser) state752() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ZeroOrMoreTypeSpecSemicolon -> ZeroOrMoreTypeSpecSemicolon AliasDecl semicolon
+		// Reduce: ZeroOrMoreTypeSpecSemicolon -> ZeroOrMoreTypeSpecSemicolon AliasDecl ";"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalZeroormoretypespecsemicolon(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -63950,7 +63950,7 @@ func (p *Parser) state753() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ZeroOrMoreTypeSpecSemicolon -> ZeroOrMoreTypeSpecSemicolon TypeDef semicolon
+		// Reduce: ZeroOrMoreTypeSpecSemicolon -> ZeroOrMoreTypeSpecSemicolon TypeDef ";"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalZeroormoretypespecsemicolon(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -63972,7 +63972,7 @@ func (p *Parser) state754() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ZeroOrMoreVarSpecSemicolon -> ZeroOrMoreVarSpecSemicolon VarSpec semicolon
+		// Reduce: ZeroOrMoreVarSpecSemicolon -> ZeroOrMoreVarSpecSemicolon VarSpec ";"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalZeroormorevarspecsemicolon(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -64004,7 +64004,7 @@ func (p *Parser) state755() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: VarSpec -> IdentifierList Type assign ExpressionList
+		// Reduce: VarSpec -> IdentifierList Type "=" ExpressionList
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalVarspec(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -64058,7 +64058,7 @@ func (p *Parser) state757() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: FuncTypeParameters -> left_bracket FuncTypeParamList right_bracket
+		// Reduce: FuncTypeParameters -> "[" FuncTypeParamList "]"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalFunctypeparameters(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -64090,7 +64090,7 @@ func (p *Parser) state758() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: FuncTypeParamList -> FuncTypeParamDecl comma
+		// Reduce: FuncTypeParamList -> FuncTypeParamDecl ","
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalFunctypeparamlist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -64112,7 +64112,7 @@ func (p *Parser) state759() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: FunctionDecl -> func identifier FuncTypeParameters Signature Block
+		// Reduce: FunctionDecl -> "func" identifier FuncTypeParameters Signature Block
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalFunctiondecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -64134,7 +64134,7 @@ func (p *Parser) state760() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: MethodDecl -> func Parameters identifier Signature Block
+		// Reduce: MethodDecl -> "func" Parameters identifier Signature Block
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalMethoddecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -64226,7 +64226,7 @@ func (p *Parser) state763() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ImportSpec -> period string_lit
+		// Reduce: ImportSpec -> "." string_lit
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalImportspec(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -64248,7 +64248,7 @@ func (p *Parser) state764() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: OneOrMoreTopLevelDeclSemicolon -> OneOrMoreTopLevelDeclSemicolon TopLevelDecl semicolon
+		// Reduce: OneOrMoreTopLevelDeclSemicolon -> OneOrMoreTopLevelDeclSemicolon TopLevelDecl ";"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalOneormoretopleveldeclsemicolon(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -64270,7 +64270,7 @@ func (p *Parser) state765() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeNoLeadingBracket -> left_paren Type right_paren
+		// Reduce: TypeNoLeadingBracket -> "(" Type ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalTypenoleadingbracket(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -64292,7 +64292,7 @@ func (p *Parser) state766() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: BracketField -> left_bracket right_bracket Type
+		// Reduce: BracketField -> "[" "]" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalBracketfield(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -64622,7 +64622,7 @@ func (p *Parser) state768() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: BracketField -> left_bracket BracketList right_bracket
+		// Reduce: BracketField -> "[" BracketList "]"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalBracketfield(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -64666,7 +64666,7 @@ func (p *Parser) state770() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ParameterDecl -> identifier period identifier OptTypeArgs
+		// Reduce: ParameterDecl -> identifier "." identifier OptTypeArgs
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalParameterdecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -65015,7 +65015,7 @@ func (p *Parser) state777() error {
 	switch terminal {
 	// left_paren
 	case TokenLeftParen:
-		// Reduce: TypeNoChanReceive -> left_paren Type right_paren
+		// Reduce: TypeNoChanReceive -> "(" Type ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalTypenochanreceive(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -65031,7 +65031,7 @@ func (p *Parser) state777() error {
 		p.nodeStack = append(p.nodeStack, newNode)
 		return nil
 	default:
-		// Reduce: Type -> left_paren Type right_paren
+		// Reduce: Type -> "(" Type ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalType(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -65071,7 +65071,7 @@ func (p *Parser) state779() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> left_paren ConversionType right_paren left_paren Expression right_paren
+		// Reduce: Conversion -> "(" ConversionType ")" "(" Expression ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-6]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -65093,7 +65093,7 @@ func (p *Parser) state780() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Arguments -> left_paren ArgumentType ellipsis comma right_paren
+		// Reduce: Arguments -> "(" ArgumentType "..." "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalArguments(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -65361,7 +65361,7 @@ func (p *Parser) state783() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Arguments -> left_paren ArgumentType comma ExpressionList right_paren
+		// Reduce: Arguments -> "(" ArgumentType "," ExpressionList ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalArguments(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -65383,7 +65383,7 @@ func (p *Parser) state784() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Arguments -> left_paren ExpressionList ellipsis comma right_paren
+		// Reduce: Arguments -> "(" ExpressionList "..." "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalArguments(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -65613,7 +65613,7 @@ func (p *Parser) state786() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Slice -> left_bracket Expression colon Expression right_bracket
+		// Reduce: Slice -> "[" Expression ":" Expression "]"
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalSlice(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -65843,7 +65843,7 @@ func (p *Parser) state788() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ForClause -> SimpleStmtNoBrace semicolon ExpressionNoBrace semicolon SimpleStmtNoBrace
+		// Reduce: ForClause -> SimpleStmtNoBrace ";" ExpressionNoBrace ";" SimpleStmtNoBrace
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalForclause(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -66319,7 +66319,7 @@ func (p *Parser) state792() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: CommClause -> CommCase colon StatementList
+		// Reduce: CommClause -> CommCase ":" StatementList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalCommclause(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -66351,7 +66351,7 @@ func (p *Parser) state793() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: ExprCaseClause -> ExprSwitchCase colon StatementList
+		// Reduce: ExprCaseClause -> ExprSwitchCase ":" StatementList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalExprcaseclause(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -66373,7 +66373,7 @@ func (p *Parser) state794() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeSwitchGuard -> PrimaryExprNoBrace period left_paren type right_paren
+		// Reduce: TypeSwitchGuard -> PrimaryExprNoBrace "." "(" "type" ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalTypeswitchguard(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -66513,7 +66513,7 @@ func (p *Parser) state796() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ExprSwitchStmt -> switch SimpleStmtNoBrace semicolon left_brace ZeroOrMoreExprCaseClause right_brace
+		// Reduce: ExprSwitchStmt -> "switch" SimpleStmtNoBrace ";" "{" ZeroOrMoreExprCaseClause "}"
 		p.stateStack = p.stateStack[:len(p.stateStack)-6]
 		nextState, err := p.gotoAfterNonterminalExprswitchstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -66649,7 +66649,7 @@ func (p *Parser) state800() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeSwitchCase -> case TypeList
+		// Reduce: TypeSwitchCase -> "case" TypeList
 		p.stateStack = p.stateStack[:len(p.stateStack)-2]
 		nextState, err := p.gotoAfterNonterminalTypeswitchcase(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -67147,7 +67147,7 @@ func (p *Parser) state803() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeParamList -> TypeParamDecl comma TypeParamList
+		// Reduce: TypeParamList -> TypeParamDecl "," TypeParamList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalTypeparamlist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -67169,7 +67169,7 @@ func (p *Parser) state804() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: FuncTypeParamList -> FuncTypeParamDecl comma FuncTypeParamList
+		// Reduce: FuncTypeParamList -> FuncTypeParamDecl "," FuncTypeParamList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalFunctypeparamlist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -67191,7 +67191,7 @@ func (p *Parser) state805() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ImportDecl -> import left_paren ZeroOrMoreImportSpecSemicolon right_paren
+		// Reduce: ImportDecl -> "import" "(" ZeroOrMoreImportSpecSemicolon ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalImportdecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -67231,7 +67231,7 @@ func (p *Parser) state807() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: BracketList -> BracketList comma BracketElem
+		// Reduce: BracketList -> BracketList "," BracketElem
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalBracketlist(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -67253,7 +67253,7 @@ func (p *Parser) state808() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: BracketField -> left_bracket BracketList right_bracket Type
+		// Reduce: BracketField -> "[" BracketList "]" Type
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalBracketfield(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -67331,7 +67331,7 @@ func (p *Parser) state811() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: FieldDecl -> mul TypeName OptTypeArgs OptTag
+		// Reduce: FieldDecl -> "*" TypeName OptTypeArgs OptTag
 		p.stateStack = p.stateStack[:len(p.stateStack)-4]
 		nextState, err := p.gotoAfterNonterminalFielddecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -67353,7 +67353,7 @@ func (p *Parser) state812() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Conversion -> left_paren ConversionType right_paren left_paren Expression comma right_paren
+		// Reduce: Conversion -> "(" ConversionType ")" "(" Expression "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-7]
 		nextState, err := p.gotoAfterNonterminalConversion(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -67393,7 +67393,7 @@ func (p *Parser) state814() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Arguments -> left_paren ArgumentType comma ExpressionList ellipsis right_paren
+		// Reduce: Arguments -> "(" ArgumentType "," ExpressionList "..." ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-6]
 		nextState, err := p.gotoAfterNonterminalArguments(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -67415,7 +67415,7 @@ func (p *Parser) state815() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Arguments -> left_paren ArgumentType comma ExpressionList comma right_paren
+		// Reduce: Arguments -> "(" ArgumentType "," ExpressionList "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-6]
 		nextState, err := p.gotoAfterNonterminalArguments(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -67437,7 +67437,7 @@ func (p *Parser) state816() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Slice -> left_bracket colon Expression colon Expression right_bracket
+		// Reduce: Slice -> "[" ":" Expression ":" Expression "]"
 		p.stateStack = p.stateStack[:len(p.stateStack)-6]
 		nextState, err := p.gotoAfterNonterminalSlice(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -67667,7 +67667,7 @@ func (p *Parser) state818() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: IfStmt -> if SimpleStmtNoBrace semicolon ExpressionNoBrace Block else IfStmtOrBlock
+		// Reduce: IfStmt -> "if" SimpleStmtNoBrace ";" ExpressionNoBrace Block "else" IfStmtOrBlock
 		p.stateStack = p.stateStack[:len(p.stateStack)-7]
 		nextState, err := p.gotoAfterNonterminalIfstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -67879,7 +67879,7 @@ func (p *Parser) state819() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: RecvStmt -> ExpressionList assign Expression
+		// Reduce: RecvStmt -> ExpressionList "=" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalRecvstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -68091,7 +68091,7 @@ func (p *Parser) state820() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: RecvStmt -> ExpressionList define Expression
+		// Reduce: RecvStmt -> ExpressionList ":=" Expression
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalRecvstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -68131,7 +68131,7 @@ func (p *Parser) state822() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ExprSwitchStmt -> switch SimpleStmtNoBrace semicolon ExpressionNoBrace left_brace ZeroOrMoreExprCaseClause right_brace
+		// Reduce: ExprSwitchStmt -> "switch" SimpleStmtNoBrace ";" ExpressionNoBrace "{" ZeroOrMoreExprCaseClause "}"
 		p.stateStack = p.stateStack[:len(p.stateStack)-7]
 		nextState, err := p.gotoAfterNonterminalExprswitchstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -68153,7 +68153,7 @@ func (p *Parser) state823() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeSwitchStmt -> switch SimpleStmtNoBrace semicolon TypeSwitchGuard left_brace ZeroOrMoreTypeCaseClause right_brace
+		// Reduce: TypeSwitchStmt -> "switch" SimpleStmtNoBrace ";" TypeSwitchGuard "{" ZeroOrMoreTypeCaseClause "}"
 		p.stateStack = p.stateStack[:len(p.stateStack)-7]
 		nextState, err := p.gotoAfterNonterminalTypeswitchstmt(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -68185,7 +68185,7 @@ func (p *Parser) state824() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: TypeCaseClause -> TypeSwitchCase colon StatementList
+		// Reduce: TypeCaseClause -> TypeSwitchCase ":" StatementList
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalTypecaseclause(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -68225,7 +68225,7 @@ func (p *Parser) state826() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ZeroOrMoreImportSpecSemicolon -> ZeroOrMoreImportSpecSemicolon ImportSpec semicolon
+		// Reduce: ZeroOrMoreImportSpecSemicolon -> ZeroOrMoreImportSpecSemicolon ImportSpec ";"
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalZeroormoreimportspecsemicolon(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -68247,7 +68247,7 @@ func (p *Parser) state827() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: FieldDecl -> identifier comma IdentifierList Type OptTag
+		// Reduce: FieldDecl -> identifier "," IdentifierList Type OptTag
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalFielddecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -68269,7 +68269,7 @@ func (p *Parser) state828() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: FieldDecl -> identifier period identifier OptTypeArgs OptTag
+		// Reduce: FieldDecl -> identifier "." identifier OptTypeArgs OptTag
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalFielddecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -68291,7 +68291,7 @@ func (p *Parser) state829() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Arguments -> left_paren ArgumentType comma ExpressionList ellipsis comma right_paren
+		// Reduce: Arguments -> "(" ArgumentType "," ExpressionList "..." "," ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-7]
 		nextState, err := p.gotoAfterNonterminalArguments(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -68313,7 +68313,7 @@ func (p *Parser) state830() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: Slice -> left_bracket Expression colon Expression colon Expression right_bracket
+		// Reduce: Slice -> "[" Expression ":" Expression ":" Expression "]"
 		p.stateStack = p.stateStack[:len(p.stateStack)-7]
 		nextState, err := p.gotoAfterNonterminalSlice(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -68335,7 +68335,7 @@ func (p *Parser) state831() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: TypeSwitchGuard -> ExpressionListNoBrace define PrimaryExprNoBrace period left_paren type right_paren
+		// Reduce: TypeSwitchGuard -> ExpressionListNoBrace ":=" PrimaryExprNoBrace "." "(" "type" ")"
 		p.stateStack = p.stateStack[:len(p.stateStack)-7]
 		nextState, err := p.gotoAfterNonterminalTypeswitchguard(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -68367,7 +68367,7 @@ func (p *Parser) state832() error {
 		p.scanner.Next()
 		return nil
 	default:
-		// Reduce: TypeParamDecl -> PrimaryExpr left_bracket right_bracket Type ZeroOrMoreUnionTypeTerm
+		// Reduce: TypeParamDecl -> PrimaryExpr "[" "]" Type ZeroOrMoreUnionTypeTerm
 		p.stateStack = p.stateStack[:len(p.stateStack)-5]
 		nextState, err := p.gotoAfterNonterminalTypeparamdecl(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -68507,7 +68507,7 @@ func (p *Parser) state834() error {
 	terminal := p.scanner.Token()
 	switch terminal {
 	default:
-		// Reduce: ZeroOrMoreUnionTypeTerm -> ZeroOrMoreUnionTypeTerm or TypeTerm
+		// Reduce: ZeroOrMoreUnionTypeTerm -> ZeroOrMoreUnionTypeTerm "|" TypeTerm
 		p.stateStack = p.stateStack[:len(p.stateStack)-3]
 		nextState, err := p.gotoAfterNonterminalZeroormoreuniontypeterm(p.stateStack[len(p.stateStack)-1])
 		if err != nil {
@@ -76798,6 +76798,13 @@ func (p *Parser) gotoAfterNonterminalGotostmt(state int) (int, error) {
 	}
 }
 
+func (p *Parser) gotoAfterNonterminalFallthroughstmt(state int) (int, error) {
+	switch state {
+	default:
+		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalFallthroughstmt", ErrInternal))
+	}
+}
+
 func (p *Parser) gotoAfterNonterminalDeferstmt(state int) (int, error) {
 	switch state {
 	case 5:
@@ -77126,12 +77133,5 @@ func (p *Parser) gotoAfterNonterminalMethoddecl(state int) (int, error) {
 		return 114, nil
 	default:
 		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalMethoddecl", ErrInternal))
-	}
-}
-
-func (p *Parser) gotoAfterNonterminalFallthroughstmt(state int) (int, error) {
-	switch state {
-	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalFallthroughstmt", ErrInternal))
 	}
 }

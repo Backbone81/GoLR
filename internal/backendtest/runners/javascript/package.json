@@ -1,0 +1,5 @@
+{
+  "name": "golr-backendtest-runner",
+  "private": true,
+  "type": "module"
+}

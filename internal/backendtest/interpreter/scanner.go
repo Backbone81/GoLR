@@ -118,7 +118,8 @@ func (s *Scanner) rule(match Match) (frontend.Rule, bool) {
 }
 
 // Event returns the trace event for the given match. A match which no rule produced becomes an error carrying the
-// offset it started at, and every other match becomes a token or a skip depending on the rule which matched.
+// offset it started at, and every other match becomes a token, whether or not its rule was marked for skipping, see
+// backendtest.Token.
 func (s *Scanner) Event(match Match) fmt.Stringer {
 	rule, ok := s.rule(match)
 	if !ok {
@@ -126,9 +127,6 @@ func (s *Scanner) Event(match Match) fmt.Stringer {
 	}
 
 	lexeme := string(s.source[match.Start:match.End])
-	if rule.Skip {
-		return backendtest.Skip{RuleName: rule.Name, Start: match.Start, End: match.End, Lexeme: lexeme}
-	}
 	return backendtest.Token{RuleName: rule.Name, Start: match.Start, End: match.End, Lexeme: lexeme}
 }
 

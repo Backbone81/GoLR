@@ -18,9 +18,6 @@ var _ = Describe("Scanner events", func() {
 			Entry("TOKEN",
 				backendtest.Token{RuleName: "IDENTIFIER", Start: 0, End: 5, Lexeme: "hello"},
 				`TOKEN IDENTIFIER 0 5 "hello"`),
-			Entry("SKIP",
-				backendtest.Skip{RuleName: "WHITESPACE", Start: 5, End: 6, Lexeme: " "},
-				`SKIP WHITESPACE 5 6 " "`),
 			Entry("ERROR",
 				backendtest.ScannerError{Offset: 7},
 				"ERROR 7"),
@@ -29,8 +26,8 @@ var _ = Describe("Scanner events", func() {
 				"EOF 12"),
 			// The quotes are what let a lexeme contain the space which separates the other fields.
 			Entry("a lexeme with spaces",
-				backendtest.Skip{RuleName: "WHITESPACE", Start: 0, End: 3, Lexeme: "  x"},
-				`SKIP WHITESPACE 0 3 "  x"`),
+				backendtest.Token{RuleName: "WHITESPACE", Start: 0, End: 3, Lexeme: "  x"},
+				`TOKEN WHITESPACE 0 3 "  x"`),
 			Entry("a lexeme which needs escaping",
 				backendtest.Token{RuleName: "STRING", Start: 0, End: 6, Lexeme: "\"a\\b\"\n"},
 				`TOKEN STRING 0 6 "\"a\\b\"\n"`),
@@ -42,12 +39,12 @@ var _ = Describe("Scanner events", func() {
 		It("writes a whole trace with one event per line and a trailing newline", func() {
 			trace := backendtest.Trace{
 				backendtest.Token{RuleName: "IF", Start: 0, End: 2, Lexeme: "if"},
-				backendtest.Skip{RuleName: "WHITESPACE", Start: 2, End: 3, Lexeme: " "},
+				backendtest.Token{RuleName: "WHITESPACE", Start: 2, End: 3, Lexeme: " "},
 				backendtest.ScannerError{Offset: 3},
 				backendtest.EOF{Offset: 4},
 			}
 
-			Expect(trace.String()).To(Equal(`TOKEN IF 0 2 "if"` + "\n" + `SKIP WHITESPACE 2 3 " "` + "\nERROR 3\nEOF 4\n"))
+			Expect(trace.String()).To(Equal(`TOKEN IF 0 2 "if"` + "\n" + `TOKEN WHITESPACE 2 3 " "` + "\nERROR 3\nEOF 4\n"))
 		})
 	})
 

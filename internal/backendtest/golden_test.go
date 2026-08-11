@@ -105,13 +105,10 @@ var _ = Describe("Golden corpus", func() {
 
 // goldenCaseNames returns the name of every case in the corpus, which is the name of its directory. It runs while the
 // spec tree is built rather than inside a spec, so every case is a spec of its own and a failure names the case which
-// produced it. A corpus which cannot be read is a broken repository and not a failing case, so it stops the suite
-// outright instead of being reported against one arbitrary case.
+// produced it.
 func goldenCaseNames() []string {
 	entries, err := os.ReadDir(goldenRootPath)
-	if err != nil {
-		panic("reading the golden corpus: " + err.Error())
-	}
+	Expect(err).ToNot(HaveOccurred())
 
 	var result []string
 	for _, entry := range entries {
