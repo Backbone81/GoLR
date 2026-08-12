@@ -203,43 +203,43 @@ var (
     }
 
     // actionBase maps a state to the displacement of its row within actionNext.
-    actionBase = [{{ len .Tables.ActionBase.Values }}]{{ .Tables.ActionBase.Type }}{ {{- .Tables.ActionBase.Literal -}} }
+    actionBase = [{{ len .Tables.ActionBase.Values }}]{{ .Tables.ActionBase.Type }}{ {{- .Tables.ActionBase.Literal "        " -}} }
 
     // actionNext holds the action of every entry. The action a state has for a column lives at
     // actionBase[state] + column, but only if actionCheck confirms that the cell belongs to that column.
-    actionNext = [{{ len .Tables.ActionNext.Values }}]{{ .Tables.ActionNext.Type }}{ {{- .Tables.ActionNext.Literal -}} }
+    actionNext = [{{ len .Tables.ActionNext.Values }}]{{ .Tables.ActionNext.Type }}{ {{- .Tables.ActionNext.Literal "        " -}} }
 
     // actionCheck holds the column every cell of actionNext belongs to. A cell which no state occupies holds
     // noColumn.
-    actionCheck = [{{ len .Tables.ActionCheck.Values }}]{{ .Tables.ActionCheck.Type }}{ {{- .Tables.ActionCheck.Literal -}} }
+    actionCheck = [{{ len .Tables.ActionCheck.Values }}]{{ .Tables.ActionCheck.Type }}{ {{- .Tables.ActionCheck.Literal "        " -}} }
 
     // defaultActionByState holds the action a state takes for every column it has no entry of its own for. A state
     // which has none carries the error action, which makes such a token a syntax error.
-    defaultActionByState = [{{ len .Tables.DefaultActionByState.Values }}]{{ .Tables.DefaultActionByState.Type }}{ {{- .Tables.DefaultActionByState.Literal -}} }
+    defaultActionByState = [{{ len .Tables.DefaultActionByState.Values }}]{{ .Tables.DefaultActionByState.Type }}{ {{- .Tables.DefaultActionByState.Literal "        " -}} }
 
     // gotoBase maps a state to the displacement of its row within gotoNext.
-    gotoBase = [{{ len .Tables.GotoBase.Values }}]{{ .Tables.GotoBase.Type }}{ {{- .Tables.GotoBase.Literal -}} }
+    gotoBase = [{{ len .Tables.GotoBase.Values }}]{{ .Tables.GotoBase.Type }}{ {{- .Tables.GotoBase.Literal "        " -}} }
 
     // gotoNext holds the state a goto leads to. The goto a state has for a nonterminal lives at
     // gotoBase[state] + nonterminal, but only if gotoCheck confirms that the cell belongs to that nonterminal.
-    gotoNext = [{{ len .Tables.GotoNext.Values }}]{{ .Tables.GotoNext.Type }}{ {{- .Tables.GotoNext.Literal -}} }
+    gotoNext = [{{ len .Tables.GotoNext.Values }}]{{ .Tables.GotoNext.Type }}{ {{- .Tables.GotoNext.Literal "        " -}} }
 
     // gotoCheck holds the nonterminal every cell of gotoNext belongs to. A cell which no state occupies holds
     // noNonterminal.
-    gotoCheck = [{{ len .Tables.GotoCheck.Values }}]{{ .Tables.GotoCheck.Type }}{ {{- .Tables.GotoCheck.Literal -}} }
+    gotoCheck = [{{ len .Tables.GotoCheck.Values }}]{{ .Tables.GotoCheck.Type }}{ {{- .Tables.GotoCheck.Literal "        " -}} }
 
     // defaultGotoByNonterminal holds the state a goto on a nonterminal leads to for every state which gotoNext has
     // no entry for. Most states agree on where a nonterminal takes them, so only the ones which deviate are in the
     // table at all.
-    defaultGotoByNonterminal = [{{ len .Tables.DefaultGotoByNonterminal.Values }}]{{ .Tables.DefaultGotoByNonterminal.Type }}{ {{- .Tables.DefaultGotoByNonterminal.Literal -}} }
+    defaultGotoByNonterminal = [{{ len .Tables.DefaultGotoByNonterminal.Values }}]{{ .Tables.DefaultGotoByNonterminal.Type }}{ {{- .Tables.DefaultGotoByNonterminal.Literal "        " -}} }
 
     // popCountByProduction holds the number of symbols a reduction takes off the stacks, which is the length of the
     // right hand side of the production.
-    popCountByProduction = [{{ len .Tables.PopCountByProduction.Values }}]{{ .Tables.PopCountByProduction.Type }}{ {{- .Tables.PopCountByProduction.Literal -}} }
+    popCountByProduction = [{{ len .Tables.PopCountByProduction.Values }}]{{ .Tables.PopCountByProduction.Type }}{ {{- .Tables.PopCountByProduction.Literal "        " -}} }
 
     // nonterminalByProduction holds the nonterminal on the left hand side of a production, which a reduction looks
     // up its goto with and labels the node it pushes with.
-    nonterminalByProduction = [{{ len .Tables.NonterminalByProduction.Values }}]{{ .Tables.NonterminalByProduction.Type }}{ {{- .Tables.NonterminalByProduction.Literal -}} }
+    nonterminalByProduction = [{{ len .Tables.NonterminalByProduction.Values }}]{{ .Tables.NonterminalByProduction.Type }}{ {{- .Tables.NonterminalByProduction.Literal "        " -}} }
 )
 
 // Parser provides the parser implementation.

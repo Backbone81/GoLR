@@ -60,6 +60,17 @@ go run ./cmd/golr scanner \
   --frontend-file-path examples/calculator/calculator.golr \
   --backend rust \
   --backend-file-path examples/calculator/rust/src/parser/scanner.rs
+go run ./cmd/golr scanner \
+  --frontend golr \
+  --frontend-file-path examples/calculator/calculator.golr \
+  --backend javascript \
+  --backend-file-path examples/calculator/javascript/parser/scanner.js
+go run ./cmd/golr parser \
+  --frontend golr \
+  --frontend-file-path examples/calculator/calculator.golr \
+  --core ielr1-golr \
+  --backend javascript \
+  --backend-file-path examples/calculator/javascript/parser/parser.js
 
 # Generate the example Go parser.
 go run ./cmd/golr scanner \

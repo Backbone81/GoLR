@@ -5,6 +5,7 @@ all: build
 build:
 	$(MAKE) -C golang build
 	$(MAKE) -C java build
+	$(MAKE) -C javascript build
 	$(MAKE) -C rust build
 
 .PHONY: test
@@ -15,4 +16,5 @@ test:
 clean:
 	$(MAKE) -C golang clean
 	$(MAKE) -C java clean
+	$(MAKE) -C javascript clean
 	$(MAKE) -C rust clean

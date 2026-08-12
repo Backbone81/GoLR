@@ -15,9 +15,16 @@ export const Token = Object.freeze({
     // ErrorToken is a terminal which does not exist. It is the symbol a grammar marks its error recovery points with,
     // which no input can produce: the parser shifts it itself while recovering from a syntax error.
     ErrorToken: 2,
-{{ range $i, $rule := .DFA.Rules }}
-    {{ tokenName $i $rule }}: {{ tokenValue $i }},
-{{- end }}
+
+    TokenWhitespace: 3,
+    TokenInteger: 4,
+    TokenPlus: 5,
+    TokenMinus: 6,
+    TokenMultiply: 7,
+    TokenDivide: 8,
+    TokenLparen: 9,
+    TokenRparen: 10,
+    TokenUminus: 11,
 });
 
 // tokenToString returns a string representation of the terminal. It is a function and not a method, because a token is
@@ -27,9 +34,15 @@ export function tokenToString(token) {
         case Token.InvalidToken: return "invalid token";
         case Token.EndToken: return "end token";
         case Token.ErrorToken: return "error token";
-{{- range $i, $rule := .DFA.Rules }}
-        case Token.{{ tokenName $i $rule }}: return "{{ $rule.Name }}";
-{{- end }}
+        case Token.TokenWhitespace: return "WHITESPACE";
+        case Token.TokenInteger: return "INTEGER";
+        case Token.TokenPlus: return "PLUS";
+        case Token.TokenMinus: return "MINUS";
+        case Token.TokenMultiply: return "MULTIPLY";
+        case Token.TokenDivide: return "DIVIDE";
+        case Token.TokenLparen: return "LPAREN";
+        case Token.TokenRparen: return "RPAREN";
+        case Token.TokenUminus: return "UMINUS";
         default:
             return "unknown";
     }
@@ -90,9 +103,7 @@ export class TokenSkipper {
             // A continue inside a switch continues the enclosing loop, which is what makes this read like the switch
             // the other backends write here.
             switch (this.#scanner.token()) {
-            {{- range $i, $rule := .DFA.Rules }}{{ if $rule.Skip }}
-                case Token.{{ tokenName $i $rule }}: continue;
-            {{- end}}{{- end }}
+                case Token.TokenWhitespace: continue;
                 default:
                     return true;
             }
@@ -109,25 +120,56 @@ export class TokenSkipper {
 
 // byteClassByByte maps an input byte to its byte class. Bytes which every state of the automaton treats alike share a
 // class, which is what makes a row of the transition table short.
-const byteClassByByte = new {{ .Tables.ByteClassByByte.Type }}([ {{- .Tables.ByteClassByByte.Literal "    " -}} ]);
+const byteClassByByte = new Uint8Array([
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 5, 0, 6, 0, 7,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+]);
 
 // transitionBase maps a state to the displacement of its row within transitionNext.
-const transitionBase = new {{ .Tables.TransitionBase.Type }}([ {{- .Tables.TransitionBase.Literal "    " -}} ]);
+const transitionBase = new Uint8Array([
+    0, 8, 2, 1, 1, 1, 1, 1, 1,
+]);
 
 // transitionNext holds the target state of every transition. The transition a state has on a byte class lives at
 // transitionBase[state] + class, but only if transitionCheck confirms that the cell belongs to that class.
-const transitionNext = new {{ .Tables.TransitionNext.Type }}([ {{- .Tables.TransitionNext.Literal "    " -}} ]);
+const transitionNext = new Uint8Array([
+    0, 1, 7, 8, 5, 3, 4, 6, 2, 1, 2, 0, 0, 0, 0, 0,
+    0,
+]);
 
 // transitionCheck holds the byte class every cell of transitionNext belongs to. A cell which no state occupies holds
-// {{ .Tables.NoByteClass }}, which is one past the highest byte class in use and can therefore never be mistaken for
+// 9, which is one past the highest byte class in use and can therefore never be mistaken for
 // the class a lookup asks for.
-const transitionCheck = new {{ .Tables.TransitionCheck.Type }}([ {{- .Tables.TransitionCheck.Literal "    " -}} ]);
+const transitionCheck = new Uint8Array([
+    9, 1, 2, 3, 4, 5, 6, 7, 8, 1, 8, 9, 9, 9, 9, 9,
+    9,
+]);
 
 // acceptTokenByState holds the token a state accepts, or InvalidToken for a state which does not accept.
-const acceptTokenByState = new {{ .Tables.AcceptTokenByState.Type }}([
-{{- range .Tables.AcceptTokenByState.Values }}
-    Token.{{ . }},
-{{- end }}
+const acceptTokenByState = new Uint8Array([
+    Token.InvalidToken,
+    Token.TokenWhitespace,
+    Token.TokenInteger,
+    Token.TokenPlus,
+    Token.TokenMinus,
+    Token.TokenMultiply,
+    Token.TokenDivide,
+    Token.TokenLparen,
+    Token.TokenRparen,
 ]);
 
 // Scanner reads source code and returns tokens.

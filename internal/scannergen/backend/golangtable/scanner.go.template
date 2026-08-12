@@ -132,19 +132,19 @@ func (s *TokenSkipper) Next() bool {
 var (
     // byteClassByByte maps an input byte to its byte class. Bytes which every state of the automaton treats alike
     // share a class, which is what makes a row of the transition table short.
-    byteClassByByte = [{{ len .Tables.ByteClassByByte.Values }}]{{ .Tables.ByteClassByByte.Type }}{ {{- .Tables.ByteClassByByte.Literal -}} }
+    byteClassByByte = [{{ len .Tables.ByteClassByByte.Values }}]{{ .Tables.ByteClassByByte.Type }}{ {{- .Tables.ByteClassByByte.Literal "        " -}} }
 
     // transitionBase maps a state to the displacement of its row within transitionNext.
-    transitionBase = [{{ len .Tables.TransitionBase.Values }}]{{ .Tables.TransitionBase.Type }}{ {{- .Tables.TransitionBase.Literal -}} }
+    transitionBase = [{{ len .Tables.TransitionBase.Values }}]{{ .Tables.TransitionBase.Type }}{ {{- .Tables.TransitionBase.Literal "        " -}} }
 
     // transitionNext holds the target state of every transition. The transition a state has on a byte class lives at
     // transitionBase[state] + class, but only if transitionCheck confirms that the cell belongs to that class.
-    transitionNext = [{{ len .Tables.TransitionNext.Values }}]{{ .Tables.TransitionNext.Type }}{ {{- .Tables.TransitionNext.Literal -}} }
+    transitionNext = [{{ len .Tables.TransitionNext.Values }}]{{ .Tables.TransitionNext.Type }}{ {{- .Tables.TransitionNext.Literal "        " -}} }
 
     // transitionCheck holds the byte class every cell of transitionNext belongs to. A cell which no state occupies
     // holds {{ .Tables.NoByteClass }}, which is one past the highest byte class in use and can therefore never be
     // mistaken for the class a lookup asks for.
-    transitionCheck = [{{ len .Tables.TransitionCheck.Values }}]{{ .Tables.TransitionCheck.Type }}{ {{- .Tables.TransitionCheck.Literal -}} }
+    transitionCheck = [{{ len .Tables.TransitionCheck.Values }}]{{ .Tables.TransitionCheck.Type }}{ {{- .Tables.TransitionCheck.Literal "        " -}} }
 
     // acceptTokenByState holds the token a state accepts, or InvalidToken for a state which does not accept.
     acceptTokenByState = [{{ len .Tables.AcceptTokenByState }}]Token{

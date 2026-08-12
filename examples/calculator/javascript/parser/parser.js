@@ -4,21 +4,19 @@
 // Apache-2.0 license and may be licensed under terms of your choosing.
 // See https://github.com/backbone81/golr/blob/main/LICENSE.OUTPUT
 
-import { Token, tokenToString } from "{{ .Config.ScannerModule }}";
+import { Token, tokenToString } from "./scanner.js";
 
 // Nonterminal is the data type representing all nonterminal symbols.
 export const Nonterminal = Object.freeze({
-{{- range $i, $nonterminal := .Parser.Grammar.Nonterminals }}
-    {{ nonterminalName $nonterminal }}: {{ $i }},{{ if ne $nonterminal.Alias "" }} // {{ $nonterminal.Alias }}{{ end }}
-{{- end }}
+    Nonterminal_accept: 0,
+    NonterminalExpression: 1,
 });
 
 // nonterminalToString returns a string representation of the nonterminal.
 export function nonterminalToString(nonterminal) {
     switch (nonterminal) {
-{{- range $i, $nonterminal := .Parser.Grammar.Nonterminals }}
-        case Nonterminal.{{ nonterminalName $nonterminal }}: return "{{ $nonterminal.Name }}";
-{{- end }}
+        case Nonterminal.Nonterminal_accept: return "$accept";
+        case Nonterminal.NonterminalExpression: return "expression";
         default:
             return "unknown";
     }
@@ -137,39 +135,39 @@ const noErrorShiftState = -1;
 
 // actionKindBits is the number of low bits of an action which hold what the action does. The value the action carries
 // sits above them.
-const actionKindBits = {{ .Tables.ActionKindBits }};
+const actionKindBits = 2;
 
 // actionKindMask selects out of an action what it does.
-const actionKindMask = {{ .Tables.ActionKindMask }};
+const actionKindMask = 3;
 
 // actionKindShift shifts the terminal and continues in the state the action carries.
-const actionKindShift = {{ .Tables.ActionKindShift }};
+const actionKindShift = 0;
 
 // actionKindReduce reduces by the production the action carries.
-const actionKindReduce = {{ .Tables.ActionKindReduce }};
+const actionKindReduce = 1;
 
 // actionKindAccept ends the parse successfully, because the input has been reduced to the start symbol.
-const actionKindAccept = {{ .Tables.ActionKindAccept }};
+const actionKindAccept = 2;
 
 // actionKindError rejects the terminal as a syntax error.
-const actionKindError = {{ .Tables.ActionKindError }};
+const actionKindError = 3;
 
 // noTerminalColumn is the column a token gets which is no terminal of this grammar. No state has an entry in it, so a
 // lookup falls through to the default action of the state, which is what this parser does with a token it does not
 // know.
-const noTerminalColumn = {{ .Tables.NoTerminalColumn }};
+const noTerminalColumn = 0;
 
 // noColumn is the entry actionCheck holds for a cell which no state occupies. It is one past the highest column in use
 // and can therefore never be mistaken for the column a lookup asks for.
-const noColumn = {{ .Tables.NoColumn }};
+const noColumn = 11;
 
 // noNonterminal is the entry gotoCheck holds for a cell which no state occupies. It is one past the highest nonterminal
 // and can therefore never be mistaken for the nonterminal a lookup asks for.
-const noNonterminal = {{ .Tables.NoNonterminal }};
+const noNonterminal = 2;
 
 // errorTerminalColumn is the column which holds the shifts of the error symbol, which is where the error recovery reads
 // the state to resume in.
-const errorTerminalColumn = {{ .Tables.ErrorTerminalColumn }};
+const errorTerminalColumn = 0;
 
 // terminalColumnByToken translates a token into the column of the action table which holds the decisions for it.
 //
@@ -178,9 +176,16 @@ const errorTerminalColumn = {{ .Tables.ErrorTerminalColumn }};
 // is not named here at all and keeps the noTerminalColumn every unnamed index holds. The table is built when this
 // module loads and is sized to the highest token it names.
 const terminalColumnByToken = newTerminalColumnByToken([
-{{- range .Tables.TerminalColumnByToken }}
-    [Token.{{ .Name }}, {{ .Column }}],
-{{- end }}
+    [Token.EndToken, 1],
+    [Token.TokenWhitespace, 2],
+    [Token.TokenInteger, 3],
+    [Token.TokenPlus, 4],
+    [Token.TokenMinus, 5],
+    [Token.TokenMultiply, 6],
+    [Token.TokenDivide, 7],
+    [Token.TokenLparen, 8],
+    [Token.TokenRparen, 9],
+    [Token.TokenUminus, 10],
 ]);
 
 function newTerminalColumnByToken(entries) {
@@ -189,7 +194,7 @@ function newTerminalColumnByToken(entries) {
         length = Math.max(length, token + 1);
     }
 
-    const result = new {{ .Tables.ActionCheck.Type }}(length).fill(noTerminalColumn);
+    const result = new Uint8Array(length).fill(noTerminalColumn);
     for (const [token, column] of entries) {
         result[token] = column;
     }
@@ -197,41 +202,66 @@ function newTerminalColumnByToken(entries) {
 }
 
 // actionBase maps a state to the displacement of its row within actionNext.
-const actionBase = new {{ .Tables.ActionBase.Type }}([ {{- .Tables.ActionBase.Literal "    " -}} ]);
+const actionBase = new Uint8Array([
+    9, 1, 9, 9, 0, 1, 4, 1, 9, 9, 9, 9, 1, 12, 12, 1,
+    1,
+]);
 
 // actionNext holds the action of every entry. The action a state has for a column lives at actionBase[state] + column,
 // but only if actionCheck confirms that the cell belongs to that column.
-const actionNext = new {{ .Tables.ActionNext.Type }}([ {{- .Tables.ActionNext.Literal "    " -}} ]);
+const actionNext = new Uint8Array([
+    0, 28, 0, 0, 32, 36, 40, 44, 32, 36, 40, 44, 4, 48, 8, 0,
+    0, 12, 40, 44, 0, 0, 0,
+]);
 
 // actionCheck holds the column every cell of actionNext belongs to. A cell which no state occupies holds noColumn.
-const actionCheck = new {{ .Tables.ActionCheck.Type }}([ {{- .Tables.ActionCheck.Literal "    " -}} ]);
+const actionCheck = new Uint8Array([
+    11, 1, 11, 11, 4, 5, 6, 7, 4, 5, 6, 7, 3, 9, 5, 11,
+    11, 8, 6, 7, 11, 11, 11,
+]);
 
 // defaultActionByState holds the action a state takes for every column it has no entry of its own for. A state which
 // has none carries the error action, which makes such a token a syntax error.
-const defaultActionByState = new {{ .Tables.DefaultActionByState.Type }}([ {{- .Tables.DefaultActionByState.Literal "    " -}} ]);
+const defaultActionByState = new Uint8Array([
+    3, 5, 3, 3, 3, 25, 3, 2, 3, 3, 3, 3, 29, 9, 13, 17,
+    21,
+]);
 
 // gotoBase maps a state to the displacement of its row within gotoNext.
-const gotoBase = new {{ .Tables.GotoBase.Type }}([ {{- .Tables.GotoBase.Literal "    " -}} ]);
+const gotoBase = new Uint8Array([
+    6, 6, 0, 1, 6, 6, 6, 6, 2, 3, 4, 5, 6, 6, 6, 6,
+    6,
+]);
 
 // gotoNext holds the state a goto leads to. The goto a state has for a nonterminal lives at
 // gotoBase[state] + nonterminal, but only if gotoCheck confirms that the cell belongs to that nonterminal.
-const gotoNext = new {{ .Tables.GotoNext.Type }}([ {{- .Tables.GotoNext.Literal "    " -}} ]);
+const gotoNext = new Uint8Array([
+    0, 5, 6, 13, 14, 15, 16, 0,
+]);
 
 // gotoCheck holds the nonterminal every cell of gotoNext belongs to. A cell which no state occupies holds
 // noNonterminal.
-const gotoCheck = new {{ .Tables.GotoCheck.Type }}([ {{- .Tables.GotoCheck.Literal "    " -}} ]);
+const gotoCheck = new Uint8Array([
+    2, 1, 1, 1, 1, 1, 1, 2,
+]);
 
 // defaultGotoByNonterminal holds the state a goto on a nonterminal leads to for every state which gotoNext has no entry
 // for. Most states agree on where a nonterminal takes them, so only the ones which deviate are in the table at all.
-const defaultGotoByNonterminal = new {{ .Tables.DefaultGotoByNonterminal.Type }}([ {{- .Tables.DefaultGotoByNonterminal.Literal "    " -}} ]);
+const defaultGotoByNonterminal = new Uint8Array([
+    0, 4,
+]);
 
 // popCountByProduction holds the number of symbols a reduction takes off the stacks, which is the length of the right
 // hand side of the production.
-const popCountByProduction = new {{ .Tables.PopCountByProduction.Type }}([ {{- .Tables.PopCountByProduction.Literal "    " -}} ]);
+const popCountByProduction = new Uint8Array([
+    2, 1, 3, 3, 3, 3, 2, 3,
+]);
 
 // nonterminalByProduction holds the nonterminal on the left hand side of a production, which a reduction looks up its
 // goto with and labels the node it pushes with.
-const nonterminalByProduction = new {{ .Tables.NonterminalByProduction.Type }}([ {{- .Tables.NonterminalByProduction.Literal "    " -}} ]);
+const nonterminalByProduction = new Uint8Array([
+    0, 1, 1, 1, 1, 1, 1, 1,
+]);
 
 // errorShiftState returns the state to continue in when the error symbol is shifted in the given state, or
 // noErrorShiftState when the state cannot shift the error symbol at all. The states which can are the places the
@@ -243,21 +273,8 @@ const nonterminalByProduction = new {{ .Tables.NonterminalByProduction.Type }}([
 // symbol. The default action of the state is deliberately not consulted, because only an entry the state has of its own
 // is a place to resume at.
 function errorShiftState(state) {
-{{- if .Tables.HasErrorRecovery }}
-    const cellIdx = actionBase[state] + errorTerminalColumn;
-    if (actionCheck[cellIdx] !== errorTerminalColumn) {
-        return noErrorShiftState;
-    }
-
-    const action = actionNext[cellIdx];
-    if ((action & actionKindMask) !== actionKindShift) {
-        return noErrorShiftState;
-    }
-    return action >>> actionKindBits;
-{{- else }}
     // This grammar marks no place to resume at, so no state can shift the error symbol.
     return noErrorShiftState;
-{{- end }}
 }
 
 // Parser provides the parser implementation.
@@ -368,12 +385,6 @@ export class Parser {
                 this.#stateStack.push(action >>> actionKindBits);
                 this.#nodeStack.push(new Node(Symbol.newTerminal(terminal), this.#scanner.lexeme(), []));
                 this.#scanner.next();
-                {{- if .Tables.HasErrorRecovery }}
-                if (this.#errorRecoveryShiftsRemaining > 0) {
-                    // Getting tokens of the input shifted again is what makes the parser trust its position again.
-                    this.#errorRecoveryShiftsRemaining--;
-                }
-                {{- end }}
                 return null;
             case actionKindReduce:
                 this.#reduce(action >>> actionKindBits);

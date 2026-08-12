@@ -1,0 +1,8 @@
+{
+  "name": "calculator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A GoLR example calculator, built from the generated JavaScript scanner and parser.",
+  "type": "module",
+  "main": "main.js"
+}

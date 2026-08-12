@@ -42,14 +42,20 @@ func NewTypedIntArray(typeName string, values []int) IntArray {
 	}
 }
 
-// Literal returns the entries of the table as the body of a composite literal, wrapped over several lines.
-func (a IntArray) Literal() string {
+// Literal returns the entries of the table as the body of a composite literal, wrapped over several lines and with
+// every line starting with the given indentation.
+// No line ends in whitespace, for the same reason: an editor or a commit hook which strips trailing whitespace must
+// not be able to change a generated file.
+func (a IntArray) Literal(indent string) string {
 	var builder strings.Builder
 	for i, value := range a.Values {
 		if i%valuesPerLine == 0 {
 			builder.WriteString("\n")
+			builder.WriteString(indent)
+		} else {
+			builder.WriteString(" ")
 		}
-		fmt.Fprintf(&builder, "%d, ", value)
+		fmt.Fprintf(&builder, "%d,", value)
 	}
 	builder.WriteString("\n")
 	return builder.String()

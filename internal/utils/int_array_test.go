@@ -30,13 +30,13 @@ var _ = Describe("IntArray", func() {
 	})
 
 	It("should write every value into the literal", func() {
-		result := utils.NewIntArray([]int{1, 2, 3}).Literal()
+		result := utils.NewIntArray([]int{1, 2, 3}).Literal("")
 		Expect(strings.Fields(result)).To(Equal([]string{"1,", "2,", "3,"}))
 	})
 
 	It("should wrap the literal over several lines", func() {
 		values := make([]int, 40)
-		result := utils.NewIntArray(values).Literal()
+		result := utils.NewIntArray(values).Literal("")
 
 		// The wrapping is what keeps a table of thousands of entries readable in the generated file.
 		Expect(strings.Count(result, "\n")).To(BeNumerically(">", 1))
@@ -44,6 +44,17 @@ var _ = Describe("IntArray", func() {
 	})
 
 	It("should provide an empty literal for an empty table", func() {
-		Expect(strings.Fields(utils.NewIntArray(nil).Literal())).To(BeEmpty())
+		Expect(strings.Fields(utils.NewIntArray(nil).Literal(""))).To(BeEmpty())
+	})
+
+	It("should start every line with the indentation and end none in whitespace", func() {
+		// A backend without a formatter emits this as it is, so the indentation and the absence of trailing
+		// whitespace are the generated file rather than a detail of it.
+		result := utils.NewIntArray(make([]int, 40)).Literal("    ")
+
+		for line := range strings.SplitSeq(strings.Trim(result, "\n"), "\n") {
+			Expect(line).To(HavePrefix("    "))
+			Expect(line).ToNot(HaveSuffix(" "))
+		}
 	})
 })
