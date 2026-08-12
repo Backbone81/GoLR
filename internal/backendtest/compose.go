@@ -21,16 +21,14 @@ const (
 	runnerPath = "internal/backendtest/runners"
 )
 
-// The two roles a runner is asked for. They name the trace files a run produces, and they are separate artifacts
-// because the scanner trace and the parser trace are never interleaved into one stream.
+// The two traces a run produces. They are separate files because the scanner trace and the parser trace are never
+// interleaved into one stream.
 const (
 	ScannerRole = "scanner"
 	ParserRole  = "parser"
 
-	// TraceFileSuffix is appended to a role for the trace a runner produced, and LogFileSuffix for everything the
-	// generator and the runner said on standard error while producing it.
+	// TraceFileSuffix is appended to a role for the trace a runner wrote.
 	TraceFileSuffix = ".actual"
-	LogFileSuffix   = ".log"
 )
 
 // Languages returns every language the harness can test, which is every language with a runner directory. The list is

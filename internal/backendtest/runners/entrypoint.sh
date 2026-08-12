@@ -6,19 +6,22 @@
 #
 # It exists because the alternative is one container per case and per role - around 430 of them once every language has
 # a runner - and because a loop copied into nine language scripts would be nine places to fix when generation changes.
-# A language therefore provides nothing but a language.sh, and that file is a pair of shell functions and no commands:
+# A language therefore provides nothing but a language.sh, which sets two variables and defines one or two functions:
 #
-#   setup             runs once, before any case, in /work/<language>, above the case directories. It is optional: the
-#                     default below does nothing, so a language which needs no preparation defines only execute.
-#   execute <role>    runs once per case and role, in /work/<language>/<case>, with the generated source, the input and
-#                     the rest of the runner already there. It prints the trace on standard output and nothing else.
+#   SCANNER_FILE_NAME   the names the generated scanner and the generated parser are written under. The generator is
+#   PARSER_FILE_NAME    pointed at them directly, so no language has to rename anything.
+#
+#   setup               runs once, before any case, in /work/<language>, above the case directories. It is optional:
+#                       the default below does nothing, so a language which needs none defines only execute.
+#   execute             runs once per case, in /work/<language>/<case>, with the generated sources, the input and the
+#                       rest of the runner already there. It writes the two traces and nothing else.
 #
 # language.sh is sourced and not executed, which is what lets the work a language does once be done once: a compiled
-# language builds its hand written runner in setup and compiles only the generated file per case, instead of paying for
+# language builds its hand written runner in setup and compiles only the generated files per case, instead of paying for
 # both twenty four times, and a toolchain which has to bring something up does it in setup and not per case. Being
-# sourced is also why the file may hold no top level commands. Those would run in the shell of this script, and a
-# "set -e" among them would change how a failing case is treated here - see below. A function which wants that option
-# sets it inside itself, where the subshell each call runs in contains it.
+# sourced is also why the file may hold no commands besides those two assignments. Others would run in the shell of this
+# script, and a "set -e" among them would change how a failing case is treated here - see below. A function which wants
+# that option sets it inside itself, where the subshell each call runs in contains it.
 #
 # The contract with the harness on the outside, all of it mounted from the repository and nothing staged:
 #
@@ -30,9 +33,9 @@
 # The language is the only argument, because a container has no other way of learning which service it is. It names both
 # the backend to generate with and the runner to use.
 #
-# Per case it writes <case>/<role>.actual, the trace itself, next to <case>/<role>.log, which holds everything the
-# generator and the runner said on standard error. The Go side compares the traces and reports the log when one is
-# missing or differs, so nothing here has to interpret a failure - it only has to keep going and record what happened.
+# Per case the runner writes <case>/scanner.actual and <case>/parser.actual, and nothing else is captured: whatever the
+# generator and the runner say goes to the output of this container, where the person who started the run can see it.
+# Each case announces itself first, so that output belongs to a case and a long run says how far it has come.
 #
 # Two kinds of failure are deliberately told apart here, because they need opposite treatment:
 #
@@ -76,7 +79,12 @@ setup() {
 . "$languagePath/language.sh"
 
 if ! command -v execute > /dev/null 2>&1; then
-    echo "$languagePath/language.sh defines no execute function, which is what turns one case into one trace" >&2
+    echo "$languagePath/language.sh defines no execute function, which is what turns one case into its traces" >&2
+    exit 1
+fi
+
+if [ -z "${SCANNER_FILE_NAME:-}" ] || [ -z "${PARSER_FILE_NAME:-}" ]; then
+    echo "$languagePath/language.sh sets no SCANNER_FILE_NAME and PARSER_FILE_NAME, which the generator writes to" >&2
     exit 1
 fi
 
@@ -97,25 +105,9 @@ if ! setup >&2; then
     exit 1
 fi
 
-# One case, one role. The trace goes to standard output of the runner and nothing else does, which is why the log takes
-# standard error separately rather than merging the two.
-runRole() {
-    caseName="$1"
-    role="$2"
-
-    # The subshell is what keeps a case from reaching the next one: it contains the working directory, and it contains
-    # the shell options of a function which sets some.
-    #
-    # A runner which fails is not an error of this script. It leaves a missing or short trace behind, and reporting that
-    # is the job of the comparison outside, which can name the case and show the log next to the diff.
-    (cd "$caseName" && execute "$role") \
-        > "$caseName/$role.actual" \
-        2>> "$caseName/$role.log" \
-        || true
-}
-
 for casePath in /cases/*/; do
     caseName=$(basename "$casePath")
+    echo "--> $language/$caseName" >&2
 
     mkdir -p "$caseName"
     cp "$casePath/input.txt" "$caseName/"
@@ -134,20 +126,32 @@ for casePath in /cases/*/; do
     done
 
     # The core is pinned rather than left to the default, for the same reason scripts/generate.sh pins one: a change of
-    # the default must not silently change what every backend is held to.
+    # the default must not silently change what every backend is held to. It is the native Go core and never the bison
+    # backed one, which shells out to a GNU Bison no language image carries, and which numbers symbols differently.
     #
-    # The generated file has the same name in every language. Giving it the extension the compiler insists on is the job
-    # of language.sh, which is what keeps this script free of anything language specific.
+    # The file names come from language.sh, so this script names no extension and no language ever renames anything.
     golr scanner \
         --frontend golr \
         --frontend-file-path "$casePath/spec.golr" \
         --core subset \
         --backend "$language" \
-        --backend-file-path "$caseName/scanner.generated" \
-        > "$caseName/scanner.log" 2>&1 \
+        --backend-file-path "$caseName/$SCANNER_FILE_NAME" \
         || continue
 
-    runRole "$caseName" scanner
+    golr parser \
+        --frontend golr \
+        --frontend-file-path "$casePath/spec.golr" \
+        --core ielr1-golr \
+        --backend "$language" \
+        --backend-file-path "$caseName/$PARSER_FILE_NAME" \
+        || continue
+
+    # The subshell is what keeps a case from reaching the next one: it contains the working directory, and it contains
+    # the shell options of a function which sets some.
+    #
+    # A runner which fails is not an error of this script. It leaves a missing or short trace behind, and reporting that
+    # is the job of the comparison outside, which names the case and shows the diff.
+    (cd "$caseName" && execute) || true
 done
 
 # The sweep completed, which is all this script promises. Whether the traces it produced are the right ones is decided

@@ -43,6 +43,10 @@ var _ = Describe("Language backends", func() {
 				It("reproduces the scanner trace of "+caseName, func() {
 					expectTrace(language, caseName, backendtest.ScannerRole, scannerTraceFileName)
 				})
+
+				It("reproduces the parser trace of "+caseName, func() {
+					expectTrace(language, caseName, backendtest.ParserRole, parserTraceFileName)
+				})
 			}
 		})
 	}
@@ -50,9 +54,8 @@ var _ = Describe("Language backends", func() {
 
 // expectTrace holds the trace a runner produced for one case and role against the trace committed for that case.
 //
-// The log of the case is reported whenever something is wrong with the trace, because that is where the reason lives: a
-// generator which refused the grammar and a runner which threw both leave the trace missing or short, and the log is
-// the only thing which says which of the two happened.
+// Why a trace is missing or short is not repeated here. A generator which refused the grammar and a runner which threw
+// both said so in the output of the container run, under the name of the case, which is where a reader looks for it.
 //
 // The two shape checks come before the comparison on purpose. Both failures make every single line of a diff mismatch
 // for a reason the diff itself does not show, so reporting them by name is the difference between a one line fix and an
@@ -78,34 +81,22 @@ func expectTrace(language string, caseName string, role string, goldenFileName s
 		language, language, backendsLabel)
 
 	casePath := filepath.Join(workPath, caseName)
-	log := readLog(filepath.Join(casePath, role+backendtest.LogFileSuffix))
 
 	actual, err := os.ReadFile(filepath.Join(casePath, role+backendtest.TraceFileSuffix))
-	Expect(err).ToNot(HaveOccurred(), "the %s runner produced no %s trace:\n%s", language, role, log)
+	Expect(err).ToNot(HaveOccurred(),
+		"the %s runner produced no %s trace for %s. What the generator and the runner said about that case is in the\n"+
+			"output of the container run, which comes before these failures and names every case it worked on.",
+		language, role, caseName)
 
 	Expect(string(actual)).ToNot(ContainSubstring("\r"),
-		"the %s trace contains a carriage return, which no canonical trace does:\n%s", role, log)
+		"the %s trace contains a carriage return, which no canonical trace does", role)
 
 	if len(actual) != 0 {
 		Expect(string(actual)).To(HaveSuffix("\n"),
-			"the %s trace does not end in a newline, which every canonical trace does:\n%s", role, log)
+			"the %s trace does not end in a newline, which every canonical trace does", role)
 	}
 
 	expected, err := os.ReadFile(filepath.Join(goldenRootPath, caseName, goldenFileName))
 	Expect(err).ToNot(HaveOccurred())
-	Expect(string(actual)).To(Equal(string(expected)), "the log of the run was:\n%s", log)
-}
-
-// readLog returns what the generator and the runner said on standard error, or a note that they said nothing. It is
-// only ever read to explain a failure, so a log which cannot be read is reported in place of the log rather than as a
-// failure of its own, which would replace the real reason with a worse one.
-func readLog(logPath string) string {
-	content, err := os.ReadFile(logPath)
-	if err != nil {
-		return "there is no log for this case: " + err.Error()
-	}
-	if len(content) == 0 {
-		return "the log for this case is empty"
-	}
-	return string(content)
+	Expect(string(actual)).To(Equal(string(expected)))
 }

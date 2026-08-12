@@ -17,6 +17,9 @@ BACKEND_LABEL := backends
 # BACKEND_LABEL_FILTER selects the language backend specs, narrowed to a single language when LANGUAGE is set.
 BACKEND_LABEL_FILTER := $(BACKEND_LABEL)$(if $(LANGUAGE), && $(LANGUAGE))
 
+# The shell scripts shellcheck is run over.
+SHELL_SCRIPTS := $(sort $(shell find internal scripts -name '*.sh'))
+
 export CGO_ENABLED=0
 
 .PHONY: all
@@ -45,6 +48,13 @@ prepare: generate
 		--env GOLANGCI_LINT_CACHE=/.cache/golangci-lint \
 		golangci/golangci-lint:v2.12.2 \
 		golangci-lint run --fix $(PACKAGE)
+	docker run \
+		--tty \
+		--rm \
+		--volume ${PWD}:/mnt \
+		--workdir /mnt \
+		koalaman/shellcheck:v0.11.0 \
+		$(SHELL_SCRIPTS)
 
 .PHONY: build-examples
 build-examples: prepare
