@@ -4,16 +4,19 @@ import (
 	"fmt"
 )
 
-// Shift reports a terminal being shifted onto the parse stack.
+// Shift reports a terminal being shifted onto the parse stack, which is one leaf of the parse tree.
+//
+// The event carries no byte offsets, deliberately. The scanner trace of the same case already states the extent of
+// every token, so offsets here would re-test the scanner rather than the parser. Leaving them out is also what keeps
+// the trace derivable from a finished parse tree, since a byte offset per tree node is something no generated parser
+// carries today and nothing but this trace would want.
 type Shift struct {
 	TerminalName string
-	Start        int
-	End          int
 }
 
 // String returns the canonical trace line for the event, without the terminating newline.
 func (s Shift) String() string {
-	return fmt.Sprintf("SHIFT %s %d %d", s.TerminalName, s.Start, s.End)
+	return "SHIFT " + s.TerminalName
 }
 
 // Reduce reports a production being reduced, identified by its left hand side and by the number of symbols taken off
@@ -40,30 +43,13 @@ func (p ParserError) String() string {
 	return fmt.Sprintf("ERROR %d", p.Offset)
 }
 
-// Pop reports how many states error recovery took off the parse stack while looking for a state which shifts the error
-// token.
-type Pop struct {
-	Count int
-}
-
-// String returns the canonical trace line for the event, without the terminating newline.
-func (p Pop) String() string {
-	return fmt.Sprintf("POP %d", p.Count)
-}
-
-// Discard reports a terminal which error recovery threw away while looking for one the parser can continue on.
-type Discard struct {
-	TerminalName string
-	Start        int
-	End          int
-}
-
-// String returns the canonical trace line for the event, without the terminating newline.
-func (d Discard) String() string {
-	return fmt.Sprintf("DISCARD %s %d %d", d.TerminalName, d.Start, d.End)
-}
-
-// Resync reports that error recovery found a terminal it can continue on and that the parser resumed.
+// Resync reports that error recovery found a state which shifts the error symbol and that the parser resumed there. It
+// is the leaf that shift left in the parse tree, so it appears where that leaf appears in the walk and stands for the
+// part of the input which was dropped.
+//
+// There is no event for the states the recovery popped, nor for the tokens it discarded. Neither survives in the parse
+// tree, which is all a generated parser hands back, so neither can be observed without a trace hook on every generated
+// parser. What the recovery threw away is visible instead as the shifts and reductions which are missing from the walk.
 type Resync struct{}
 
 // String returns the canonical trace line for the event, without the terminating newline.

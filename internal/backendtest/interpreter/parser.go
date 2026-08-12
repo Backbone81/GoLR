@@ -50,9 +50,74 @@ type token struct {
 	end int
 }
 
+// nodeKind tells the three kinds of node of a parse tree apart. There is one trace event per kind, and the kind is
+// what a walk of the tree decides on, so the two are deliberately the same three cases.
+//
+// A terminal and a nonterminal cannot be told apart by their children, which is why this exists at all: a production
+// with an empty right hand side reduces to a node with no children, exactly like a leaf.
+type nodeKind int
+
+const (
+	// nodeKindTerminal is a leaf, standing for a token the parser shifted.
+	nodeKindTerminal nodeKind = iota
+
+	// nodeKindNonterminal is an internal node, standing for a production the parser reduced. Its children are the
+	// right hand side of that production.
+	nodeKindNonterminal
+
+	// nodeKindErrorSymbol is the leaf error recovery pushed in the state it resumed in. It stands for the part of the
+	// input which was dropped, so unlike a terminal it names no token.
+	nodeKindErrorSymbol
+)
+
+// node is one node of the parse tree, holding what a generated parser puts in its tree and nothing more.
+//
+// The reference builds the tree rather than emitting the trace as it goes, because that is what a generated parser
+// hands back and the trace has to be derivable from it. The difference is only visible in error recovery, and there it
+// is the whole point: the recovery pops a node and everything below it goes with it, so a shift or a reduction the
+// recovery threw away is absent from the tree and therefore absent from the trace. A parser emitting events as it
+// performed them would report those and no runner could ever reproduce them.
+type node struct {
+	kind nodeKind
+
+	// name is what the trace calls the node: the scanner rule of a terminal, the nonterminal of a production, and
+	// nothing at all for the error symbol, which the trace does not name.
+	name string
+
+	// children are the nodes of the right hand side of the production which was reduced to this node. It is empty for
+	// a leaf and for a production with an empty right hand side.
+	children []node
+}
+
+// appendTrace appends the events of the subtree rooted at this node to the given trace and returns the result.
+//
+// The events of a node are the events of its children followed by its own, which makes this a post-order walk. The
+// shift and reduce sequence of an LR parse is exactly the post-order walk of the tree that parse built, and that
+// equivalence is what lets a runner print the trace with nothing but the finished tree in hand.
+func (n node) appendTrace(trace backendtest.Trace) backendtest.Trace {
+	for _, child := range n.children {
+		trace = child.appendTrace(trace)
+	}
+
+	switch n.kind {
+	case nodeKindTerminal:
+		trace = append(trace, backendtest.Shift{
+			TerminalName: n.name,
+		})
+	case nodeKindNonterminal:
+		trace = append(trace, backendtest.Reduce{
+			NonterminalName:     n.name,
+			RightHandSideLength: len(n.children),
+		})
+	case nodeKindErrorSymbol:
+		trace = append(trace, backendtest.Resync{})
+	}
+	return trace
+}
+
 // Parser is the reference parser of the backend test harness. It reads the compressed tables the same way a generated
-// table driven parser reads them, takes its tokens from the reference scanner, and records what it did as the canonical
-// trace.
+// table driven parser reads them, takes its tokens from the reference scanner, and builds the same parse tree, which
+// the canonical trace is the walk of.
 //
 // Everything which distinguishes one state from another is in the tables, so the whole automaton is the loop in Parse:
 // look up the action of the state on top of the stack for the current token, and shift, reduce, accept or recover. The
@@ -66,10 +131,13 @@ type Parser struct {
 	// noTerminalIdx for a rule the grammar never mentions.
 	terminalIdxByRuleIdx []int
 
-	// stateStack mirrors the state stack of a generated parser. It starts with the start state 0. There is no node
-	// stack next to it, because a trace records no parse tree: the two stacks of a generated parser grow and shrink
-	// together, so the state stack alone says everything a trace reports.
+	// stateStack mirrors the state stack of a generated parser. It starts with the start state 0.
 	stateStack []int
+
+	// nodeStack mirrors the node stack of a generated parser, which is the parse tree while it is still being built.
+	// It carries one node per symbol which was shifted or reduced, so it is always one shorter than stateStack, and
+	// the two grow and shrink together. Dropping a state during error recovery drops the node with it.
+	nodeStack []node
 
 	// token is the token the parser currently looks at, which a shift and a discard advance past.
 	token token
@@ -84,8 +152,10 @@ type Parser struct {
 	stepCount int
 	maxSteps  int
 
-	// trace collects the events of the parse in the order they happened.
-	trace backendtest.Trace
+	// errors collects the syntax errors the parse reported, which is the other half of what a generated parser hands
+	// back. They are kept apart from the tree because that is where they live in a generated parser, and because a
+	// parse which is given up has errors and no tree at all.
+	errors backendtest.Trace
 }
 
 // NewParser creates a parser for the given parser tables which takes its tokens from the given scanner. It compresses
@@ -141,15 +211,16 @@ func maxSteps(sourceLen int, stateCount int) int {
 // Parse runs the whole parse and returns the canonical trace of it. It can only be called once, because a parse
 // consumes the scanner it was created with.
 //
-// A parse which succeeds ends in the accept event. A parse which does not ends wherever the error recovery gave up, so
-// the last event of such a trace is the error, the discarded token or the states the recovery popped in vain. There is
-// no event for the end of the input, unlike in a scanner trace, because a parser reaching the end of the input is not
-// an outcome of its own - it either accepts there or reports an error.
+// The two outcomes of a parse are what the two shapes of a trace say apart, because they are what a generated parser
+// says apart. A parse which succeeds reports its errors, the walk of the tree it built, and the accept event. A parse
+// which is given up has no tree, so its trace is its errors and nothing else. There is no event for the end of the
+// input, unlike in a scanner trace, because a parser reaching the end of the input is not an outcome of its own - it
+// either accepts there or reports an error.
 func (p *Parser) Parse() backendtest.Trace {
 	for {
 		p.stepCount++
 		if p.stepCount > p.maxSteps {
-			return p.trace
+			return p.errors
 		}
 
 		switch action := p.action(); action.Kind() {
@@ -158,14 +229,30 @@ func (p *Parser) Parse() backendtest.Trace {
 		case parsertable.ActionKindReduce:
 			p.reduce(action.ProductionIdx())
 		case parsertable.ActionKindAccept:
-			p.trace = append(p.trace, backendtest.Accept{})
-			return p.trace
+			return p.acceptTrace()
 		case parsertable.ActionKindError:
 			if !p.recoverFromError() {
-				return p.trace
+				return p.errors
 			}
 		}
 	}
+}
+
+// acceptTrace returns the trace of a parse which accepted: the errors it recovered from along the way, the walk of the
+// tree it built, and the accept event.
+//
+// The errors come first and are not interleaved with the walk, because a generated parser hands its errors back as a
+// list of their own and the walk has no offsets to interleave them by.
+//
+// The tree is the first node of the stack and never the whole stack. The augmented production is "$accept -> Start
+// $end", so the end of input symbol is genuinely shifted and is sitting on the stack as a second node when the accept
+// happens - but a generated parser returns the first node alone, so no runner can see the second one and no trace
+// carries a shift of the end of input symbol.
+func (p *Parser) acceptTrace() backendtest.Trace {
+	trace := make(backendtest.Trace, 0, len(p.errors)+1)
+	trace = append(trace, p.errors...)
+	trace = p.nodeStack[0].appendTrace(trace)
+	return append(trace, backendtest.Accept{})
 }
 
 // action returns what the state on top of the stack does with the current token.
@@ -185,10 +272,9 @@ func (p *Parser) action() parsertable.Action {
 // shift consumes the current token, continues in the given state, and moves the parser one token closer to trusting its
 // position again after an error.
 func (p *Parser) shift(stateIdx int) {
-	p.trace = append(p.trace, backendtest.Shift{
-		TerminalName: p.token.name,
-		Start:        p.token.start,
-		End:          p.token.end,
+	p.nodeStack = append(p.nodeStack, node{
+		kind: nodeKindTerminal,
+		name: p.token.name,
 	})
 	p.stateStack = append(p.stateStack, stateIdx)
 	p.advanceToken()
@@ -199,8 +285,9 @@ func (p *Parser) shift(stateIdx int) {
 	}
 }
 
-// reduce replaces the right hand side of the given production on the stack with the nonterminal on its left hand side,
-// and continues in the state the goto of the uncovered state leads to.
+// reduce replaces the right hand side of the given production on the stacks with the nonterminal on its left hand
+// side, and continues in the state the goto of the uncovered state leads to. The nodes of the right hand side come off
+// the node stack and become the children of the node which replaces them.
 //
 // The trace names the production by its left hand side and the length of its right hand side rather than by its index,
 // because production numbering is a property of the core which built the tables and not of the grammar.
@@ -208,9 +295,15 @@ func (p *Parser) reduce(productionIdx int) {
 	production := p.parser.Grammar.Productions[productionIdx]
 	popCount := len(production.SymbolRefs)
 
-	p.trace = append(p.trace, backendtest.Reduce{
-		NonterminalName:     p.parser.Grammar.Nonterminals[production.NonterminalIdx].Name,
-		RightHandSideLength: popCount,
+	// The children are copied out before the node stack is cut back, because the nodes which are pushed back onto it
+	// afterwards would otherwise overwrite the very entries the new node points at. A production with an empty right
+	// hand side takes nothing and gets no children, which needs no case of its own.
+	children := make([]node, popCount)
+	copy(children, p.nodeStack[len(p.nodeStack)-popCount:])
+	p.nodeStack = append(p.nodeStack[:len(p.nodeStack)-popCount], node{
+		kind:     nodeKindNonterminal,
+		name:     p.parser.Grammar.Nonterminals[production.NonterminalIdx].Name,
+		children: children,
 	})
 
 	p.stateStack = p.stateStack[:len(p.stateStack)-popCount]
@@ -236,7 +329,7 @@ func (p *Parser) recoverFromError() bool {
 		// likely consequences of the error which is already reported. Reporting those as well is the avalanche of
 		// messages the countdown exists to prevent. Only the report is suppressed, never the recovery itself, so
 		// which errors a trace does not carry is as much a part of it as which errors it does.
-		p.trace = append(p.trace, backendtest.ParserError{Offset: p.token.start})
+		p.errors = append(p.errors, backendtest.ParserError{Offset: p.token.start})
 	}
 
 	if p.errorRecoveryShiftsRemaining == errorRecoveryShifts {
@@ -246,11 +339,8 @@ func (p *Parser) recoverFromError() bool {
 			// The end of the input is the one token which can not be discarded, so there is nothing left to try.
 			return false
 		}
-		p.trace = append(p.trace, backendtest.Discard{
-			TerminalName: p.token.name,
-			Start:        p.token.start,
-			End:          p.token.end,
-		})
+		// The discarded token leaves no event behind. It reaches no node of the tree, which is all a generated parser
+		// hands back, so nothing a runner can see says it was ever there.
 		p.advanceToken()
 	}
 	p.errorRecoveryShiftsRemaining = errorRecoveryShifts
@@ -262,30 +352,29 @@ func (p *Parser) recoverFromError() bool {
 // reports whether it found such a state.
 //
 // The states which can shift the error symbol are the places the grammar marked to resume at. Everything the popped
-// states had parsed is dropped with them. A grammar which marks no place to resume at has no such state anywhere, so
-// the recovery unwinds the whole stack and the parse is over - which is the behavior of every parser for a grammar
-// without error recovery, and is why the trace still reports what was popped.
+// states had parsed is dropped with them, node by node, which is what takes the half parsed input the recovery gave up
+// on out of the tree and therefore out of the trace. A grammar which marks no place to resume at has no such state
+// anywhere, so the recovery unwinds the whole stack and the parse is over - which is the behavior of every parser for a
+// grammar without error recovery.
 //
-// The number of popped states is reported as one event rather than one per state, and it is reported even when nothing
-// was popped. Every round of recovery therefore has exactly one of these events, which keeps the number of events a
-// runner has to produce independent of how far the recovery had to unwind.
+// How far the stack unwound leaves no event behind, only its consequence: the shifts and the reductions which are
+// missing from the walk. The states a parser pops are no part of the tree it returns, so no runner can report them.
 func (p *Parser) popToErrorState() bool {
-	popCount := 0
 	for {
 		if stateIdx, ok := p.compressed.ErrorShiftStateIdx(p.stateStack[len(p.stateStack)-1]); ok {
-			p.trace = append(p.trace, backendtest.Pop{Count: popCount})
+			// Shift the error symbol. Its node stands for the part of the input which was dropped and names no token.
 			p.stateStack = append(p.stateStack, stateIdx)
-			p.trace = append(p.trace, backendtest.Resync{})
+			p.nodeStack = append(p.nodeStack, node{kind: nodeKindErrorSymbol})
 			return true
 		}
 		if len(p.stateStack) == 1 {
 			// Only the state the parse started in is left and it can not shift the error symbol either, so no
 			// place the grammar marked to resume at covers the position of the error.
-			p.trace = append(p.trace, backendtest.Pop{Count: popCount})
 			return false
 		}
+		// The two stacks hold one node per symbol and one state on top of that, so dropping one state drops one node.
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		popCount++
+		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 	}
 }
 

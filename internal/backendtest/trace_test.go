@@ -54,8 +54,8 @@ var _ = Describe("Scanner events", func() {
 				Expect(event.String()).To(Equal(expected))
 			},
 			Entry("SHIFT",
-				backendtest.Shift{TerminalName: "NUMBER", Start: 0, End: 2},
-				"SHIFT NUMBER 0 2"),
+				backendtest.Shift{TerminalName: "NUMBER"},
+				"SHIFT NUMBER"),
 			Entry("REDUCE",
 				backendtest.Reduce{NonterminalName: "expr", RightHandSideLength: 3},
 				"REDUCE expr 3"),
@@ -65,12 +65,6 @@ var _ = Describe("Scanner events", func() {
 			Entry("ERROR",
 				backendtest.ParserError{Offset: 5},
 				"ERROR 5"),
-			Entry("POP",
-				backendtest.Pop{Count: 2},
-				"POP 2"),
-			Entry("DISCARD",
-				backendtest.Discard{TerminalName: "PLUS", Start: 5, End: 6},
-				"DISCARD PLUS 5 6"),
 			Entry("RESYNC carries no arguments",
 				backendtest.Resync{},
 				"RESYNC"),
@@ -81,21 +75,17 @@ var _ = Describe("Scanner events", func() {
 
 		It("writes a whole trace with one event per line and a trailing newline", func() {
 			trace := backendtest.Trace{
-				backendtest.Shift{TerminalName: "NUMBER", Start: 0, End: 1},
-				backendtest.Reduce{NonterminalName: "expr", RightHandSideLength: 1},
 				backendtest.ParserError{Offset: 2},
-				backendtest.Pop{Count: 3},
-				backendtest.Discard{TerminalName: "PLUS", Start: 2, End: 3},
+				backendtest.Shift{TerminalName: "NUMBER"},
+				backendtest.Reduce{NonterminalName: "expr", RightHandSideLength: 1},
 				backendtest.Resync{},
 				backendtest.Accept{},
 			}
 
 			Expect(trace.String()).To(Equal(
-				"SHIFT NUMBER 0 1\n" +
+				"ERROR 2\n" +
+					"SHIFT NUMBER\n" +
 					"REDUCE expr 1\n" +
-					"ERROR 2\n" +
-					"POP 3\n" +
-					"DISCARD PLUS 2 3\n" +
 					"RESYNC\n" +
 					"ACCEPT\n",
 			))

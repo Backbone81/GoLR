@@ -1,4 +1,3 @@
 REDUCE items 0
 REDUCE list 1
-SHIFT $end 0 0
 ACCEPT
