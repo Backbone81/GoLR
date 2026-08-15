@@ -28,7 +28,7 @@ export function nonterminalToString(nonterminal) {
 // is set when the symbol holds a nonterminal. The maximum terminal or nonterminal index which can be stored is 32767.
 //
 // A symbol stays a plain number rather than an object, so the symbols of a large parse tree cost no allocation of their
-// own. Symbol groups the functions which build one and read one back.
+// own. ParseSymbol groups the functions which build one and read one back.
 
 // symbolNonterminalBit is the most significant bit which is set when the symbol stores a nonterminal.
 const symbolNonterminalBit = 1 << 15;
@@ -36,7 +36,7 @@ const symbolNonterminalBit = 1 << 15;
 // symbolMask is the bitmask for selecting only the value from a symbol.
 const symbolMask = symbolNonterminalBit - 1;
 
-export const Symbol = Object.freeze({
+export const ParseSymbol = Object.freeze({
     // Creates a new symbol for a terminal.
     newTerminal(terminal) {
         return terminal;
@@ -59,17 +59,18 @@ export const Symbol = Object.freeze({
     },
 });
 
-// symbolToString returns a string representation of the symbol.
+// symbolToString returns a string representation of the symbol, which names it the way the grammar does.
 export function symbolToString(symbol) {
-    if (Symbol.isNonterminal(symbol)) {
-        return `nonterminal ${Symbol.value(symbol)}`;
+    if (ParseSymbol.isNonterminal(symbol)) {
+        return `nonterminal ${nonterminalToString(ParseSymbol.value(symbol))}`;
     }
-    return `terminal ${Symbol.value(symbol)}`;
+    return `terminal ${tokenToString(ParseSymbol.value(symbol))}`;
 }
 
-// Node is a single node of the parse tree.
-export class Node {
-    // symbol is the terminal or nonterminal this node stands for, see Symbol.isNonterminal and Symbol.value.
+// ParseNode is a single node of the parse tree.
+export class ParseNode {
+    // symbol is the terminal or nonterminal this node stands for, see ParseSymbol.isNonterminal and
+    // ParseSymbol.value.
     symbol;
 
     // lexeme holds the bytes of the terminal this node stands for, as a view into the source and not as a copy of it.
@@ -116,8 +117,8 @@ export class ParseError extends Error {
 const errorRecoveryShifts = 3;
 
 // accept signals the successful end of the parse. It is filtered out by the main parse loop and not exposed to the
-// user. A frozen empty object is equal to nothing but itself, which is what a sentinel needs.
-const accept = Object.freeze({});
+// user. A symbol is equal to nothing but itself, which is what a sentinel needs.
+const accept = Symbol("accept");
 
 // noErrorShiftState is what errorShiftState returns for a state which cannot shift the error symbol. It is negative and
 // no state index is, so the answer and the state share one number.
@@ -159,17 +160,12 @@ const actionKindError = {{ .Tables.ActionKindError }};
 // know.
 const noTerminalColumn = {{ .Tables.NoTerminalColumn }};
 
-// noColumn is the entry actionCheck holds for a cell which no state occupies. It is one past the highest column in use
-// and can therefore never be mistaken for the column a lookup asks for.
-const noColumn = {{ .Tables.NoColumn }};
-
-// noNonterminal is the entry gotoCheck holds for a cell which no state occupies. It is one past the highest nonterminal
-// and can therefore never be mistaken for the nonterminal a lookup asks for.
-const noNonterminal = {{ .Tables.NoNonterminal }};
+{{- if .Tables.HasErrorRecovery }}
 
 // errorTerminalColumn is the column which holds the shifts of the error symbol, which is where the error recovery reads
 // the state to resume in.
 const errorTerminalColumn = {{ .Tables.ErrorTerminalColumn }};
+{{- end }}
 
 // terminalColumnByToken translates a token into the column of the action table which holds the decisions for it.
 //
@@ -203,7 +199,8 @@ const actionBase = new {{ .Tables.ActionBase.Type }}([ {{- .Tables.ActionBase.Li
 // but only if actionCheck confirms that the cell belongs to that column.
 const actionNext = new {{ .Tables.ActionNext.Type }}([ {{- .Tables.ActionNext.Literal "    " -}} ]);
 
-// actionCheck holds the column every cell of actionNext belongs to. A cell which no state occupies holds noColumn.
+// actionCheck holds the column every cell of actionNext belongs to. A cell which no state occupies holds a value one
+// past the highest column in use, which a lookup can therefore never ask for.
 const actionCheck = new {{ .Tables.ActionCheck.Type }}([ {{- .Tables.ActionCheck.Literal "    " -}} ]);
 
 // defaultActionByState holds the action a state takes for every column it has no entry of its own for. A state which
@@ -217,8 +214,8 @@ const gotoBase = new {{ .Tables.GotoBase.Type }}([ {{- .Tables.GotoBase.Literal 
 // gotoBase[state] + nonterminal, but only if gotoCheck confirms that the cell belongs to that nonterminal.
 const gotoNext = new {{ .Tables.GotoNext.Type }}([ {{- .Tables.GotoNext.Literal "    " -}} ]);
 
-// gotoCheck holds the nonterminal every cell of gotoNext belongs to. A cell which no state occupies holds
-// noNonterminal.
+// gotoCheck holds the nonterminal every cell of gotoNext belongs to. A cell which no state occupies holds a value one
+// past the highest nonterminal, which a lookup can therefore never ask for.
 const gotoCheck = new {{ .Tables.GotoCheck.Type }}([ {{- .Tables.GotoCheck.Literal "    " -}} ]);
 
 // defaultGotoByNonterminal holds the state a goto on a nonterminal leads to for every state which gotoNext has no entry
@@ -242,7 +239,7 @@ const nonterminalByProduction = new {{ .Tables.NonterminalByProduction.Type }}([
 // table in the column of the error symbol. Nothing else can read that column, because no scanner ever delivers the
 // symbol. The default action of the state is deliberately not consulted, because only an entry the state has of its own
 // is a place to resume at.
-function errorShiftState(state) {
+function errorShiftState({{ if .Tables.HasErrorRecovery }}state{{ end }}) {
 {{- if .Tables.HasErrorRecovery }}
     const cellIdx = actionBase[state] + errorTerminalColumn;
     if (actionCheck[cellIdx] !== errorTerminalColumn) {
@@ -366,7 +363,7 @@ export class Parser {
         switch (action & actionKindMask) {
             case actionKindShift:
                 this.#stateStack.push(action >>> actionKindBits);
-                this.#nodeStack.push(new Node(Symbol.newTerminal(terminal), this.#scanner.lexeme(), []));
+                this.#nodeStack.push(new ParseNode(ParseSymbol.newTerminal(terminal), this.#scanner.lexeme(), []));
                 this.#scanner.next();
                 {{- if .Tables.HasErrorRecovery }}
                 if (this.#errorRecoveryShiftsRemaining > 0) {
@@ -411,7 +408,7 @@ export class Parser {
         // production with an empty right hand side it takes nothing and returns an empty array, so the reduction needs
         // no case of its own for that.
         const children = this.#nodeStack.splice(this.#nodeStack.length - popCount, popCount);
-        this.#nodeStack.push(new Node(Symbol.newNonterminal(nonterminal), null, children));
+        this.#nodeStack.push(new ParseNode(ParseSymbol.newNonterminal(nonterminal), null, children));
     }
 
     // Puts the parser back into a state where it can continue on the remaining input after a syntax error. It reports
@@ -445,7 +442,7 @@ export class Parser {
                 // Shift the error symbol. Its node stands for the part of the input which was dropped and has no
                 // lexeme.
                 this.#stateStack.push(nextState);
-                this.#nodeStack.push(new Node(Symbol.newTerminal(Token.ErrorToken), null, []));
+                this.#nodeStack.push(new ParseNode(ParseSymbol.newTerminal(Token.ErrorToken), null, []));
                 return true;
             }
             if (this.#stateStack.length === 1) {

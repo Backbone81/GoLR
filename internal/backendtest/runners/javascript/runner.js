@@ -7,7 +7,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
 import { Scanner, Token, TokenSkipper, tokenToString } from "./scanner.js";
-import { Parser, Symbol, nonterminalToString } from "./parser.js";
+import { Parser, ParseSymbol, nonterminalToString } from "./parser.js";
 
 const scannerTraceFileName = "scanner.actual";
 const parserTraceFileName = "parser.actual";
@@ -87,12 +87,12 @@ function appendNodeTrace(lines, node) {
         appendNodeTrace(lines, child);
     }
 
-    if (Symbol.isNonterminal(node.symbol)) {
-        lines.push(`REDUCE ${nonterminalToString(Symbol.value(node.symbol))} ${node.children.length}`);
+    if (ParseSymbol.isNonterminal(node.symbol)) {
+        lines.push(`REDUCE ${nonterminalToString(ParseSymbol.value(node.symbol))} ${node.children.length}`);
         return;
     }
 
-    const token = Symbol.value(node.symbol);
+    const token = ParseSymbol.value(node.symbol);
     if (token === Token.ErrorToken) {
         // The leaf the recovery pushed where it resumed. It stands for the dropped input and names no token.
         lines.push("RESYNC");

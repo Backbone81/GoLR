@@ -100,8 +100,8 @@ export class TokenSkipper {
             if (!this.#scanner.next()) {
                 return false;
             }
-            // A continue inside a switch continues the enclosing loop, which is what makes this read like the switch
-            // the other backends write here.
+            // A continue inside a switch continues the enclosing loop rather than leaving the switch, so a token
+            // which should be skipped sends the scanner straight on to the next one.
             switch (this.#scanner.token()) {
                 case Token.TokenWhitespace: continue;
                 default:

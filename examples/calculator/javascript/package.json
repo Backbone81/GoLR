@@ -4,5 +4,13 @@
   "private": true,
   "description": "A GoLR example calculator, built from the generated JavaScript scanner and parser.",
   "type": "module",
-  "main": "main.js"
+  "main": "main.js",
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "eslint": "^9.39.4",
+    "globals": "^16.5.0"
+  }
 }

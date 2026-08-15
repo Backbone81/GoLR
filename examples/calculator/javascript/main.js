@@ -1,5 +1,5 @@
 import { Scanner, Token, TokenSkipper } from "./parser/scanner.js";
-import { Parser, Symbol } from "./parser/parser.js";
+import { Parser, ParseSymbol } from "./parser/parser.js";
 
 // evaluate parses the expression and returns the number it stands for.
 export function evaluate(expression) {
@@ -47,7 +47,7 @@ function evaluateThreeChildren(node) {
     // In "(" expression ")", the middle child is the nonterminal expression node.
     // In "expression OP expression", the middle child is a terminal operator token.
     // We use this to distinguish the two cases.
-    if (Symbol.isNonterminal(node.children[1].symbol)) {
+    if (ParseSymbol.isNonterminal(node.children[1].symbol)) {
         // expression: "(" expression ")"
         return evaluateNode(node.children[1]);
     }
@@ -55,7 +55,7 @@ function evaluateThreeChildren(node) {
     const leftValue = evaluateNode(node.children[0]);
     const rightValue = evaluateNode(node.children[2]);
 
-    switch (Symbol.value(node.children[1].symbol)) {
+    switch (ParseSymbol.value(node.children[1].symbol)) {
         case Token.TokenPlus:
             // expression: expression "+" expression
             return leftValue + rightValue;

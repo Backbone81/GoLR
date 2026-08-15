@@ -36,5 +36,8 @@ bin/
 # ignore the golr binary
 /golr
 
+# JavaScript dependencies
+node_modules/
+
 # Added by goreleaser init:
 dist/
