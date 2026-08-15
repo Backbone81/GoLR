@@ -276,6 +276,7 @@ const terminalColumnByToken = newTerminalColumnByToken([
  * Builds terminalColumnByToken, sized to the highest token named in the entries.
  *
  * @param {number[][]} entries Pairs of token and column.
+ * @returns {Uint8Array}
  */
 function newTerminalColumnByToken(entries) {
     let length = 0;
@@ -370,7 +371,7 @@ const nonterminalByProduction = new Uint8Array([
  * @param {number} state
  * @returns {number}
  */
-function errorShiftState() {
+function errorShiftState(state) {
     // This grammar marks no place to resume at, so no state can shift the error symbol.
     return noErrorShiftState;
 }
@@ -379,21 +380,39 @@ function errorShiftState() {
  * Parses the tokens of a scanner into a parse tree.
  */
 export class Parser {
-    /** The scanner of the running parse. */
+    /**
+     * The scanner of the running parse.
+     *
+     * @type {ScannerLike}
+     */
     #scanner;
 
-    /** The states of the running parse, the current one on top. */
+    /**
+     * The states of the running parse, the current one on top.
+     *
+     * @type {number[]}
+     */
     #stateStack;
 
-    /** One node per symbol shifted or reduced so far. */
+    /**
+     * One node per symbol shifted or reduced so far.
+     *
+     * @type {ParseNode[]}
+     */
     #nodeStack;
 
-    /** The errors of the running parse, which parse returns next to the tree. */
+    /**
+     * The errors of the running parse, which parse returns next to the tree.
+     *
+     * @type {ParseError[]}
+     */
     #errors;
 
     /**
      * Counts down the tokens which still have to be shifted before syntax errors are reported again. Zero while the
      * parser is in sync with the input.
+     *
+     * @type {number}
      */
     #errorRecoveryShiftsRemaining;
 
@@ -473,6 +492,10 @@ export class Parser {
                 this.#stateStack.push(action >>> actionKindBits);
                 this.#nodeStack.push(new ParseNode(ParseSymbol.newTerminal(terminal), this.#scanner.lexeme(), []));
                 this.#scanner.next();
+                if (this.#errorRecoveryShiftsRemaining > 0) {
+                    // Getting tokens of the input shifted again is what makes the parser trust its position.
+                    this.#errorRecoveryShiftsRemaining--;
+                }
                 return null;
             case actionKindReduce:
                 this.#reduce(action >>> actionKindBits);
