@@ -149,8 +149,8 @@ export class ParseNode {
 }
 
 /**
- * A single parse error. Parse errors are returned by parse rather than thrown, and this is not an Error. Wrap one to
- * throw it: `new Error(parseError.message, { cause: parseError })`.
+ * A single parse error. Parse errors are returned by parse rather than thrown, and this is not an Error, so reporting
+ * many of them costs no stack traces. Wrap one to throw it: `new Error(parseError.message, { cause: parseError })`.
  */
 export class ParseError {
     /** What is wrong, without the position in front of it. */

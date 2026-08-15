@@ -9,7 +9,7 @@ import { Token, tokenToString } from "{{ .Config.ScannerModule }}";
 /**
  * The scanner a parse reads its tokens from. Both the Scanner and the TokenSkipper of the generated scanner provide it.
  */
-export interface ScannerLike {
+export interface ParserScanner {
     /** Returns the current token. */
     token(): Token;
 
@@ -118,6 +118,11 @@ export class ParseNode {
     /** The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal. */
     children: ParseNode[];
 
+    /**
+     * @param symbol The terminal or nonterminal the node stands for.
+     * @param lexeme The bytes of the terminal, or null for a nonterminal.
+     * @param children The nodes of the right hand side of the production, empty for a terminal.
+     */
     constructor(symbol: number, lexeme: Uint8Array | null, children: ParseNode[]) {
         this.symbol = symbol;
         this.lexeme = lexeme;
@@ -126,8 +131,8 @@ export class ParseNode {
 }
 
 /**
- * A single parse error. Parse errors are returned by parse rather than thrown, and this is not an Error. Wrap one to
- * throw it: `new Error(parseError.message, { cause: parseError })`.
+ * A single parse error. Parse errors are returned by parse rather than thrown, and this is not an Error, so reporting
+ * many of them costs no stack traces. Wrap one to throw it: `new Error(parseError.message, { cause: parseError })`.
  */
 export class ParseError {
     /** What is wrong, without the position in front of it. */
@@ -154,7 +159,12 @@ export class ParseError {
     /** The file path the scanner was given. */
     filePath: string;
 
-    constructor(reason: string, isSyntaxError: boolean, scanner: ScannerLike) {
+    /**
+     * @param reason What is wrong, without the position in front of it.
+     * @param isSyntaxError True for an error in the input, false for a defect of the parser itself.
+     * @param scanner The scanner the token and its position are taken from.
+     */
+    constructor(reason: string, isSyntaxError: boolean, scanner: ParserScanner) {
         this.reason = reason;
         this.isSyntaxError = isSyntaxError;
 
@@ -197,6 +207,9 @@ const noErrorShiftState = -1;
 //
 // The rows are sparse because what most entries of a row agree on is taken out of it and kept as a default: the action
 // table defaults per state and the goto table per nonterminal. Only the entries which deviate are in the tables.
+//
+// The displaced arrays are padded so that every state and column lands inside them, which is why a lookup needs no
+// range check of its own.
 
 /** Number of low bits of an action which hold what it does. The value it carries sits above them. */
 const actionKindBits = {{ .Tables.ActionKindBits }};
@@ -325,7 +338,7 @@ function errorShiftState(state: number): number {
 /** Parses the tokens of a scanner into a parse tree. */
 export class Parser {
     /** The scanner of the running parse. */
-    #scanner!: ScannerLike;
+    #scanner!: ParserScanner;
 
     /** The states of the running parse, the current one on top. */
     #stateStack!: number[];
@@ -349,7 +362,7 @@ export class Parser {
      * result then holds both the tree parsed so far, with a node for the error symbol at every place resumed at, and
      * every error found. The tree is null when the parse could not be carried to its end.
      */
-    parse(scanner: ScannerLike): ParseResult {
+    parse(scanner: ParserScanner): ParseResult {
         this.#scanner = scanner;
 
         this.#stateStack = [0];

@@ -50,7 +50,7 @@ export function tokenToString(token: Token): string {
 }
 
 /** The scanner a TokenSkipper wraps. The generated Scanner provides it. */
-export interface ScannerLike {
+export interface TokenSkipperScanner {
     /** Returns the current token. */
     token(): Token;
 
@@ -86,11 +86,12 @@ export interface ScannerLike {
  * Wraps a scanner and skips the tokens marked for skipping, which are usually whitespace and comments. It offers the
  * same methods as Scanner.
  */
-export class TokenSkipper implements ScannerLike {
+export class TokenSkipper implements TokenSkipperScanner {
     /** The wrapped scanner. */
-    readonly #scanner: ScannerLike;
+    readonly #scanner: TokenSkipperScanner;
 
-    constructor(scanner: ScannerLike) {
+    /** @param scanner The scanner to take the tokens from. */
+    constructor(scanner: TokenSkipperScanner) {
         this.#scanner = scanner;
     }
 
@@ -157,6 +158,9 @@ export class TokenSkipper implements ScannerLike {
 // The automaton is held in lookup tables. An input byte is mapped to its byte class, which is the column of the
 // transition table, and the rows of that table are displaced into a single array so that the entries of one row fall
 // into the holes of another. This is the row displacement method of "Storing a Sparse Table" by Tarjan and Yao.
+//
+// The displaced arrays are padded so that every state and byte class lands inside them, which is why a lookup needs no
+// range check of its own.
 
 /** Maps an input byte to its byte class. Bytes which every state treats alike share a class. */
 const byteClassByByte = new Uint8Array([
@@ -215,7 +219,7 @@ const acceptTokenByState = new Uint8Array([
 ]);
 
 /** Turns the bytes of a source into tokens. */
-export class Scanner implements ScannerLike {
+export class Scanner implements TokenSkipperScanner {
     /** The bytes being scanned. */
     #source!: Uint8Array;
 
