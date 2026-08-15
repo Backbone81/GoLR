@@ -112,10 +112,21 @@ func terminalName(symbol frontend.Symbol) string {
 	return "Token" + name
 }
 
-// nonterminalName returns the name of the constant which stands for the given nonterminal. The naming follows the Go
-// backends rather than any JavaScript convention, so that a symbol is called the same in every language a parser is
-// generated for.
+// nonterminalName returns the name of the constant which stands for the given nonterminal.
+//
+// A nonterminal of the grammar is prefixed, which is what keeps a grammar free to name a nonterminal anything without
+// colliding with a nonterminal the generator needs for itself. The augmented start symbol is such a generator owned
+// nonterminal, and it is suffixed instead, the way terminalName suffixes the ones the grammar cannot name either. The
+// two shapes are what tells them apart: a grammar which does have a nonterminal called accept gets NonterminalAccept,
+// which is not the AcceptNonterminal returned here.
+//
+// This deviates from the Go backends, which spell the augmented start symbol Nonterminal_accept. That name carries an
+// underscore and a lowercase word among constants which are otherwise capitalized, which reads wrong in JavaScript
+// next to NonterminalExpression, so the same symbol is not called the same in both languages.
 func nonterminalName(symbol frontend.Symbol) string {
+	if symbol.Name == "$accept" {
+		return "AcceptNonterminal"
+	}
 	name := utils.GoIdentifier(symbol.Name)
 	return "Nonterminal" + name
 }

@@ -6,58 +6,113 @@
 
 import { Token, tokenToString } from "./scanner.js";
 
-// Nonterminal is the data type representing all nonterminal symbols.
+/**
+ * The scanner a parse reads its tokens from. Both the Scanner and the TokenSkipper of the generated scanner provide it.
+ *
+ * @typedef {object} ScannerLike
+ * @property {() => number} token
+ * @property {() => number} byteOffset
+ * @property {() => number} line
+ * @property {() => number} column
+ * @property {() => Uint8Array} lexeme
+ * @property {() => string} filePath
+ * @property {() => boolean} next
+ */
+
+/**
+ * What a parse returns.
+ *
+ * @typedef {object} ParseResult
+ * @property {ParseNode|null} tree The parse tree, or null when the parse could not be finished.
+ * @property {ParseError[]} errors Every error the parse reported, in the order they were found.
+ */
+
+/**
+ * Every nonterminal symbol of the grammar.
+ *
+ * @readonly
+ * @enum {number}
+ */
 export const Nonterminal = Object.freeze({
-    Nonterminal_accept: 0,
+    AcceptNonterminal: 0,
     NonterminalExpression: 1,
 });
 
-// nonterminalToString returns a string representation of the nonterminal.
+/**
+ * Returns the name of the nonterminal, as the grammar spells it.
+ *
+ * @param {number} nonterminal
+ * @returns {string}
+ */
 export function nonterminalToString(nonterminal) {
     switch (nonterminal) {
-        case Nonterminal.Nonterminal_accept: return "$accept";
+        case Nonterminal.AcceptNonterminal: return "$accept";
         case Nonterminal.NonterminalExpression: return "expression";
         default:
             return "unknown";
     }
 }
 
-// A symbol is either a terminal or a nonterminal, packed into a single number. The most significant bit of the low 16
-// is set when the symbol holds a nonterminal. The maximum terminal or nonterminal index which can be stored is 32767.
-//
-// A symbol stays a plain number rather than an object, so the symbols of a large parse tree cost no allocation of their
-// own. ParseSymbol groups the functions which build one and read one back.
+// A symbol is a terminal or a nonterminal packed into a single number. The most significant bit of the low 16 is set
+// when the symbol holds a nonterminal, which limits either index to 32767.
 
-// symbolNonterminalBit is the most significant bit which is set when the symbol stores a nonterminal.
+/** The bit which is set when a symbol holds a nonterminal. */
 const symbolNonterminalBit = 1 << 15;
 
-// symbolMask is the bitmask for selecting only the value from a symbol.
+/** Selects the index out of a symbol. */
 const symbolMask = symbolNonterminalBit - 1;
 
+/**
+ * Builds symbols and reads them back.
+ */
 export const ParseSymbol = Object.freeze({
-    // Creates a new symbol for a terminal.
+    /**
+     * Returns the symbol for a terminal.
+     *
+     * @param {number} terminal
+     * @returns {number}
+     */
     newTerminal(terminal) {
         return terminal;
     },
 
-    // Creates a new symbol for a nonterminal.
+    /**
+     * Returns the symbol for a nonterminal.
+     *
+     * @param {number} nonterminal
+     * @returns {number}
+     */
     newNonterminal(nonterminal) {
         return symbolNonterminalBit | nonterminal;
     },
 
-    // Reports whether the symbol holds a nonterminal. When it does, value returns a Nonterminal, and when it does not,
-    // value returns a Token.
+    /**
+     * Reports whether the symbol holds a nonterminal. When it does, value returns a Nonterminal, otherwise a Token.
+     *
+     * @param {number} symbol
+     * @returns {boolean}
+     */
     isNonterminal(symbol) {
         return (symbol & symbolNonterminalBit) !== 0;
     },
 
-    // Returns the terminal or the nonterminal the symbol holds, see isNonterminal.
+    /**
+     * Returns the terminal or nonterminal the symbol holds, see isNonterminal.
+     *
+     * @param {number} symbol
+     * @returns {number}
+     */
     value(symbol) {
         return symbol & symbolMask;
     },
 });
 
-// symbolToString returns a string representation of the symbol, which names it the way the grammar does.
+/**
+ * Returns the name of the symbol, as the grammar spells it.
+ *
+ * @param {number} symbol
+ * @returns {string}
+ */
 export function symbolToString(symbol) {
     if (ParseSymbol.isNonterminal(symbol)) {
         return `nonterminal ${nonterminalToString(ParseSymbol.value(symbol))}`;
@@ -65,20 +120,27 @@ export function symbolToString(symbol) {
     return `terminal ${tokenToString(ParseSymbol.value(symbol))}`;
 }
 
-// ParseNode is a single node of the parse tree.
+/**
+ * A single node of the parse tree.
+ */
 export class ParseNode {
-    // symbol is the terminal or nonterminal this node stands for, see ParseSymbol.isNonterminal and
-    // ParseSymbol.value.
+    /** The terminal or nonterminal this node stands for, see ParseSymbol.isNonterminal and ParseSymbol.value. */
     symbol;
 
-    // lexeme holds the bytes of the terminal this node stands for, as a view into the source and not as a copy of it.
-    // It is null for a node which stands for a nonterminal, and for the error symbol, which no input produced.
+    /**
+     * The bytes of the terminal, as a view into the source rather than a copy of it. Null for a nonterminal and for the
+     * error symbol, which no input produced.
+     */
     lexeme;
 
-    // children holds the nodes of the right hand side of the production which was reduced to this node. It is empty
-    // for a node which stands for a terminal.
+    /** The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal. */
     children;
 
+    /**
+     * @param {number} symbol
+     * @param {Uint8Array|null} lexeme
+     * @param {ParseNode[]} children
+     */
     constructor(symbol, lexeme, children) {
         this.symbol = symbol;
         this.lexeme = lexeme;
@@ -86,16 +148,41 @@ export class ParseNode {
     }
 }
 
-// ParseError is a single parse error.
-//
-// isSyntaxError tells the two kinds apart: a syntax error is an error in the input, which is what the parser recovers
-// from when the grammar marks places to resume at, and anything else is a defect of the parser itself and ends the
-// parse.
-export class ParseError extends Error {
-    constructor(reason, isSyntaxError, scanner) {
-        super(`${scanner.filePath()}:${scanner.line()}:${scanner.column()}: ${reason}`);
+/**
+ * A single parse error. Parse errors are returned by parse rather than thrown, and this is not an Error. Wrap one to
+ * throw it: `new Error(parseError.message, { cause: parseError })`.
+ */
+export class ParseError {
+    /** What is wrong, without the position in front of it. */
+    reason;
 
-        this.name = "ParseError";
+    /** True for an error in the input, false for a defect of the parser itself, which ends the parse. */
+    isSyntaxError;
+
+    /** The token the parse stopped on. */
+    token;
+
+    /** Start of that token in bytes from the start of the source. */
+    byteOffset;
+
+    /** Line that token starts on, counted from one. */
+    line;
+
+    /** Column that token starts on, counted from one. */
+    column;
+
+    /** The bytes of that token. */
+    lexeme;
+
+    /** The file path the scanner was given. */
+    filePath;
+
+    /**
+     * @param {string} reason
+     * @param {boolean} isSyntaxError
+     * @param {ScannerLike} scanner
+     */
+    constructor(reason, isSyntaxError, scanner) {
         this.reason = reason;
         this.isSyntaxError = isSyntaxError;
 
@@ -106,64 +193,72 @@ export class ParseError extends Error {
         this.lexeme = scanner.lexeme();
         this.filePath = scanner.filePath();
     }
+
+    /**
+     * The error as one line of text, in the `file:line:column: reason` form editors and build tools recognize.
+     *
+     * @returns {string}
+     */
+    get message() {
+        return `${this.filePath}:${this.line}:${this.column}: ${this.reason}`;
+    }
+
+    /**
+     * @returns {string}
+     */
+    toString() {
+        return `ParseError: ${this.message}`;
+    }
 }
 
-// errorRecoveryShifts is the number of tokens which have to be shifted after a syntax error before the parser reports
-// errors again. Suppressing the errors in between keeps a single mistake in the input from producing an avalanche of
-// messages which are all consequences of the first one. It is the number of tokens yacc and GNU Bison use, see
-// section 7 "Error Handling" of the yacc report.
+/**
+ * How many tokens have to be shifted after a syntax error before errors are reported again. Suppressing the errors in
+ * between keeps one mistake in the input from producing an avalanche of messages which all follow from it.
+ */
 const errorRecoveryShifts = 3;
 
-// accept signals the successful end of the parse. It is filtered out by the main parse loop and not exposed to the
-// user. A symbol is equal to nothing but itself, which is what a sentinel needs.
+/** Signals the successful end of a parse. Never leaves this module. */
 const accept = Symbol("accept");
 
-// noErrorShiftState is what errorShiftState returns for a state which cannot shift the error symbol. It is negative and
-// no state index is, so the answer and the state share one number.
+/** What errorShiftState returns for a state which cannot shift the error symbol. No state index is negative. */
 const noErrorShiftState = -1;
 
-// The parse table of this parser is stored in lookup tables.
+// The parse table is held in lookup tables. A token is translated into the column of the action table which holds the
+// decisions for it, and the rows of that table are displaced into a single array so that the entries of one row fall
+// into the holes of another. This is the row displacement method of "Storing a Sparse Table" by Tarjan and Yao. The
+// gotos are held the same way, with the nonterminal as the column.
 //
-// An action is looked up in two steps. The token the scanner delivers is translated into the column of the action table
-// which holds the decisions for it, and the action table is stored as a single array in which the row of every state is
-// displaced so that its entries fall into the holes of the other rows. This is the row displacement method described in
-// "Storing a Sparse Table" by Tarjan and Yao. The gotos are stored the same way, with the nonterminal as the column.
-//
-// The rows are sparse because what most of their entries agree on is taken out of them and kept as a default. The
-// action table defaults per state, to the reduction the state performs on most of its lookaheads, and the goto table
-// defaults per nonterminal, to the state a goto on it leads to in most of the states which have one. Only the entries
-// which deviate from those defaults are in the tables at all, which is what leaves the holes the displacement fills.
+// The rows are sparse because what most entries of a row agree on is taken out of it and kept as a default: the action
+// table defaults per state and the goto table per nonterminal. Only the entries which deviate are in the tables.
 
-// actionKindBits is the number of low bits of an action which hold what the action does. The value the action carries
-// sits above them.
+/** Number of low bits of an action which hold what it does. The value it carries sits above them. */
 const actionKindBits = 2;
 
-// actionKindMask selects out of an action what it does.
+/** Selects out of an action what it does. */
 const actionKindMask = 3;
 
-// actionKindShift shifts the terminal and continues in the state the action carries.
+/** Shifts the terminal and continues in the state the action carries. */
 const actionKindShift = 0;
 
-// actionKindReduce reduces by the production the action carries.
+/** Reduces by the production the action carries. */
 const actionKindReduce = 1;
 
-// actionKindAccept ends the parse successfully, because the input has been reduced to the start symbol.
+/** Ends the parse successfully, the input having been reduced to the start symbol. */
 const actionKindAccept = 2;
 
-// actionKindError rejects the terminal as a syntax error.
+/** Rejects the terminal as a syntax error. */
 const actionKindError = 3;
 
-// noTerminalColumn is the column a token gets which is no terminal of this grammar. No state has an entry in it, so a
-// lookup falls through to the default action of the state, which is what this parser does with a token it does not
-// know.
+/**
+ * The column a token gets which is no terminal of this grammar. No state has an entry in it, so a lookup falls through
+ * to the default action of the state.
+ */
 const noTerminalColumn = 0;
 
-// terminalColumnByToken translates a token into the column of the action table which holds the decisions for it.
-//
-// The entries are written as the token constants themselves, which places each of them at whatever value the scanner
-// gave it. Neither generator has to know the numbering of the other because of that. A token the grammar does not have
-// is not named here at all and keeps the noTerminalColumn every unnamed index holds. The table is built when this
-// module loads and is sized to the highest token it names.
+/**
+ * Translates a token into the column of the action table which holds the decisions for it. A token the grammar does not
+ * have is not named here and keeps the noTerminalColumn every unnamed index holds.
+ */
 const terminalColumnByToken = newTerminalColumnByToken([
     [Token.EndToken, 1],
     [Token.TokenWhitespace, 2],
@@ -177,135 +272,141 @@ const terminalColumnByToken = newTerminalColumnByToken([
     [Token.TokenUminus, 10],
 ]);
 
+/**
+ * Builds terminalColumnByToken, sized to the highest token named in the entries.
+ *
+ * @param {number[][]} entries Pairs of token and column.
+ */
 function newTerminalColumnByToken(entries) {
     let length = 0;
     for (const [token] of entries) {
         length = Math.max(length, token + 1);
     }
 
-    const result = new Uint8Array(length).fill(noTerminalColumn);
+    const result = new Uint8Array(length);
     for (const [token, column] of entries) {
         result[token] = column;
     }
     return result;
 }
 
-// actionBase maps a state to the displacement of its row within actionNext.
+/** Maps a state to the displacement of its row within actionNext. */
 const actionBase = new Uint8Array([
     9, 1, 9, 9, 0, 1, 4, 1, 9, 9, 9, 9, 1, 12, 12, 1,
     1,
 ]);
 
-// actionNext holds the action of every entry. The action a state has for a column lives at actionBase[state] + column,
-// but only if actionCheck confirms that the cell belongs to that column.
+/**
+ * Holds the action of every entry. The action a state has for a column lives at actionBase[state] + column, but only if
+ * actionCheck confirms the cell belongs to that column.
+ */
 const actionNext = new Uint8Array([
     0, 28, 0, 0, 32, 36, 40, 44, 32, 36, 40, 44, 4, 48, 8, 0,
     0, 12, 40, 44, 0, 0, 0,
 ]);
 
-// actionCheck holds the column every cell of actionNext belongs to. A cell which no state occupies holds a value one
-// past the highest column in use, which a lookup can therefore never ask for.
+/**
+ * Holds the column every cell of actionNext belongs to. A cell no state occupies holds a value one past the highest
+ * column in use, which a lookup can never ask for.
+ */
 const actionCheck = new Uint8Array([
     11, 1, 11, 11, 4, 5, 6, 7, 4, 5, 6, 7, 3, 9, 5, 11,
     11, 8, 6, 7, 11, 11, 11,
 ]);
 
-// defaultActionByState holds the action a state takes for every column it has no entry of its own for. A state which
-// has none carries the error action, which makes such a token a syntax error.
+/**
+ * Holds the action a state takes for every column it has no entry of its own for. A state which has none carries the
+ * error action.
+ */
 const defaultActionByState = new Uint8Array([
     3, 5, 3, 3, 3, 25, 3, 2, 3, 3, 3, 3, 29, 9, 13, 17,
     21,
 ]);
 
-// gotoBase maps a state to the displacement of its row within gotoNext.
+/** Maps a state to the displacement of its row within gotoNext. */
 const gotoBase = new Uint8Array([
     6, 6, 0, 1, 6, 6, 6, 6, 2, 3, 4, 5, 6, 6, 6, 6,
     6,
 ]);
 
-// gotoNext holds the state a goto leads to. The goto a state has for a nonterminal lives at
-// gotoBase[state] + nonterminal, but only if gotoCheck confirms that the cell belongs to that nonterminal.
+/**
+ * Holds the state a goto leads to. The goto a state has for a nonterminal lives at gotoBase[state] + nonterminal, but
+ * only if gotoCheck confirms the cell belongs to that nonterminal.
+ */
 const gotoNext = new Uint8Array([
     0, 5, 6, 13, 14, 15, 16, 0,
 ]);
 
-// gotoCheck holds the nonterminal every cell of gotoNext belongs to. A cell which no state occupies holds a value one
-// past the highest nonterminal, which a lookup can therefore never ask for.
+/**
+ * Holds the nonterminal every cell of gotoNext belongs to. A cell no state occupies holds a value one past the highest
+ * nonterminal, which a lookup can never ask for.
+ */
 const gotoCheck = new Uint8Array([
     2, 1, 1, 1, 1, 1, 1, 2,
 ]);
 
-// defaultGotoByNonterminal holds the state a goto on a nonterminal leads to for every state which gotoNext has no entry
-// for. Most states agree on where a nonterminal takes them, so only the ones which deviate are in the table at all.
+/** Holds the state a goto on a nonterminal leads to for every state gotoNext has no entry for. */
 const defaultGotoByNonterminal = new Uint8Array([
     0, 4,
 ]);
 
-// popCountByProduction holds the number of symbols a reduction takes off the stacks, which is the length of the right
-// hand side of the production.
+/** Holds how many symbols a reduction takes off the stacks, which is the length of the right hand side. */
 const popCountByProduction = new Uint8Array([
     2, 1, 3, 3, 3, 3, 2, 3,
 ]);
 
-// nonterminalByProduction holds the nonterminal on the left hand side of a production, which a reduction looks up its
-// goto with and labels the node it pushes with.
+/** Holds the nonterminal on the left hand side of a production. */
 const nonterminalByProduction = new Uint8Array([
     0, 1, 1, 1, 1, 1, 1, 1,
 ]);
 
-// errorShiftState returns the state to continue in when the error symbol is shifted in the given state, or
-// noErrorShiftState when the state cannot shift the error symbol at all. The states which can are the places the
-// grammar marked to resume at after a syntax error, which is what the error recovery pops the stack down to. For a
-// grammar which marks no such place there is no such state and no parse can be recovered.
-//
-// The error symbol is a terminal like any other, so its shift needs no table of its own: it is the entry of the action
-// table in the column of the error symbol. Nothing else can read that column, because no scanner ever delivers the
-// symbol. The default action of the state is deliberately not consulted, because only an entry the state has of its own
-// is a place to resume at.
+/**
+ * Returns the state to continue in when the error symbol is shifted in the given state, or noErrorShiftState when the
+ * state cannot shift it. The states which can are the places the grammar marked to resume at after a syntax error.
+ *
+ * The default action of the state is deliberately not consulted, because only an entry the state has of its own is a
+ * place to resume at.
+ *
+ * @param {number} state
+ * @returns {number}
+ */
 function errorShiftState() {
     // This grammar marks no place to resume at, so no state can shift the error symbol.
     return noErrorShiftState;
 }
 
-// Parser provides the parser implementation.
-//
-// The scanner it parses from is any object with the token, byteOffset, line, column, lexeme, next and filePath methods,
-// which both the Scanner and the TokenSkipper of the generated scanner have.
+/**
+ * Parses the tokens of a scanner into a parse tree.
+ */
 export class Parser {
+    /** The scanner of the running parse. */
     #scanner;
 
+    /** The states of the running parse, the current one on top. */
     #stateStack;
+
+    /** One node per symbol shifted or reduced so far. */
     #nodeStack;
 
-    // errors collects the syntax errors of the current parse, which parse returns next to the tree.
+    /** The errors of the running parse, which parse returns next to the tree. */
     #errors;
 
-    // errorRecoveryShiftsRemaining counts down the tokens which still have to be shifted before syntax errors are
-    // reported again. It is zero while the parser is in sync with the input and errorRecoveryShifts right after the
-    // error symbol was shifted. In a parser for a grammar which marks no place to resume at it never leaves zero,
-    // because there is nothing to recover from an error with, which is why such a parser does not carry the countdown
-    // on its shift at all.
+    /**
+     * Counts down the tokens which still have to be shifted before syntax errors are reported again. Zero while the
+     * parser is in sync with the input.
+     */
     #errorRecoveryShiftsRemaining;
 
-    constructor() {
-        this.#stateStack = [];
-        this.#nodeStack = [];
-        this.#errors = [];
-        this.#errorRecoveryShiftsRemaining = 0;
-    }
-
-    // Executes a parse on the tokens provided by the scanner and returns the parse tree together with the errors the
-    // parse found, as an object with a tree and an errors property. It can be called multiple times with different
-    // scanners.
-    //
-    // When the grammar marks places to resume at with the error symbol, the parser recovers from a syntax error and
-    // carries on parsing, see recoverFromError. parse then returns both a tree and errors: the tree of the input as far
-    // as the parser could make sense of it, with a node for the error symbol at every place it resumed at, and every
-    // syntax error it found. A tree is only returned if the parse reached its end, otherwise the recovery gave up
-    // somewhere in the middle and there is no tree to speak of, and the tree is null.
-    //
-    // The errors are an array even when there is only one of them, so the shape of what is returned does not depend on
-    // how many errors the parse found.
+    /**
+     * Parses the tokens the scanner delivers. Can be called more than once, with a different scanner each time.
+     *
+     * When the grammar marks places to resume at with the error symbol, a syntax error does not end the parse: the
+     * result then holds both the tree parsed so far, with a node for the error symbol at every place resumed at, and
+     * every error found. The tree is null when the parse could not be carried to its end.
+     *
+     * @param {ScannerLike} scanner
+     * @returns {ParseResult}
+     */
     parse(scanner) {
         this.#scanner = scanner;
 
@@ -314,10 +415,8 @@ export class Parser {
         this.#errors = [];
         this.#errorRecoveryShiftsRemaining = 0;
 
-        // The scanner reports false when it has no token to deliver, which an input with no tokens at all does right
-        // away. That is not an error: the token is the end of input either way, and whether a parse consisting of
-        // nothing but that is legal is for the table to decide, exactly as it is for every later token. A grammar with
-        // an empty production accepts it.
+        // A source with no tokens at all reports false right away. That is not an error: the token is the end of input
+        // either way, and whether a parse of nothing but that is legal is for the table to decide.
         this.#scanner.next();
 
         for (;;) {
@@ -326,18 +425,16 @@ export class Parser {
                 continue;
             }
             if (result === accept) {
-                // The parse is finished. It still reports the errors it recovered from along the way.
                 return { tree: this.#nodeStack[0], errors: this.#errors };
             }
             if (!result.isSyntaxError) {
-                // Only an error in the input can be recovered from. Anything else is a defect of the parser itself.
+                // Only an error in the input can be recovered from.
                 this.#errors.push(result);
                 return { tree: null, errors: this.#errors };
             }
             if (this.#errorRecoveryShiftsRemaining === 0) {
-                // While recovering, the parser is not in sync with the input, so the errors it runs into there are most
-                // likely consequences of the error which is already reported. Reporting those as well is the avalanche
-                // of messages the countdown exists to prevent.
+                // While recovering, the parser is not in sync with the input, so the errors it runs into there follow
+                // from the one already reported.
                 this.#errors.push(result);
             }
             if (!this.#recoverFromError()) {
@@ -346,16 +443,17 @@ export class Parser {
         }
     }
 
-    // Performs the single action which the state on top of the stack takes for the token the scanner currently
-    // delivers. This is the whole automaton: everything which distinguishes one state from another is in the tables.
-    //
-    // It returns null while the parse goes on, the accept sentinel when the parse is finished, and a ParseError when it
-    // is not.
+    /**
+     * Performs the one action the state on top of the stack takes for the current token.
+     *
+     * @returns {null|symbol|ParseError} Null while the parse goes on, the accept sentinel when it is finished, and a
+     * ParseError when it is not.
+     */
     #step() {
         const terminal = this.#scanner.token();
 
-        // A token which is no terminal of this grammar, and a token outside the range the scanner promises, both get
-        // the column which no state has an entry in, so both end up taking the default action of the state.
+        // A token which is no terminal of this grammar, and one outside the range the scanner promises, both take the
+        // default action of the state.
         let column = noTerminalColumn;
         if (0 <= terminal && terminal < terminalColumnByToken.length) {
             column = terminalColumnByToken[terminal];
@@ -365,8 +463,8 @@ export class Parser {
         const cellIdx = actionBase[state] + column;
         let action = defaultActionByState[state];
         if (actionCheck[cellIdx] === column) {
-            // The state has an entry of its own for this token, which beats its default action. That order is what
-            // keeps a token the grammar rejects on purpose an error even in a state which reduces on everything else.
+            // An entry the state has of its own beats its default action, which is what keeps a token the grammar
+            // rejects on purpose an error even in a state which reduces on everything else.
             action = actionNext[cellIdx];
         }
 
@@ -380,7 +478,6 @@ export class Parser {
                 this.#reduce(action >>> actionKindBits);
                 return null;
             case actionKindAccept:
-                // The parse is successfully finished.
                 return accept;
             case actionKindError:
                 return new ParseError(`unexpected token ${tokenToString(terminal)}`, true, this.#scanner);
@@ -389,8 +486,12 @@ export class Parser {
         }
     }
 
-    // Replaces the right hand side of the given production on the stacks with the nonterminal on its left hand side,
-    // and continues in the state the goto of the uncovered state leads to.
+    /**
+     * Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side, and
+     * continues in the state the goto of the uncovered state leads to.
+     *
+     * @param {number} productionIdx
+     */
     #reduce(productionIdx) {
         const popCount = popCountByProduction[productionIdx];
         const nonterminal = nonterminalByProduction[productionIdx];
@@ -398,9 +499,8 @@ export class Parser {
         this.#stateStack.length -= popCount;
 
         const state = this.#stateStack[this.#stateStack.length - 1];
-        // A state which does not have a goto of its own on the nonterminal goes where most states go with it. The LR
-        // construction creates the goto together with the production, so a state which a reduction uncovers always has
-        // one, which is why the lookup needs no case for a nonterminal missing from both.
+        // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
+        // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
         let gotoState = defaultGotoByNonterminal[nonterminal];
         const cellIdx = gotoBase[state] + nonterminal;
         if (gotoCheck[cellIdx] === nonterminal) {
@@ -408,32 +508,28 @@ export class Parser {
         }
         this.#stateStack.push(gotoState);
 
-        // splice takes the right hand side off the node stack and hands it over as the children in one step. For a
-        // production with an empty right hand side it takes nothing and returns an empty array, so the reduction needs
-        // no case of its own for that.
+        // splice takes the right hand side off the node stack and hands it over as the children in one step. An empty
+        // right hand side takes nothing and returns an empty array.
         const children = this.#nodeStack.splice(this.#nodeStack.length - popCount, popCount);
         this.#nodeStack.push(new ParseNode(ParseSymbol.newNonterminal(nonterminal), null, children));
     }
 
-    // Puts the parser back into a state where it can continue on the remaining input after a syntax error. It reports
-    // if that succeeded. Once it did not, the parse is given up.
-    //
-    // This is the panic mode recovery of section 9 "Error Recovery" of "LR Parsing" by Aho and Johnson, in the shape
-    // which section 7 "Error Handling" of the yacc report describes: the parser pops its stack until it reaches a state
-    // which can shift the error symbol - a place the grammar marked as one to resume at - and shifts the symbol there.
-    // Everything the popped states had parsed is discarded with them.
-    //
-    // The token which caused the error is kept for the resumed state to look at, because that state is usually waiting
-    // for exactly it: in a production like "{" @error "}" it is the closing brace which ends the recovery. Only when the
-    // parse fails on that very same token again is the token discarded, which is what an untouched countdown of tokens
-    // to shift tells us. Popping and discarding in the same handler is what guarantees progress: every round of recovery
-    // either gets the parse going again or consumes one token of the input, so a parse cannot get stuck between the two.
+    /**
+     * Puts the parser back where it can carry on with the remaining input after a syntax error. Once it reports false,
+     * the parse is given up.
+     *
+     * This is panic mode recovery as described in section 7 "Error Handling" of the yacc report: the stack is popped
+     * until a state is reached which can shift the error symbol, and the symbol is shifted there. Everything the popped
+     * states had parsed is discarded with them. The token which caused the error is kept for the resumed state to look
+     * at, and only discarded when the parse fails on it a second time.
+     *
+     * @returns {boolean}
+     */
     #recoverFromError() {
         if (this.#errorRecoveryShiftsRemaining === errorRecoveryShifts) {
-            // Nothing was shifted since the last error, so the parser is failing on the token it already failed on and
-            // keeping it would only lead here again.
+            // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if (this.#scanner.token() === Token.EndToken) {
-                // The end of input is the one token which cannot be discarded, so there is nothing left to try.
+                // The end of input is the one token which cannot be discarded.
                 return false;
             }
             this.#scanner.next();
@@ -443,20 +539,17 @@ export class Parser {
         for (;;) {
             const nextState = errorShiftState(this.#stateStack[this.#stateStack.length - 1]);
             if (nextState !== noErrorShiftState) {
-                // Shift the error symbol. Its node stands for the part of the input which was dropped and has no
-                // lexeme.
+                // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 this.#stateStack.push(nextState);
                 this.#nodeStack.push(new ParseNode(ParseSymbol.newTerminal(Token.ErrorToken), null, []));
                 return true;
             }
             if (this.#stateStack.length === 1) {
-                // Only the state the parse started in is left and it cannot shift the error symbol either, so no place
-                // the grammar marked to resume at covers the position of the error.
+                // Only the state the parse started in is left and it cannot shift the error symbol either.
                 return false;
             }
-            // The state cannot resume here, so it is dropped together with what it had parsed and the state below it
-            // gets to try. The two stacks hold one node per symbol which was shifted or reduced and one state on top of
-            // that, so dropping one state drops one node.
+            // The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
+            // node, so dropping one drops one.
             this.#stateStack.length--;
             this.#nodeStack.length--;
         }
