@@ -1,0 +1,16 @@
+{
+  "name": "calculator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A GoLR example calculator, built from the generated TypeScript scanner and parser.",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "7.0.2"
+  }
+}

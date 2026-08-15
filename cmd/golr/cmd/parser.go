@@ -15,6 +15,7 @@ import (
 	golangtablebackend "github.com/backbone81/golr/pkg/parsergen/backend/golangtable"
 	javascriptbackend "github.com/backbone81/golr/pkg/parsergen/backend/javascript"
 	jsonbackend "github.com/backbone81/golr/pkg/parsergen/backend/json"
+	typescriptbackend "github.com/backbone81/golr/pkg/parsergen/backend/typescript"
 	yamlbackend "github.com/backbone81/golr/pkg/parsergen/backend/yaml"
 	"github.com/backbone81/golr/pkg/parsergen/conflict"
 	ielr1golrcore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/golr"
@@ -39,6 +40,8 @@ var (
 	parserBackendGoPackageName string
 
 	parserBackendJavaScriptScannerModule string
+
+	parserBackendTypeScriptScannerModule string
 
 	parserVerbose bool
 )
@@ -161,6 +164,15 @@ func executeParserBackend(parser backend.Parser) error {
 	case "null":
 		// Nothing to do.
 		return nil
+	case "typescript":
+		if parserBackendFilePath == "-" {
+			return typescriptbackend.FromParser(os.Stdout, parser, typescriptbackend.Config{
+				ScannerModule: parserBackendTypeScriptScannerModule,
+			})
+		}
+		return typescriptbackend.ParserToFile(parserBackendFilePath, parser, typescriptbackend.Config{
+			ScannerModule: parserBackendTypeScriptScannerModule,
+		})
 	case "yaml":
 		if parserBackendFilePath == "-" {
 			return yamlbackend.FromParser(os.Stdout, parser)
@@ -201,7 +213,7 @@ func init() {
 		&parserBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the parser. One of: dot, go, go-direct, go-table, javascript, json, null, yaml.",
+		"The backend to use for writing the parser. One of: dot, go, go-direct, go-table, javascript, json, null, typescript, yaml.",
 	)
 	parserCmd.PersistentFlags().StringVar(
 		&parserBackendFilePath,
@@ -225,6 +237,13 @@ func init() {
 		"backend-javascript-scanner-module",
 		javascriptbackend.DefaultScannerModule,
 		"The module specifier the generated JavaScript parser imports the token constants from.",
+	)
+
+	parserCmd.PersistentFlags().StringVar(
+		&parserBackendTypeScriptScannerModule,
+		"backend-typescript-scanner-module",
+		typescriptbackend.DefaultScannerModule,
+		"The module specifier the generated TypeScript parser imports the token constants from.",
 	)
 
 	parserCmd.PersistentFlags().BoolVarP(

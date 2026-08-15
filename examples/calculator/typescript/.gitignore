@@ -1,0 +1,9 @@
+# What tsc emits next to the sources it reads. The TypeScript sources are committed, the JavaScript is a build artifact.
+*.js
+*.js.map
+*.d.ts
+*.d.ts.map
+
+# Editor/IDE
+.idea/
+.vscode/

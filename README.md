@@ -250,6 +250,7 @@ These backends are currently supported:
 - [JavaScript](docs/parsergen-backend-javascript.md)
 - [JSON](docs/parsergen-backend-json.md)
 - [Null](docs/parsergen-backend-null.md)
+- [TypeScript](docs/parsergen-backend-typescript.md)
 - [YAML](docs/parsergen-backend-yaml.md)
 
 Are you missing a backend for your use case? Use the JSON backend of GoLR to output the parser as JSON and implement
@@ -295,6 +296,7 @@ These backends are currently supported:
 - [JSON](docs/scannergen-backend-json.md)
 - [Null](docs/scannergen-backend-null.md)
 - [Rust](docs/scannergen-backend-rust.md)
+- [TypeScript](docs/scannergen-backend-typescript.md)
 - [YAML](docs/scannergen-backend-yaml.md)
 
 Are you missing a backend for your use case? Use the JSON backend of GoLR to output the scanner as JSON and implement

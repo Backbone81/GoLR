@@ -71,6 +71,17 @@ go run ./cmd/golr parser \
   --core ielr1-golr \
   --backend javascript \
   --backend-file-path examples/calculator/javascript/parser/parser.js
+go run ./cmd/golr scanner \
+  --frontend golr \
+  --frontend-file-path examples/calculator/calculator.golr \
+  --backend typescript \
+  --backend-file-path examples/calculator/typescript/parser/scanner.ts
+go run ./cmd/golr parser \
+  --frontend golr \
+  --frontend-file-path examples/calculator/calculator.golr \
+  --core ielr1-golr \
+  --backend typescript \
+  --backend-file-path examples/calculator/typescript/parser/parser.ts
 
 # Generate the example Go parser.
 go run ./cmd/golr scanner \

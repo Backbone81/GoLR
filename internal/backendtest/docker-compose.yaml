@@ -102,7 +102,7 @@ services:
 
   typescript:
     <<: *common
-    image: node:26.7
+    image: mcr.microsoft.com/devcontainers/typescript-node:5.0.3-24
     command: ["typescript"]
 
   python:

@@ -7,6 +7,7 @@ build:
 	$(MAKE) -C java build
 	$(MAKE) -C javascript build
 	$(MAKE) -C rust build
+	$(MAKE) -C typescript build
 
 .PHONY: test
 test:
@@ -18,3 +19,4 @@ clean:
 	$(MAKE) -C java clean
 	$(MAKE) -C javascript clean
 	$(MAKE) -C rust clean
+	$(MAKE) -C typescript clean

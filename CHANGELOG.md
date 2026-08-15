@@ -5,6 +5,9 @@
 ## Unreleased
 
 - Added a JavaScript scanner backend.
+- Added a JavaScript parser generator backend, selected with --backend javascript. The generated ECMAScript module imports the token constants from the generated scanner, whose module specifier can be set with --backend-javascript-scanner-module.
+- Added a TypeScript scanner generator backend.
+- Added a TypeScript parser generator backend.
 
 ## v0.2.0 (2026-08-08)
 
