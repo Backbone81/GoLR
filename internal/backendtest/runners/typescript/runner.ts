@@ -88,13 +88,13 @@ function appendNodeTrace(lines: string[], node: ParseNode): void {
         appendNodeTrace(lines, child);
     }
 
-    if (ParseSymbol.isNonterminal(node.symbol)) {
-        const nonterminal = ParseSymbol.value(node.symbol) as Nonterminal;
+    const nonterminal = ParseSymbol.nonterminal(node.symbol);
+    if (nonterminal !== null) {
         lines.push(`REDUCE ${nonterminalToString(nonterminal)} ${node.children.length}`);
         return;
     }
 
-    const token = ParseSymbol.value(node.symbol) as Token;
+    const token = ParseSymbol.terminal(node.symbol)!;
     if (token === Token.ErrorToken) {
         // The leaf the recovery pushed where it resumed. It stands for the dropped input and names no token.
         lines.push("RESYNC");

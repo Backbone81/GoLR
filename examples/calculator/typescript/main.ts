@@ -67,7 +67,8 @@ function evaluateThreeChildren(node: ParseNode): number {
     // In "expression OP expression", the middle child is a terminal operator token.
     // We use this to distinguish the two cases.
     const middle = childAt(node, 1);
-    if (ParseSymbol.isNonterminal(middle.symbol)) {
+    const operator = ParseSymbol.terminal(middle.symbol);
+    if (operator === null) {
         // expression: "(" expression ")"
         return evaluateNode(middle);
     }
@@ -75,7 +76,7 @@ function evaluateThreeChildren(node: ParseNode): number {
     const leftValue = evaluateNode(childAt(node, 0));
     const rightValue = evaluateNode(childAt(node, 2));
 
-    switch (ParseSymbol.value(middle.symbol)) {
+    switch (operator) {
         case Token.TokenPlus:
             // expression: expression "+" expression
             return leftValue + rightValue;

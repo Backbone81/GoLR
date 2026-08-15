@@ -87,22 +87,28 @@ export const ParseSymbol = Object.freeze({
     },
 
     /**
-     * Reports whether the symbol holds a nonterminal. When it does, value returns a Nonterminal, otherwise a Token.
+     * Returns the terminal the symbol holds, or null when it holds a nonterminal.
      *
      * @param {number} symbol
-     * @returns {boolean}
+     * @returns {number | null}
      */
-    isNonterminal(symbol) {
-        return (symbol & symbolNonterminalBit) !== 0;
+    terminal(symbol) {
+        if ((symbol & symbolNonterminalBit) !== 0) {
+            return null;
+        }
+        return symbol & symbolMask;
     },
 
     /**
-     * Returns the terminal or nonterminal the symbol holds, see isNonterminal.
+     * Returns the nonterminal the symbol holds, or null when it holds a terminal.
      *
      * @param {number} symbol
-     * @returns {number}
+     * @returns {number | null}
      */
-    value(symbol) {
+    nonterminal(symbol) {
+        if ((symbol & symbolNonterminalBit) === 0) {
+            return null;
+        }
         return symbol & symbolMask;
     },
 });
@@ -114,17 +120,18 @@ export const ParseSymbol = Object.freeze({
  * @returns {string}
  */
 export function symbolToString(symbol) {
-    if (ParseSymbol.isNonterminal(symbol)) {
-        return `nonterminal ${nonterminalToString(ParseSymbol.value(symbol))}`;
+    const nonterminal = ParseSymbol.nonterminal(symbol);
+    if (nonterminal !== null) {
+        return `nonterminal ${nonterminalToString(nonterminal)}`;
     }
-    return `terminal ${tokenToString(ParseSymbol.value(symbol))}`;
+    return `terminal ${tokenToString(ParseSymbol.terminal(symbol))}`;
 }
 
 /**
  * A single node of the parse tree.
  */
 export class ParseNode {
-    /** The terminal or nonterminal this node stands for, see ParseSymbol.isNonterminal and ParseSymbol.value. */
+    /** The terminal or nonterminal this node stands for, see ParseSymbol.terminal and ParseSymbol.nonterminal. */
     symbol;
 
     /**
