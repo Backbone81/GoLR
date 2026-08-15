@@ -255,6 +255,9 @@ const actionKindError = 3;
  */
 const noTerminalColumn = 0;
 
+/** The column holding the shifts of the error symbol, which is where the recovery reads the state to resume in. */
+const errorTerminalColumn = 0;
+
 /**
  * Translates a token into the column of the action table which holds the decisions for it. A token the grammar does not
  * have is not named here and keeps the noTerminalColumn every unnamed index holds.
@@ -372,8 +375,16 @@ const nonterminalByProduction = new Uint8Array([
  * @returns {number}
  */
 function errorShiftState(state) {
-    // This grammar marks no place to resume at, so no state can shift the error symbol.
-    return noErrorShiftState;
+    const cellIdx = actionBase[state] + errorTerminalColumn;
+    if (actionCheck[cellIdx] !== errorTerminalColumn) {
+        return noErrorShiftState;
+    }
+
+    const action = actionNext[cellIdx];
+    if ((action & actionKindMask) !== actionKindShift) {
+        return noErrorShiftState;
+    }
+    return action >>> actionKindBits;
 }
 
 /**

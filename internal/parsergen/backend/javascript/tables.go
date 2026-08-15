@@ -71,10 +71,6 @@ type Tables struct {
 	// where the error recovery reads the state to resume in.
 	ErrorTerminalColumn int
 
-	// HasErrorRecovery reports whether any state can shift the error symbol. The generated parser leaves out the
-	// parts of the recovery which cost something on the hot path when no state can.
-	HasErrorRecovery bool
-
 	// ActionKindBits is the number of low bits of an action which hold what it does.
 	ActionKindBits int
 
@@ -137,7 +133,6 @@ func NewTables(parser backend.Parser) Tables {
 		NonterminalByProduction: utils.NewJavaScriptIntArray(table.Nonterminals(parser)),
 
 		ErrorTerminalColumn: errorTerminalColumn,
-		HasErrorRecovery:    compressed.HasErrorRecovery(),
 
 		ActionKindBits:   table.ActionKindBits,
 		ActionKindMask:   table.ActionKindMask,

@@ -15,10 +15,4 @@ export default [
             globals: globals.node,
         },
     },
-    {
-        files: ["parser/**/*.js"],
-        rules: {
-            "no-unused-vars": ["error", { args: "none" }],
-        },
-    },
 ];

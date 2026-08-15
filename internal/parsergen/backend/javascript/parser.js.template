@@ -257,11 +257,8 @@ const actionKindError = {{ .Tables.ActionKindError }};
  */
 const noTerminalColumn = {{ .Tables.NoTerminalColumn }};
 
-{{- if .Tables.HasErrorRecovery }}
-
 /** The column holding the shifts of the error symbol, which is where the recovery reads the state to resume in. */
 const errorTerminalColumn = {{ .Tables.ErrorTerminalColumn }};
-{{- end }}
 
 /**
  * Translates a token into the column of the action table which holds the decisions for it. A token the grammar does not
@@ -348,7 +345,6 @@ const nonterminalByProduction = new {{ .Tables.NonterminalByProduction.Type }}([
  * @returns {number}
  */
 function errorShiftState(state) {
-{{- if .Tables.HasErrorRecovery }}
     const cellIdx = actionBase[state] + errorTerminalColumn;
     if (actionCheck[cellIdx] !== errorTerminalColumn) {
         return noErrorShiftState;
@@ -359,10 +355,6 @@ function errorShiftState(state) {
         return noErrorShiftState;
     }
     return action >>> actionKindBits;
-{{- else }}
-    // This grammar marks no place to resume at, so no state can shift the error symbol.
-    return noErrorShiftState;
-{{- end }}
 }
 
 /**
