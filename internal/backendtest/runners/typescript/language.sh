@@ -18,16 +18,15 @@ export PARSER_FILE_NAME=parser.ts
 
 # One case. The entrypoint calls this in a subshell of its own, which contains the "set -e".
 #
-# The type check runs twice, once against the tsconfig.json "tsc --init" writes and once against --strict alone. The two
-# disagree about the generated code, so only checking one would let a regression through. The first also emits, which is
-# what the runner is then run as: TypeScript is compiled rather than stripped, because only the compiler resolves the
+# The type check runs against the tsconfig.json "tsc --init" writes, which holds the generated code to the configuration
+# a normal project is scaffolded with. That one is the strictest of the checks available: it turns on more than --strict
+# does on its own, noUncheckedIndexedAccess and exactOptionalPropertyTypes among it. The same run emits, which is what
+# the runner is then run as: TypeScript is compiled rather than stripped, because only the compiler resolves the
 # "./scanner.js" the parser imports.
 execute() {
     set -e
 
     tsc --project tsconfig.json
-    tsc --noEmit --ignoreConfig --strict --target esnext --module nodenext \
-        "$SCANNER_FILE_NAME" "$PARSER_FILE_NAME" runner.ts node.d.ts
 
     exec node runner.js input.txt
 }

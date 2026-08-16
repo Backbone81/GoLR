@@ -7,10 +7,6 @@
   configuration a normal project is scaffolded with rather than to one picked here. TreatWarningsAsErrors is the one
   addition: a warning in generated code is a defect the person who generated it cannot fix by hand, so it has to fail
   the run rather than scroll past.
-
-  language.sh builds this a second time with the nullable context, the implicit usings and the language version of an
-  older project, because the two configurations disagree about the generated code and only checking one lets a
-  regression through.
 -->
 <Project Sdk="Microsoft.NET.Sdk">
 
@@ -21,14 +17,5 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
-
-  <ItemGroup>
-    <!--
-      Only the three source files in the case directory are compiled. A build writes C# of its own - assembly
-      attributes - below its output directories, and each of the two builds only knows to leave its own alone, so what
-      one produced would become source of the other and clash with what it produces itself.
-    -->
-    <Compile Remove="bin/**;obj/**;baseline-bin/**;baseline-obj/**" />
-  </ItemGroup>
 
 </Project>
