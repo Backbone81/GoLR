@@ -8,7 +8,12 @@ package parser;
 
 import java.nio.ByteBuffer;
 
-/** The scanner a TokenSkipper wraps. The generated Scanner provides it. */
+/**
+ * The scanner a TokenSkipper wraps. The generated Scanner provides it.
+ *
+ * <p>A public type has to live in a file named after it, which is why this one is package private. An implementation
+ * belongs into this package. Code outside it can implement a public interface which extends this one.
+ */
 interface TokenSkipperScanner {
     /** Returns the current token. */
     Scanner.Token token();
@@ -192,6 +197,9 @@ public final class Scanner implements TokenSkipperScanner {
     /** The bytes being scanned. */
     private byte[] source;
 
+    /** The bytes being scanned, as the read only view the lexemes are sliced out of. */
+    private ByteBuffer sourceBuffer;
+
     /** The current token. */
     private Token token;
 
@@ -200,9 +208,6 @@ public final class Scanner implements TokenSkipperScanner {
 
     /** Index one past the last byte of the current token. */
     private int lexemeEndIdx;
-
-    /** Index of the byte the automaton is looking at. */
-    private int lexemePeekIdx;
 
     /** The line the current token starts on, counted from one. */
     private int line;
@@ -241,9 +246,7 @@ public final class Scanner implements TokenSkipperScanner {
 
     @Override
     public ByteBuffer lexeme() {
-        return ByteBuffer.wrap(source, lexemeStartIdx, lexemeEndIdx - lexemeStartIdx)
-                .slice()
-                .asReadOnlyBuffer();
+        return sourceBuffer.slice(lexemeStartIdx, lexemeEndIdx - lexemeStartIdx);
     }
 
     @Override
@@ -254,10 +257,10 @@ public final class Scanner implements TokenSkipperScanner {
     @Override
     public void reset(byte[] source, int offset) {
         this.source = source;
+        sourceBuffer = ByteBuffer.wrap(source).asReadOnlyBuffer();
 
         lexemeStartIdx = 0;
         lexemeEndIdx = offset;
-        lexemePeekIdx = offset;
 
         line = 1;
         column = 1;
@@ -275,7 +278,8 @@ public final class Scanner implements TokenSkipperScanner {
         lexemeStartIdx = lexemeEndIdx;
 
         int state = 0;
-        for (lexemePeekIdx = lexemeEndIdx; lexemePeekIdx < source.length; lexemePeekIdx++) {
+        int lexemePeekIdx = lexemeEndIdx;
+        for (; lexemePeekIdx < source.length; lexemePeekIdx++) {
             // Remember every accepting state passed through, so the longest match wins over the first one.
             if (ACCEPT_TOKEN_BY_STATE[state] != Token.INVALID_TOKEN) {
                 token = ACCEPT_TOKEN_BY_STATE[state];

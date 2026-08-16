@@ -64,6 +64,14 @@ public final class Parser {
      *     terminal
      */
     public record ParseNode(ParseSymbol symbol, ByteBuffer lexeme, List<ParseNode> children) {
+        /**
+         * Returns the bytes of the terminal. A buffer carries the position it is read from, so every call hands out a
+         * view of its own, which keeps one reader from consuming the bytes for the next.
+         */
+        @Override
+        public ByteBuffer lexeme() {
+            return lexeme.duplicate();
+        }
     }
 
     /**
@@ -108,6 +116,15 @@ public final class Parser {
         }
 
         /**
+         * Returns the bytes of the token. A buffer carries the position it is read from, so every call hands out a
+         * view of its own, which keeps one reader from consuming the bytes for the next.
+         */
+        @Override
+        public ByteBuffer lexeme() {
+            return lexeme.duplicate();
+        }
+
+        /**
          * Returns the error as one line of text, in the file:line:column: reason form editors and build tools
          * recognize.
          */
@@ -126,15 +143,22 @@ public final class Parser {
     }
 
     /** What one step of a parse ended with. */
-    private enum StepOutcome {
+    private sealed interface StepOutcome {
         /** The parse goes on. */
-        CONTINUE,
+        record Continue() implements StepOutcome {
+        }
 
         /** The input was reduced to the start symbol. */
-        ACCEPT,
+        record Accept() implements StepOutcome {
+        }
 
-        /** The parse cannot go on, and the step reported why. */
-        FAILED,
+        /**
+         * The parse cannot go on.
+         *
+         * @param error why it cannot go on
+         */
+        record Failed(ParseError error) implements StepOutcome {
+        }
     }
 
     /**
@@ -154,6 +178,12 @@ public final class Parser {
 
     /** The nonterminals by their index, held here because values() hands out a copy on every call. */
     private static final Nonterminal[] NONTERMINALS = Nonterminal.values();
+
+    /** The outcome of a step which goes on, held here because it carries nothing one step differs from another in. */
+    private static final StepOutcome CONTINUE = new StepOutcome.Continue();
+
+    /** The outcome of a step which accepts, held here because it carries nothing one step differs from another in. */
+    private static final StepOutcome ACCEPT = new StepOutcome.Accept();
 
     // The parse table is held in lookup tables. A token is translated into the column of the action table which holds
     // the decisions for it, and the rows of that table are displaced into a single array so that the entries of one
@@ -272,9 +302,6 @@ public final class Parser {
     /** The errors of the running parse, which {@link #parse} returns next to the tree. */
     private List<ParseError> errors;
 
-    /** Why the parse cannot go on, set by {@link #step} when it reports {@link StepOutcome#FAILED}. */
-    private ParseError failure;
-
     /**
      * Counts down the tokens which still have to be shifted before syntax errors are reported again. Zero while the
      * parser is in sync with the input.
@@ -293,9 +320,8 @@ public final class Parser {
 
         stateStack = new int[INITIAL_STACK_CAPACITY];
         stateStackSize = 0;
-        nodeStack = new ArrayList<>();
+        nodeStack = new ArrayList<>(INITIAL_STACK_CAPACITY);
         errors = new ArrayList<>();
-        failure = null;
         errorRecoveryShiftsRemaining = 0;
 
         pushState(0);
@@ -306,12 +332,14 @@ public final class Parser {
 
         while (true) {
             StepOutcome outcome = step();
-            if (outcome == StepOutcome.ACCEPT) {
+            if (outcome instanceof StepOutcome.Accept) {
                 return new ParseResult(nodeStack.get(0), List.copyOf(errors));
             }
-            if (outcome == StepOutcome.CONTINUE) {
+            if (!(outcome instanceof StepOutcome.Failed failed)) {
+                // The parse goes on.
                 continue;
             }
+            ParseError failure = failed.error();
 
             if (!failure.isSyntaxError()) {
                 // Only an error in the input can be recovered from.
@@ -327,48 +355,6 @@ public final class Parser {
                 return new ParseResult(null, List.copyOf(errors));
             }
         }
-    }
-
-    /**
-     * Builds {@link #TERMINAL_COLUMN_BY_TOKEN} from the tokens and the columns they stand at, sized to the highest
-     * token named.
-     */
-    private static byte[] newTerminalColumnByToken() {
-        Scanner.Token[] tokens = {
-            Scanner.Token.END_TOKEN,
-            Scanner.Token.TOKEN_WHITESPACE,
-            Scanner.Token.TOKEN_INTEGER,
-            Scanner.Token.TOKEN_PLUS,
-            Scanner.Token.TOKEN_MINUS,
-            Scanner.Token.TOKEN_MULTIPLY,
-            Scanner.Token.TOKEN_DIVIDE,
-            Scanner.Token.TOKEN_LPAREN,
-            Scanner.Token.TOKEN_RPAREN,
-            Scanner.Token.TOKEN_UMINUS,
-        };
-        byte[] columns = {
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-            10,
-        };
-
-        int length = 0;
-        for (Scanner.Token token : tokens) {
-            length = Math.max(length, token.ordinal() + 1);
-        }
-
-        byte[] result = new byte[length];
-        for (int i = 0; i < tokens.length; i++) {
-            result[tokens[i].ordinal()] = columns[i];
-        }
-        return result;
     }
 
     /**
@@ -393,11 +379,10 @@ public final class Parser {
     }
 
     /**
-     * Performs the one action the state on top of the stack takes for the current token. {@link #failure} is set only
-     * when the parse cannot go on.
+     * Performs the one action the state on top of the stack takes for the current token. The outcome carries the error
+     * only when the parse cannot go on.
      */
     private StepOutcome step() {
-        failure = null;
         Scanner.Token terminal = scanner.token();
 
         // A token which is no terminal of this grammar takes the default action of the state.
@@ -424,21 +409,18 @@ public final class Parser {
                     // Getting tokens of the input shifted again is what makes the parser trust its position.
                     errorRecoveryShiftsRemaining--;
                 }
-                yield StepOutcome.CONTINUE;
+                yield CONTINUE;
             }
             case ACTION_KIND_REDUCE -> {
                 reduce(action >> ACTION_KIND_BITS);
-                yield StepOutcome.CONTINUE;
+                yield CONTINUE;
             }
-            case ACTION_KIND_ACCEPT -> StepOutcome.ACCEPT;
-            case ACTION_KIND_ERROR -> {
-                failure = new ParseError("unexpected token " + terminal, true, scanner);
-                yield StepOutcome.FAILED;
-            }
-            default -> {
-                failure = new ParseError("unexpected action " + action + " in state " + state, false, scanner);
-                yield StepOutcome.FAILED;
-            }
+            case ACTION_KIND_ACCEPT -> ACCEPT;
+            case ACTION_KIND_ERROR ->
+                new StepOutcome.Failed(new ParseError("unexpected token " + terminal, true, scanner));
+            default ->
+                new StepOutcome.Failed(
+                        new ParseError("unexpected action " + action + " in state " + state, false, scanner));
         };
     }
 
@@ -521,6 +503,48 @@ public final class Parser {
         }
         stateStack[stateStackSize] = state;
         stateStackSize++;
+    }
+
+    /**
+     * Builds {@link #TERMINAL_COLUMN_BY_TOKEN} from the tokens and the columns they stand at, sized to the highest
+     * token named.
+     */
+    private static byte[] newTerminalColumnByToken() {
+        Scanner.Token[] tokens = {
+            Scanner.Token.END_TOKEN,
+            Scanner.Token.TOKEN_WHITESPACE,
+            Scanner.Token.TOKEN_INTEGER,
+            Scanner.Token.TOKEN_PLUS,
+            Scanner.Token.TOKEN_MINUS,
+            Scanner.Token.TOKEN_MULTIPLY,
+            Scanner.Token.TOKEN_DIVIDE,
+            Scanner.Token.TOKEN_LPAREN,
+            Scanner.Token.TOKEN_RPAREN,
+            Scanner.Token.TOKEN_UMINUS,
+        };
+        byte[] columns = {
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+        };
+
+        int length = 0;
+        for (Scanner.Token token : tokens) {
+            length = Math.max(length, token.ordinal() + 1);
+        }
+
+        byte[] result = new byte[length];
+        for (int i = 0; i < tokens.length; i++) {
+            result[tokens[i].ordinal()] = columns[i];
+        }
+        return result;
     }
 
     /** Returns chunk 0 of {@link #ACTION_BASE}. */
