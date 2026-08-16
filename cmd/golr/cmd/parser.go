@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/backbone81/golr/pkg/parsergen/backend"
+	csharpbackend "github.com/backbone81/golr/pkg/parsergen/backend/csharp"
 	dotbackend "github.com/backbone81/golr/pkg/parsergen/backend/dot"
 	golangbackend "github.com/backbone81/golr/pkg/parsergen/backend/golang"
 	golangtablebackend "github.com/backbone81/golr/pkg/parsergen/backend/golangtable"
@@ -38,6 +39,8 @@ var (
 	parserBackendFilePath string
 
 	parserBackendGoPackageName string
+
+	parserBackendCSharpNamespace string
 
 	parserBackendJavaScriptScannerModule string
 
@@ -124,6 +127,15 @@ func executeParserCore(grammar frontend.Grammar) (backend.Parser, []conflict.Con
 
 func executeParserBackend(parser backend.Parser) error {
 	switch parserBackend {
+	case "csharp":
+		if parserBackendFilePath == "-" {
+			return csharpbackend.FromParser(os.Stdout, parser, csharpbackend.Config{
+				Namespace: parserBackendCSharpNamespace,
+			})
+		}
+		return csharpbackend.ParserToFile(parserBackendFilePath, parser, csharpbackend.Config{
+			Namespace: parserBackendCSharpNamespace,
+		})
 	case "dot":
 		if parserBackendFilePath == "-" {
 			return dotbackend.FromParser(os.Stdout, parser)
@@ -213,7 +225,7 @@ func init() {
 		&parserBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the parser. One of: dot, go, go-direct, go-table, javascript, json, null, typescript, yaml.",
+		"The backend to use for writing the parser. One of: csharp, dot, go, go-direct, go-table, javascript, json, null, typescript, yaml.",
 	)
 	parserCmd.PersistentFlags().StringVar(
 		&parserBackendFilePath,
@@ -230,6 +242,13 @@ func init() {
 		"backend-go-package-name",
 		"parser",
 		"The Go package name to use for the generated Go code.",
+	)
+
+	parserCmd.PersistentFlags().StringVar(
+		&parserBackendCSharpNamespace,
+		"backend-csharp-namespace",
+		"Parser",
+		"The C# namespace to use for the generated C# code. Has to be the one the scanner was generated into.",
 	)
 
 	parserCmd.PersistentFlags().StringVar(

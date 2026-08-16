@@ -57,11 +57,12 @@ prepare: generate
 		$(SHELL_SCRIPTS)
 
 .PHONY: build-examples
-build-examples: prepare
+build-examples: build
+	go build ./cmd/golr
 	$(MAKE) -C examples build
 
 .PHONY: build
-build: build-examples
+build: prepare
 	go build ./cmd/golr
 
 .PHONY: run
@@ -85,7 +86,7 @@ test-coverage: test-examples
 	go tool cover -html=tmp/cover.out -o tmp/cover.html
 
 .PHONY: test-examples
-test-examples: prepare
+test-examples: build
 	$(MAKE) -C examples test
 
 # test-backends proves that the code every language backend emits behaves like the reference implementation in Go. It

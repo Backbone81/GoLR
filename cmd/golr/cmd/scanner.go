@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/backbone81/golr/pkg/scannergen/backend"
+	csharpbackend "github.com/backbone81/golr/pkg/scannergen/backend/csharp"
 	dotbackend "github.com/backbone81/golr/pkg/scannergen/backend/dot"
 	golangbackend "github.com/backbone81/golr/pkg/scannergen/backend/golang"
 	golangtablebackend "github.com/backbone81/golr/pkg/scannergen/backend/golangtable"
@@ -34,6 +35,7 @@ var (
 
 	scannerBackendGoPackageName   string
 	scannerBackendJavaPackageName string
+	scannerBackendCSharpNamespace string
 )
 
 var scannerCmd = &cobra.Command{
@@ -94,6 +96,15 @@ func executeScannerCore(rules []frontend.Rule) (backend.DFA, error) {
 
 func executeScannerBackend(dfa backend.DFA) error {
 	switch scannerBackend {
+	case "csharp":
+		if scannerBackendFilePath == "-" {
+			return csharpbackend.FromDFA(os.Stdout, dfa, csharpbackend.Config{
+				Namespace: scannerBackendCSharpNamespace,
+			})
+		}
+		return csharpbackend.DFAToFile(scannerBackendFilePath, dfa, csharpbackend.Config{
+			Namespace: scannerBackendCSharpNamespace,
+		})
 	case "dot":
 		if scannerBackendFilePath == "-" {
 			return dotbackend.FromDFA(os.Stdout, dfa)
@@ -189,8 +200,8 @@ func init() {
 		&scannerBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the scanner. One of: dot, go, go-direct, go-table, java, javascript, json,"+
-			" null, rust, typescript, yaml.",
+		"The backend to use for writing the scanner. One of: csharp, dot, go, go-direct, go-table, java, javascript,"+
+			" json, null, rust, typescript, yaml.",
 	)
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerBackendFilePath,
@@ -213,5 +224,11 @@ func init() {
 		"backend-java-package-name",
 		"parser",
 		"The Java package name to use for the generated Java code.",
+	)
+	scannerCmd.PersistentFlags().StringVar(
+		&scannerBackendCSharpNamespace,
+		"backend-csharp-namespace",
+		"Parser",
+		"The C# namespace to use for the generated C# code.",
 	)
 }

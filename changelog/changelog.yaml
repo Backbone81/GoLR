@@ -5,6 +5,8 @@ unreleased:
     generated scanner, whose module specifier can be set with --backend-javascript-scanner-module.
 - description: Added a TypeScript scanner generator backend.
 - description: Added a TypeScript parser generator backend.
+- description: Added a C# scanner generator backend.
+- description: Added a C# parser generator backend.
 releases:
 - version: |
     v0.2.0

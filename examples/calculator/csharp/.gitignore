@@ -1,0 +1,7 @@
+# What the build writes. The C# sources are committed, the assemblies are build artifacts.
+bin/
+obj/
+
+# Editor/IDE
+.idea/
+.vscode/
