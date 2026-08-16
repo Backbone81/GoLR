@@ -248,6 +248,7 @@ These backends are currently supported:
 - [Go](docs/parsergen-backend-golang.md)
 - [Go Direct](docs/parsergen-backend-golang-direct.md)
 - [Go Table](docs/parsergen-backend-golang-table.md)
+- [Java](docs/parsergen-backend-java.md)
 - [JavaScript](docs/parsergen-backend-javascript.md)
 - [JSON](docs/parsergen-backend-json.md)
 - [Null](docs/parsergen-backend-null.md)

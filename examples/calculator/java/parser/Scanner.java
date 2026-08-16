@@ -8,71 +8,92 @@ package parser;
 
 import java.nio.ByteBuffer;
 
+/** The scanner a TokenSkipper wraps. The generated Scanner provides it. */
 interface TokenSkipperScanner {
+    /** Returns the current token. */
     Scanner.Token token();
+
+    /**
+     * Returns the start of the token in bytes from the start of the source. After {@link #next()} returned false it
+     * is the offset one past the last byte.
+     */
     int byteOffset();
+
+    /** Returns the line the token starts on, counted from one. */
     int line();
+
+    /** Returns the column the token starts on, counted from one. */
     int column();
+
+    /** Returns the bytes of the token, as a view into the source rather than a copy of it. */
     ByteBuffer lexeme();
-    boolean next();
+
+    /** Returns the file path the scanner was given. */
     String filePath();
+
+    /** Advances to the next token. Returns false when the source holds no such token any more. */
+    boolean next();
+
+    /**
+     * Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
+     * changed.
+     */
     void reset(byte[] source, int offset);
 }
 
-public class Scanner implements TokenSkipperScanner {
+/** Turns the bytes of a source into tokens. */
+public final class Scanner implements TokenSkipperScanner {
+    /** Every terminal symbol this scanner knows. */
     public enum Token {
-        INVALID_TOKEN,
-        END_TOKEN,
+        /** No token was found. */
+        INVALID_TOKEN("invalid token"),
 
-        // ERROR_TOKEN is a terminal which does not exist. It is the symbol a grammar marks its error recovery points
-        // with, which no input can produce: the parser shifts it itself while recovering from a syntax error.
-        ERROR_TOKEN,
-    
-        WHITESPACE,
-        INTEGER,
-        PLUS,
-        MINUS,
-        MULTIPLY,
-        DIVIDE,
-        LPAREN,
-        RPAREN,
-        UMINUS,
+        /** The end of the source was reached. */
+        END_TOKEN("end token"),
+
+        /** The symbol a grammar marks its error recovery points with. No input ever produces it. */
+        ERROR_TOKEN("error token"),
+
+        TOKEN_WHITESPACE("WHITESPACE"),
+        TOKEN_INTEGER("INTEGER"),
+        TOKEN_PLUS("PLUS"),
+        TOKEN_MINUS("MINUS"),
+        TOKEN_MULTIPLY("MULTIPLY"),
+        TOKEN_DIVIDE("DIVIDE"),
+        TOKEN_LPAREN("LPAREN"),
+        TOKEN_RPAREN("RPAREN"),
+        TOKEN_UMINUS("UMINUS"),
         ;
 
+        /** The name the grammar spells the token with. */
+        private final String displayName;
+
+        Token(String displayName) {
+            this.displayName = displayName;
+        }
+
+        /** Returns the name of the token, as the grammar spells it. */
         @Override
         public String toString() {
-            switch (this) {
-                case INVALID_TOKEN: return "invalid token";
-                case END_TOKEN: return "end token";
-                case ERROR_TOKEN: return "error token";
-                case WHITESPACE: return "WHITESPACE";
-                case INTEGER: return "INTEGER";
-                case PLUS: return "PLUS";
-                case MINUS: return "MINUS";
-                case MULTIPLY: return "MULTIPLY";
-                case DIVIDE: return "DIVIDE";
-                case LPAREN: return "LPAREN";
-                case RPAREN: return "RPAREN";
-                case UMINUS: return "UMINUS";
-                default: return "unknown";
-            }
+            return displayName;
         }
     }
 
-    public static class TokenSkipper implements TokenSkipperScanner {
+    /**
+     * Wraps a scanner and skips the tokens marked for skipping, which are usually whitespace and comments. It offers
+     * the same members as {@link Scanner}.
+     */
+    public static final class TokenSkipper implements TokenSkipperScanner {
+        /** The wrapped scanner. */
         private final TokenSkipperScanner scanner;
 
+        /** @param scanner the scanner to take the tokens from */
         public TokenSkipper(TokenSkipperScanner scanner) {
             this.scanner = scanner;
         }
 
         @Override
-        public void reset(byte[] source, int offset) {
-            scanner.reset(source, offset);
-        }
-
-        @Override
-        public Scanner.Token token() {
+        public Token token() {
             return scanner.token();
         }
 
@@ -102,47 +123,104 @@ public class Scanner implements TokenSkipperScanner {
         }
 
         @Override
+        public void reset(byte[] source, int offset) {
+            scanner.reset(source, offset);
+        }
+
+        /**
+         * Advances to the next token which is not marked for skipping. Returns false when the source holds no such
+         * token any more.
+         */
+        @Override
         public boolean next() {
-            while (true) {
-                if (!scanner.next()) {
-                    return false;
-                }
-                switch (scanner.token()) {
-                    case WHITESPACE: continue;
-                    default:
-                        return true;
+            while (scanner.next()) {
+                if (!isSkipped(scanner.token())) {
+                    return true;
                 }
             }
+            return false;
+        }
+
+        /** Reports whether the grammar marked the token for skipping. */
+        private static boolean isSkipped(Token token) {
+            return switch (token) {
+                case TOKEN_WHITESPACE -> true;
+                default -> false;
+            };
         }
     }
 
-    private byte[] source;
-    private int lexemeStartIdx;
-    private int lexemeEndIdx;
-    private int lexemePeekIdx;
-    private int line;
-    private int column;
-    private int state;
-    private Token token;
+    // The automaton is held in lookup tables. An input byte is mapped to its byte class, which is the column of the
+    // transition table, and the rows of that table are displaced into a single array so that the entries of one row
+    // fall into the holes of another. This is the row displacement method of "Storing a Sparse Table" by Tarjan and
+    // Yao.
+    //
+    // The displaced arrays are padded so that every state and byte class lands inside them, which is why a lookup
+    // needs no range check of its own.
+    //
+    // Every table is joined from one method per chunk, because a method may hold only 64 KB of bytecode.
+
+    /** Maps an input byte to its byte class. Bytes which every state treats alike share a class. */
+    private static final byte[] BYTE_CLASS_BY_BYTE = concat(
+            byteClassByByte0());
+
+    /** Maps a state to the displacement of its row within {@link #TRANSITION_NEXT}. */
+    private static final byte[] TRANSITION_BASE = concat(
+            transitionBase0());
+
+    /**
+     * Holds the target state of every transition. The transition a state has on a byte class lives at
+     * TRANSITION_BASE[state] + class, but only if {@link #TRANSITION_CHECK} confirms the cell belongs to that class.
+     */
+    private static final byte[] TRANSITION_NEXT = concat(
+            transitionNext0());
+
+    /**
+     * Holds the byte class every cell of {@link #TRANSITION_NEXT} belongs to. A cell no state occupies holds
+     * 9, which is one past the highest byte class in use and can never be asked for.
+     */
+    private static final byte[] TRANSITION_CHECK = concat(
+            transitionCheck0());
+
+    /** Holds the token a state accepts, or the invalid token for a state which does not accept. */
+    private static final Token[] ACCEPT_TOKEN_BY_STATE = concat(
+            acceptTokenByState0());
+
+    /** The file path the scanner was given. */
     private final String filePath;
 
+    /** The bytes being scanned. */
+    private byte[] source;
+
+    /** The current token. */
+    private Token token;
+
+    /** Index of the first byte of the current token. */
+    private int lexemeStartIdx;
+
+    /** Index one past the last byte of the current token. */
+    private int lexemeEndIdx;
+
+    /** Index of the byte the automaton is looking at. */
+    private int lexemePeekIdx;
+
+    /** The line the current token starts on, counted from one. */
+    private int line;
+
+    /** The column the current token starts on, counted from one. */
+    private int column;
+
+    /**
+     * @param source the bytes to scan
+     * @param filePath used in error messages, any string will do when the source is not a file
+     */
     public Scanner(byte[] source, String filePath) {
         this.filePath = filePath;
         reset(source, 0);
     }
 
     @Override
-    public void reset(byte[] source, int offset) {
-        this.source = source;
-        this.lexemeStartIdx = 0;
-        this.lexemeEndIdx = offset;
-        this.line = 1;
-        this.column = 1;
-        this.token = Token.INVALID_TOKEN;
-    }
-
-    @Override
-    public Scanner.Token token() {
+    public Token token() {
         return token;
     }
 
@@ -162,47 +240,89 @@ public class Scanner implements TokenSkipperScanner {
     }
 
     @Override
+    public ByteBuffer lexeme() {
+        return ByteBuffer.wrap(source, lexemeStartIdx, lexemeEndIdx - lexemeStartIdx)
+                .slice()
+                .asReadOnlyBuffer();
+    }
+
+    @Override
     public String filePath() {
         return filePath;
     }
 
     @Override
-    public ByteBuffer lexeme() {
-        return ByteBuffer.wrap(source, lexemeStartIdx, lexemeEndIdx - lexemeStartIdx).asReadOnlyBuffer();
+    public void reset(byte[] source, int offset) {
+        this.source = source;
+
+        lexemeStartIdx = 0;
+        lexemeEndIdx = offset;
+        lexemePeekIdx = offset;
+
+        line = 1;
+        column = 1;
+
+        token = Token.INVALID_TOKEN;
     }
 
+    /**
+     * Advances to the next token. Bytes which form no token become an invalid token. Returns false once the end of the
+     * source is reached, which sets the token to the end token.
+     */
     @Override
     public boolean next() {
-        updateLineAndColumn();
+        updateLineAndColumn(lexemeStartIdx, lexemeEndIdx);
         lexemeStartIdx = lexemeEndIdx;
-        state = 0;
 
+        int state = 0;
         for (lexemePeekIdx = lexemeEndIdx; lexemePeekIdx < source.length; lexemePeekIdx++) {
-            if (!dispatchState()) {
+            // Remember every accepting state passed through, so the longest match wins over the first one.
+            if (ACCEPT_TOKEN_BY_STATE[state] != Token.INVALID_TOKEN) {
+                token = ACCEPT_TOKEN_BY_STATE[state];
+                lexemeEndIdx = lexemePeekIdx;
+            }
+
+            // Java has no unsigned byte, so every byte of 0x80 and above is negative and has to be masked before it
+            // can be an index.
+            int byteClass = BYTE_CLASS_BY_BYTE[source[lexemePeekIdx] & 0xff];
+            int cellIdx = TRANSITION_BASE[state] + byteClass;
+            if (TRANSITION_CHECK[cellIdx] != byteClass) {
+                // The state has no transition on this byte, so the token ends here.
                 break;
             }
+            state = TRANSITION_NEXT[cellIdx];
         }
         if (lexemePeekIdx == source.length) {
-            dispatchEOF();
+            // The loop ran off the end of the source, leaving the state it stopped in still to be tested.
+            if (ACCEPT_TOKEN_BY_STATE[state] != Token.INVALID_TOKEN) {
+                token = ACCEPT_TOKEN_BY_STATE[state];
+                lexemeEndIdx = lexemePeekIdx;
+            }
         }
 
         if (lexemeStartIdx < lexemeEndIdx) {
+            // A token was found.
             return true;
         }
 
         if (source.length <= lexemeStartIdx) {
+            // The end of the source was reached.
             token = Token.END_TOKEN;
             return false;
         }
 
+        // The bytes here form no token. The invalid token covers the byte which could not be consumed as well, so that
+        // the scan always moves forward. Its end is clamped, because a source which ends in the middle of a token
+        // leaves the peek index one past the last byte.
         token = Token.INVALID_TOKEN;
-        lexemeEndIdx = lexemePeekIdx + 1;
+        lexemeEndIdx = Math.min(lexemePeekIdx + 1, source.length);
         return true;
     }
 
-    private void updateLineAndColumn() {
-        for (int i = lexemeStartIdx; i < lexemeEndIdx; i++) {
-            if (source[i] == '\n') {
+    /** Advances the line and column counters over the bytes between the two indexes. */
+    private void updateLineAndColumn(int startIdx, int endIdx) {
+        for (int idx = startIdx; idx < endIdx; idx++) {
+            if (source[idx] == 0x0a) {
                 line++;
                 column = 1;
             } else {
@@ -211,136 +331,95 @@ public class Scanner implements TokenSkipperScanner {
         }
     }
 
-    private boolean dispatchState() {
-        switch (state) {
-            case 0: return state0Whitespace();
-            case 1: return state1Whitespace();
-            case 2: return state2Integer();
-            case 3: return state3Plus();
-            case 4: return state4Minus();
-            case 5: return state5Multiply();
-            case 6: return state6Divide();
-            case 7: return state7Lparen();
-            case 8: return state8Rparen();
-            default:
-                throw new IllegalStateException("Unexpected scanner state: " + state);
+    /** Returns chunk 0 of {@link #BYTE_CLASS_BY_BYTE}. */
+    private static byte[] byteClassByByte0() {
+        return new byte[] {
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 5, 0, 6, 0, 7,
+            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        };
+    }
+
+    /** Returns chunk 0 of {@link #TRANSITION_BASE}. */
+    private static byte[] transitionBase0() {
+        return new byte[] {
+            0, 8, 2, 1, 1, 1, 1, 1, 1,
+        };
+    }
+
+    /** Returns chunk 0 of {@link #TRANSITION_NEXT}. */
+    private static byte[] transitionNext0() {
+        return new byte[] {
+            0, 1, 7, 8, 5, 3, 4, 6, 2, 1, 2, 0, 0, 0, 0, 0,
+            0,
+        };
+    }
+
+    /** Returns chunk 0 of {@link #TRANSITION_CHECK}. */
+    private static byte[] transitionCheck0() {
+        return new byte[] {
+            9, 1, 2, 3, 4, 5, 6, 7, 8, 1, 8, 9, 9, 9, 9, 9,
+            9,
+        };
+    }
+
+    /** Returns chunk 0 of {@link #ACCEPT_TOKEN_BY_STATE}. */
+    private static Token[] acceptTokenByState0() {
+        return new Token[] {
+            Token.INVALID_TOKEN,
+            Token.TOKEN_WHITESPACE,
+            Token.TOKEN_INTEGER,
+            Token.TOKEN_PLUS,
+            Token.TOKEN_MINUS,
+            Token.TOKEN_MULTIPLY,
+            Token.TOKEN_DIVIDE,
+            Token.TOKEN_LPAREN,
+            Token.TOKEN_RPAREN,
+        };
+    }
+
+    /** Returns the given chunks of a table as the one table they make up. */
+    private static byte[] concat(byte[]... parts) {
+        int length = 0;
+        for (byte[] part : parts) {
+            length += part.length;
         }
-    }
 
-    private void dispatchEOF() {
-        switch (state) {
-            case 1:
-                token = Token.WHITESPACE;
-                lexemeEndIdx = lexemePeekIdx;
-                break;
-            case 2:
-                token = Token.INTEGER;
-                lexemeEndIdx = lexemePeekIdx;
-                break;
-            case 3:
-                token = Token.PLUS;
-                lexemeEndIdx = lexemePeekIdx;
-                break;
-            case 4:
-                token = Token.MINUS;
-                lexemeEndIdx = lexemePeekIdx;
-                break;
-            case 5:
-                token = Token.MULTIPLY;
-                lexemeEndIdx = lexemePeekIdx;
-                break;
-            case 6:
-                token = Token.DIVIDE;
-                lexemeEndIdx = lexemePeekIdx;
-                break;
-            case 7:
-                token = Token.LPAREN;
-                lexemeEndIdx = lexemePeekIdx;
-                break;
-            case 8:
-                token = Token.RPAREN;
-                lexemeEndIdx = lexemePeekIdx;
-                break;
+        byte[] result = new byte[length];
+        int offset = 0;
+        for (byte[] part : parts) {
+            System.arraycopy(part, 0, result, offset, part.length);
+            offset += part.length;
         }
+        return result;
     }
 
-    private boolean state0Whitespace() {
-        int nextByte = source[lexemePeekIdx] & 0xFF;
-        if (nextByte == '\t') { state = 1; return true; }
-        if (nextByte == '\n') { state = 1; return true; }
-        if (nextByte == '\r') { state = 1; return true; }
-        if (nextByte == ' ') { state = 1; return true; }
-        if (nextByte == '(') { state = 7; return true; }
-        if (nextByte == ')') { state = 8; return true; }
-        if (nextByte == '*') { state = 5; return true; }
-        if (nextByte == '+') { state = 3; return true; }
-        if (nextByte == '-') { state = 4; return true; }
-        if (nextByte == '/') { state = 6; return true; }
-        if ('0' <= nextByte && nextByte <= '9') { state = 2; return true; }
-        return false;
-    }
+    /** Returns the given chunks of a table as the one table they make up. */
+    private static Token[] concat(Token[]... parts) {
+        int length = 0;
+        for (Token[] part : parts) {
+            length += part.length;
+        }
 
-    private boolean state1Whitespace() {
-        token = Token.WHITESPACE;
-        lexemeEndIdx = lexemePeekIdx;
-        
-        int nextByte = source[lexemePeekIdx] & 0xFF;
-        if (nextByte == '\t') { state = 1; return true; }
-        if (nextByte == '\n') { state = 1; return true; }
-        if (nextByte == '\r') { state = 1; return true; }
-        if (nextByte == ' ') { state = 1; return true; }
-        return false;
+        Token[] result = new Token[length];
+        int offset = 0;
+        for (Token[] part : parts) {
+            System.arraycopy(part, 0, result, offset, part.length);
+            offset += part.length;
+        }
+        return result;
     }
-
-    private boolean state2Integer() {
-        token = Token.INTEGER;
-        lexemeEndIdx = lexemePeekIdx;
-        
-        int nextByte = source[lexemePeekIdx] & 0xFF;
-        if ('0' <= nextByte && nextByte <= '9') { state = 2; return true; }
-        return false;
-    }
-
-    private boolean state3Plus() {
-        token = Token.PLUS;
-        lexemeEndIdx = lexemePeekIdx;
-        
-        return false;
-    }
-
-    private boolean state4Minus() {
-        token = Token.MINUS;
-        lexemeEndIdx = lexemePeekIdx;
-        
-        return false;
-    }
-
-    private boolean state5Multiply() {
-        token = Token.MULTIPLY;
-        lexemeEndIdx = lexemePeekIdx;
-        
-        return false;
-    }
-
-    private boolean state6Divide() {
-        token = Token.DIVIDE;
-        lexemeEndIdx = lexemePeekIdx;
-        
-        return false;
-    }
-
-    private boolean state7Lparen() {
-        token = Token.LPAREN;
-        lexemeEndIdx = lexemePeekIdx;
-        
-        return false;
-    }
-
-    private boolean state8Rparen() {
-        token = Token.RPAREN;
-        lexemeEndIdx = lexemePeekIdx;
-        
-        return false;
-    }
-
 }

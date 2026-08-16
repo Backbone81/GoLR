@@ -3,7 +3,7 @@ all: build
 
 .PHONY: build
 build:
-	javac -cp . Main.java parser/Scanner.java
+	javac -cp . Main.java parser/Scanner.java parser/Parser.java
 
 .PHONY: run
 run: build

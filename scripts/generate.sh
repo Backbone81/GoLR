@@ -55,6 +55,12 @@ go run ./cmd/golr scanner \
   --frontend-file-path examples/calculator/calculator.golr \
   --backend java \
   --backend-file-path examples/calculator/java/parser/Scanner.java
+go run ./cmd/golr parser \
+  --frontend golr \
+  --frontend-file-path examples/calculator/calculator.golr \
+  --core ielr1-golr \
+  --backend java \
+  --backend-file-path examples/calculator/java/parser/Parser.java
 go run ./cmd/golr scanner \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \

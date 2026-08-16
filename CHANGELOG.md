@@ -10,6 +10,8 @@
 - Added a TypeScript parser generator backend.
 - Added a C# scanner generator backend.
 - Added a C# parser generator backend.
+- Replaced the Java scanner backend with a table driven one.
+- Added a Java parser generator backend, selected with --backend java.
 
 ## v0.2.0 (2026-08-08)
 

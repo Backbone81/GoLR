@@ -19,7 +19,6 @@
 - Publish IntelliJ plugin for syntax highlighting of GoLR files
 - Add support for C backend
 - Add support for C++ backend
-- Add support for Java backend
 - Add support for Python backend
 - Add support for Rust backend
 - Support extended Backus-Naur form for GoLR productions

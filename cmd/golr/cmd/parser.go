@@ -14,6 +14,7 @@ import (
 	dotbackend "github.com/backbone81/golr/pkg/parsergen/backend/dot"
 	golangbackend "github.com/backbone81/golr/pkg/parsergen/backend/golang"
 	golangtablebackend "github.com/backbone81/golr/pkg/parsergen/backend/golangtable"
+	javabackend "github.com/backbone81/golr/pkg/parsergen/backend/java"
 	javascriptbackend "github.com/backbone81/golr/pkg/parsergen/backend/javascript"
 	jsonbackend "github.com/backbone81/golr/pkg/parsergen/backend/json"
 	typescriptbackend "github.com/backbone81/golr/pkg/parsergen/backend/typescript"
@@ -41,6 +42,8 @@ var (
 	parserBackendGoPackageName string
 
 	parserBackendCSharpNamespace string
+
+	parserBackendJavaPackageName string
 
 	parserBackendJavaScriptScannerModule string
 
@@ -159,6 +162,15 @@ func executeParserBackend(parser backend.Parser) error {
 		return golangtablebackend.ParserToFile(parserBackendFilePath, parser, golangtablebackend.Config{
 			PackageName: parserBackendGoPackageName,
 		})
+	case "java":
+		if parserBackendFilePath == "-" {
+			return javabackend.FromParser(os.Stdout, parser, javabackend.Config{
+				PackageName: parserBackendJavaPackageName,
+			})
+		}
+		return javabackend.ParserToFile(parserBackendFilePath, parser, javabackend.Config{
+			PackageName: parserBackendJavaPackageName,
+		})
 	case "javascript":
 		if parserBackendFilePath == "-" {
 			return javascriptbackend.FromParser(os.Stdout, parser, javascriptbackend.Config{
@@ -225,7 +237,7 @@ func init() {
 		&parserBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the parser. One of: csharp, dot, go, go-direct, go-table, javascript, json, null, typescript, yaml.",
+		"The backend to use for writing the parser. One of: csharp, dot, go, go-direct, go-table, java, javascript, json, null, typescript, yaml.",
 	)
 	parserCmd.PersistentFlags().StringVar(
 		&parserBackendFilePath,
@@ -249,6 +261,13 @@ func init() {
 		"backend-csharp-namespace",
 		"Parser",
 		"The C# namespace to use for the generated C# code. Has to be the one the scanner was generated into.",
+	)
+
+	parserCmd.PersistentFlags().StringVar(
+		&parserBackendJavaPackageName,
+		"backend-java-package-name",
+		"parser",
+		"The Java package name to use for the generated Java code. Has to be the one the scanner was generated into.",
 	)
 
 	parserCmd.PersistentFlags().StringVar(
