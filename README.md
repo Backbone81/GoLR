@@ -252,6 +252,7 @@ These backends are currently supported:
 - [JavaScript](docs/parsergen-backend-javascript.md)
 - [JSON](docs/parsergen-backend-json.md)
 - [Null](docs/parsergen-backend-null.md)
+- [Rust](docs/parsergen-backend-rust.md)
 - [TypeScript](docs/parsergen-backend-typescript.md)
 - [YAML](docs/parsergen-backend-yaml.md)
 

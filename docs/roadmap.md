@@ -20,7 +20,6 @@
 - Add support for C backend
 - Add support for C++ backend
 - Add support for Python backend
-- Add support for Rust backend
 - Support extended Backus-Naur form for GoLR productions
 - Reduce shift/reduce conflict of the golang example to 0.
 - Fix `Statement` in `examples/golang/spec/golang.golr` to reference the `FallthroughStmt` nonterminal instead of

@@ -4,191 +4,268 @@
 // Apache-2.0 license and may be licensed under terms of your choosing.
 // See https://github.com/backbone81/golr/blob/main/LICENSE.OUTPUT
 
+// A grammar declares tokens and a scanner offers members which a given user has no use for.
 #![allow(dead_code)]
 
-/// Token represents all terminal symbols.
+use std::fmt;
+
+/// Every terminal symbol this scanner knows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Token {
-    /// InvalidToken is a terminal which does not exist. Used when no token was found.
+    /// No token was found.
     InvalidToken,
-    /// EndToken is a terminal which does not exist. Used when the end of the source was reached.
+
+    /// The end of the source was reached.
     EndToken,
-    /// ErrorToken is a terminal which does not exist. It is the symbol a grammar marks its error recovery points with,
-    /// which no input can produce: the parser shifts it itself while recovering from a syntax error.
+
+    /// The symbol a grammar marks its error recovery points with. No input ever produces it.
     ErrorToken,
 
+    /// The token of the rule `WHITESPACE`.
     TokenWhitespace,
+
+    /// The token of the rule `INTEGER`.
     TokenInteger,
+
+    /// The token of the rule `PLUS`.
     TokenPlus,
+
+    /// The token of the rule `MINUS`.
     TokenMinus,
+
+    /// The token of the rule `MULTIPLY`.
     TokenMultiply,
+
+    /// The token of the rule `DIVIDE`.
     TokenDivide,
+
+    /// The token of the rule `LPAREN`.
     TokenLparen,
+
+    /// The token of the rule `RPAREN`.
     TokenRparen,
+
+    /// The token of the rule `UMINUS`.
     TokenUminus,
 }
 
-impl std::fmt::Display for Token {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Token::InvalidToken => write!(f, "invalid token"),
-            Token::EndToken => write!(f, "end token"),
-            Token::ErrorToken => write!(f, "error token"),
-            Token::TokenWhitespace => write!(f, "WHITESPACE"),
-            Token::TokenInteger => write!(f, "INTEGER"),
-            Token::TokenPlus => write!(f, "PLUS"),
-            Token::TokenMinus => write!(f, "MINUS"),
-            Token::TokenMultiply => write!(f, "MULTIPLY"),
-            Token::TokenDivide => write!(f, "DIVIDE"),
-            Token::TokenLparen => write!(f, "LPAREN"),
-            Token::TokenRparen => write!(f, "RPAREN"),
-            Token::TokenUminus => write!(f, "UMINUS"),
-        }
+impl fmt::Display for Token {
+    /// Writes the name of the token, as the grammar spells it.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            Token::InvalidToken => "invalid token",
+            Token::EndToken => "end token",
+            Token::ErrorToken => "error token",
+            Token::TokenWhitespace => "WHITESPACE",
+            Token::TokenInteger => "INTEGER",
+            Token::TokenPlus => "PLUS",
+            Token::TokenMinus => "MINUS",
+            Token::TokenMultiply => "MULTIPLY",
+            Token::TokenDivide => "DIVIDE",
+            Token::TokenLparen => "LPAREN",
+            Token::TokenRparen => "RPAREN",
+            Token::TokenUminus => "UMINUS",
+        };
+        f.write_str(name)
     }
 }
 
-/// TokenSkipperScanner is the trait the scanner needs to implement for the TokenSkipper.
+/// What a scanner offers. Both [`Scanner`] and [`TokenSkipper`] implement it.
 pub trait TokenSkipperScanner {
+    /// Returns the current token.
     fn token(&self) -> Token;
+
+    /// Returns the start of the token in bytes from the start of the source. After [`Self::next`] returned false it
+    /// is the offset one past the last byte.
     fn byte_offset(&self) -> usize;
+
+    /// Returns the line the token starts on, counted from one.
     fn line(&self) -> usize;
+
+    /// Returns the column the token starts on, counted from one.
     fn column(&self) -> usize;
+
+    /// Returns the bytes of the token, as a view into the source rather than a copy of it.
     fn lexeme(&self) -> &[u8];
-    fn next(&mut self) -> bool;
+
+    /// Returns the file path the scanner was given.
     fn file_path(&self) -> &str;
+
+    /// Advances to the next token. Returns false when the source holds no such token any more.
+    fn next(&mut self) -> bool;
+
+    /// Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
+    /// changed.
     fn reset(&mut self, source: Vec<u8>, offset: usize);
 }
 
-/// TokenSkipper wraps a scanner and skips all tokens which were marked for skipping.
-/// This is usually used for skipping whitespaces and comments.
+/// Wraps a scanner and skips the tokens marked for skipping, which are usually whitespace and comments. It offers the
+/// same members as [`Scanner`].
 pub struct TokenSkipper<S: TokenSkipperScanner> {
+    /// The wrapped scanner.
     scanner: S,
 }
 
 impl<S: TokenSkipperScanner> TokenSkipper<S> {
+    /// Creates a skipper which hands on the tokens of the given scanner.
     pub fn new(scanner: S) -> Self {
         Self { scanner }
     }
 }
 
 impl<S: TokenSkipperScanner> TokenSkipperScanner for TokenSkipper<S> {
-    fn token(&self) -> Token       { self.scanner.token() }
-    fn byte_offset(&self) -> usize { self.scanner.byte_offset() }
-    fn line(&self) -> usize        { self.scanner.line() }
-    fn column(&self) -> usize      { self.scanner.column() }
-    fn lexeme(&self) -> &[u8]      { self.scanner.lexeme() }
-    fn file_path(&self) -> &str    { self.scanner.file_path() }
+    fn token(&self) -> Token {
+        self.scanner.token()
+    }
+
+    fn byte_offset(&self) -> usize {
+        self.scanner.byte_offset()
+    }
+
+    fn line(&self) -> usize {
+        self.scanner.line()
+    }
+
+    fn column(&self) -> usize {
+        self.scanner.column()
+    }
+
+    fn lexeme(&self) -> &[u8] {
+        self.scanner.lexeme()
+    }
+
+    fn file_path(&self) -> &str {
+        self.scanner.file_path()
+    }
 
     fn reset(&mut self, source: Vec<u8>, offset: usize) {
         self.scanner.reset(source, offset);
     }
 
+    /// Advances to the next token which is not marked for skipping. Returns false when the source holds no such token
+    /// any more.
     fn next(&mut self) -> bool {
-        loop {
-            if !self.scanner.next() {
-                return false;
-            }
-            match self.scanner.token() {
-                Token::TokenWhitespace => continue,
-                _ => return true,
+        while self.scanner.next() {
+            if !is_skipped(self.scanner.token()) {
+                return true;
             }
         }
+        false
     }
 }
 
-/// Scanner reads source code and returns tokens.
+/// Reports whether the grammar marked the token for skipping.
+fn is_skipped(token: Token) -> bool {
+    match token {
+        Token::TokenWhitespace => true,
+        _ => false,
+    }
+}
+
+// The automaton is held in lookup tables. An input byte is mapped to its byte class, which is the column of the
+// transition table, and the rows of that table are displaced into a single array so that the entries of one row fall
+// into the holes of another. This is the row displacement method of "Storing a Sparse Table" by Tarjan and Yao.
+//
+// The displaced arrays are padded so that every state and byte class lands inside them, which is why a lookup needs no
+// range check of its own.
+
+/// Maps an input byte to its byte class. Bytes which every state treats alike share a class.
+static BYTE_CLASS_BY_BYTE: [u8; 256] = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 5, 0, 6, 0, 7,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+];
+
+/// Maps a state to the displacement of its row within [`TRANSITION_NEXT`].
+static TRANSITION_BASE: [u8; 9] = [
+    0, 8, 2, 1, 1, 1, 1, 1, 1,
+];
+
+/// Holds the target state of every transition. The transition a state has on a byte class lives at
+/// `TRANSITION_BASE[state] + class`, but only if [`TRANSITION_CHECK`] confirms the cell belongs to that class.
+static TRANSITION_NEXT: [u8; 17] = [
+    0, 1, 7, 8, 5, 3, 4, 6, 2, 1, 2, 0, 0, 0, 0, 0,
+    0,
+];
+
+/// Holds the byte class every cell of [`TRANSITION_NEXT`] belongs to. A cell no state occupies holds
+/// 9, which is one past the highest byte class in use and can never be asked for.
+static TRANSITION_CHECK: [u8; 17] = [
+    9, 1, 2, 3, 4, 5, 6, 7, 8, 1, 8, 9, 9, 9, 9, 9,
+    9,
+];
+
+/// Holds the token a state accepts, or [`Token::InvalidToken`] for a state which does not accept.
+static ACCEPT_TOKEN_BY_STATE: [Token; 9] = [
+    Token::InvalidToken,
+    Token::TokenWhitespace,
+    Token::TokenInteger,
+    Token::TokenPlus,
+    Token::TokenMinus,
+    Token::TokenMultiply,
+    Token::TokenDivide,
+    Token::TokenLparen,
+    Token::TokenRparen,
+];
+
+/// Turns the bytes of a source into tokens.
 pub struct Scanner {
+    /// The bytes being scanned.
     source: Vec<u8>,
-    lexeme_start_idx: usize,
-    lexeme_end_idx: usize,
-    lexeme_peek_idx: usize,
-    line: usize,
-    column: usize,
-    state: usize,
-    token: Token,
+
+    /// The file path the scanner was given.
     file_path: String,
+
+    /// The current token.
+    token: Token,
+
+    /// Index of the first byte of the current token.
+    lexeme_start_idx: usize,
+
+    /// Index one past the last byte of the current token.
+    lexeme_end_idx: usize,
+
+    /// The line the current token starts on, counted from one.
+    line: usize,
+
+    /// The column the current token starts on, counted from one.
+    column: usize,
 }
 
 impl Scanner {
-    /// Creates a new Scanner with the given source. The file_path parameter is used to
-    /// return information about which file has an error. You can provide any string you want
-    /// if you don't have a file.
+    /// Creates a scanner which turns the given bytes into tokens, starting at the first of them. The file path is used
+    /// in error messages, so any string will do when the source is not a file.
     pub fn new(source: Vec<u8>, file_path: &str) -> Self {
         let mut scanner = Self {
             source: Vec::new(),
+            file_path: file_path.to_owned(),
+            token: Token::InvalidToken,
             lexeme_start_idx: 0,
             lexeme_end_idx: 0,
-            lexeme_peek_idx: 0,
             line: 1,
             column: 1,
-            state: 0,
-            token: Token::InvalidToken,
-            file_path: file_path.to_owned(),
         };
         scanner.reset(source, 0);
         scanner
     }
-}
 
-impl TokenSkipperScanner for Scanner {
-    fn token(&self) -> Token    { self.token }
-    fn byte_offset(&self) -> usize { self.lexeme_start_idx }
-    fn line(&self) -> usize     { self.line }
-    fn column(&self) -> usize   { self.column }
-    fn file_path(&self) -> &str { &self.file_path }
-
-    fn lexeme(&self) -> &[u8] {
-        &self.source[self.lexeme_start_idx..self.lexeme_end_idx]
-    }
-
-    fn reset(&mut self, source: Vec<u8>, offset: usize) {
-        self.source = source;
-        self.lexeme_start_idx = 0;
-        self.lexeme_end_idx = offset;
-        self.line = 1;
-        self.column = 1;
-        self.token = Token::InvalidToken;
-    }
-
-    fn next(&mut self) -> bool {
-        self.update_line_and_column();
-        self.lexeme_start_idx = self.lexeme_end_idx;
-        self.state = 0;
-
-        self.lexeme_peek_idx = self.lexeme_end_idx;
-        while self.lexeme_peek_idx < self.source.len() {
-            if !self.dispatch_state() {
-                break;
-            }
-            self.lexeme_peek_idx += 1;
-        }
-        if self.lexeme_peek_idx == self.source.len() {
-            // We need to capture the last character of the source.
-            self.dispatch_eof();
-        }
-
-        if self.lexeme_start_idx < self.lexeme_end_idx {
-            // We found a token.
-            return true;
-        }
-
-        if self.source.len() <= self.lexeme_start_idx {
-            // We have reached the end of the source.
-            self.token = Token::EndToken;
-            return false;
-        }
-
-        // We found some characters which do not form a token. We need to emit an invalid token for them.
-        self.token = Token::InvalidToken;
-        self.lexeme_end_idx = self.lexeme_peek_idx + 1;
-        true
-    }
-}
-
-impl Scanner {
-    fn update_line_and_column(&mut self) {
-        for &byte in &self.source[self.lexeme_start_idx..self.lexeme_end_idx] {
-            if byte == b'\n' {
+    /// Advances the line and column counters over the bytes between the two indexes.
+    fn update_line_and_column(&mut self, start_idx: usize, end_idx: usize) {
+        for idx in start_idx..end_idx {
+            if self.source[idx] == b'\n' {
                 self.line += 1;
                 self.column = 1;
             } else {
@@ -196,144 +273,93 @@ impl Scanner {
             }
         }
     }
+}
 
-    fn dispatch_state(&mut self) -> bool {
-        match self.state {
-            0 => self.state_0_whitespace(),
-            1 => self.state_1_whitespace(),
-            2 => self.state_2_integer(),
-            3 => self.state_3_plus(),
-            4 => self.state_4_minus(),
-            5 => self.state_5_multiply(),
-            6 => self.state_6_divide(),
-            7 => self.state_7_lparen(),
-            8 => self.state_8_rparen(),
-            _ => false,
+impl TokenSkipperScanner for Scanner {
+    fn token(&self) -> Token {
+        self.token
+    }
+
+    fn byte_offset(&self) -> usize {
+        self.lexeme_start_idx
+    }
+
+    fn line(&self) -> usize {
+        self.line
+    }
+
+    fn column(&self) -> usize {
+        self.column
+    }
+
+    fn lexeme(&self) -> &[u8] {
+        &self.source[self.lexeme_start_idx..self.lexeme_end_idx]
+    }
+
+    fn file_path(&self) -> &str {
+        &self.file_path
+    }
+
+    fn reset(&mut self, source: Vec<u8>, offset: usize) {
+        self.source = source;
+
+        self.lexeme_start_idx = 0;
+        self.lexeme_end_idx = offset;
+
+        self.line = 1;
+        self.column = 1;
+
+        self.token = Token::InvalidToken;
+    }
+
+    /// Advances to the next token. Bytes which form no token become an invalid token. Returns false once the end of
+    /// the source is reached, which sets the token to the end token.
+    fn next(&mut self) -> bool {
+        self.update_line_and_column(self.lexeme_start_idx, self.lexeme_end_idx);
+        self.lexeme_start_idx = self.lexeme_end_idx;
+
+        let mut state = 0usize;
+        let mut lexeme_peek_idx = self.lexeme_end_idx;
+        while lexeme_peek_idx < self.source.len() {
+            // Remember every accepting state passed through, so the longest match wins over the first one.
+            if ACCEPT_TOKEN_BY_STATE[state] != Token::InvalidToken {
+                self.token = ACCEPT_TOKEN_BY_STATE[state];
+                self.lexeme_end_idx = lexeme_peek_idx;
+            }
+
+            let byte_class = BYTE_CLASS_BY_BYTE[self.source[lexeme_peek_idx] as usize] as usize;
+            let cell_idx = TRANSITION_BASE[state] as usize + byte_class;
+            if TRANSITION_CHECK[cell_idx] as usize != byte_class {
+                // The state has no transition on this byte, so the token ends here.
+                break;
+            }
+            state = TRANSITION_NEXT[cell_idx] as usize;
+            lexeme_peek_idx += 1;
         }
-    }
-
-    fn dispatch_eof(&mut self) {
-        match self.state {
-            1 => {
-                self.token = Token::TokenWhitespace;
-                self.lexeme_end_idx = self.lexeme_peek_idx;
+        if lexeme_peek_idx == self.source.len() {
+            // The loop ran off the end of the source, leaving the state it stopped in still to be tested.
+            if ACCEPT_TOKEN_BY_STATE[state] != Token::InvalidToken {
+                self.token = ACCEPT_TOKEN_BY_STATE[state];
+                self.lexeme_end_idx = lexeme_peek_idx;
             }
-            2 => {
-                self.token = Token::TokenInteger;
-                self.lexeme_end_idx = self.lexeme_peek_idx;
-            }
-            3 => {
-                self.token = Token::TokenPlus;
-                self.lexeme_end_idx = self.lexeme_peek_idx;
-            }
-            4 => {
-                self.token = Token::TokenMinus;
-                self.lexeme_end_idx = self.lexeme_peek_idx;
-            }
-            5 => {
-                self.token = Token::TokenMultiply;
-                self.lexeme_end_idx = self.lexeme_peek_idx;
-            }
-            6 => {
-                self.token = Token::TokenDivide;
-                self.lexeme_end_idx = self.lexeme_peek_idx;
-            }
-            7 => {
-                self.token = Token::TokenLparen;
-                self.lexeme_end_idx = self.lexeme_peek_idx;
-            }
-            8 => {
-                self.token = Token::TokenRparen;
-                self.lexeme_end_idx = self.lexeme_peek_idx;
-            }
-            _ => {}
         }
-    }
 
-
-    fn state_0_whitespace(&mut self) -> bool {
-        let next_byte = self.source[self.lexeme_peek_idx];
-        match next_byte {
-            b'\t' => { self.state = 1; true }
-            b'\n' => { self.state = 1; true }
-            b'\r' => { self.state = 1; true }
-            b' ' => { self.state = 1; true }
-            b'(' => { self.state = 7; true }
-            b')' => { self.state = 8; true }
-            b'*' => { self.state = 5; true }
-            b'+' => { self.state = 3; true }
-            b'-' => { self.state = 4; true }
-            b'/' => { self.state = 6; true }
-            b'0'..=b'9' => { self.state = 2; true }
-            _ => false,
+        if self.lexeme_start_idx < self.lexeme_end_idx {
+            // A token was found.
+            return true;
         }
-    }
 
-    fn state_1_whitespace(&mut self) -> bool {
-        self.token = Token::TokenWhitespace;
-        self.lexeme_end_idx = self.lexeme_peek_idx;
-        
-        let next_byte = self.source[self.lexeme_peek_idx];
-        match next_byte {
-            b'\t' => { self.state = 1; true }
-            b'\n' => { self.state = 1; true }
-            b'\r' => { self.state = 1; true }
-            b' ' => { self.state = 1; true }
-            _ => false,
+        if self.source.len() <= self.lexeme_start_idx {
+            // The end of the source was reached.
+            self.token = Token::EndToken;
+            return false;
         }
-    }
 
-    fn state_2_integer(&mut self) -> bool {
-        self.token = Token::TokenInteger;
-        self.lexeme_end_idx = self.lexeme_peek_idx;
-        
-        let next_byte = self.source[self.lexeme_peek_idx];
-        match next_byte {
-            b'0'..=b'9' => { self.state = 2; true }
-            _ => false,
-        }
+        // The bytes here form no token. The invalid token covers the byte which could not be consumed as well, so that
+        // the scan always moves forward. Its end is clamped, because a source which ends in the middle of a token
+        // leaves the peek index one past the last byte.
+        self.token = Token::InvalidToken;
+        self.lexeme_end_idx = (lexeme_peek_idx + 1).min(self.source.len());
+        true
     }
-
-    fn state_3_plus(&mut self) -> bool {
-        self.token = Token::TokenPlus;
-        self.lexeme_end_idx = self.lexeme_peek_idx;
-        
-        false
-    }
-
-    fn state_4_minus(&mut self) -> bool {
-        self.token = Token::TokenMinus;
-        self.lexeme_end_idx = self.lexeme_peek_idx;
-        
-        false
-    }
-
-    fn state_5_multiply(&mut self) -> bool {
-        self.token = Token::TokenMultiply;
-        self.lexeme_end_idx = self.lexeme_peek_idx;
-        
-        false
-    }
-
-    fn state_6_divide(&mut self) -> bool {
-        self.token = Token::TokenDivide;
-        self.lexeme_end_idx = self.lexeme_peek_idx;
-        
-        false
-    }
-
-    fn state_7_lparen(&mut self) -> bool {
-        self.token = Token::TokenLparen;
-        self.lexeme_end_idx = self.lexeme_peek_idx;
-        
-        false
-    }
-
-    fn state_8_rparen(&mut self) -> bool {
-        self.token = Token::TokenRparen;
-        self.lexeme_end_idx = self.lexeme_peek_idx;
-        
-        false
-    }
-
 }

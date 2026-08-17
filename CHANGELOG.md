@@ -12,6 +12,8 @@
 - Added a C# parser generator backend.
 - Replaced the Java scanner backend with a table driven one.
 - Added a Java parser generator backend, selected with --backend java.
+- Replaced the Rust scanner backend with a table driven one.
+- Added a Rust parser generator backend, selected with --backend rust.
 
 ## v0.2.0 (2026-08-08)
 

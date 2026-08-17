@@ -9,6 +9,8 @@ unreleased:
 - description: Added a C# parser generator backend.
 - description: Replaced the Java scanner backend with a table driven one.
 - description: Added a Java parser generator backend, selected with --backend java.
+- description: Replaced the Rust scanner backend with a table driven one.
+- description: Added a Rust parser generator backend, selected with --backend rust.
 releases:
 - version: |
     v0.2.0
