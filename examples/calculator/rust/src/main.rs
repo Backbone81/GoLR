@@ -27,7 +27,7 @@ fn evaluate(expression: &str) -> Result<i32, String> {
     let mut scanner = TokenSkipper::new(
         // The generated Scanner will convert the input into tokens. The file_path argument is used in error messages.
         // It wants the bytes of the input, not the string, so that offsets are byte offsets.
-        Scanner::new(expression.as_bytes().to_vec(), "expression"),
+        Scanner::new(expression.as_bytes(), "expression"),
     );
 
     // The expression is parsed by giving the generated parser the scanner to pull tokens from. We get the root node of
@@ -98,5 +98,5 @@ fn evaluate_three_children(node: &ParseNode) -> Result<i32, String> {
 
 // lexeme returns the bytes a terminal node stands for as text.
 fn lexeme(node: &ParseNode) -> String {
-    String::from_utf8_lossy(&node.lexeme).into_owned()
+    String::from_utf8_lossy(node.lexeme).into_owned()
 }

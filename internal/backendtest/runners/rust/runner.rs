@@ -66,7 +66,7 @@ fn escape_lexeme(lexeme: &[u8]) -> String {
 fn append_scanner_trace(lines: &mut Vec<String>, source: &[u8], input_path: &str) {
     // The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the offsets of the tokens
     // around it are only checkable when it is in the trace.
-    let mut scanner = Scanner::new(source.to_vec(), input_path);
+    let mut scanner = Scanner::new(source, input_path);
 
     while scanner.next() {
         // For a failed match this is the start of the attempt, not the byte which could not be consumed.
@@ -117,7 +117,7 @@ fn append_node_trace(lines: &mut Vec<String>, node: &ParseNode) {
 // tree, so its trace is the errors alone and the missing accept event is what says the two outcomes apart.
 fn append_parser_trace(lines: &mut Vec<String>, source: &[u8], input_path: &str) {
     // The TokenSkipper here, because a skipped rule never reaches the parser.
-    let mut scanner = TokenSkipper::new(Scanner::new(source.to_vec(), input_path));
+    let mut scanner = TokenSkipper::new(Scanner::new(source, input_path));
     let result = Parser::new().parse(&mut scanner);
 
     for error in &result.errors {

@@ -10,9 +10,10 @@
 use std::fmt;
 
 /// Every terminal symbol this scanner knows.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Token {
     /// No token was found.
+    #[default]
     InvalidToken,
 
     /// The end of the source was reached.
@@ -42,8 +43,8 @@ impl fmt::Display for Token {
     }
 }
 
-/// What a scanner offers. Both [`Scanner`] and [`TokenSkipper`] implement it.
-pub trait TokenSkipperScanner {
+/// What a scanner offers. Both [`Scanner`] and [`TokenSkipper`] implement it. The lifetime is the one of the source.
+pub trait TokenSkipperScanner<'a> {
     /// Returns the current token.
     fn token(&self) -> Token;
 
@@ -58,7 +59,7 @@ pub trait TokenSkipperScanner {
     fn column(&self) -> usize;
 
     /// Returns the bytes of the token, as a view into the source rather than a copy of it.
-    fn lexeme(&self) -> &[u8];
+    fn lexeme(&self) -> &'a [u8];
 
     /// Returns the file path the scanner was given.
     fn file_path(&self) -> &str;
@@ -68,24 +69,24 @@ pub trait TokenSkipperScanner {
 
     /// Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
     /// changed.
-    fn reset(&mut self, source: Vec<u8>, offset: usize);
+    fn reset(&mut self, source: &'a [u8], offset: usize);
 }
 
 /// Wraps a scanner and skips the tokens marked for skipping, which are usually whitespace and comments. It offers the
 /// same members as [`Scanner`].
-pub struct TokenSkipper<S: TokenSkipperScanner> {
+pub struct TokenSkipper<S> {
     /// The wrapped scanner.
     scanner: S,
 }
 
-impl<S: TokenSkipperScanner> TokenSkipper<S> {
+impl<S> TokenSkipper<S> {
     /// Creates a skipper which hands on the tokens of the given scanner.
     pub fn new(scanner: S) -> Self {
         Self { scanner }
     }
 }
 
-impl<S: TokenSkipperScanner> TokenSkipperScanner for TokenSkipper<S> {
+impl<'a, S: TokenSkipperScanner<'a>> TokenSkipperScanner<'a> for TokenSkipper<S> {
     fn token(&self) -> Token {
         self.scanner.token()
     }
@@ -102,7 +103,7 @@ impl<S: TokenSkipperScanner> TokenSkipperScanner for TokenSkipper<S> {
         self.scanner.column()
     }
 
-    fn lexeme(&self) -> &[u8] {
+    fn lexeme(&self) -> &'a [u8] {
         self.scanner.lexeme()
     }
 
@@ -110,7 +111,7 @@ impl<S: TokenSkipperScanner> TokenSkipperScanner for TokenSkipper<S> {
         self.scanner.file_path()
     }
 
-    fn reset(&mut self, source: Vec<u8>, offset: usize) {
+    fn reset(&mut self, source: &'a [u8], offset: usize) {
         self.scanner.reset(source, offset);
     }
 
@@ -126,14 +127,17 @@ impl<S: TokenSkipperScanner> TokenSkipperScanner for TokenSkipper<S> {
     }
 }
 
+/// Holds the tokens the grammar marked for skipping.
+#[rustfmt::skip]
+static SKIPPED_TOKENS: [Token; {{ len .Tables.SkippedTokens }}] = [
+{{- range .Tables.SkippedTokens }}
+    Token::{{ . }},
+{{- end }}
+];
+
 /// Reports whether the grammar marked the token for skipping.
 fn is_skipped(token: Token) -> bool {
-    match token {
-{{- range $i, $rule := .DFA.Rules }}{{ if $rule.Skip }}
-        Token::{{ tokenName $i $rule }} => true,
-{{- end }}{{ end }}
-        _ => false,
-    }
+    SKIPPED_TOKENS.contains(&token)
 }
 
 // The automaton is held in lookup tables. An input byte is mapped to its byte class, which is the column of the
@@ -144,34 +148,40 @@ fn is_skipped(token: Token) -> bool {
 // range check of its own.
 
 /// Maps an input byte to its byte class. Bytes which every state treats alike share a class.
+#[rustfmt::skip]
 static BYTE_CLASS_BY_BYTE: [{{ .Tables.ByteClassByByte.Type }}; {{ len .Tables.ByteClassByByte.Values }}] = [
     {{- .Tables.ByteClassByByte.Literal "    " }}];
 
 /// Maps a state to the displacement of its row within [`TRANSITION_NEXT`].
+#[rustfmt::skip]
 static TRANSITION_BASE: [{{ .Tables.TransitionBase.Type }}; {{ len .Tables.TransitionBase.Values }}] = [
     {{- .Tables.TransitionBase.Literal "    " }}];
 
 /// Holds the target state of every transition. The transition a state has on a byte class lives at
 /// `TRANSITION_BASE[state] + class`, but only if [`TRANSITION_CHECK`] confirms the cell belongs to that class.
+#[rustfmt::skip]
 static TRANSITION_NEXT: [{{ .Tables.TransitionNext.Type }}; {{ len .Tables.TransitionNext.Values }}] = [
     {{- .Tables.TransitionNext.Literal "    " }}];
 
 /// Holds the byte class every cell of [`TRANSITION_NEXT`] belongs to. A cell no state occupies holds
 /// {{ .Tables.NoByteClass }}, which is one past the highest byte class in use and can never be asked for.
+#[rustfmt::skip]
 static TRANSITION_CHECK: [{{ .Tables.TransitionCheck.Type }}; {{ len .Tables.TransitionCheck.Values }}] = [
     {{- .Tables.TransitionCheck.Literal "    " }}];
 
 /// Holds the token a state accepts, or [`Token::InvalidToken`] for a state which does not accept.
+#[rustfmt::skip]
 static ACCEPT_TOKEN_BY_STATE: [Token; {{ len .Tables.AcceptTokenByState }}] = [
 {{- range .Tables.AcceptTokenByState }}
     Token::{{ . }},
 {{- end }}
 ];
 
-/// Turns the bytes of a source into tokens.
-pub struct Scanner {
+/// Turns the bytes of a source into tokens. The source is borrowed, so the caller keeps it alive while it is scanned.
+#[derive(Default)]
+pub struct Scanner<'a> {
     /// The bytes being scanned.
-    source: Vec<u8>,
+    source: &'a [u8],
 
     /// The file path the scanner was given.
     file_path: String,
@@ -192,18 +202,14 @@ pub struct Scanner {
     column: usize,
 }
 
-impl Scanner {
+impl<'a> Scanner<'a> {
     /// Creates a scanner which turns the given bytes into tokens, starting at the first of them. The file path is used
     /// in error messages, so any string will do when the source is not a file.
-    pub fn new(source: Vec<u8>, file_path: &str) -> Self {
+    pub fn new(source: &'a [u8], file_path: &str) -> Self {
+        // Everything the scan runs on is left to reset, so that a new scanner and a reset one start out the same.
         let mut scanner = Self {
-            source: Vec::new(),
             file_path: file_path.to_owned(),
-            token: Token::InvalidToken,
-            lexeme_start_idx: 0,
-            lexeme_end_idx: 0,
-            line: 1,
-            column: 1,
+            ..Self::default()
         };
         scanner.reset(source, 0);
         scanner
@@ -211,8 +217,8 @@ impl Scanner {
 
     /// Advances the line and column counters over the bytes between the two indexes.
     fn update_line_and_column(&mut self, start_idx: usize, end_idx: usize) {
-        for idx in start_idx..end_idx {
-            if self.source[idx] == b'\n' {
+        for &byte in &self.source[start_idx..end_idx] {
+            if byte == b'\n' {
                 self.line += 1;
                 self.column = 1;
             } else {
@@ -222,7 +228,7 @@ impl Scanner {
     }
 }
 
-impl TokenSkipperScanner for Scanner {
+impl<'a> TokenSkipperScanner<'a> for Scanner<'a> {
     fn token(&self) -> Token {
         self.token
     }
@@ -239,7 +245,7 @@ impl TokenSkipperScanner for Scanner {
         self.column
     }
 
-    fn lexeme(&self) -> &[u8] {
+    fn lexeme(&self) -> &'a [u8] {
         &self.source[self.lexeme_start_idx..self.lexeme_end_idx]
     }
 
@@ -247,7 +253,7 @@ impl TokenSkipperScanner for Scanner {
         &self.file_path
     }
 
-    fn reset(&mut self, source: Vec<u8>, offset: usize) {
+    fn reset(&mut self, source: &'a [u8], offset: usize) {
         self.source = source;
 
         self.lexeme_start_idx = 0;

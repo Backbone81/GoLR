@@ -12,7 +12,7 @@ use std::fmt;
 use super::scanner::{Token, TokenSkipperScanner};
 
 /// Every nonterminal symbol of the grammar.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Nonterminal {
     /// The nonterminal `$accept`.
     AcceptNonterminal,
@@ -33,7 +33,7 @@ impl fmt::Display for Nonterminal {
 }
 
 /// A terminal or a nonterminal.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ParseSymbol {
     /// A terminal, standing for the token the scanner delivered.
     Terminal(Token),
@@ -52,23 +52,24 @@ impl fmt::Display for ParseSymbol {
     }
 }
 
-/// A single node of the parse tree.
-#[derive(Debug, Clone)]
-pub struct ParseNode {
+/// A single node of the parse tree. It borrows the source it was parsed from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseNode<'a> {
     /// The terminal or nonterminal this node stands for.
     pub symbol: ParseSymbol,
 
-    /// The bytes of the terminal. Empty for a nonterminal and for the error symbol, which no input produced.
-    pub lexeme: Vec<u8>,
+    /// The bytes of the terminal, as a view into the source. Empty for a nonterminal and for the error symbol, which
+    /// no input produced.
+    pub lexeme: &'a [u8],
 
     /// The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal.
-    pub children: Vec<ParseNode>,
+    pub children: Vec<ParseNode<'a>>,
 }
 
 /// A single parse error. Parse errors are returned by [`Parser::parse`] rather than raised as a panic, so reporting
 /// many of them costs nothing.
-#[derive(Debug, Clone)]
-pub struct ParseError {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseError<'a> {
     /// What is wrong, without the position in front of it.
     pub reason: String,
 
@@ -87,16 +88,19 @@ pub struct ParseError {
     /// Column that token starts on, counted from one.
     pub column: usize,
 
-    /// The bytes of that token.
-    pub lexeme: Vec<u8>,
+    /// The bytes of that token, as a view into the source.
+    pub lexeme: &'a [u8],
 
     /// The file path the scanner was given.
     pub file_path: String,
 }
 
-impl ParseError {
+impl<'a> ParseError<'a> {
     /// Creates an error with the given reason at the position the scanner is at.
-    fn new<S: TokenSkipperScanner + ?Sized>(reason: String, is_syntax_error: bool, scanner: &S) -> Self {
+    fn new<S>(reason: String, is_syntax_error: bool, scanner: &S) -> Self
+    where
+        S: TokenSkipperScanner<'a> + ?Sized,
+    {
         Self {
             reason,
             is_syntax_error,
@@ -104,33 +108,38 @@ impl ParseError {
             byte_offset: scanner.byte_offset(),
             line: scanner.line(),
             column: scanner.column(),
-            lexeme: scanner.lexeme().to_vec(),
+            lexeme: scanner.lexeme(),
             file_path: scanner.file_path().to_owned(),
         }
     }
 }
 
-impl fmt::Display for ParseError {
+impl fmt::Display for ParseError<'_> {
     /// Writes the error in the `file:line:column: reason` form editors and build tools recognize.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}:{}: {}", self.file_path, self.line, self.column, self.reason)
+        write!(
+            f,
+            "{}:{}:{}: {}",
+            self.file_path, self.line, self.column, self.reason
+        )
     }
 }
 
-impl std::error::Error for ParseError {}
+impl std::error::Error for ParseError<'_> {}
 
-/// What a parse returns.
-#[derive(Debug, Clone)]
-pub struct ParseResult {
+/// What a parse returns. Dropping it without looking drops every error the parse reported.
+#[must_use]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseResult<'a> {
     /// The parse tree, or `None` when the parse could not be finished.
-    pub tree: Option<ParseNode>,
+    pub tree: Option<ParseNode<'a>>,
 
     /// Every error the parse reported, in the order they were found.
-    pub errors: Vec<ParseError>,
+    pub errors: Vec<ParseError<'a>>,
 }
 
 /// What one step of a parse ended with.
-enum StepOutcome {
+enum StepOutcome<'a> {
     /// The parse goes on.
     Continue,
 
@@ -138,7 +147,7 @@ enum StepOutcome {
     Accept,
 
     /// The parse cannot go on, for the reason the error carries.
-    Failed(ParseError),
+    Failed(ParseError<'a>),
 }
 
 /// How many tokens have to be shifted after a syntax error before errors are reported again. Suppressing the errors in
@@ -182,12 +191,14 @@ const NO_TERMINAL_COLUMN: usize = 0;
 const ERROR_TERMINAL_COLUMN: usize = 0;
 
 /// The nonterminals by their index, which is how a production names the one on its left hand side.
+#[rustfmt::skip]
 static NONTERMINALS: [Nonterminal; 2] = [
     Nonterminal::AcceptNonterminal,
     Nonterminal::NonterminalExpression,
 ];
 
 /// Maps a state to the displacement of its row within [`ACTION_NEXT`].
+#[rustfmt::skip]
 static ACTION_BASE: [u8; 17] = [
     9, 1, 9, 9, 0, 1, 4, 1, 9, 9, 9, 9, 1, 12, 12, 1,
     1,
@@ -195,6 +206,7 @@ static ACTION_BASE: [u8; 17] = [
 
 /// Holds the action of every entry. The action a state has for a column lives at `ACTION_BASE[state] + column`, but
 /// only if [`ACTION_CHECK`] confirms the cell belongs to that column.
+#[rustfmt::skip]
 static ACTION_NEXT: [u8; 23] = [
     0, 28, 0, 0, 32, 36, 40, 44, 32, 36, 40, 44, 4, 48, 8, 0,
     0, 12, 40, 44, 0, 0, 0,
@@ -202,6 +214,7 @@ static ACTION_NEXT: [u8; 23] = [
 
 /// Holds the column every cell of [`ACTION_NEXT`] belongs to. A cell no state occupies holds 11,
 /// which is one past the highest column in use and can never be asked for.
+#[rustfmt::skip]
 static ACTION_CHECK: [u8; 23] = [
     11, 1, 11, 11, 4, 5, 6, 7, 4, 5, 6, 7, 3, 9, 5, 11,
     11, 8, 6, 7, 11, 11, 11,
@@ -209,12 +222,14 @@ static ACTION_CHECK: [u8; 23] = [
 
 /// Holds the action a state takes for every column it has no entry of its own for. A state which has none carries the
 /// error action.
+#[rustfmt::skip]
 static DEFAULT_ACTION_BY_STATE: [u8; 17] = [
     3, 5, 3, 3, 3, 25, 3, 2, 3, 3, 3, 3, 29, 9, 13, 17,
     21,
 ];
 
 /// Maps a state to the displacement of its row within [`GOTO_NEXT`].
+#[rustfmt::skip]
 static GOTO_BASE: [u8; 17] = [
     6, 6, 0, 1, 6, 6, 6, 6, 2, 3, 4, 5, 6, 6, 6, 6,
     6,
@@ -222,27 +237,32 @@ static GOTO_BASE: [u8; 17] = [
 
 /// Holds the state a goto leads to. The goto a state has for a nonterminal lives at `GOTO_BASE[state] + nonterminal`,
 /// but only if [`GOTO_CHECK`] confirms the cell belongs to that nonterminal.
+#[rustfmt::skip]
 static GOTO_NEXT: [u8; 8] = [
     0, 5, 6, 13, 14, 15, 16, 0,
 ];
 
 /// Holds the nonterminal every cell of [`GOTO_NEXT`] belongs to. A cell no state occupies holds
 /// 2, which is one past the highest nonterminal and can never be asked for.
+#[rustfmt::skip]
 static GOTO_CHECK: [u8; 8] = [
     2, 1, 1, 1, 1, 1, 1, 2,
 ];
 
 /// Holds the state a goto on a nonterminal leads to for every state [`GOTO_NEXT`] has no entry for.
+#[rustfmt::skip]
 static DEFAULT_GOTO_BY_NONTERMINAL: [u8; 2] = [
     0, 4,
 ];
 
 /// Holds how many symbols a reduction takes off the stacks, which is the length of the right hand side.
+#[rustfmt::skip]
 static POP_COUNT_BY_PRODUCTION: [u8; 8] = [
     2, 1, 3, 3, 3, 3, 2, 3,
 ];
 
 /// Holds the nonterminal on the left hand side of a production.
+#[rustfmt::skip]
 static NONTERMINAL_BY_PRODUCTION: [u8; 8] = [
     0, 1, 1, 1, 1, 1, 1, 1,
 ];
@@ -283,31 +303,14 @@ fn error_shift_state(state: usize) -> Option<usize> {
     Some(action >> ACTION_KIND_BITS)
 }
 
-/// Parses the tokens of a scanner into a parse tree.
-pub struct Parser {
-    /// The states of the running parse, the current one on top.
-    state_stack: Vec<usize>,
-
-    /// One node per symbol shifted or reduced so far.
-    node_stack: Vec<ParseNode>,
-
-    /// The errors of the running parse, which [`Parser::parse`] returns next to the tree.
-    errors: Vec<ParseError>,
-
-    /// Counts down the tokens which still have to be shifted before syntax errors are reported again. Zero while the
-    /// parser is in sync with the input.
-    error_recovery_shifts_remaining: usize,
-}
+/// Parses the tokens of a scanner into a parse tree. One parser serves one source after another.
+#[derive(Debug, Default)]
+pub struct Parser;
 
 impl Parser {
-    /// Creates a parser. It can be used for one parse after another and keeps the memory of the parse before.
+    /// Creates a parser.
     pub fn new() -> Self {
-        Self {
-            state_stack: Vec::new(),
-            node_stack: Vec::new(),
-            errors: Vec::new(),
-            error_recovery_shifts_remaining: 0,
-        }
+        Self
     }
 
     /// Parses the tokens the scanner delivers.
@@ -315,12 +318,34 @@ impl Parser {
     /// When the grammar marks places to resume at with the error symbol, a syntax error does not end the parse: the
     /// result then holds both the tree parsed so far, with a node for the error symbol at every place resumed at, and
     /// every error found. The tree is `None` when the parse could not be carried to its end.
-    pub fn parse<S: TokenSkipperScanner + ?Sized>(&mut self, scanner: &mut S) -> ParseResult {
-        self.state_stack.clear();
-        self.node_stack.clear();
-        self.errors.clear();
-        self.error_recovery_shifts_remaining = 0;
+    pub fn parse<'a, S>(&mut self, scanner: &mut S) -> ParseResult<'a>
+    where
+        S: TokenSkipperScanner<'a> + ?Sized,
+    {
+        ParseState::default().parse(scanner)
+    }
+}
 
+/// The stacks and the errors of one running parse.
+#[derive(Default)]
+struct ParseState<'a> {
+    /// The states of the running parse, the current one on top.
+    state_stack: Vec<usize>,
+
+    /// One node per symbol shifted or reduced so far.
+    node_stack: Vec<ParseNode<'a>>,
+
+    /// The errors of the running parse, which [`Parser::parse`] returns next to the tree.
+    errors: Vec<ParseError<'a>>,
+
+    /// Counts down the tokens which still have to be shifted before syntax errors are reported again. Zero while the
+    /// parser is in sync with the input.
+    error_recovery_shifts_remaining: usize,
+}
+
+impl<'a> ParseState<'a> {
+    /// Runs one parse to its end.
+    fn parse<S: TokenSkipperScanner<'a> + ?Sized>(mut self, scanner: &mut S) -> ParseResult<'a> {
         self.state_stack.push(0);
 
         // A source with no tokens at all reports false right away. That is not an error: the token is the end of input
@@ -335,7 +360,7 @@ impl Parser {
                     let tree = self.node_stack.drain(..).next();
                     return ParseResult {
                         tree,
-                        errors: std::mem::take(&mut self.errors),
+                        errors: self.errors,
                     };
                 }
                 StepOutcome::Failed(failure) => failure,
@@ -346,7 +371,7 @@ impl Parser {
                 self.errors.push(failure);
                 return ParseResult {
                     tree: None,
-                    errors: std::mem::take(&mut self.errors),
+                    errors: self.errors,
                 };
             }
             if self.error_recovery_shifts_remaining == 0 {
@@ -357,7 +382,7 @@ impl Parser {
             if !self.recover_from_error(scanner) {
                 return ParseResult {
                     tree: None,
-                    errors: std::mem::take(&mut self.errors),
+                    errors: self.errors,
                 };
             }
         }
@@ -365,7 +390,7 @@ impl Parser {
 
     /// Performs the one action the state on top of the stack takes for the current token. The outcome carries the
     /// error only when the parse cannot go on.
-    fn step<S: TokenSkipperScanner + ?Sized>(&mut self, scanner: &mut S) -> StepOutcome {
+    fn step<S: TokenSkipperScanner<'a> + ?Sized>(&mut self, scanner: &mut S) -> StepOutcome<'a> {
         let terminal = scanner.token();
 
         // A token which is no terminal of this grammar takes the default action of the state.
@@ -373,19 +398,20 @@ impl Parser {
 
         let state = self.current_state();
         let cell_idx = ACTION_BASE[state] as usize + column;
-        let mut action = DEFAULT_ACTION_BY_STATE[state] as usize;
-        if ACTION_CHECK[cell_idx] as usize == column {
-            // An entry the state has of its own beats its default action, which is what keeps a token the grammar
-            // rejects on purpose an error even in a state which reduces on everything else.
-            action = ACTION_NEXT[cell_idx] as usize;
-        }
+        // An entry the state has of its own beats its default action, which is what keeps a token the grammar rejects
+        // on purpose an error even in a state which reduces on everything else.
+        let action = if ACTION_CHECK[cell_idx] as usize == column {
+            ACTION_NEXT[cell_idx] as usize
+        } else {
+            DEFAULT_ACTION_BY_STATE[state] as usize
+        };
 
         match action & ACTION_KIND_MASK {
             ACTION_KIND_SHIFT => {
                 self.state_stack.push(action >> ACTION_KIND_BITS);
                 self.node_stack.push(ParseNode {
                     symbol: ParseSymbol::Terminal(terminal),
-                    lexeme: scanner.lexeme().to_vec(),
+                    lexeme: scanner.lexeme(),
                     children: Vec::new(),
                 });
                 scanner.next();
@@ -419,23 +445,25 @@ impl Parser {
         let pop_count = POP_COUNT_BY_PRODUCTION[production_idx] as usize;
         let nonterminal = NONTERMINAL_BY_PRODUCTION[production_idx] as usize;
 
-        self.state_stack.truncate(self.state_stack.len() - pop_count);
+        let uncovered_len = self.state_stack.len() - pop_count;
+        self.state_stack.truncate(uncovered_len);
 
         let state = self.current_state();
+        let cell_idx = GOTO_BASE[state] as usize + nonterminal;
         // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
         // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
-        let mut goto_state = DEFAULT_GOTO_BY_NONTERMINAL[nonterminal] as usize;
-        let cell_idx = GOTO_BASE[state] as usize + nonterminal;
-        if GOTO_CHECK[cell_idx] as usize == nonterminal {
-            goto_state = GOTO_NEXT[cell_idx] as usize;
-        }
+        let goto_state = if GOTO_CHECK[cell_idx] as usize == nonterminal {
+            GOTO_NEXT[cell_idx] as usize
+        } else {
+            DEFAULT_GOTO_BY_NONTERMINAL[nonterminal] as usize
+        };
         self.state_stack.push(goto_state);
 
         // The right hand side comes off the node stack and is handed over as the children.
         let children = self.node_stack.split_off(self.node_stack.len() - pop_count);
         self.node_stack.push(ParseNode {
             symbol: ParseSymbol::Nonterminal(NONTERMINALS[nonterminal]),
-            lexeme: Vec::new(),
+            lexeme: &[],
             children,
         });
     }
@@ -447,7 +475,7 @@ impl Parser {
     /// until a state is reached which can shift the error symbol, and the symbol is shifted there. Everything the
     /// popped states had parsed is discarded with them. The token which caused the error is kept for the resumed state
     /// to look at, and only discarded when the parse fails on it a second time.
-    fn recover_from_error<S: TokenSkipperScanner + ?Sized>(&mut self, scanner: &mut S) -> bool {
+    fn recover_from_error<S: TokenSkipperScanner<'a> + ?Sized>(&mut self, scanner: &mut S) -> bool {
         if self.error_recovery_shifts_remaining == ERROR_RECOVERY_SHIFTS {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if scanner.token() == Token::EndToken {
@@ -464,7 +492,7 @@ impl Parser {
                 self.state_stack.push(next_state);
                 self.node_stack.push(ParseNode {
                     symbol: ParseSymbol::Terminal(Token::ErrorToken),
-                    lexeme: Vec::new(),
+                    lexeme: &[],
                     children: Vec::new(),
                 });
                 return true;
@@ -482,6 +510,6 @@ impl Parser {
 
     /// Returns the state on top of the stack, which is the one the parse is in.
     fn current_state(&self) -> usize {
-        self.state_stack[self.state_stack.len() - 1]
+        *self.state_stack.last().expect("the parse has a state")
     }
 }
