@@ -19,7 +19,6 @@
 - Publish IntelliJ plugin for syntax highlighting of GoLR files
 - Add support for C backend
 - Add support for C++ backend
-- Add support for Python backend
 - Support extended Backus-Naur form for GoLR productions
 - Reduce shift/reduce conflict of the golang example to 0.
 - Fix `Statement` in `examples/golang/spec/golang.golr` to reference the `FallthroughStmt` nonterminal instead of

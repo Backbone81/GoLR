@@ -75,6 +75,18 @@ go run ./cmd/golr parser \
 go run ./cmd/golr scanner \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
+  --backend python \
+  --backend-file-path examples/calculator/python/parser/scanner.py
+go run ./cmd/golr parser \
+  --frontend golr \
+  --frontend-file-path examples/calculator/calculator.golr \
+  --core ielr1-golr \
+  --backend python \
+  --backend-python-scanner-module .scanner \
+  --backend-file-path examples/calculator/python/parser/parser.py
+go run ./cmd/golr scanner \
+  --frontend golr \
+  --frontend-file-path examples/calculator/calculator.golr \
   --backend javascript \
   --backend-file-path examples/calculator/javascript/parser/scanner.js
 go run ./cmd/golr parser \

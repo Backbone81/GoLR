@@ -11,6 +11,8 @@ unreleased:
 - description: Added a Java parser generator backend, selected with --backend java.
 - description: Replaced the Rust scanner backend with a table driven one.
 - description: Added a Rust parser generator backend, selected with --backend rust.
+- description: Added a Python scanner generator backend, selected with --backend python.
+- description: Added a Python parser generator backend, selected with --backend python.
 releases:
 - version: |
     v0.2.0

@@ -14,6 +14,8 @@
 - Added a Java parser generator backend, selected with --backend java.
 - Replaced the Rust scanner backend with a table driven one.
 - Added a Rust parser generator backend, selected with --backend rust.
+- Added a Python scanner generator backend, selected with --backend python.
+- Added a Python parser generator backend, selected with --backend python.
 
 ## v0.2.0 (2026-08-08)
 

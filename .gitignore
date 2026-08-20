@@ -39,5 +39,9 @@ bin/
 # JavaScript dependencies
 node_modules/
 
+# Python bytecode cache
+__pycache__/
+*.pyc
+
 # Added by goreleaser init:
 dist/

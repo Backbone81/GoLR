@@ -17,6 +17,7 @@ import (
 	javabackend "github.com/backbone81/golr/pkg/parsergen/backend/java"
 	javascriptbackend "github.com/backbone81/golr/pkg/parsergen/backend/javascript"
 	jsonbackend "github.com/backbone81/golr/pkg/parsergen/backend/json"
+	pythonbackend "github.com/backbone81/golr/pkg/parsergen/backend/python"
 	rustbackend "github.com/backbone81/golr/pkg/parsergen/backend/rust"
 	typescriptbackend "github.com/backbone81/golr/pkg/parsergen/backend/typescript"
 	yamlbackend "github.com/backbone81/golr/pkg/parsergen/backend/yaml"
@@ -47,6 +48,8 @@ var (
 	parserBackendJavaPackageName string
 
 	parserBackendJavaScriptScannerModule string
+
+	parserBackendPythonScannerModule string
 
 	parserBackendRustScannerModule string
 
@@ -191,6 +194,15 @@ func executeParserBackend(parser backend.Parser) error {
 	case "null":
 		// Nothing to do.
 		return nil
+	case "python":
+		if parserBackendFilePath == "-" {
+			return pythonbackend.FromParser(os.Stdout, parser, pythonbackend.Config{
+				ScannerModule: parserBackendPythonScannerModule,
+			})
+		}
+		return pythonbackend.ParserToFile(parserBackendFilePath, parser, pythonbackend.Config{
+			ScannerModule: parserBackendPythonScannerModule,
+		})
 	case "rust":
 		if parserBackendFilePath == "-" {
 			return rustbackend.FromParser(os.Stdout, parser, rustbackend.Config{
@@ -250,7 +262,7 @@ func init() {
 		"backend",
 		"go",
 		"The backend to use for writing the parser. One of: csharp, dot, go, go-direct, go-table, java, javascript,"+
-			" json, null, rust, typescript, yaml.",
+			" json, null, python, rust, typescript, yaml.",
 	)
 	parserCmd.PersistentFlags().StringVar(
 		&parserBackendFilePath,
@@ -288,6 +300,13 @@ func init() {
 		"backend-javascript-scanner-module",
 		javascriptbackend.DefaultScannerModule,
 		"The module specifier the generated JavaScript parser imports the token constants from.",
+	)
+
+	parserCmd.PersistentFlags().StringVar(
+		&parserBackendPythonScannerModule,
+		"backend-python-scanner-module",
+		pythonbackend.DefaultScannerModule,
+		"The module the generated Python parser imports the token constants from.",
 	)
 
 	parserCmd.PersistentFlags().StringVar(

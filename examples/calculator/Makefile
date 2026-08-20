@@ -6,6 +6,7 @@ build:
 	$(MAKE) -C golang build
 	$(MAKE) -C java build
 	$(MAKE) -C javascript build
+	$(MAKE) -C python build
 	$(MAKE) -C rust build
 	$(MAKE) -C typescript build
 	GOLR_UID=$$(id -u) GOLR_GID=$$(id -g) docker compose \
@@ -26,6 +27,7 @@ clean:
 	$(MAKE) -C golang clean
 	$(MAKE) -C java clean
 	$(MAKE) -C javascript clean
+	$(MAKE) -C python clean
 	$(MAKE) -C rust clean
 	$(MAKE) -C typescript clean
 	$(MAKE) -C csharp clean

@@ -2,8 +2,6 @@ package utils
 
 import (
 	"math"
-	"strings"
-	"unicode"
 )
 
 // javaValuesPerMethod is the number of table entries one generated method holds.
@@ -46,17 +44,9 @@ func NewJavaIntArray(values []int) IntArray {
 }
 
 // JavaConstantName returns the given identifier in the upper case with underscores which Java spells a constant with,
-// so that TransitionBase becomes TRANSITION_BASE. A word boundary is a lower case letter or a digit followed by an
-// upper case one, which is what keeps an identifier which is already one word from gaining an underscore.
+// so that TransitionBase becomes TRANSITION_BASE.
 func JavaConstantName(identifier string) string {
-	var builder strings.Builder
-	for i, r := range identifier {
-		if i > 0 && unicode.IsUpper(r) && !unicode.IsUpper(rune(identifier[i-1])) {
-			builder.WriteByte('_')
-		}
-		builder.WriteRune(unicode.ToUpper(r))
-	}
-	return builder.String()
+	return upperSnakeName(identifier)
 }
 
 // JavaNameTable is a lookup table whose entries are the names of constants rather than numbers. It is chunked the same
