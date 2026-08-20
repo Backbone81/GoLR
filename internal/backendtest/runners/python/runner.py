@@ -6,8 +6,8 @@
 
 import sys
 
-from parser import NonterminalSymbol, Parser, nonterminal_to_string
-from scanner import Scanner, Token, TokenSkipper, token_to_string
+from parser import NonterminalSymbol, Parser
+from scanner import Scanner, Token, TokenSkipper
 
 SCANNER_TRACE_FILE_NAME = "scanner.actual"
 PARSER_TRACE_FILE_NAME = "parser.actual"
@@ -52,11 +52,9 @@ def append_scanner_trace(lines, source, input_path):
     # around it are only checkable when it is in the trace.
     scanner = Scanner(source, input_path)
 
-    while scanner.next():
-        token = scanner.token()
-
+    for token in scanner:
         # For a failed match this is the start of the attempt, not the byte which could not be consumed.
-        start = scanner.byte_offset()
+        start = scanner.byte_offset
 
         if token == Token.INVALID_TOKEN:
             lines.append(f"ERROR {start}")
@@ -64,12 +62,12 @@ def append_scanner_trace(lines, source, input_path):
 
         # The end comes from the length of the lexeme rather than from an offset the scanner reports, so that a lexeme
         # which disagrees with the offsets cannot pass unnoticed.
-        lexeme = scanner.lexeme()
-        lines.append(f'TOKEN {token_to_string(token)} {start} {start + len(lexeme)} "{escape_lexeme(lexeme)}"')
+        lexeme = scanner.lexeme
+        lines.append(f'TOKEN {token} {start} {start + len(lexeme)} "{escape_lexeme(lexeme)}"')
 
     # The offset the scanner reports after it ran out of input, not the length of the source. The two agree only when
     # the scanner consumed everything.
-    lines.append(f"EOF {scanner.byte_offset()}")
+    lines.append(f"EOF {scanner.byte_offset}")
 
 
 def append_node_trace(lines, node):
@@ -78,7 +76,7 @@ def append_node_trace(lines, node):
         append_node_trace(lines, child)
 
     if isinstance(node.symbol, NonterminalSymbol):
-        lines.append(f"REDUCE {nonterminal_to_string(node.symbol.nonterminal)} {len(node.children)}")
+        lines.append(f"REDUCE {node.symbol.nonterminal} {len(node.children)}")
         return
 
     token = node.symbol.token
@@ -86,7 +84,7 @@ def append_node_trace(lines, node):
         # The leaf the recovery pushed where it resumed. It stands for the dropped input and names no token.
         lines.append("RESYNC")
         return
-    lines.append(f"SHIFT {token_to_string(token)}")
+    lines.append(f"SHIFT {token}")
 
 
 def append_parser_trace(lines, source, input_path):
@@ -136,4 +134,5 @@ def main():
     write_trace(PARSER_TRACE_FILE_NAME, append_parser_trace, source, input_path)
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -1,7 +1,6 @@
 import sys
 
-from parser.parser import ParseNode, Parser, TerminalSymbol
-from parser.scanner import Scanner, Token, TokenSkipper
+from parser import ParseNode, Parser, Scanner, TerminalSymbol, Token, TokenSkipper
 
 
 def evaluate(expression: str) -> int:
@@ -96,4 +95,5 @@ def main() -> None:
         sys.exit(1)
 
 
-main()
+if __name__ == "__main__":
+    main()

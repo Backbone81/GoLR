@@ -6,10 +6,11 @@
 
 """A parser which turns the tokens of a scanner into a parse tree."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, IntEnum, auto
+from typing import Final
 
-from {{ .Config.ScannerModule }} import Token, TokenSkipperScanner, token_to_string
+from {{ .Config.ScannerModule }} import Token, TokenSkipperScanner
 
 __all__ = [
     "Nonterminal",
@@ -20,7 +21,6 @@ __all__ = [
     "ParseSymbol",
     "Parser",
     "TerminalSymbol",
-    "nonterminal_to_string",
 ]
 
 
@@ -30,18 +30,17 @@ class Nonterminal(IntEnum):
     {{ nonterminalName $nonterminal }} = {{ $i }}
     """The nonterminal `{{ $nonterminal.Name }}`.{{ if ne $nonterminal.Alias "" }} Spelled `{{ $nonterminal.Alias }}` in the grammar.{{ end }}"""
 {{ end }}
+    def __str__(self) -> str:
+        """Returns the name of the nonterminal, as the grammar spells it."""
+        return _NONTERMINAL_NAMES[self]
 
-_NONTERMINAL_NAMES: dict[Nonterminal, str] = {
+
+_NONTERMINAL_NAMES: Final[dict[Nonterminal, str]] = {
 {{- range $i, $nonterminal := .Parser.Grammar.Nonterminals }}
     Nonterminal.{{ nonterminalName $nonterminal }}: "{{ $nonterminal.Name }}",
 {{- end }}
 }
 """The name of every nonterminal, as the grammar spells it."""
-
-
-def nonterminal_to_string(nonterminal: Nonterminal) -> str:
-    """Returns the name of the nonterminal, as the grammar spells it."""
-    return _NONTERMINAL_NAMES.get(nonterminal, "unknown")
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,7 +52,7 @@ class TerminalSymbol:
 
     def __str__(self) -> str:
         """Returns what the symbol is and the name it goes by."""
-        return f"terminal {token_to_string(self.token)}"
+        return f"terminal {self.token}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,7 +64,7 @@ class NonterminalSymbol:
 
     def __str__(self) -> str:
         """Returns what the symbol is and the name it goes by."""
-        return f"nonterminal {nonterminal_to_string(self.nonterminal)}"
+        return f"nonterminal {self.nonterminal}"
 
 
 ParseSymbol = TerminalSymbol | NonterminalSymbol
@@ -79,16 +78,19 @@ class ParseNode:
     symbol: ParseSymbol
     """The terminal or nonterminal this node stands for."""
 
-    lexeme: bytes
+    lexeme: bytes = b""
     """The bytes of the terminal. Empty for a nonterminal and for the error symbol, which no input produced."""
 
-    children: list["ParseNode"]
+    children: list["ParseNode"] = field(default_factory=list)
     """The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal."""
 
 
 class ParseError(Exception):
-    """A single parse error. A parse returns its errors instead of raising them, so reporting many of them is cheap.
-    Raise one with `raise error`."""
+    """A single parse error.
+
+    A parse returns its errors instead of raising them, so reporting many of them is cheap. Raise one with
+    `raise error`.
+    """
 
     reason: str
     """What is wrong, without the position in front of it."""
@@ -114,24 +116,60 @@ class ParseError(Exception):
     file_path: str
     """The file path the scanner was given."""
 
-    def __init__(self, reason: str, is_syntax_error: bool, scanner: TokenSkipperScanner) -> None:
+    def __init__(
+        self,
+        reason: str,
+        is_syntax_error: bool,
+        token: Token,
+        byte_offset: int,
+        line: int,
+        column: int,
+        lexeme: bytes,
+        file_path: str,
+    ) -> None:
+        """Creates an error with the given reason at the given position.
+
+        Every argument is handed on to `Exception` as well. That is what makes the error survive being pickled, which
+        an error has to do to get out of a worker process.
+
+        :param reason: What is wrong, without the position in front of it.
+        :param is_syntax_error: True for an error in the input, false for a defect of the parser itself.
+        :param token: The token the parse stopped on.
+        :param byte_offset: Start of that token in bytes from the start of the source.
+        :param line: Line that token starts on, counted from one.
+        :param column: Column that token starts on, counted from one.
+        :param lexeme: The bytes of that token.
+        :param file_path: The file path the scanner was given.
+        """
+        super().__init__(reason, is_syntax_error, token, byte_offset, line, column, lexeme, file_path)
+
+        self.reason = reason
+        self.is_syntax_error = is_syntax_error
+        self.token = token
+        self.byte_offset = byte_offset
+        self.line = line
+        self.column = column
+        self.lexeme = lexeme
+        self.file_path = file_path
+
+    @classmethod
+    def from_scanner(cls, reason: str, is_syntax_error: bool, scanner: TokenSkipperScanner) -> "ParseError":
         """Creates an error with the given reason at the position the scanner is at.
 
         :param reason: What is wrong, without the position in front of it.
         :param is_syntax_error: True for an error in the input, false for a defect of the parser itself.
         :param scanner: The scanner the token and its position are taken from.
         """
-        super().__init__(reason)
-
-        self.reason = reason
-        self.is_syntax_error = is_syntax_error
-
-        self.token = scanner.token()
-        self.byte_offset = scanner.byte_offset()
-        self.line = scanner.line()
-        self.column = scanner.column()
-        self.lexeme = scanner.lexeme()
-        self.file_path = scanner.file_path()
+        return cls(
+            reason,
+            is_syntax_error,
+            scanner.token,
+            scanner.byte_offset,
+            scanner.line,
+            scanner.column,
+            scanner.lexeme,
+            scanner.file_path,
+        )
 
     @property
     def message(self) -> str:
@@ -150,7 +188,7 @@ class ParseResult:
     tree: ParseNode | None
     """The parse tree, or `None` when the parse could not be finished."""
 
-    errors: list[ParseError]
+    errors: tuple[ParseError, ...]
     """Every error the parse reported, in the order they were found."""
 
 
@@ -164,9 +202,12 @@ class _StepOutcome(Enum):
     """The input was reduced to the start symbol."""
 
 
-_ERROR_RECOVERY_SHIFTS = 3
-"""How many tokens have to be shifted after a syntax error before errors are reported again. Suppressing the errors in
-between keeps one mistake in the input from producing an avalanche of messages which all follow from it."""
+_ERROR_RECOVERY_SHIFTS: Final = 3
+"""How many tokens have to be shifted after a syntax error before errors are reported again.
+
+Suppressing the errors in between keeps one mistake in the input from producing an avalanche of messages which all
+follow from it.
+"""
 
 
 # The parse table is held in lookup tables. A token is translated into the column of the action table which holds the
@@ -180,84 +221,106 @@ between keeps one mistake in the input from producing an avalanche of messages w
 # The displaced tables are padded so that every state and column lands inside them, which is why a lookup needs no
 # range check of its own.
 
-_ACTION_KIND_BITS = {{ .Tables.ActionKindBits }}
+_ACTION_KIND_BITS: Final = {{ .Tables.ActionKindBits }}
 """Number of low bits of an action which hold what it does. The value it carries sits above them."""
 
-_ACTION_KIND_MASK = {{ .Tables.ActionKindMask }}
+_ACTION_KIND_MASK: Final = {{ .Tables.ActionKindMask }}
 """Selects out of an action what it does."""
 
-_ACTION_KIND_SHIFT = {{ .Tables.ActionKindShift }}
+_ACTION_KIND_SHIFT: Final = {{ .Tables.ActionKindShift }}
 """Shifts the terminal and continues in the state the action carries."""
 
-_ACTION_KIND_REDUCE = {{ .Tables.ActionKindReduce }}
+_ACTION_KIND_REDUCE: Final = {{ .Tables.ActionKindReduce }}
 """Reduces by the production the action carries."""
 
-_ACTION_KIND_ACCEPT = {{ .Tables.ActionKindAccept }}
+_ACTION_KIND_ACCEPT: Final = {{ .Tables.ActionKindAccept }}
 """Ends the parse successfully, the input having been reduced to the start symbol."""
 
-_ACTION_KIND_ERROR = {{ .Tables.ActionKindError }}
+_ACTION_KIND_ERROR: Final = {{ .Tables.ActionKindError }}
 """Rejects the terminal as a syntax error."""
 
-_NO_TERMINAL_COLUMN = {{ .Tables.NoTerminalColumn }}
-"""The column a token gets which is no terminal of this grammar. No state has an entry in it, so a lookup falls through
-to the default action of the state."""
+_NO_TERMINAL_COLUMN: Final = {{ .Tables.NoTerminalColumn }}
+"""The column a token gets which is no terminal of this grammar.
 
-_ERROR_TERMINAL_COLUMN = {{ .Tables.ErrorTerminalColumn }}
+No state has an entry in it, so a lookup falls through to the default action of the state.
+"""
+
+_ERROR_TERMINAL_COLUMN: Final = {{ .Tables.ErrorTerminalColumn }}
 """The column holding the shifts of the error symbol, where the recovery reads the state to resume in."""
 
-_TERMINAL_COLUMN_BY_TOKEN: dict[Token, int] = {
+_TERMINAL_COLUMN_BY_TOKEN: Final[dict[Token, int]] = {
 {{- range .Tables.TerminalColumnByToken }}
     Token.{{ .Name }}: {{ .Column }},
 {{- end }}
 }
-"""Translates a token into the column of the action table which holds the decisions for it. A token the grammar does
-not have is not in here."""
+"""Translates a token into the column of the action table which holds the decisions for it.
 
-_ACTION_BASE: tuple[int, ...] = ({{ .Tables.ActionBase.Literal "    " }})
+A token the grammar does not have is not in here.
+"""
+
+_ACTION_BASE: Final[tuple[int, ...]] = ({{ .Tables.ActionBase.Literal "    " }})
 """Maps a state to the displacement of its row within `_ACTION_NEXT`."""
 
-_ACTION_NEXT: tuple[int, ...] = ({{ .Tables.ActionNext.Literal "    " }})
-"""Holds the action of every entry. The action a state has for a column lives at `_ACTION_BASE[state] + column`, but
-only if `_ACTION_CHECK` confirms the cell belongs to that column."""
+_ACTION_NEXT: Final[tuple[int, ...]] = ({{ .Tables.ActionNext.Literal "    " }})
+"""Holds the action of every entry.
 
-_ACTION_CHECK: tuple[int, ...] = ({{ .Tables.ActionCheck.Literal "    " }})
-"""Holds the column every cell of `_ACTION_NEXT` belongs to. A cell no state occupies holds {{ .Tables.NoColumn }},
-which is one past the highest column in use and can never be asked for."""
+The action a state has for a column lives at `_ACTION_BASE[state] + column`, but only if `_ACTION_CHECK` confirms the
+cell belongs to that column.
+"""
 
-_DEFAULT_ACTION_BY_STATE: tuple[int, ...] = ({{ .Tables.DefaultActionByState.Literal "    " }})
-"""Holds the action a state takes for every column it has no entry of its own for. A state which has none carries the
-error action."""
+_ACTION_CHECK: Final[tuple[int, ...]] = ({{ .Tables.ActionCheck.Literal "    " }})
+"""Holds the column every cell of `_ACTION_NEXT` belongs to.
 
-_GOTO_BASE: tuple[int, ...] = ({{ .Tables.GotoBase.Literal "    " }})
+A cell no state occupies holds {{ .Tables.NoColumn }}, which is one past the highest column in use and can never be
+asked for.
+"""
+
+_DEFAULT_ACTION_BY_STATE: Final[tuple[int, ...]] = ({{ .Tables.DefaultActionByState.Literal "    " }})
+"""Holds the action a state takes for every column it has no entry of its own for.
+
+A state which has none carries the error action.
+"""
+
+_GOTO_BASE: Final[tuple[int, ...]] = ({{ .Tables.GotoBase.Literal "    " }})
 """Maps a state to the displacement of its row within `_GOTO_NEXT`."""
 
-_GOTO_NEXT: tuple[int, ...] = ({{ .Tables.GotoNext.Literal "    " }})
-"""Holds the state a goto leads to. The goto a state has for a nonterminal lives at `_GOTO_BASE[state] + nonterminal`,
-but only if `_GOTO_CHECK` confirms the cell belongs to that nonterminal."""
+_GOTO_NEXT: Final[tuple[int, ...]] = ({{ .Tables.GotoNext.Literal "    " }})
+"""Holds the state a goto leads to.
 
-_GOTO_CHECK: tuple[int, ...] = ({{ .Tables.GotoCheck.Literal "    " }})
-"""Holds the nonterminal every cell of `_GOTO_NEXT` belongs to. A cell no state occupies holds
-{{ .Tables.NoNonterminal }}, which is one past the highest nonterminal and can never be asked for."""
+The goto a state has for a nonterminal lives at `_GOTO_BASE[state] + nonterminal`, but only if `_GOTO_CHECK` confirms
+the cell belongs to that nonterminal.
+"""
 
-_DEFAULT_GOTO_BY_NONTERMINAL: tuple[int, ...] = ({{ .Tables.DefaultGotoByNonterminal.Literal "    " }})
+_GOTO_CHECK: Final[tuple[int, ...]] = ({{ .Tables.GotoCheck.Literal "    " }})
+"""Holds the nonterminal every cell of `_GOTO_NEXT` belongs to.
+
+A cell no state occupies holds {{ .Tables.NoNonterminal }}, which is one past the highest nonterminal and can never be
+asked for.
+"""
+
+_DEFAULT_GOTO_BY_NONTERMINAL: Final[tuple[int, ...]] = ({{ .Tables.DefaultGotoByNonterminal.Literal "    " }})
 """Holds the state a goto on a nonterminal leads to for every state `_GOTO_NEXT` has no entry for."""
 
-_POP_COUNT_BY_PRODUCTION: tuple[int, ...] = ({{ .Tables.PopCountByProduction.Literal "    " }})
+_POP_COUNT_BY_PRODUCTION: Final[tuple[int, ...]] = ({{ .Tables.PopCountByProduction.Literal "    " }})
 """Holds how many symbols a reduction takes off the stacks, which is the length of the right hand side."""
 
-_NONTERMINAL_BY_PRODUCTION: tuple[int, ...] = ({{ .Tables.NonterminalByProduction.Literal "    " }})
+_NONTERMINAL_BY_PRODUCTION: Final[tuple[int, ...]] = ({{ .Tables.NonterminalByProduction.Literal "    " }})
 """Holds the nonterminal on the left hand side of a production."""
 
 
 def _terminal_column(token: Token) -> int:
-    """Returns the column of the action table which holds the decisions for the given token. A token the grammar does
-    not have gets `_NO_TERMINAL_COLUMN`."""
+    """Returns the column of the action table which holds the decisions for the given token.
+
+    A token the grammar does not have gets `_NO_TERMINAL_COLUMN`.
+    """
     return _TERMINAL_COLUMN_BY_TOKEN.get(token, _NO_TERMINAL_COLUMN)
 
 
 def _error_shift_state(state: int) -> int | None:
-    """Returns the state to continue in when the error symbol is shifted in the given state, or `None` when the state
-    cannot shift it. The states which can are the places the grammar marked to resume at after a syntax error.
+    """Returns the state to continue in when the error symbol is shifted in the given state.
+
+    Returns `None` when the state cannot shift it. The states which can are the places the grammar marked to resume at
+    after a syntax error.
 
     The default action of the state is deliberately not consulted, because only an entry the state has of its own is a
     place to resume at.
@@ -276,15 +339,11 @@ class Parser:
     """Parses the tokens of a scanner into a parse tree. One parser serves one source after another."""
 
     __slots__ = (
-        "_scanner",
         "_state_stack",
         "_node_stack",
         "_errors",
         "_error_recovery_shifts_remaining",
     )
-
-    _scanner: TokenSkipperScanner
-    """The scanner of the running parse."""
 
     _state_stack: list[int]
     """The states of the running parse, the current one on top."""
@@ -296,50 +355,62 @@ class Parser:
     """The errors of the running parse, which `parse` returns next to the tree."""
 
     _error_recovery_shifts_remaining: int
-    """Counts down the tokens which still have to be shifted before syntax errors are reported again. Zero while the
-    parser is in sync with the input."""
+    """Counts down the tokens which still have to be shifted before syntax errors are reported again.
+
+    Zero while the parser is in sync with the input.
+    """
+
+    def __init__(self) -> None:
+        """Creates a parser which is ready to be given a scanner to parse."""
+        self._reset()
 
     def parse(self, scanner: TokenSkipperScanner) -> ParseResult:
-        """Parses the tokens the scanner delivers. Can be called more than once, with a different scanner each time.
+        """Parses the tokens the scanner delivers.
+
+        Can be called more than once, with a different scanner each time.
 
         When the grammar marks places to resume at with the error symbol, a syntax error does not end the parse: the
         result then holds both the tree parsed so far, with a node for the error symbol at every place resumed at, and
         every error found. The tree is `None` when the parse could not be carried to its end.
         """
-        self._scanner = scanner
-
-        self._state_stack = [0]
-        self._node_stack = []
-        self._errors = []
-        self._error_recovery_shifts_remaining = 0
+        self._reset()
 
         # A source with no tokens at all reports false right away. That is not an error: the token is the end of input
         # either way, and whether a parse of nothing but that is legal is for the table to decide.
         scanner.next()
 
         while True:
-            outcome = self._step()
+            outcome = self._step(scanner)
             if outcome is _StepOutcome.CONTINUE:
                 continue
             if outcome is _StepOutcome.ACCEPT:
                 # What is left on the node stack is the start symbol, which is the root of the tree.
-                return ParseResult(self._node_stack[0], self._errors)
+                return ParseResult(self._node_stack[0], tuple(self._errors))
 
             if not outcome.is_syntax_error:
                 # Only an error in the input can be recovered from.
                 self._errors.append(outcome)
-                return ParseResult(None, self._errors)
+                return ParseResult(None, tuple(self._errors))
             if self._error_recovery_shifts_remaining == 0:
                 # While recovering, the parser is not in sync with the input, so the errors it runs into there follow
                 # from the one already reported.
                 self._errors.append(outcome)
-            if not self._recover_from_error():
-                return ParseResult(None, self._errors)
+            if not self._recover_from_error(scanner):
+                return ParseResult(None, tuple(self._errors))
 
-    def _step(self) -> _StepOutcome | ParseError:
-        """Performs the one action the state on top of the stack takes for the current token. Returns an error only
-        when the parse cannot go on."""
-        terminal = self._scanner.token()
+    def _reset(self) -> None:
+        """Puts the parser into the state it begins a parse in."""
+        self._state_stack = [0]
+        self._node_stack = []
+        self._errors = []
+        self._error_recovery_shifts_remaining = 0
+
+    def _step(self, scanner: TokenSkipperScanner) -> _StepOutcome | ParseError:
+        """Performs the one action the state on top of the stack takes for the current token.
+
+        Returns an error only when the parse cannot go on.
+        """
+        terminal = scanner.token
 
         # A token which is no terminal of this grammar takes the default action of the state.
         column = _terminal_column(terminal)
@@ -356,8 +427,8 @@ class Parser:
         action_kind = action & _ACTION_KIND_MASK
         if action_kind == _ACTION_KIND_SHIFT:
             self._state_stack.append(action >> _ACTION_KIND_BITS)
-            self._node_stack.append(ParseNode(TerminalSymbol(terminal), self._scanner.lexeme(), []))
-            self._scanner.next()
+            self._node_stack.append(ParseNode(TerminalSymbol(terminal), scanner.lexeme))
+            scanner.next()
             if self._error_recovery_shifts_remaining > 0:
                 # Getting tokens of the input shifted again is what makes the parser trust its position.
                 self._error_recovery_shifts_remaining -= 1
@@ -368,12 +439,14 @@ class Parser:
         if action_kind == _ACTION_KIND_ACCEPT:
             return _StepOutcome.ACCEPT
         if action_kind == _ACTION_KIND_ERROR:
-            return ParseError(f"unexpected token {token_to_string(terminal)}", True, self._scanner)
-        return ParseError(f"unexpected action {action} in state {state}", False, self._scanner)
+            return ParseError.from_scanner(f"unexpected token {terminal}", True, scanner)
+        return ParseError.from_scanner(f"unexpected action {action} in state {state}", False, scanner)
 
     def _reduce(self, production_idx: int) -> None:
-        """Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side, and
-        continues in the state the goto of the uncovered state leads to."""
+        """Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side.
+
+        The parse continues in the state the goto of the uncovered state leads to.
+        """
         pop_count = _POP_COUNT_BY_PRODUCTION[production_idx]
         nonterminal = _NONTERMINAL_BY_PRODUCTION[production_idx]
 
@@ -393,11 +466,12 @@ class Parser:
         split_idx = len(self._node_stack) - pop_count
         children = self._node_stack[split_idx:]
         del self._node_stack[split_idx:]
-        self._node_stack.append(ParseNode(NonterminalSymbol(Nonterminal(nonterminal)), b"", children))
+        self._node_stack.append(ParseNode(NonterminalSymbol(Nonterminal(nonterminal)), children=children))
 
-    def _recover_from_error(self) -> bool:
-        """Puts the parser back where it can carry on with the remaining input after a syntax error. Once it reports
-        false, the parse is given up.
+    def _recover_from_error(self, scanner: TokenSkipperScanner) -> bool:
+        """Puts the parser back where it can carry on with the remaining input after a syntax error.
+
+        Once it reports false, the parse is given up.
 
         This is panic mode recovery as described in section 7 "Error Handling" of the yacc report: the stack is popped
         until a state is reached which can shift the error symbol, and the symbol is shifted there. Everything the
@@ -406,10 +480,10 @@ class Parser:
         """
         if self._error_recovery_shifts_remaining == _ERROR_RECOVERY_SHIFTS:
             # Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
-            if self._scanner.token() == Token.END_TOKEN:
+            if scanner.token == Token.END_TOKEN:
                 # The end of input is the one token which cannot be discarded.
                 return False
-            self._scanner.next()
+            scanner.next()
         self._error_recovery_shifts_remaining = _ERROR_RECOVERY_SHIFTS
 
         while True:
@@ -417,7 +491,7 @@ class Parser:
             if next_state is not None:
                 # Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 self._state_stack.append(next_state)
-                self._node_stack.append(ParseNode(TerminalSymbol(Token.ERROR_TOKEN), b"", []))
+                self._node_stack.append(ParseNode(TerminalSymbol(Token.ERROR_TOKEN)))
                 return True
             if len(self._state_stack) == 1:
                 # Only the state the parse started in is left and it cannot shift the error symbol either.

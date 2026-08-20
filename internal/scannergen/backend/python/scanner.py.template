@@ -6,10 +6,11 @@
 
 """A scanner which turns the bytes of a source into tokens."""
 
+from collections.abc import Iterator
 from enum import IntEnum
-from typing import Protocol
+from typing import Final, Protocol
 
-__all__ = ["Scanner", "Token", "TokenSkipper", "TokenSkipperScanner", "token_to_string"]
+__all__ = ["Scanner", "Token", "TokenSkipper", "TokenSkipperScanner"]
 
 
 class Token(IntEnum):
@@ -27,8 +28,12 @@ class Token(IntEnum):
     {{ tokenName $i $rule }} = {{ tokenValue $i }}
     """The token of the rule `{{ $rule.Name }}`."""
 {{ end }}
+    def __str__(self) -> str:
+        """Returns the name of the token, as the grammar spells it."""
+        return _TOKEN_NAMES[self]
 
-_TOKEN_NAMES: dict[Token, str] = {
+
+_TOKEN_NAMES: Final[dict[Token, str]] = {
     Token.INVALID_TOKEN: "invalid token",
     Token.END_TOKEN: "end token",
     Token.ERROR_TOKEN: "error token",
@@ -39,50 +44,58 @@ _TOKEN_NAMES: dict[Token, str] = {
 """The name of every token, as the grammar spells it."""
 
 
-def token_to_string(token: Token) -> str:
-    """Returns the name of the token, as the grammar spells it."""
-    return _TOKEN_NAMES.get(token, "unknown")
-
-
 class TokenSkipperScanner(Protocol):
     """What a scanner offers. Both `Scanner` and `TokenSkipper` satisfy it."""
 
+    @property
     def token(self) -> Token:
-        """Returns the current token."""
+        """The current token."""
         ...
 
+    @property
     def byte_offset(self) -> int:
-        """Returns the start of the token in bytes from the start of the source. After `next` returned false it is the
-        offset one past the last byte."""
+        """The start of the token in bytes from the start of the source.
+
+        After `next` returned false it is the offset one past the last byte.
+        """
         ...
 
+    @property
     def line(self) -> int:
-        """Returns the line the token starts on, counted from one."""
+        """The line the token starts on, counted from one."""
         ...
 
+    @property
     def column(self) -> int:
-        """Returns the column the token starts on, counted from one."""
+        """The column the token starts on, counted from one."""
         ...
 
+    @property
     def lexeme(self) -> bytes:
-        """Returns the bytes of the token."""
+        """The bytes of the token."""
         ...
 
+    @property
     def file_path(self) -> str:
-        """Returns the file path the scanner was given."""
+        """The file path the scanner was given."""
         ...
 
     def next(self) -> bool:
-        """Advances to the next token. Returns false when the source holds no such token any more."""
+        """Advances to the next token.
+
+        Returns false when the source holds no such token any more.
+        """
         ...
 
     def reset(self, source: bytes, offset: int) -> None:
-        """Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
-        changed."""
+        """Scans the given source from the given byte offset on.
+
+        Useful for re-tokenizing the part of a source which changed.
+        """
         ...
 
 
-_SKIPPED_TOKENS: frozenset[Token] = frozenset((
+_SKIPPED_TOKENS: Final[frozenset[Token]] = frozenset((
 {{- range .Tables.SkippedTokens }}
     Token.{{ . }},
 {{- end }}
@@ -91,8 +104,10 @@ _SKIPPED_TOKENS: frozenset[Token] = frozenset((
 
 
 class TokenSkipper:
-    """Wraps a scanner and skips the tokens marked for skipping, which are usually whitespace and comments. It offers
-    the same methods as `Scanner`."""
+    """Skips the tokens the grammar marked for skipping, which are usually whitespace and comments.
+
+    It wraps a scanner and offers the same members as `Scanner`.
+    """
 
     __slots__ = ("_scanner",)
 
@@ -103,42 +118,62 @@ class TokenSkipper:
         """Creates a skipper which hands on the tokens of the given scanner."""
         self._scanner = scanner
 
+    @property
     def token(self) -> Token:
-        """Returns the current token."""
-        return self._scanner.token()
+        """The current token."""
+        return self._scanner.token
 
+    @property
     def byte_offset(self) -> int:
-        """Returns the start of the token in bytes from the start of the source. After `next` returned false it is the
-        offset one past the last byte."""
-        return self._scanner.byte_offset()
+        """The start of the token in bytes from the start of the source.
 
+        After `next` returned false it is the offset one past the last byte.
+        """
+        return self._scanner.byte_offset
+
+    @property
     def line(self) -> int:
-        """Returns the line the token starts on, counted from one."""
-        return self._scanner.line()
+        """The line the token starts on, counted from one."""
+        return self._scanner.line
 
+    @property
     def column(self) -> int:
-        """Returns the column the token starts on, counted from one."""
-        return self._scanner.column()
+        """The column the token starts on, counted from one."""
+        return self._scanner.column
 
+    @property
     def lexeme(self) -> bytes:
-        """Returns the bytes of the token."""
-        return self._scanner.lexeme()
+        """The bytes of the token."""
+        return self._scanner.lexeme
 
+    @property
     def file_path(self) -> str:
-        """Returns the file path the scanner was given."""
-        return self._scanner.file_path()
+        """The file path the scanner was given."""
+        return self._scanner.file_path
+
+    def __iter__(self) -> Iterator[Token]:
+        """Yields one token after another until the source is used up.
+
+        The other members describe the token yielded last, so the body of a `for` loop can read them.
+        """
+        while self.next():
+            yield self.token
 
     def next(self) -> bool:
-        """Advances to the next token which is not marked for skipping. Returns false when the source holds no such
-        token any more."""
+        """Advances to the next token which is not marked for skipping.
+
+        Returns false when the source holds no such token any more.
+        """
         while self._scanner.next():
-            if self._scanner.token() not in _SKIPPED_TOKENS:
+            if self._scanner.token not in _SKIPPED_TOKENS:
                 return True
         return False
 
     def reset(self, source: bytes, offset: int) -> None:
-        """Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
-        changed."""
+        """Scans the given source from the given byte offset on.
+
+        Useful for re-tokenizing the part of a source which changed.
+        """
         self._scanner.reset(source, offset)
 
 
@@ -149,21 +184,27 @@ class TokenSkipper:
 # The displaced tables are padded so that every state and byte class lands inside them, which is why a lookup needs no
 # range check of its own.
 
-_BYTE_CLASS_BY_BYTE: tuple[int, ...] = ({{ .Tables.ByteClassByByte.Literal "    " }})
+_BYTE_CLASS_BY_BYTE: Final[tuple[int, ...]] = ({{ .Tables.ByteClassByByte.Literal "    " }})
 """Maps an input byte to its byte class. Bytes which every state treats alike share a class."""
 
-_TRANSITION_BASE: tuple[int, ...] = ({{ .Tables.TransitionBase.Literal "    " }})
+_TRANSITION_BASE: Final[tuple[int, ...]] = ({{ .Tables.TransitionBase.Literal "    " }})
 """Maps a state to the displacement of its row within `_TRANSITION_NEXT`."""
 
-_TRANSITION_NEXT: tuple[int, ...] = ({{ .Tables.TransitionNext.Literal "    " }})
-"""Holds the target state of every transition. The transition a state has on a byte class lives at
-`_TRANSITION_BASE[state] + byte_class`, but only if `_TRANSITION_CHECK` confirms the cell belongs to that class."""
+_TRANSITION_NEXT: Final[tuple[int, ...]] = ({{ .Tables.TransitionNext.Literal "    " }})
+"""Holds the target state of every transition.
 
-_TRANSITION_CHECK: tuple[int, ...] = ({{ .Tables.TransitionCheck.Literal "    " }})
-"""Holds the byte class every cell of `_TRANSITION_NEXT` belongs to. A cell no state occupies holds
-{{ .Tables.NoByteClass }}, which is one past the highest byte class in use and can never be asked for."""
+The transition a state has on a byte class lives at `_TRANSITION_BASE[state] + byte_class`, but only if
+`_TRANSITION_CHECK` confirms the cell belongs to that class.
+"""
 
-_ACCEPT_TOKEN_BY_STATE: tuple[Token, ...] = (
+_TRANSITION_CHECK: Final[tuple[int, ...]] = ({{ .Tables.TransitionCheck.Literal "    " }})
+"""Holds the byte class every cell of `_TRANSITION_NEXT` belongs to.
+
+A cell no state occupies holds {{ .Tables.NoByteClass }}, which is one past the highest byte class in use and can never
+be asked for.
+"""
+
+_ACCEPT_TOKEN_BY_STATE: Final[tuple[Token, ...]] = (
 {{- range .Tables.AcceptTokenByState }}
     Token.{{ . }},
 {{- end }}
@@ -214,34 +255,52 @@ class Scanner:
         self._file_path = file_path
         self.reset(source, 0)
 
+    @property
     def token(self) -> Token:
-        """Returns the current token."""
+        """The current token."""
         return self._token
 
+    @property
     def byte_offset(self) -> int:
-        """Returns the start of the token in bytes from the start of the source. After `next` returned false it is the
-        offset one past the last byte."""
+        """The start of the token in bytes from the start of the source.
+
+        After `next` returned false it is the offset one past the last byte.
+        """
         return self._lexeme_start_idx
 
+    @property
     def line(self) -> int:
-        """Returns the line the token starts on, counted from one."""
+        """The line the token starts on, counted from one."""
         return self._line
 
+    @property
     def column(self) -> int:
-        """Returns the column the token starts on, counted from one."""
+        """The column the token starts on, counted from one."""
         return self._column
 
+    @property
     def lexeme(self) -> bytes:
-        """Returns the bytes of the token."""
+        """The bytes of the token."""
         return self._source[self._lexeme_start_idx:self._lexeme_end_idx]
 
+    @property
     def file_path(self) -> str:
-        """Returns the file path the scanner was given."""
+        """The file path the scanner was given."""
         return self._file_path
 
+    def __iter__(self) -> Iterator[Token]:
+        """Yields one token after another until the source is used up.
+
+        The other members describe the token yielded last, so the body of a `for` loop can read them.
+        """
+        while self.next():
+            yield self._token
+
     def reset(self, source: bytes, offset: int) -> None:
-        """Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
-        changed."""
+        """Scans the given source from the given byte offset on.
+
+        Useful for re-tokenizing the part of a source which changed.
+        """
         self._source = source
 
         self._lexeme_start_idx = 0
@@ -253,8 +312,10 @@ class Scanner:
         self._token = Token.INVALID_TOKEN
 
     def next(self) -> bool:
-        """Advances to the next token. Bytes which form no token become an invalid token. Returns false once the end of
-        the source is reached, which sets the token to the end token."""
+        """Advances to the next token. Bytes which form no token become an invalid token.
+
+        Returns false once the end of the source is reached, which sets the token to the end token.
+        """
         self._update_line_and_column(self._lexeme_start_idx, self._lexeme_end_idx)
         self._lexeme_start_idx = self._lexeme_end_idx
 
