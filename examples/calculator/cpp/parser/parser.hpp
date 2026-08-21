@@ -30,7 +30,7 @@ enum class Nonterminal : std::uint8_t {
 };
 
 /// Returns the name of the nonterminal, as the grammar spells it.
-[[nodiscard]] constexpr const char* to_string(Nonterminal nonterminal) noexcept {
+[[nodiscard]] constexpr std::string_view to_string(Nonterminal nonterminal) noexcept {
     switch (nonterminal) {
     case Nonterminal::AcceptNonterminal:
         return "$accept";
@@ -47,9 +47,9 @@ using ParseSymbol = std::variant<Token, Nonterminal>;
 /// Returns what the symbol is and the name it goes by.
 [[nodiscard]] inline std::string to_string(const ParseSymbol& symbol) {
     if (const Token* terminal = std::get_if<Token>(&symbol)) {
-        return std::string("terminal ") + to_string(*terminal);
+        return std::string("terminal ").append(to_string(*terminal));
     }
-    return std::string("nonterminal ") + to_string(std::get<Nonterminal>(symbol));
+    return std::string("nonterminal ").append(to_string(std::get<Nonterminal>(symbol)));
 }
 
 /// A single node of the parse tree. It borrows the source it was parsed from.
@@ -79,9 +79,9 @@ enum class ErrorKind {
 struct ParseError {
     /// Creates an error which stands at the position the given scanner is at.
     template <typename ScannerT>
-    ParseError(std::string reason, ErrorKind kind, const ScannerT& scanner)
-        : reason(std::move(reason)),
-          kind(kind),
+    ParseError(std::string error_reason, ErrorKind error_kind, const ScannerT& scanner)
+        : reason(std::move(error_reason)),
+          kind(error_kind),
           token(scanner.token()),
           byte_offset(scanner.byte_offset()),
           line(scanner.line()),
@@ -377,7 +377,10 @@ private:
         case ACTION_KIND_ACCEPT:
             return StepAccept{};
         case ACTION_KIND_ERROR:
-            return ParseError(std::string("unexpected token ") + to_string(terminal), ErrorKind::Syntax, scanner);
+            return ParseError(
+                std::string("unexpected token ").append(to_string(terminal)),
+                ErrorKind::Syntax,
+                scanner);
         default:
             // Every value the mask selects has a case of its own, so this is never reached. It is here to make the
             // switch complete.

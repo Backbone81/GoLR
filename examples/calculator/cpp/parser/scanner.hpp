@@ -54,7 +54,7 @@ enum class Token : std::uint8_t {
 };
 
 /// Returns the name of the token, as the grammar spells it.
-[[nodiscard]] constexpr const char* to_string(Token token) noexcept {
+[[nodiscard]] constexpr std::string_view to_string(Token token) noexcept {
     switch (token) {
     case Token::InvalidToken:
         return "invalid token";
@@ -143,6 +143,11 @@ private:
     /// The wrapped scanner.
     ScannerT& scanner_;
 };
+
+/// Deduces the wrapped scanner from the constructor, which is what lets `TokenSkipper skipper(scanner);` name no type
+/// of its own.
+template <typename ScannerT>
+TokenSkipper(ScannerT&) -> TokenSkipper<ScannerT>;
 
 /// Turns the bytes of a source into tokens. The source is borrowed, so the caller keeps it alive while it is scanned.
 class Scanner final {
