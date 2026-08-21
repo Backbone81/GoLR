@@ -3,6 +3,7 @@ all: build
 
 .PHONY: build
 build:
+	$(MAKE) -C cpp build
 	$(MAKE) -C golang build
 	$(MAKE) -C java build
 	$(MAKE) -C javascript build
@@ -24,6 +25,7 @@ test:
 
 .PHONY: clean
 clean:
+	$(MAKE) -C cpp clean
 	$(MAKE) -C golang clean
 	$(MAKE) -C java clean
 	$(MAKE) -C javascript clean

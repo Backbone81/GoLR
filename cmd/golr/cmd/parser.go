@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/backbone81/golr/pkg/parsergen/backend"
+	cppbackend "github.com/backbone81/golr/pkg/parsergen/backend/cpp"
 	csharpbackend "github.com/backbone81/golr/pkg/parsergen/backend/csharp"
 	dotbackend "github.com/backbone81/golr/pkg/parsergen/backend/dot"
 	golangbackend "github.com/backbone81/golr/pkg/parsergen/backend/golang"
@@ -42,6 +43,9 @@ var (
 	parserBackendFilePath string
 
 	parserBackendGoPackageName string
+
+	parserBackendCppNamespace      string
+	parserBackendCppScannerInclude string
 
 	parserBackendCSharpNamespace string
 
@@ -136,6 +140,17 @@ func executeParserCore(grammar frontend.Grammar) (backend.Parser, []conflict.Con
 
 func executeParserBackend(parser backend.Parser) error {
 	switch parserBackend {
+	case "cpp":
+		if parserBackendFilePath == "-" {
+			return cppbackend.FromParser(os.Stdout, parser, cppbackend.Config{
+				Namespace:      parserBackendCppNamespace,
+				ScannerInclude: parserBackendCppScannerInclude,
+			})
+		}
+		return cppbackend.ParserToFile(parserBackendFilePath, parser, cppbackend.Config{
+			Namespace:      parserBackendCppNamespace,
+			ScannerInclude: parserBackendCppScannerInclude,
+		})
 	case "csharp":
 		if parserBackendFilePath == "-" {
 			return csharpbackend.FromParser(os.Stdout, parser, csharpbackend.Config{
@@ -261,8 +276,8 @@ func init() {
 		&parserBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the parser. One of: csharp, dot, go, go-direct, go-table, java, javascript,"+
-			" json, null, python, rust, typescript, yaml.",
+		"The backend to use for writing the parser. One of: cpp, csharp, dot, go, go-direct, go-table, java,"+
+			" javascript, json, null, python, rust, typescript, yaml.",
 	)
 	parserCmd.PersistentFlags().StringVar(
 		&parserBackendFilePath,
@@ -279,6 +294,19 @@ func init() {
 		"backend-go-package-name",
 		"parser",
 		"The Go package name to use for the generated Go code.",
+	)
+
+	parserCmd.PersistentFlags().StringVar(
+		&parserBackendCppNamespace,
+		"backend-cpp-namespace",
+		"parser",
+		"The C++ namespace to use for the generated C++ code. Has to be the one the scanner was generated into.",
+	)
+	parserCmd.PersistentFlags().StringVar(
+		&parserBackendCppScannerInclude,
+		"backend-cpp-scanner-include",
+		cppbackend.DefaultScannerInclude,
+		"The header the generated C++ parser includes the token type from.",
 	)
 
 	parserCmd.PersistentFlags().StringVar(

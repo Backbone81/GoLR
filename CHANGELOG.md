@@ -16,6 +16,8 @@
 - Added a Rust parser generator backend, selected with --backend rust.
 - Added a Python scanner generator backend, selected with --backend python.
 - Added a Python parser generator backend, selected with --backend python.
+- Added a C++ scanner generator backend, selected with --backend cpp.
+- Added a C++ parser generator backend, selected with --backend cpp.
 
 ## v0.2.0 (2026-08-08)
 

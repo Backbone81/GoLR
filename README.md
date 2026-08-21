@@ -244,6 +244,7 @@ These cores are currently supported:
 These backends are currently supported:
 
 - [C#](docs/parsergen-backend-csharp.md)
+- [C++](docs/parsergen-backend-cpp.md)
 - [DOT](docs/parsergen-backend-dot.md)
 - [Go](docs/parsergen-backend-golang.md)
 - [Go Direct](docs/parsergen-backend-golang-direct.md)
@@ -292,6 +293,7 @@ These cores are currently supported:
 These backends are currently supported:
 
 - [C#](docs/scannergen-backend-csharp.md)
+- [C++](docs/scannergen-backend-cpp.md)
 - [DOT](docs/scannergen-backend-dot.md)
 - [Go](docs/scannergen-backend-golang.md)
 - [Go Direct](docs/scannergen-backend-golang-direct.md)

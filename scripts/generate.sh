@@ -109,6 +109,19 @@ go run ./cmd/golr parser \
 go run ./cmd/golr scanner \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
+  --backend cpp \
+  --backend-cpp-namespace calculator::parser \
+  --backend-file-path examples/calculator/cpp/parser/scanner.hpp
+go run ./cmd/golr parser \
+  --frontend golr \
+  --frontend-file-path examples/calculator/calculator.golr \
+  --core ielr1-golr \
+  --backend cpp \
+  --backend-cpp-namespace calculator::parser \
+  --backend-file-path examples/calculator/cpp/parser/parser.hpp
+go run ./cmd/golr scanner \
+  --frontend golr \
+  --frontend-file-path examples/calculator/calculator.golr \
   --backend csharp \
   --backend-csharp-namespace Calculator.Parser \
   --backend-file-path examples/calculator/csharp/Parser/Scanner.cs

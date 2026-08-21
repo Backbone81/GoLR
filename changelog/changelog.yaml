@@ -13,6 +13,8 @@ unreleased:
 - description: Added a Rust parser generator backend, selected with --backend rust.
 - description: Added a Python scanner generator backend, selected with --backend python.
 - description: Added a Python parser generator backend, selected with --backend python.
+- description: Added a C++ scanner generator backend, selected with --backend cpp.
+- description: Added a C++ parser generator backend, selected with --backend cpp.
 releases:
 - version: |
     v0.2.0
