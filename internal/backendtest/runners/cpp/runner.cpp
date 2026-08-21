@@ -10,9 +10,9 @@
 #include <exception>
 #include <fstream>
 #include <iterator>
-#include <optional>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include "parser.hpp"
@@ -100,7 +100,7 @@ void append_node_trace(std::vector<std::string>& lines, const parser::ParseNode&
         append_node_trace(lines, child);
     }
 
-    if (const std::optional<parser::Token> terminal = node.symbol.terminal()) {
+    if (const parser::Token* terminal = std::get_if<parser::Token>(&node.symbol)) {
         if (*terminal == parser::Token::ErrorToken) {
             // The leaf the recovery pushed where it resumed. It stands for the dropped input and names no token.
             lines.push_back("RESYNC");
@@ -110,7 +110,7 @@ void append_node_trace(std::vector<std::string>& lines, const parser::ParseNode&
         return;
     }
 
-    lines.push_back("REDUCE " + std::string(parser::to_string(*node.symbol.nonterminal())) + " " +
+    lines.push_back("REDUCE " + std::string(parser::to_string(std::get<parser::Nonterminal>(node.symbol))) + " " +
                     std::to_string(node.children.size()));
 }
 

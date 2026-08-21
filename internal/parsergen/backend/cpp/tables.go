@@ -87,6 +87,11 @@ type Tables struct {
 
 	// ActionKindError is the action which rejects the terminal as a syntax error.
 	ActionKindError int
+
+	// NonterminalType is the underlying type of the Nonterminal enumeration. A scoped enumeration whose underlying
+	// type is left open is as wide as an int, while a nonterminal is one alternative of a ParseSymbol and is held
+	// once per node of the parse tree, so the type is what it costs there.
+	NonterminalType string
 }
 
 // NewTables compresses the given parser into the lookup tables the generated parser reads at runtime.
@@ -139,6 +144,10 @@ func NewTables(parser backend.Parser) Tables {
 		ActionKindReduce: int(table.ActionKindReduce),
 		ActionKindAccept: int(table.ActionKindAccept),
 		ActionKindError:  int(table.ActionKindError),
+
+		// The enumerators are one per nonterminal numbered from zero, so the last of them is the value the type has
+		// to hold.
+		NonterminalType: utils.CppUintType(nonterminalCount - 1),
 	}
 }
 

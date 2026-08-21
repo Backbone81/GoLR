@@ -84,6 +84,16 @@ enum class Token : std::uint8_t {
     return "unknown";
 }
 
+/// Reports whether the grammar marked the token for skipping, which is what TokenSkipper drops.
+[[nodiscard]] constexpr bool is_skipped(Token token) noexcept {
+    switch (token) {
+    case Token::TokenWhitespace:
+        return true;
+    default:
+        return false;
+    }
+}
+
 /// Wraps a scanner and skips the tokens marked for skipping, which are usually whitespace and comments. It offers the
 /// same members as Scanner, so it goes wherever a scanner goes.
 ///
@@ -122,11 +132,7 @@ public:
     /// any more.
     bool next() {
         while (scanner_.next()) {
-            // A continue inside a switch continues the enclosing loop, so a skipped token goes on to the next one.
-            switch (scanner_.token()) {
-            case Token::TokenWhitespace:
-                continue;
-            default:
+            if (!is_skipped(scanner_.token())) {
                 return true;
             }
         }
@@ -172,7 +178,9 @@ public:
         source_ = source;
 
         lexeme_start_idx_ = 0;
-        lexeme_end_idx_ = offset;
+        // An offset past the end of the source would walk the line and column counters over bytes which are not
+        // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+        lexeme_end_idx_ = std::min(offset, source_.size());
 
         line_ = 1;
         column_ = 1;
@@ -188,11 +196,15 @@ public:
 
         std::size_t state = 0;
         std::size_t lexeme_peek_idx = lexeme_end_idx_;
-        while (lexeme_peek_idx < source_.size()) {
+        while (true) {
             // Remember every accepting state passed through, so the longest match wins over the first one.
             if (ACCEPT_TOKEN_BY_STATE[state] != Token::InvalidToken) {
                 token_ = ACCEPT_TOKEN_BY_STATE[state];
                 lexeme_end_idx_ = lexeme_peek_idx;
+            }
+            if (lexeme_peek_idx == source_.size()) {
+                // The end of the source is reached, so the state it stopped in was the last one to test.
+                break;
             }
 
             // char carries the sign of the platform, so the byte is widened through unsigned char. Taken as it comes,
@@ -206,13 +218,6 @@ public:
             }
             state = TRANSITION_NEXT[cell_idx];
             lexeme_peek_idx++;
-        }
-        if (lexeme_peek_idx == source_.size()) {
-            // The loop ran off the end of the source, leaving the state it stopped in still to be tested.
-            if (ACCEPT_TOKEN_BY_STATE[state] != Token::InvalidToken) {
-                token_ = ACCEPT_TOKEN_BY_STATE[state];
-                lexeme_end_idx_ = lexeme_peek_idx;
-            }
         }
 
         if (lexeme_start_idx_ < lexeme_end_idx_) {

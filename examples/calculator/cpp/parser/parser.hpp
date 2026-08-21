@@ -13,6 +13,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "scanner.hpp"
@@ -20,7 +21,7 @@
 namespace calculator::parser {
 
 /// Every nonterminal symbol of the grammar.
-enum class Nonterminal {
+enum class Nonterminal : std::uint8_t {
     /// The nonterminal `$accept`.
     AcceptNonterminal,
 
@@ -29,7 +30,7 @@ enum class Nonterminal {
 };
 
 /// Returns the name of the nonterminal, as the grammar spells it.
-constexpr const char* to_string(Nonterminal nonterminal) {
+[[nodiscard]] constexpr const char* to_string(Nonterminal nonterminal) noexcept {
     switch (nonterminal) {
     case Nonterminal::AcceptNonterminal:
         return "$accept";
@@ -39,67 +40,16 @@ constexpr const char* to_string(Nonterminal nonterminal) {
     return "unknown";
 }
 
-/// A terminal or a nonterminal. The most significant bit of the low 16 is set when the symbol holds a nonterminal,
-/// which limits either index to 32767.
-class ParseSymbol {
-public:
-    /// Returns the symbol for a terminal.
-    [[nodiscard]] static constexpr ParseSymbol new_terminal(Token terminal) noexcept {
-        return ParseSymbol(static_cast<std::uint32_t>(terminal));
-    }
-
-    /// Returns the symbol for a nonterminal.
-    [[nodiscard]] static constexpr ParseSymbol new_nonterminal(Nonterminal nonterminal) noexcept {
-        return ParseSymbol(NONTERMINAL_BIT | static_cast<std::uint32_t>(nonterminal));
-    }
-
-    /// Returns the terminal the symbol holds, or no value when it holds a nonterminal.
-    [[nodiscard]] constexpr std::optional<Token> terminal() const noexcept {
-        if ((value_ & NONTERMINAL_BIT) != 0) {
-            return std::nullopt;
-        }
-        return static_cast<Token>(value_ & SYMBOL_MASK);
-    }
-
-    /// Returns the nonterminal the symbol holds, or no value when it holds a terminal.
-    [[nodiscard]] constexpr std::optional<Nonterminal> nonterminal() const noexcept {
-        if ((value_ & NONTERMINAL_BIT) == 0) {
-            return std::nullopt;
-        }
-        return static_cast<Nonterminal>(value_ & SYMBOL_MASK);
-    }
-
-    /// Reports whether the two symbols stand for the same terminal or nonterminal.
-    [[nodiscard]] friend constexpr bool operator==(ParseSymbol left, ParseSymbol right) noexcept {
-        return left.value_ == right.value_;
-    }
-
-    /// Reports whether the two symbols stand for different terminals or nonterminals.
-    [[nodiscard]] friend constexpr bool operator!=(ParseSymbol left, ParseSymbol right) noexcept {
-        return !(left == right);
-    }
-
-private:
-    /// The bit which is set when the symbol holds a nonterminal.
-    static constexpr std::uint32_t NONTERMINAL_BIT = 1U << 15;
-
-    /// Selects the index out of the symbol.
-    static constexpr std::uint32_t SYMBOL_MASK = NONTERMINAL_BIT - 1;
-
-    /// Wraps the packed index.
-    explicit constexpr ParseSymbol(std::uint32_t value) : value_(value) {}
-
-    /// The terminal or nonterminal index, with NONTERMINAL_BIT telling the two apart.
-    std::uint32_t value_;
-};
+/// A terminal or a nonterminal. Which of the two a symbol holds is asked with std::holds_alternative, read with
+/// std::get_if or std::get, and handled for both alternatives at once with std::visit.
+using ParseSymbol = std::variant<Token, Nonterminal>;
 
 /// Returns what the symbol is and the name it goes by.
-[[nodiscard]] inline std::string to_string(ParseSymbol symbol) {
-    if (const std::optional<Token> terminal = symbol.terminal()) {
+[[nodiscard]] inline std::string to_string(const ParseSymbol& symbol) {
+    if (const Token* terminal = std::get_if<Token>(&symbol)) {
         return std::string("terminal ") + to_string(*terminal);
     }
-    // A symbol which holds no terminal holds a nonterminal.
-    return std::string("nonterminal ") + to_string(*symbol.nonterminal());
+    return std::string("nonterminal ") + to_string(std::get<Nonterminal>(symbol));
 }
 
 /// A single node of the parse tree. It borrows the source it was parsed from.
@@ -179,7 +129,7 @@ struct ParseResult {
 };
 
 /// Parses the tokens of a scanner into a parse tree. One parser serves one source after another.
-class Parser {
+class Parser final {
 public:
     /// Parses the tokens the scanner delivers. Can be called more than once, with a different scanner each time. The
     /// scanner is any type with the members Scanner and TokenSkipper have.
@@ -201,16 +151,20 @@ public:
 
         while (true) {
             StepResult result = step(scanner);
-            if (result.outcome == StepOutcome::Accept) {
-                // What is left on the node stack is the start symbol, which is the root of the tree.
-                return ParseResult{std::move(node_stack_.front()), std::move(errors_)};
-            }
-            if (result.outcome == StepOutcome::Continue) {
+            if (std::holds_alternative<StepContinue>(result)) {
                 continue;
             }
+            if (std::holds_alternative<StepAccept>(result)) {
+                // What is left on the node stack is the start symbol, which is the root of the tree.
+                std::optional<ParseNode> tree;
+                if (!node_stack_.empty()) {
+                    tree = std::move(node_stack_.front());
+                }
+                return ParseResult{std::move(tree), std::move(errors_)};
+            }
 
-            // Only a failed step carries an error.
-            ParseError failure = std::move(*result.error);
+            // The step neither went on nor accepted, so it is the alternative which carries the error.
+            ParseError failure = std::move(std::get<ParseError>(result));
             if (failure.kind != ErrorKind::Syntax) {
                 // Only an error in the input can be recovered from.
                 errors_.push_back(std::move(failure));
@@ -228,26 +182,15 @@ public:
     }
 
 private:
-    /// What one step of a parse ended with.
-    enum class StepOutcome {
-        /// The parse goes on.
-        Continue,
+    /// The step performed an action and the parse goes on.
+    struct StepContinue {};
 
-        /// The input was reduced to the start symbol.
-        Accept,
+    /// The input was reduced to the start symbol.
+    struct StepAccept {};
 
-        /// The parse cannot go on, and the step reported why.
-        Failed,
-    };
-
-    /// What one step of a parse produced.
-    struct StepResult {
-        /// What the step ended with.
-        StepOutcome outcome;
-
-        /// Why the parse cannot go on. Holds a value exactly when the outcome is Failed.
-        std::optional<ParseError> error;
-    };
+    /// What one step of a parse ended with. The parse cannot go on exactly when the step ended with a ParseError,
+    /// which is what holding the error in the alternative rather than beside it makes impossible to get wrong.
+    using StepResult = std::variant<StepContinue, StepAccept, ParseError>;
 
     /// How many tokens have to be shifted after a syntax error before errors are reported again. Suppressing the
     /// errors in between keeps one mistake in the input from producing an avalanche of messages which all follow from
@@ -386,7 +329,7 @@ private:
     ///
     /// The default action of the state is deliberately not consulted, because only an entry the state has of its own
     /// is a place to resume at.
-    [[nodiscard]] static std::optional<std::size_t> error_shift_state(std::size_t state) noexcept {
+    [[nodiscard]] static constexpr std::optional<std::size_t> error_shift_state(std::size_t state) noexcept {
         const std::size_t cell_idx = ACTION_BASE[state] + ERROR_TERMINAL_COLUMN;
         const std::size_t cell_column = ACTION_CHECK[cell_idx];
         if (cell_column != ERROR_TERMINAL_COLUMN) {
@@ -421,33 +364,27 @@ private:
         switch (action & ACTION_KIND_MASK) {
         case ACTION_KIND_SHIFT:
             state_stack_.push_back(action >> ACTION_KIND_BITS);
-            node_stack_.push_back(ParseNode{ParseSymbol::new_terminal(terminal), scanner.lexeme(), {}});
+            node_stack_.push_back(ParseNode{terminal, scanner.lexeme(), {}});
             scanner.next();
             if (error_recovery_shifts_remaining_ > 0) {
                 // Getting tokens of the input shifted again is what makes the parser trust its position.
                 error_recovery_shifts_remaining_--;
             }
-            return StepResult{StepOutcome::Continue, std::nullopt};
+            return StepContinue{};
         case ACTION_KIND_REDUCE:
             reduce(action >> ACTION_KIND_BITS);
-            return StepResult{StepOutcome::Continue, std::nullopt};
+            return StepContinue{};
         case ACTION_KIND_ACCEPT:
-            return StepResult{StepOutcome::Accept, std::nullopt};
+            return StepAccept{};
         case ACTION_KIND_ERROR:
-            return StepResult{
-                StepOutcome::Failed,
-                ParseError(std::string("unexpected token ") + to_string(terminal), ErrorKind::Syntax, scanner),
-            };
+            return ParseError(std::string("unexpected token ") + to_string(terminal), ErrorKind::Syntax, scanner);
         default:
             // Every value the mask selects has a case of its own, so this is never reached. It is here to make the
             // switch complete.
-            return StepResult{
-                StepOutcome::Failed,
-                ParseError(
-                    "unexpected action " + std::to_string(action) + " in state " + std::to_string(state),
-                    ErrorKind::Internal,
-                    scanner),
-            };
+            return ParseError(
+                "unexpected action " + std::to_string(action) + " in state " + std::to_string(state),
+                ErrorKind::Internal,
+                scanner);
         }
     }
 
@@ -475,7 +412,7 @@ private:
         std::vector<ParseNode> children(std::make_move_iterator(first), std::make_move_iterator(node_stack_.end()));
         node_stack_.erase(first, node_stack_.end());
         node_stack_.push_back(ParseNode{
-            ParseSymbol::new_nonterminal(static_cast<Nonterminal>(nonterminal)),
+            static_cast<Nonterminal>(nonterminal),
             std::string_view(),
             std::move(children),
         });
@@ -505,7 +442,7 @@ private:
             if (next_state.has_value()) {
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 state_stack_.push_back(*next_state);
-                node_stack_.push_back(ParseNode{ParseSymbol::new_terminal(Token::ErrorToken), std::string_view(), {}});
+                node_stack_.push_back(ParseNode{Token::ErrorToken, std::string_view(), {}});
                 return true;
             }
             if (state_stack_.size() == 1) {
