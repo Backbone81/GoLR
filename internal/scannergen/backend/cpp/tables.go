@@ -40,6 +40,11 @@ type Tables struct {
 	// The names are written into the generated source instead of the numbers they stand for, which is what makes the
 	// table a Token a reader of the generated scanner can follow.
 	AcceptTokenByState []string
+
+	// TokenType is the underlying type of the Token enumeration. A scoped enumeration whose underlying type is left
+	// open is as wide as an int, and AcceptTokenByState holds one Token per state, so the type is what an entry of
+	// that table costs.
+	TokenType string
 }
 
 // NewTables compresses the given DFA into the lookup tables the generated scanner reads at runtime.
@@ -86,5 +91,9 @@ func NewTables(dfa backend.DFA) Tables {
 
 		NoByteClass:        classCount,
 		AcceptTokenByState: acceptTokenByState,
+
+		// The enumerators are the invalid token, the end token, the error token and one per rule, numbered from
+		// zero, so the last of them is the value the type has to hold.
+		TokenType: utils.CppUintType(len(dfa.Rules) + 2),
 	}
 }

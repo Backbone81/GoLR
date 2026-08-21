@@ -44,32 +44,40 @@ constexpr const char* to_string(Nonterminal nonterminal) {
 class ParseSymbol {
 public:
     /// Returns the symbol for a terminal.
-    static constexpr ParseSymbol new_terminal(Token terminal) {
+    [[nodiscard]] static constexpr ParseSymbol new_terminal(Token terminal) noexcept {
         return ParseSymbol(static_cast<std::uint32_t>(terminal));
     }
 
     /// Returns the symbol for a nonterminal.
-    static constexpr ParseSymbol new_nonterminal(Nonterminal nonterminal) {
+    [[nodiscard]] static constexpr ParseSymbol new_nonterminal(Nonterminal nonterminal) noexcept {
         return ParseSymbol(NONTERMINAL_BIT | static_cast<std::uint32_t>(nonterminal));
     }
 
-    /// Reports whether the symbol holds a terminal, which it then writes to the parameter.
-    constexpr bool try_get_terminal(Token& terminal) const {
-        terminal = static_cast<Token>(value_ & SYMBOL_MASK);
-        return (value_ & NONTERMINAL_BIT) == 0;
+    /// Returns the terminal the symbol holds, or no value when it holds a nonterminal.
+    [[nodiscard]] constexpr std::optional<Token> terminal() const noexcept {
+        if ((value_ & NONTERMINAL_BIT) != 0) {
+            return std::nullopt;
+        }
+        return static_cast<Token>(value_ & SYMBOL_MASK);
     }
 
-    /// Reports whether the symbol holds a nonterminal, which it then writes to the parameter.
-    constexpr bool try_get_nonterminal(Nonterminal& nonterminal) const {
-        nonterminal = static_cast<Nonterminal>(value_ & SYMBOL_MASK);
-        return (value_ & NONTERMINAL_BIT) != 0;
+    /// Returns the nonterminal the symbol holds, or no value when it holds a terminal.
+    [[nodiscard]] constexpr std::optional<Nonterminal> nonterminal() const noexcept {
+        if ((value_ & NONTERMINAL_BIT) == 0) {
+            return std::nullopt;
+        }
+        return static_cast<Nonterminal>(value_ & SYMBOL_MASK);
     }
 
     /// Reports whether the two symbols stand for the same terminal or nonterminal.
-    friend constexpr bool operator==(ParseSymbol left, ParseSymbol right) { return left.value_ == right.value_; }
+    [[nodiscard]] friend constexpr bool operator==(ParseSymbol left, ParseSymbol right) noexcept {
+        return left.value_ == right.value_;
+    }
 
     /// Reports whether the two symbols stand for different terminals or nonterminals.
-    friend constexpr bool operator!=(ParseSymbol left, ParseSymbol right) { return !(left == right); }
+    [[nodiscard]] friend constexpr bool operator!=(ParseSymbol left, ParseSymbol right) noexcept {
+        return !(left == right);
+    }
 
 private:
     /// The bit which is set when the symbol holds a nonterminal.
@@ -86,15 +94,12 @@ private:
 };
 
 /// Returns what the symbol is and the name it goes by.
-inline std::string to_string(ParseSymbol symbol) {
-    Token terminal = Token::InvalidToken;
-    if (symbol.try_get_terminal(terminal)) {
-        return std::string("terminal ") + to_string(terminal);
+[[nodiscard]] inline std::string to_string(ParseSymbol symbol) {
+    if (const std::optional<Token> terminal = symbol.terminal()) {
+        return std::string("terminal ") + to_string(*terminal);
     }
-
-    Nonterminal nonterminal{};
-    symbol.try_get_nonterminal(nonterminal);
-    return std::string("nonterminal ") + to_string(nonterminal);
+    // A symbol which holds no terminal holds a nonterminal.
+    return std::string("nonterminal ") + to_string(*symbol.nonterminal());
 }
 
 /// A single node of the parse tree. It borrows the source it was parsed from.
@@ -110,13 +115,23 @@ struct ParseNode {
     std::vector<ParseNode> children;
 };
 
+/// What a parse error is about.
+enum class ErrorKind {
+    /// An error in the input.
+    Syntax,
+
+    /// A defect of the parser itself, which ends the parse.
+    Internal,
+};
+
 /// A single parse error. Parse errors are returned by Parser::parse rather than thrown, so reporting many of them
 /// costs nothing. Wrap message() in an exception of your own to throw one.
 struct ParseError {
     /// Creates an error which stands at the position the given scanner is at.
-    ParseError(std::string reason, bool is_syntax_error, const TokenSkipperScanner& scanner)
+    template <typename ScannerT>
+    ParseError(std::string reason, ErrorKind kind, const ScannerT& scanner)
         : reason(std::move(reason)),
-          is_syntax_error(is_syntax_error),
+          kind(kind),
           token(scanner.token()),
           byte_offset(scanner.byte_offset()),
           line(scanner.line()),
@@ -125,15 +140,15 @@ struct ParseError {
           file_path(scanner.file_path()) {}
 
     /// Returns the error in the file:line:column: reason form editors and build tools recognize.
-    std::string message() const {
+    [[nodiscard]] std::string message() const {
         return file_path + ":" + std::to_string(line) + ":" + std::to_string(column) + ": " + reason;
     }
 
     /// What is wrong, without the position in front of it.
     std::string reason;
 
-    /// True for an error in the input, false for a defect of the parser itself, which ends the parse.
-    bool is_syntax_error;
+    /// What the error is about.
+    ErrorKind kind;
 
     /// The token the parse stopped on.
     Token token;
@@ -166,14 +181,14 @@ struct ParseResult {
 /// Parses the tokens of a scanner into a parse tree. One parser serves one source after another.
 class Parser {
 public:
-    /// Parses the tokens the scanner delivers. Can be called more than once, with a different scanner each time.
+    /// Parses the tokens the scanner delivers. Can be called more than once, with a different scanner each time. The
+    /// scanner is any type with the members Scanner and TokenSkipper have.
     ///
     /// When the grammar marks places to resume at with the error symbol, a syntax error does not end the parse: the
     /// result then holds both the tree parsed so far, with a node for the error symbol at every place resumed at, and
     /// every error found. The tree holds no value when the parse could not be carried to its end.
-    ParseResult parse(TokenSkipperScanner& scanner) {
-        scanner_ = &scanner;
-
+    template <typename ScannerT>
+    [[nodiscard]] ParseResult parse(ScannerT& scanner) {
         state_stack_.clear();
         state_stack_.push_back(0);
         node_stack_.clear();
@@ -182,22 +197,21 @@ public:
 
         // A source with no tokens at all reports false right away. That is not an error: the token is the end of input
         // either way, and whether a parse of nothing but that is legal is for the table to decide.
-        scanner_->next();
+        scanner.next();
 
         while (true) {
-            std::optional<ParseError> error;
-            const StepOutcome outcome = step(error);
-            if (outcome == StepOutcome::Accept) {
+            StepResult result = step(scanner);
+            if (result.outcome == StepOutcome::Accept) {
                 // What is left on the node stack is the start symbol, which is the root of the tree.
                 return ParseResult{std::move(node_stack_.front()), std::move(errors_)};
             }
-            if (outcome == StepOutcome::Continue) {
+            if (result.outcome == StepOutcome::Continue) {
                 continue;
             }
 
             // Only a failed step carries an error.
-            ParseError failure = std::move(*error);
-            if (!failure.is_syntax_error) {
+            ParseError failure = std::move(*result.error);
+            if (failure.kind != ErrorKind::Syntax) {
                 // Only an error in the input can be recovered from.
                 errors_.push_back(std::move(failure));
                 return ParseResult{std::nullopt, std::move(errors_)};
@@ -207,7 +221,7 @@ public:
                 // from the one already reported.
                 errors_.push_back(std::move(failure));
             }
-            if (!recover_from_error()) {
+            if (!recover_from_error(scanner)) {
                 return ParseResult{std::nullopt, std::move(errors_)};
             }
         }
@@ -224,6 +238,15 @@ private:
 
         /// The parse cannot go on, and the step reported why.
         Failed,
+    };
+
+    /// What one step of a parse produced.
+    struct StepResult {
+        /// What the step ended with.
+        StepOutcome outcome;
+
+        /// Why the parse cannot go on. Holds a value exactly when the outcome is Failed.
+        std::optional<ParseError> error;
     };
 
     /// How many tokens have to be shifted after a syntax error before errors are reported again. Suppressing the
@@ -296,8 +319,8 @@ private:
     static constexpr {{ .Tables.GotoNext.Type }} GOTO_NEXT[] = {
     {{- .Tables.GotoNext.Literal "        " }}    };
 
-    /// Holds the nonterminal every cell of GOTO_NEXT belongs to. A cell no state occupies holds
-    /// {{ .Tables.NoNonterminal }}, which is one past the highest nonterminal and can never be asked for.
+    /// Holds the nonterminal every cell of GOTO_NEXT belongs to. A cell no state occupies holds {{ .Tables.NoNonterminal }},
+    /// which is one past the highest nonterminal and can never be asked for.
     static constexpr {{ .Tables.GotoCheck.Type }} GOTO_CHECK[] = {
     {{- .Tables.GotoCheck.Literal "        " }}    };
 
@@ -315,7 +338,7 @@ private:
 
     /// Returns the column of the action table which holds the decisions for the given token. A token the grammar does
     /// not have gets NO_TERMINAL_COLUMN.
-    static constexpr std::size_t terminal_column(Token token) {
+    [[nodiscard]] static constexpr std::size_t terminal_column(Token token) noexcept {
         switch (token) {
 {{- range .Tables.TerminalColumnByToken }}
         case Token::{{ .Name }}:
@@ -332,7 +355,7 @@ private:
     ///
     /// The default action of the state is deliberately not consulted, because only an entry the state has of its own
     /// is a place to resume at.
-    static std::optional<std::size_t> error_shift_state(std::size_t state) {
+    [[nodiscard]] static std::optional<std::size_t> error_shift_state(std::size_t state) noexcept {
         const std::size_t cell_idx = ACTION_BASE[state] + ERROR_TERMINAL_COLUMN;
         const std::size_t cell_column = ACTION_CHECK[cell_idx];
         if (cell_column != ERROR_TERMINAL_COLUMN) {
@@ -346,10 +369,10 @@ private:
         return action >> ACTION_KIND_BITS;
     }
 
-    /// Performs the one action the state on top of the stack takes for the current token. The error is set only when
-    /// the parse cannot go on.
-    StepOutcome step(std::optional<ParseError>& error) {
-        const Token terminal = scanner_->token();
+    /// Performs the one action the state on top of the stack takes for the current token.
+    template <typename ScannerT>
+    StepResult step(ScannerT& scanner) {
+        const Token terminal = scanner.token();
 
         // A token which is no terminal of this grammar takes the default action of the state.
         const std::size_t column = terminal_column(terminal);
@@ -367,27 +390,33 @@ private:
         switch (action & ACTION_KIND_MASK) {
         case ACTION_KIND_SHIFT:
             state_stack_.push_back(action >> ACTION_KIND_BITS);
-            node_stack_.push_back(ParseNode{ParseSymbol::new_terminal(terminal), scanner_->lexeme(), {}});
-            scanner_->next();
+            node_stack_.push_back(ParseNode{ParseSymbol::new_terminal(terminal), scanner.lexeme(), {}});
+            scanner.next();
             if (error_recovery_shifts_remaining_ > 0) {
                 // Getting tokens of the input shifted again is what makes the parser trust its position.
                 error_recovery_shifts_remaining_--;
             }
-            return StepOutcome::Continue;
+            return StepResult{StepOutcome::Continue, std::nullopt};
         case ACTION_KIND_REDUCE:
             reduce(action >> ACTION_KIND_BITS);
-            return StepOutcome::Continue;
+            return StepResult{StepOutcome::Continue, std::nullopt};
         case ACTION_KIND_ACCEPT:
-            return StepOutcome::Accept;
+            return StepResult{StepOutcome::Accept, std::nullopt};
         case ACTION_KIND_ERROR:
-            error.emplace(std::string("unexpected token ") + to_string(terminal), true, *scanner_);
-            return StepOutcome::Failed;
+            return StepResult{
+                StepOutcome::Failed,
+                ParseError(std::string("unexpected token ") + to_string(terminal), ErrorKind::Syntax, scanner),
+            };
         default:
-            error.emplace(
-                "unexpected action " + std::to_string(action) + " in state " + std::to_string(state),
-                false,
-                *scanner_);
-            return StepOutcome::Failed;
+            // Every value the mask selects has a case of its own, so this is never reached. It is here to make the
+            // switch complete.
+            return StepResult{
+                StepOutcome::Failed,
+                ParseError(
+                    "unexpected action " + std::to_string(action) + " in state " + std::to_string(state),
+                    ErrorKind::Internal,
+                    scanner),
+            };
         }
     }
 
@@ -428,14 +457,15 @@ private:
     /// until a state is reached which can shift the error symbol, and the symbol is shifted there. Everything the
     /// popped states had parsed is discarded with them. The token which caused the error is kept for the resumed state
     /// to look at, and only discarded when the parse fails on it a second time.
-    bool recover_from_error() {
+    template <typename ScannerT>
+    bool recover_from_error(ScannerT& scanner) {
         if (error_recovery_shifts_remaining_ == ERROR_RECOVERY_SHIFTS) {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
-            if (scanner_->token() == Token::EndToken) {
+            if (scanner.token() == Token::EndToken) {
                 // The end of input is the one token which cannot be discarded.
                 return false;
             }
-            scanner_->next();
+            scanner.next();
         }
         error_recovery_shifts_remaining_ = ERROR_RECOVERY_SHIFTS;
 
@@ -444,8 +474,7 @@ private:
             if (next_state.has_value()) {
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 state_stack_.push_back(*next_state);
-                node_stack_.push_back(
-                    ParseNode{ParseSymbol::new_terminal(Token::ErrorToken), std::string_view(), {}});
+                node_stack_.push_back(ParseNode{ParseSymbol::new_terminal(Token::ErrorToken), std::string_view(), {}});
                 return true;
             }
             if (state_stack_.size() == 1) {
@@ -460,10 +489,7 @@ private:
     }
 
     /// Returns the state on top of the stack, which is the one the parse is in.
-    std::size_t current_state() const { return state_stack_.back(); }
-
-    /// The scanner of the running parse.
-    TokenSkipperScanner* scanner_ = nullptr;
+    [[nodiscard]] std::size_t current_state() const noexcept { return state_stack_.back(); }
 
     /// The states of the running parse, the current one on top.
     std::vector<std::size_t> state_stack_;

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -21,8 +22,8 @@ long evaluate_three_children(const ParseNode& node) {
     // In "expression OP expression", the middle child is a terminal operator token.
     // We use this to distinguish the two cases.
     const ParseNode& middle = node.children[1];
-    Token operation = Token::InvalidToken;
-    if (!middle.symbol.try_get_terminal(operation)) {
+    const std::optional<Token> operation = middle.symbol.terminal();
+    if (!operation.has_value()) {
         // expression: "(" expression ")"
         return evaluate_node(middle);
     }
@@ -30,7 +31,7 @@ long evaluate_three_children(const ParseNode& node) {
     const long left_value = evaluate_node(node.children[0]);
     const long right_value = evaluate_node(node.children[2]);
 
-    switch (operation) {
+    switch (*operation) {
     case Token::TokenPlus:
         // expression: expression "+" expression
         return left_value + right_value;
