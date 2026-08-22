@@ -21,6 +21,11 @@ unreleased:
     token, which had corrupted the token following the error.
 - description: Fixed the generated parser rejecting an empty input which the grammar
     accepts. The end of input is now a token the parse table decides on like any other.
+- description: Fixed Symbol.String of the generated Go parser printing the index of
+    a symbol instead of its name.
+- description: 'BREAKING: The generated Go parser now spells the augmented start symbol
+    AcceptNonterminal instead of Nonterminal_accept, which is the name every other
+    language backend already uses.'
 releases:
 - version: |
     v0.2.0

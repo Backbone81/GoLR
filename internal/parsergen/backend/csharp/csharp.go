@@ -111,10 +111,6 @@ func terminalName(symbol frontend.Symbol) string {
 // nonterminal, and it is suffixed instead, the way terminalName suffixes the ones the grammar cannot name either. The
 // two shapes are what tells them apart: a grammar which does have a nonterminal called accept gets NonterminalAccept,
 // which is not the AcceptNonterminal returned here.
-//
-// This deviates from the Go backends, which spell the augmented start symbol Nonterminal_accept. That name carries an
-// underscore and a lowercase word among constants which are otherwise capitalized, which reads wrong in C# next to
-// NonterminalExpression, so the same symbol is not called the same in both languages.
 func nonterminalName(symbol frontend.Symbol) string {
 	if symbol.Name == "$accept" {
 		return "AcceptNonterminal"

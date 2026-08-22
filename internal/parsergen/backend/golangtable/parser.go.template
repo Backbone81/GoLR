@@ -73,10 +73,10 @@ var _ fmt.Stringer = (*Symbol)(nil)
 func (s Symbol) String() string {
     nonterminal, ok := s.Nonterminal()
 	if ok {
-		return fmt.Sprintf("nonterminal %d", nonterminal)
+		return fmt.Sprintf("nonterminal %s", nonterminal)
 	}
 	terminal, _ := s.Terminal()
-	return fmt.Sprintf("terminal %d", terminal)
+	return fmt.Sprintf("terminal %s", terminal)
 }
 
 // Node is a single node of the parse tree.
