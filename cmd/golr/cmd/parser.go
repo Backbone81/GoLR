@@ -165,7 +165,7 @@ func executeParserBackend(parser backend.Parser) error {
 			return dotbackend.FromParser(os.Stdout, parser)
 		}
 		return dotbackend.ParserToFile(parserBackendFilePath, parser)
-	case "go", "go-direct":
+	case "go-direct":
 		if parserBackendFilePath == "-" {
 			return golangbackend.FromParser(os.Stdout, parser, golangbackend.Config{
 				PackageName: parserBackendGoPackageName,
@@ -174,7 +174,7 @@ func executeParserBackend(parser backend.Parser) error {
 		return golangbackend.ParserToFile(parserBackendFilePath, parser, golangbackend.Config{
 			PackageName: parserBackendGoPackageName,
 		})
-	case "go-table":
+	case "go", "go-table":
 		if parserBackendFilePath == "-" {
 			return golangtablebackend.FromParser(os.Stdout, parser, golangtablebackend.Config{
 				PackageName: parserBackendGoPackageName,

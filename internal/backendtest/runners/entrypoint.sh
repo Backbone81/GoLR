@@ -146,7 +146,6 @@ for casePath in /cases/*/; do
     golr parser \
         --frontend golr \
         --frontend-file-path "$casePath/spec.golr" \
-        --core ielr1-golr \
         --backend "$language" \
         --backend-file-path "$caseName/$PARSER_FILE_NAME" \
         || continue

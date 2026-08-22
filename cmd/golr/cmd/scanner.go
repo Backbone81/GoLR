@@ -122,7 +122,7 @@ func executeScannerBackend(dfa backend.DFA) error {
 			return dotbackend.FromDFA(os.Stdout, dfa)
 		}
 		return dotbackend.DFAToFile(scannerBackendFilePath, dfa)
-	case "go", "go-direct":
+	case "go-direct":
 		if scannerBackendFilePath == "-" {
 			return golangbackend.FromDFA(os.Stdout, dfa, golangbackend.Config{
 				PackageName: scannerBackendGoPackageName,
@@ -131,7 +131,7 @@ func executeScannerBackend(dfa backend.DFA) error {
 		return golangbackend.DFAToFile(scannerBackendFilePath, dfa, golangbackend.Config{
 			PackageName: scannerBackendGoPackageName,
 		})
-	case "go-table":
+	case "go", "go-table":
 		if scannerBackendFilePath == "-" {
 			return golangtablebackend.FromDFA(os.Stdout, dfa, golangtablebackend.Config{
 				PackageName: scannerBackendGoPackageName,

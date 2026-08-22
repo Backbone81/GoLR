@@ -671,7 +671,7 @@
         | BreakStmt
         | ContinueStmt
         | GotoStmt
-        | "fallthrough"
+        | FallthroughStmt
         | Block
         | IfStmt
         | SwitchStmt

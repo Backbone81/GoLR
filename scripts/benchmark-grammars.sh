@@ -15,7 +15,6 @@ for grammar in testdata/*.y; do
 		./golr parser \
 		--frontend bison \
 		--frontend-file-path "${grammar}" \
-		--core ielr1-golr \
 		--backend null \
 		--backend-file-path -
 done

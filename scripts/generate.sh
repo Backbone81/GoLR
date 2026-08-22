@@ -8,26 +8,24 @@ set -ex
 go run ./cmd/golr scanner \
   --frontend golr \
   --frontend-file-path internal/parsergen/frontend/bison/spec/bison.golr \
-  --backend go \
+  --backend go-table \
   --backend-file-path internal/parsergen/frontend/bison/parser/scanner.go
 go run ./cmd/golr parser \
   --frontend bison \
   --frontend-file-path internal/parsergen/frontend/bison/spec/bison-3.8.2.y \
-  --core ielr1-bison \
-  --backend go \
+  --backend go-table \
   --backend-file-path internal/parsergen/frontend/bison/parser/parser.go
 
 # Generate the internal parsergen GoLR frontend parser.
 go run ./cmd/golr scanner \
   --frontend golr \
   --frontend-file-path internal/parsergen/frontend/golr/spec/golr.golr \
-  --backend go \
+  --backend go-table \
   --backend-file-path internal/parsergen/frontend/golr/parser/scanner.go
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path internal/parsergen/frontend/golr/spec/golr.golr \
-  --core ielr1-bison \
-  --backend go \
+  --backend go-table \
   --backend-file-path internal/parsergen/frontend/golr/parser/parser.go
 
 # Copy files from the internal parsergen GNU Bison frontend to the examples folder.
@@ -47,7 +45,6 @@ go run ./cmd/golr scanner \
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
-  --core ielr1-golr \
   --backend go-table \
   --backend-file-path examples/calculator/golang/parser/parser.go
 go run ./cmd/golr scanner \
@@ -58,7 +55,6 @@ go run ./cmd/golr scanner \
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
-  --core ielr1-golr \
   --backend java \
   --backend-file-path examples/calculator/java/parser/Parser.java
 go run ./cmd/golr scanner \
@@ -69,7 +65,6 @@ go run ./cmd/golr scanner \
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
-  --core ielr1-golr \
   --backend rust \
   --backend-file-path examples/calculator/rust/src/parser/parser.rs
 go run ./cmd/golr scanner \
@@ -80,7 +75,6 @@ go run ./cmd/golr scanner \
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
-  --core ielr1-golr \
   --backend python \
   --backend-python-scanner-module .scanner \
   --backend-file-path examples/calculator/python/parser/parser.py
@@ -92,7 +86,6 @@ go run ./cmd/golr scanner \
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
-  --core ielr1-golr \
   --backend javascript \
   --backend-file-path examples/calculator/javascript/parser/parser.js
 go run ./cmd/golr scanner \
@@ -103,7 +96,6 @@ go run ./cmd/golr scanner \
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
-  --core ielr1-golr \
   --backend typescript \
   --backend-file-path examples/calculator/typescript/parser/parser.ts
 go run ./cmd/golr scanner \
@@ -115,7 +107,6 @@ go run ./cmd/golr scanner \
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
-  --core ielr1-golr \
   --backend cpp \
   --backend-cpp-namespace calculator::parser \
   --backend-file-path examples/calculator/cpp/parser/parser.hpp
@@ -128,7 +119,6 @@ go run ./cmd/golr scanner \
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
-  --core ielr1-golr \
   --backend csharp \
   --backend-csharp-namespace Calculator.Parser \
   --backend-file-path examples/calculator/csharp/Parser/Parser.cs
@@ -137,12 +127,12 @@ go run ./cmd/golr parser \
 go run ./cmd/golr scanner \
   --frontend golr \
   --frontend-file-path examples/golang/spec/golang.golr \
-  --backend go \
+  --backend go-table \
   --backend-file-path examples/golang/parser/scanner.go
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/golang/spec/golang.golr \
-  --backend go \
+  --backend go-table \
   --backend-file-path examples/golang/parser/parser.go
 
 # Let's make sure that our examples folder does not reference any internal package.
