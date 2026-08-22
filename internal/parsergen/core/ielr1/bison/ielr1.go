@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime/trace"
 	"strconv"
+	"strings"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/conflict"
@@ -33,17 +34,42 @@ func GrammarToParser(
 }
 
 type IELR1 struct {
-	grammar              frontend.Grammar
+	// grammar is the grammar as the caller handed it in. It is what the GNU Bison grammar file is written from, and it
+	// must not be augmented for that: GNU Bison introduces the new start symbol and the end of input marker itself.
+	grammar frontend.Grammar
+
+	// augmentedGrammar is that grammar with the new start symbol and the end of input marker, which is what every
+	// index of the resulting parser refers to. The GoLR cores build exactly this and hand it on unchanged, so taking
+	// the numbering from here rather than from the report is what makes the two cores agree on it.
+	augmentedGrammar frontend.Grammar
+
+	// terminalIdxByName and nonterminalIdxByName translate a symbol of the report into an index of the augmented
+	// grammar. They are keyed on the name GNU Bison knows the symbol under, because that is the name the report uses.
 	terminalIdxByName    map[string]int
 	nonterminalIdxByName map[string]int
+
+	// productionIdxByRuleNumber translates a rule number of the report into a production index of the augmented
+	// grammar, which are not the same numbering. See buildProductionMapping.
+	productionIdxByRuleNumber map[int]int
 }
 
-func NewIELR1(augmentedGrammar frontend.Grammar) *IELR1 {
-	return &IELR1{
-		grammar:              augmentedGrammar,
-		terminalIdxByName:    make(map[string]int),
-		nonterminalIdxByName: make(map[string]int),
+func NewIELR1(grammar frontend.Grammar) *IELR1 {
+	augmentedGrammar := frontend.AugmentGrammar(grammar)
+	result := &IELR1{
+		grammar:                   grammar,
+		augmentedGrammar:          augmentedGrammar,
+		terminalIdxByName:         make(map[string]int, len(augmentedGrammar.Terminals)),
+		nonterminalIdxByName:      make(map[string]int, len(augmentedGrammar.Nonterminals)),
+		productionIdxByRuleNumber: make(map[int]int, len(augmentedGrammar.Productions)),
 	}
+
+	for terminalIdx, terminal := range augmentedGrammar.Terminals {
+		result.terminalIdxByName[bisonfrontend.ToBisonSymbolName(terminal.Name)] = terminalIdx
+	}
+	for nonterminalIdx, nonterminal := range augmentedGrammar.Nonterminals {
+		result.nonterminalIdxByName[nonterminal.Name] = nonterminalIdx
+	}
+	return result
 }
 
 func (i *IELR1) BuildParser() (parser backend.Parser, err error) { //nolint:nonamedreturns // Required for defer
@@ -80,50 +106,69 @@ func (i *IELR1) BuildParser() (parser backend.Parser, err error) { //nolint:nona
 		return backend.Parser{}, err
 	}
 
-	i.buildTerminalList(report, &parser)
-	i.buildNonterminalList(report, &parser)
-	i.buildProductionList(report, &parser)
+	// The grammar of the parser is the augmented grammar and never the one rebuilt from the report, so that the symbols
+	// and productions are numbered the way the GoLR cores number them.
+	parser.Grammar = i.augmentedGrammar
+
+	if err := i.buildProductionMapping(report); err != nil {
+		return backend.Parser{}, err
+	}
 	if err := i.buildStateList(report, &parser); err != nil {
 		return backend.Parser{}, err
 	}
 	return parser, nil
 }
 
-func (i *IELR1) buildTerminalList(report bisonutils.BisonXMLReport, parser *backend.Parser) {
-	for _, terminal := range report.Grammar.Terminals {
-		// The lookup stays keyed on the name the report uses, because that is the name the productions of the report
-		// reference. Only the symbol itself carries the GoLR name of the error symbol.
-		i.terminalIdxByName[terminal.Name] = len(parser.Grammar.Terminals)
-		parser.Grammar.Terminals = append(parser.Grammar.Terminals, frontend.Symbol{
-			Name: bisonfrontend.FromBisonSymbolName(terminal.Name),
-		})
+// buildProductionMapping maps every rule number of the report onto the index of the production it was written from.
+//
+// The two numberings differ. GNU Bison moves the nonterminals which cannot be reached from the start symbol, and their
+// rules, to the end of its numbering so that it can truncate them away afterwards (nonterminals_reduce in
+// src/reduce.c). GoLR keeps those symbols, so the relocation must not be copied, and a rule has to be found by what it
+// is rather than by where it stands.
+//
+// What a rule is, is its left hand side and the symbols on its right, because that is all the report carries. Two
+// productions which agree on both are indistinguishable here and are matched in the order they appear. They derive the
+// same sentences, so which of the two a state reduces by cannot change the language the parser accepts.
+func (i *IELR1) buildProductionMapping(report bisonutils.BisonXMLReport) error {
+	productionIdxsBySignature := make(map[string][]int, len(i.augmentedGrammar.Productions))
+	for productionIdx, production := range i.augmentedGrammar.Productions {
+		signature := i.productionSignature(production)
+		productionIdxsBySignature[signature] = append(productionIdxsBySignature[signature], productionIdx)
 	}
-}
 
-func (i *IELR1) buildNonterminalList(report bisonutils.BisonXMLReport, parser *backend.Parser) {
-	for _, nonterminal := range report.Grammar.Nonterminals {
-		i.nonterminalIdxByName[nonterminal.Name] = len(parser.Grammar.Nonterminals)
-		parser.Grammar.Nonterminals = append(parser.Grammar.Nonterminals, frontend.Symbol{
-			Name: nonterminal.Name,
-		})
-	}
-}
-
-func (i *IELR1) buildProductionList(report bisonutils.BisonXMLReport, parser *backend.Parser) {
 	for _, rule := range report.Grammar.Rules {
-		var symbolRefs []frontend.SymbolRef
-		for _, rhs := range rule.Rhs {
-			if idx, ok := i.terminalIdxByName[rhs]; ok {
-				symbolRefs = append(symbolRefs, frontend.NewTerminalRef(idx))
-			} else {
-				symbolRefs = append(symbolRefs, frontend.NewNonterminalRef(i.nonterminalIdxByName[rhs]))
-			}
+		signature := ruleSignature(rule)
+		productionIdxs := productionIdxsBySignature[signature]
+		if len(productionIdxs) == 0 {
+			return fmt.Errorf("rule %d of the GNU Bison report matches no production of %q", rule.Number, rule.Lhs)
 		}
-		parser.Grammar.Productions = append(parser.Grammar.Productions, frontend.Production{
-			NonterminalIdx: i.nonterminalIdxByName[rule.Lhs],
-			SymbolRefs:     symbolRefs,
-		})
+		i.productionIdxByRuleNumber[rule.Number] = productionIdxs[0]
+		productionIdxsBySignature[signature] = productionIdxs[1:]
 	}
+	return nil
+}
+
+// productionSignature renders a production the way the report names the same rule, so that the two can be matched up.
+// The symbols are separated by a space, which no symbol name can contain, and the signature therefore reads like the
+// rule it stands for.
+func (i *IELR1) productionSignature(production frontend.Production) string {
+	symbolNames := make([]string, 0, len(production.SymbolRefs)+1)
+	symbolNames = append(symbolNames, i.augmentedGrammar.Nonterminals[production.NonterminalIdx].Name)
+
+	for _, symbolRef := range production.SymbolRefs {
+		if symbolRef.IsTerminal() {
+			name := i.augmentedGrammar.Terminals[symbolRef.Idx()].Name
+			symbolNames = append(symbolNames, bisonfrontend.ToBisonSymbolName(name))
+		} else {
+			symbolNames = append(symbolNames, i.augmentedGrammar.Nonterminals[symbolRef.Idx()].Name)
+		}
+	}
+	return strings.Join(symbolNames, " ")
+}
+
+// ruleSignature renders a rule of the report the way productionSignature renders the production it came from.
+func ruleSignature(rule bisonutils.Rule) string {
+	return strings.Join(append([]string{rule.Lhs}, rule.Rhs...), " ")
 }
 
 //nolint:gocognit,funlen,cyclop // The state construction loop is branchy; splitting it would obscure the flow.
@@ -137,7 +182,11 @@ func (i *IELR1) buildStateList(report bisonutils.BisonXMLReport, parser *backend
 				// the closure can always be recalculated from them and the GoLR cores provide the kernel items only.
 				continue
 			}
-			newState.KernelItems.Add(backend.NewCore(item.RuleNumber, item.Dot))
+			productionIdx, ok := i.productionIdxByRuleNumber[item.RuleNumber]
+			if !ok {
+				return fmt.Errorf("unknown rule number %d", item.RuleNumber)
+			}
+			newState.KernelItems.Add(backend.NewCore(productionIdx, item.Dot))
 		}
 
 		for _, transition := range state.Transitions {
@@ -175,13 +224,19 @@ func (i *IELR1) buildStateList(report bisonutils.BisonXMLReport, parser *backend
 				continue
 			}
 
-			productionIdx, err := strconv.Atoi(reduction.Rule)
-			if err != nil {
-				if reduction.Rule == "accept" {
-					// The accept rule is always the first production
-					productionIdx = 0
-				} else {
+			var productionIdx int
+			if reduction.Rule == "accept" {
+				// The accept rule is the augmented production, which is always the first one.
+				productionIdx = 0
+			} else {
+				ruleNumber, err := strconv.Atoi(reduction.Rule)
+				if err != nil {
 					return err
+				}
+				var ok bool
+				productionIdx, ok = i.productionIdxByRuleNumber[ruleNumber]
+				if !ok {
+					return fmt.Errorf("unknown rule number %d", ruleNumber)
 				}
 			}
 
