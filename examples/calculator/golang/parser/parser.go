@@ -15,7 +15,7 @@ import (
 type Nonterminal int
 
 const (
-	Nonterminal_accept    Nonterminal = 0 // $accept
+	AcceptNonterminal     Nonterminal = 0 // $accept
 	NonterminalExpression Nonterminal = 1 // expression
 )
 
@@ -25,7 +25,7 @@ var _ fmt.Stringer = (*Nonterminal)(nil)
 // String returns a string representation of the nonterminal.
 func (n Nonterminal) String() string {
 	switch n {
-	case Nonterminal_accept:
+	case AcceptNonterminal:
 		return `$accept`
 	case NonterminalExpression:
 		return `expression`
@@ -73,9 +73,10 @@ var _ fmt.Stringer = (*Symbol)(nil)
 func (s Symbol) String() string {
 	nonterminal, ok := s.Nonterminal()
 	if ok {
-		return fmt.Sprintf("nonterminal %d", nonterminal)
+		return fmt.Sprintf("nonterminal %s", nonterminal)
 	}
-	return fmt.Sprintf("terminal %d", Token(nonterminal))
+	terminal, _ := s.Terminal()
+	return fmt.Sprintf("terminal %s", terminal)
 }
 
 // Node is a single node of the parse tree.
@@ -112,6 +113,10 @@ var (
 // section 7 "Error Handling" of the yacc report.
 const errorRecoveryShifts = 3
 
+// arenaChunkSize is the number of nodes the arena allocator hands out from a single chunk. A parse which needs more
+// nodes than one chunk holds takes further chunks of the same size and keeps them for the parses after it.
+const arenaChunkSize = 16 * 1024
+
 // Error represents a single parse error.
 type Error struct {
 	Token      Token
@@ -135,6 +140,140 @@ func (e *Error) Unwrap() error {
 	return e.Cause
 }
 
+// The parse table of this parser is stored in lookup tables.
+//
+// An action is looked up in two steps. The token the scanner delivers is translated into the column of the action table
+// which holds the decisions for it, and the action table is stored as a single array in which the row of every state is
+// displaced so that its entries fall into the holes of the other rows. This is the row displacement method described in
+// "Storing a Sparse Table" by Tarjan and Yao. The gotos are stored the same way, with the nonterminal as the column.
+//
+// The rows are sparse because what most of their entries agree on is taken out of them and kept as a default. The
+// action table defaults per state, to the reduction the state performs on most of its lookaheads, and the goto table
+// defaults per nonterminal, to the state a goto on it leads to in most of the states which have one. Only the entries
+// which deviate from those defaults are in the tables at all, which is what leaves the holes the displacement fills.
+const (
+	// actionKindBits is the number of low bits of an action which hold what the action does. The value the action
+	// carries sits above them.
+	actionKindBits = 2
+
+	// actionKindMask selects out of an action what it does.
+	actionKindMask = 3
+
+	// actionKindShift shifts the terminal and continues in the state the action carries.
+	actionKindShift = 0
+
+	// actionKindReduce reduces by the production the action carries.
+	actionKindReduce = 1
+
+	// actionKindAccept ends the parse successfully, because the input has been reduced to the start symbol.
+	actionKindAccept = 2
+
+	// actionKindError rejects the terminal as a syntax error.
+	actionKindError = 3
+
+	// noTerminalColumn is the column a token gets which is no terminal of this grammar. No state has an entry in it,
+	// so a lookup falls through to the default action of the state, which is what this parser does with a token it
+	// does not know.
+	noTerminalColumn = 0
+
+	// noColumn is the entry actionCheck holds for a cell which no state occupies. It is one past the highest column
+	// in use and can therefore never be mistaken for the column a lookup asks for.
+	noColumn = 11
+
+	// noNonterminal is the entry gotoCheck holds for a cell which no state occupies. It is one past the highest
+	// nonterminal and can therefore never be mistaken for the nonterminal a lookup asks for.
+	noNonterminal = 2
+
+	// errorTerminalColumn is the column which holds the shifts of the error symbol, which is where the error
+	// recovery reads the state to resume in.
+	errorTerminalColumn = 0
+)
+
+var (
+	// terminalColumnByToken translates a token into the column of the action table which holds the decisions for it.
+	//
+	// The entries are indexed by the token constants themselves, which lets the compiler place each of them at
+	// whatever value the scanner gave it. Neither generator has to know the numbering of the other because of that.
+	// A token the grammar does not have is not named here at all and keeps the noTerminalColumn every unnamed index
+	// holds.
+	terminalColumnByToken = [...]uint8{
+		EndToken:        1,
+		TokenWhitespace: 2,
+		TokenInteger:    3,
+		TokenPlus:       4,
+		TokenMinus:      5,
+		TokenMultiply:   6,
+		TokenDivide:     7,
+		TokenLparen:     8,
+		TokenRparen:     9,
+		TokenUminus:     10,
+	}
+
+	// actionBase maps a state to the displacement of its row within actionNext.
+	actionBase = [17]uint8{
+		9, 1, 9, 9, 0, 1, 4, 1, 9, 9, 9, 9, 1, 12, 12, 1,
+		1,
+	}
+
+	// actionNext holds the action of every entry. The action a state has for a column lives at
+	// actionBase[state] + column, but only if actionCheck confirms that the cell belongs to that column.
+	actionNext = [23]uint8{
+		0, 28, 0, 0, 32, 36, 40, 44, 32, 36, 40, 44, 4, 48, 8, 0,
+		0, 12, 40, 44, 0, 0, 0,
+	}
+
+	// actionCheck holds the column every cell of actionNext belongs to. A cell which no state occupies holds
+	// noColumn.
+	actionCheck = [23]uint8{
+		11, 1, 11, 11, 4, 5, 6, 7, 4, 5, 6, 7, 3, 9, 5, 11,
+		11, 8, 6, 7, 11, 11, 11,
+	}
+
+	// defaultActionByState holds the action a state takes for every column it has no entry of its own for. A state
+	// which has none carries the error action, which makes such a token a syntax error.
+	defaultActionByState = [17]uint8{
+		3, 5, 3, 3, 3, 25, 3, 2, 3, 3, 3, 3, 29, 9, 13, 17,
+		21,
+	}
+
+	// gotoBase maps a state to the displacement of its row within gotoNext.
+	gotoBase = [17]uint8{
+		6, 6, 0, 1, 6, 6, 6, 6, 2, 3, 4, 5, 6, 6, 6, 6,
+		6,
+	}
+
+	// gotoNext holds the state a goto leads to. The goto a state has for a nonterminal lives at
+	// gotoBase[state] + nonterminal, but only if gotoCheck confirms that the cell belongs to that nonterminal.
+	gotoNext = [8]uint8{
+		0, 5, 6, 13, 14, 15, 16, 0,
+	}
+
+	// gotoCheck holds the nonterminal every cell of gotoNext belongs to. A cell which no state occupies holds
+	// noNonterminal.
+	gotoCheck = [8]uint8{
+		2, 1, 1, 1, 1, 1, 1, 2,
+	}
+
+	// defaultGotoByNonterminal holds the state a goto on a nonterminal leads to for every state which gotoNext has
+	// no entry for. Most states agree on where a nonterminal takes them, so only the ones which deviate are in the
+	// table at all.
+	defaultGotoByNonterminal = [2]uint8{
+		0, 4,
+	}
+
+	// popCountByProduction holds the number of symbols a reduction takes off the stacks, which is the length of the
+	// right hand side of the production.
+	popCountByProduction = [8]uint8{
+		2, 1, 3, 3, 3, 3, 2, 3,
+	}
+
+	// nonterminalByProduction holds the nonterminal on the left hand side of a production, which a reduction looks
+	// up its goto with and labels the node it pushes with.
+	nonterminalByProduction = [8]uint8{
+		0, 1, 1, 1, 1, 1, 1, 1,
+	}
+)
+
 // Parser provides the parser implementation.
 type Parser struct {
 	scanner ParserScanner
@@ -142,6 +281,15 @@ type Parser struct {
 	stateStack []int
 	nodeStack  []Node
 
+	// arenaChunks holds every chunk of nodes the parser has allocated so far, in the order they are handed out. A
+	// parse starts over at the first chunk instead of allocating new ones, so only a parse which needs more nodes
+	// than every parse before it adds a chunk. Parse invalidates the tree of the parse before it in any case, so
+	// handing the memory of that tree out again takes away nothing a caller could rely on.
+	arenaChunks   [][]Node
+	arenaChunkIdx int
+
+	// arenaAllocator is the chunk nodes are handed out from at the moment, which aliases arenaChunks[arenaChunkIdx].
+	// Keeping it here lets allocateNodes read the room left in the chunk straight off the parser.
 	arenaAllocator    []Node
 	arenaAllocatorTop int
 
@@ -151,18 +299,19 @@ type Parser struct {
 	// errorRecoveryShiftsRemaining counts down the tokens which still have to be shifted before syntax errors are
 	// reported again. It is zero while the parser is in sync with the input and errorRecoveryShifts right after the
 	// error symbol was shifted. In a parser for a grammar which marks no place to resume at it never leaves zero,
-	// because there is nothing to recover from an error with, which is why the shift actions of such a parser do not
-	// carry the countdown at all.
+	// because there is nothing to recover from an error with, which is why such a parser does not carry the countdown
+	// on its shift at all.
 	errorRecoveryShiftsRemaining int
 }
 
 // NewParser creates a new parser.
 func NewParser() *Parser {
 	parser := Parser{
-		stateStack:     make([]int, 0, 1024),
-		nodeStack:      make([]Node, 0, 1024),
-		arenaAllocator: make([]Node, 16*1024),
+		stateStack:  make([]int, 0, 1024),
+		nodeStack:   make([]Node, 0, 1024),
+		arenaChunks: [][]Node{make([]Node, arenaChunkSize)},
 	}
+	parser.resetArena()
 	return &parser
 }
 
@@ -183,10 +332,11 @@ var errAccept = errors.New("accept")
 // many errors the parse found. Use errors.Is and errors.As to get at them, both of which look into a join.
 func (p *Parser) Parse(scanner ParserScanner) (Node, error) {
 	p.scanner = scanner
-	p.arenaAllocatorTop = 0
-	if !p.scanner.Next() {
-		return Node{}, errors.New("Unexpected end of tokens")
-	}
+	p.resetArena()
+
+	// A source with no tokens at all reports false right away. That is not an error: the token is the end of input
+	// either way, and whether a parse of nothing but that is legal is for the table to decide.
+	p.scanner.Next()
 
 	p.stateStack = p.stateStack[:0]
 	p.stateStack = append(p.stateStack, 0)
@@ -195,8 +345,7 @@ func (p *Parser) Parse(scanner ParserScanner) (Node, error) {
 	p.errorRecoveryShiftsRemaining = 0
 
 	for {
-		currState := p.stateStack[len(p.stateStack)-1]
-		err := p.dispatchState(currState)
+		err := p.step()
 		if err == nil {
 			continue
 		}
@@ -219,6 +368,79 @@ func (p *Parser) Parse(scanner ParserScanner) (Node, error) {
 			return Node{}, errors.Join(p.errors...)
 		}
 	}
+}
+
+// step performs the single action which the state on top of the stack takes for the token the scanner currently
+// delivers. This is the whole automaton: everything which distinguishes one state from another is in the tables.
+func (p *Parser) step() error {
+	terminal := p.scanner.Token()
+
+	// A token which is no terminal of this grammar, and a token outside the range the scanner promises, both get the
+	// column which no state has an entry in, so both end up taking the default action of the state.
+	column := uint32(noTerminalColumn)
+	if uint32(terminal) < uint32(len(terminalColumnByToken)) {
+		column = uint32(terminalColumnByToken[terminal])
+	}
+
+	state := p.stateStack[len(p.stateStack)-1]
+	cellIdx := uint32(actionBase[state]) + column
+	action := uint32(defaultActionByState[state])
+	if uint32(actionCheck[cellIdx]) == column {
+		// The state has an entry of its own for this token, which beats its default action. That order is what keeps
+		// a token the grammar rejects on purpose an error even in a state which reduces on everything else.
+		action = uint32(actionNext[cellIdx])
+	}
+
+	switch action & actionKindMask {
+	case actionKindShift:
+		p.stateStack = append(p.stateStack, int(action>>actionKindBits))
+		p.nodeStack = append(p.nodeStack, Node{
+			Symbol: NewTerminal(terminal),
+			Lexeme: p.scanner.Lexeme(),
+		})
+		p.scanner.Next()
+		return nil
+	case actionKindReduce:
+		p.reduce(action >> actionKindBits)
+		return nil
+	case actionKindAccept:
+		// The parse is successfully finished.
+		return errAccept
+	case actionKindError:
+		return p.raiseError(fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
+	default:
+		return p.raiseError(fmt.Errorf("%w: unexpected action %d in state %d", ErrInternal, action, state))
+	}
+}
+
+// reduce replaces the right hand side of the given production on the stacks with the nonterminal on its left hand side,
+// and continues in the state the goto of the uncovered state leads to.
+func (p *Parser) reduce(productionIdx uint32) {
+	popCount := int(popCountByProduction[productionIdx])
+	nonterminal := uint32(nonterminalByProduction[productionIdx])
+
+	p.stateStack = p.stateStack[:len(p.stateStack)-popCount]
+
+	state := p.stateStack[len(p.stateStack)-1]
+	// A state which does not have a goto of its own on the nonterminal goes where most states go with it. The LR
+	// construction creates the goto together with the production, so a state which a reduction uncovers always has
+	// one, which is why the lookup needs no case for a nonterminal missing from both.
+	gotoState := uint32(defaultGotoByNonterminal[nonterminal])
+	cellIdx := uint32(gotoBase[state]) + nonterminal
+	if uint32(gotoCheck[cellIdx]) == nonterminal {
+		gotoState = uint32(gotoNext[cellIdx])
+	}
+	p.stateStack = append(p.stateStack, int(gotoState))
+
+	newNode := Node{
+		Symbol: NewNonterminal(Nonterminal(nonterminal)),
+	}
+	if popCount != 0 {
+		newNode.Children = p.allocateNodes(popCount)
+		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-popCount:])
+		p.nodeStack = p.nodeStack[:len(p.nodeStack)-popCount]
+	}
+	p.nodeStack = append(p.nodeStack, newNode)
 }
 
 // recoverFromError puts the parser back into a state where it can continue on the remaining input after a syntax error.
@@ -268,45 +490,18 @@ func (p *Parser) recoverFromError() bool {
 	}
 }
 
-func (p *Parser) dispatchState(state int) error {
-	switch state {
-	case 0:
-		return p.state0()
-	case 1:
-		return p.state1()
-	case 2:
-		return p.state2()
-	case 3:
-		return p.state3()
-	case 4:
-		return p.state4()
-	case 5:
-		return p.state5()
-	case 6:
-		return p.state6()
-	case 7:
-		return p.state7()
-	case 8:
-		return p.state8()
-	case 9:
-		return p.state9()
-	case 10:
-		return p.state10()
-	case 11:
-		return p.state11()
-	case 12:
-		return p.state12()
-	case 13:
-		return p.state13()
-	case 14:
-		return p.state14()
-	case 15:
-		return p.state15()
-	case 16:
-		return p.state16()
-	default:
-		return p.raiseError(fmt.Errorf("%w: unexpected parser state %d", ErrInternal, state))
-	}
+// errorShiftState returns the state to continue in when the error symbol is shifted in the given state, and reports if
+// the state can shift the error symbol at all. The states which can are the places the grammar marked to resume at
+// after a syntax error, which is what the error recovery pops the stack down to. For a grammar which marks no such
+// place there is no such state and no parse can be recovered.
+//
+// The error symbol is a terminal like any other, so its shift needs no table of its own: it is the entry of the action
+// table in the column of the error symbol. Nothing else can read that column, because no scanner ever delivers the
+// symbol. The default action of the state is deliberately not consulted, because only an entry the state has of its own
+// is a place to resume at.
+func errorShiftState(state int) (int, bool) {
+	// This grammar marks no place to resume at, so no state can shift the error symbol.
+	return 0, false
 }
 
 // raiseError is a helper function which collects the current location of the parse and wraps the given cause.
@@ -322,638 +517,38 @@ func (p *Parser) raiseError(cause error) error {
 	}
 }
 
-// allocateNodes provides and arena allocator for slices of Node.
+// allocateNodes provides an arena allocator for slices of Node.
 func (p *Parser) allocateNodes(n int) []Node {
 	if p.arenaAllocatorTop+n > len(p.arenaAllocator) {
-		p.arenaAllocator = make([]Node, max(n, 16*1024))
-		p.arenaAllocatorTop = 0
+		p.nextArenaChunk(n)
 	}
 	nodes := p.arenaAllocator[p.arenaAllocatorTop : p.arenaAllocatorTop+n]
 	p.arenaAllocatorTop += n
 	return nodes
 }
 
-func (p *Parser) state0() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	// INTEGER
-	case TokenInteger:
-		// Shift action
-		p.stateStack = append(p.stateStack, 1)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// MINUS
-	case TokenMinus:
-		// Shift action
-		p.stateStack = append(p.stateStack, 2)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// LPAREN
-	case TokenLparen:
-		// Shift action
-		p.stateStack = append(p.stateStack, 3)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
+// nextArenaChunk moves the arena on to the chunk after the current one, to serve a request of n nodes which the
+// current chunk has no room left for. Where an earlier parse left a chunk behind, that chunk is handed out again, so
+// a parser settles on the number of chunks its largest parse needed and allocates none after that.
+//
+// A reused chunk is not cleared. Every slice allocateNodes returns is filled completely by its caller before anything
+// reads it, so what an earlier parse left behind in the chunk is never observable.
+func (p *Parser) nextArenaChunk(n int) {
+	p.arenaChunkIdx++
+	if p.arenaChunkIdx == len(p.arenaChunks) {
+		p.arenaChunks = append(p.arenaChunks, make([]Node, max(n, arenaChunkSize)))
+	} else if len(p.arenaChunks[p.arenaChunkIdx]) < n {
+		// A single reduction which takes more nodes than a chunk holds gets a chunk sized to itself, so a chunk kept
+		// from an earlier parse is not guaranteed to have room for a later request.
+		p.arenaChunks[p.arenaChunkIdx] = make([]Node, n)
 	}
+	p.arenaAllocator = p.arenaChunks[p.arenaChunkIdx]
+	p.arenaAllocatorTop = 0
 }
 
-func (p *Parser) state1() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	default:
-		// Reduce: expression -> INTEGER
-		p.stateStack = p.stateStack[:len(p.stateStack)-1]
-		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalExpression),
-			Children: p.allocateNodes(1),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-1:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
-		p.nodeStack = append(p.nodeStack, newNode)
-		return nil
-	}
-}
-
-func (p *Parser) state2() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	// INTEGER
-	case TokenInteger:
-		// Shift action
-		p.stateStack = append(p.stateStack, 1)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// MINUS
-	case TokenMinus:
-		// Shift action
-		p.stateStack = append(p.stateStack, 2)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// LPAREN
-	case TokenLparen:
-		// Shift action
-		p.stateStack = append(p.stateStack, 3)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
-	}
-}
-
-func (p *Parser) state3() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	// INTEGER
-	case TokenInteger:
-		// Shift action
-		p.stateStack = append(p.stateStack, 1)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// MINUS
-	case TokenMinus:
-		// Shift action
-		p.stateStack = append(p.stateStack, 2)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// LPAREN
-	case TokenLparen:
-		// Shift action
-		p.stateStack = append(p.stateStack, 3)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
-	}
-}
-
-func (p *Parser) state4() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	// $end
-	case EndToken:
-		// Shift action
-		p.stateStack = append(p.stateStack, 7)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// PLUS
-	case TokenPlus:
-		// Shift action
-		p.stateStack = append(p.stateStack, 8)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// MINUS
-	case TokenMinus:
-		// Shift action
-		p.stateStack = append(p.stateStack, 9)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// MULTIPLY
-	case TokenMultiply:
-		// Shift action
-		p.stateStack = append(p.stateStack, 10)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// DIVIDE
-	case TokenDivide:
-		// Shift action
-		p.stateStack = append(p.stateStack, 11)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
-	}
-}
-
-func (p *Parser) state5() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	default:
-		// Reduce: expression -> MINUS expression
-		p.stateStack = p.stateStack[:len(p.stateStack)-2]
-		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalExpression),
-			Children: p.allocateNodes(2),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-2:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-2]
-		p.nodeStack = append(p.nodeStack, newNode)
-		return nil
-	}
-}
-
-func (p *Parser) state6() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	// PLUS
-	case TokenPlus:
-		// Shift action
-		p.stateStack = append(p.stateStack, 8)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// MINUS
-	case TokenMinus:
-		// Shift action
-		p.stateStack = append(p.stateStack, 9)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// MULTIPLY
-	case TokenMultiply:
-		// Shift action
-		p.stateStack = append(p.stateStack, 10)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// DIVIDE
-	case TokenDivide:
-		// Shift action
-		p.stateStack = append(p.stateStack, 11)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// RPAREN
-	case TokenRparen:
-		// Shift action
-		p.stateStack = append(p.stateStack, 12)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
-	}
-}
-
-func (p *Parser) state7() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	default:
-		// Reduce: $accept -> expression $end
-		// The parse is successfully finished.
-		return errAccept
-	}
-}
-
-func (p *Parser) state8() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	// INTEGER
-	case TokenInteger:
-		// Shift action
-		p.stateStack = append(p.stateStack, 1)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// MINUS
-	case TokenMinus:
-		// Shift action
-		p.stateStack = append(p.stateStack, 2)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// LPAREN
-	case TokenLparen:
-		// Shift action
-		p.stateStack = append(p.stateStack, 3)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
-	}
-}
-
-func (p *Parser) state9() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	// INTEGER
-	case TokenInteger:
-		// Shift action
-		p.stateStack = append(p.stateStack, 1)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// MINUS
-	case TokenMinus:
-		// Shift action
-		p.stateStack = append(p.stateStack, 2)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// LPAREN
-	case TokenLparen:
-		// Shift action
-		p.stateStack = append(p.stateStack, 3)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
-	}
-}
-
-func (p *Parser) state10() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	// INTEGER
-	case TokenInteger:
-		// Shift action
-		p.stateStack = append(p.stateStack, 1)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// MINUS
-	case TokenMinus:
-		// Shift action
-		p.stateStack = append(p.stateStack, 2)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// LPAREN
-	case TokenLparen:
-		// Shift action
-		p.stateStack = append(p.stateStack, 3)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
-	}
-}
-
-func (p *Parser) state11() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	// INTEGER
-	case TokenInteger:
-		// Shift action
-		p.stateStack = append(p.stateStack, 1)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// MINUS
-	case TokenMinus:
-		// Shift action
-		p.stateStack = append(p.stateStack, 2)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// LPAREN
-	case TokenLparen:
-		// Shift action
-		p.stateStack = append(p.stateStack, 3)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		return p.raiseError(fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
-	}
-}
-
-func (p *Parser) state12() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	default:
-		// Reduce: expression -> LPAREN expression RPAREN
-		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalExpression),
-			Children: p.allocateNodes(3),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, newNode)
-		return nil
-	}
-}
-
-func (p *Parser) state13() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	// MULTIPLY
-	case TokenMultiply:
-		// Shift action
-		p.stateStack = append(p.stateStack, 10)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// DIVIDE
-	case TokenDivide:
-		// Shift action
-		p.stateStack = append(p.stateStack, 11)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		// Reduce: expression -> expression PLUS expression
-		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalExpression),
-			Children: p.allocateNodes(3),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, newNode)
-		return nil
-	}
-}
-
-func (p *Parser) state14() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	// MULTIPLY
-	case TokenMultiply:
-		// Shift action
-		p.stateStack = append(p.stateStack, 10)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	// DIVIDE
-	case TokenDivide:
-		// Shift action
-		p.stateStack = append(p.stateStack, 11)
-		p.nodeStack = append(p.nodeStack, Node{
-			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
-		})
-		p.scanner.Next()
-		return nil
-	default:
-		// Reduce: expression -> expression MINUS expression
-		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalExpression),
-			Children: p.allocateNodes(3),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, newNode)
-		return nil
-	}
-}
-
-func (p *Parser) state15() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	default:
-		// Reduce: expression -> expression MULTIPLY expression
-		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalExpression),
-			Children: p.allocateNodes(3),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, newNode)
-		return nil
-	}
-}
-
-func (p *Parser) state16() error {
-	terminal := p.scanner.Token()
-	switch terminal {
-	default:
-		// Reduce: expression -> expression DIVIDE expression
-		p.stateStack = p.stateStack[:len(p.stateStack)-3]
-		nextState, err := p.gotoAfterNonterminalExpression(p.stateStack[len(p.stateStack)-1])
-		if err != nil {
-			return err
-		}
-		p.stateStack = append(p.stateStack, nextState)
-		newNode := Node{
-			Symbol:   NewNonterminal(NonterminalExpression),
-			Children: p.allocateNodes(3),
-		}
-		copy(newNode.Children, p.nodeStack[len(p.nodeStack)-3:])
-		p.nodeStack = p.nodeStack[:len(p.nodeStack)-3]
-		p.nodeStack = append(p.nodeStack, newNode)
-		return nil
-	}
-}
-
-// errorShiftState returns the state to continue in when the error symbol is shifted in the given state, and reports if
-// the state can shift the error symbol at all. The states which can are the places the grammar marked to resume at
-// after a syntax error, which is what the error recovery pops the stack down to. For a grammar which marks no such
-// place there is no such state and no parse can be recovered.
-func errorShiftState(state int) (int, bool) {
-	switch state {
-	default:
-		return 0, false
-	}
-}
-
-func (p *Parser) gotoAfterNonterminal_accept(state int) (int, error) {
-	switch state {
-	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminal_accept", ErrInternal))
-	}
-}
-
-func (p *Parser) gotoAfterNonterminalExpression(state int) (int, error) {
-	switch state {
-	case 0:
-		return 4, nil
-	case 2:
-		return 5, nil
-	case 3:
-		return 6, nil
-	case 8:
-		return 13, nil
-	case 9:
-		return 14, nil
-	case 10:
-		return 15, nil
-	case 11:
-		return 16, nil
-	default:
-		return 0, p.raiseError(fmt.Errorf("%w: unexpected state for gotoAfterNonterminalExpression", ErrInternal))
-	}
+// resetArena puts the arena back to where it starts a parse, handing out from the beginning of the first chunk again.
+func (p *Parser) resetArena() {
+	p.arenaChunkIdx = 0
+	p.arenaAllocator = p.arenaChunks[0]
+	p.arenaAllocatorTop = 0
 }

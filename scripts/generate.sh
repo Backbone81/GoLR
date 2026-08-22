@@ -42,13 +42,13 @@ cp internal/parsergen/frontend/bison/parser/*.go examples/bison/parser
 go run ./cmd/golr scanner \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
-  --backend go \
+  --backend go-table \
   --backend-file-path examples/calculator/golang/parser/scanner.go
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
-  --core ielr1-bison \
-  --backend go \
+  --core ielr1-golr \
+  --backend go-table \
   --backend-file-path examples/calculator/golang/parser/parser.go
 go run ./cmd/golr scanner \
   --frontend golr \

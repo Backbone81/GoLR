@@ -7,7 +7,6 @@
 package parser
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -148,6 +147,68 @@ func (s *TokenSkipper) Next() bool {
 	}
 }
 
+// The automaton of this scanner is stored in lookup tables instead of in code.
+//
+// A transition is looked up in two steps. The input byte is mapped to its byte class, which is the column of the
+// transition table, and the transition table is stored as a single array in which the row of every state is displaced
+// so that its entries fall into the holes of the other rows. This is the row displacement method described in "Storing
+// a Sparse Table" by Tarjan and Yao.
+var (
+	// byteClassByByte maps an input byte to its byte class. Bytes which every state of the automaton treats alike
+	// share a class, which is what makes a row of the transition table short.
+	byteClassByByte = [256]uint8{
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		1, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 5, 0, 6, 0, 7,
+		8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	}
+
+	// transitionBase maps a state to the displacement of its row within transitionNext.
+	transitionBase = [9]uint8{
+		0, 8, 2, 1, 1, 1, 1, 1, 1,
+	}
+
+	// transitionNext holds the target state of every transition. The transition a state has on a byte class lives at
+	// transitionBase[state] + class, but only if transitionCheck confirms that the cell belongs to that class.
+	transitionNext = [17]uint8{
+		0, 1, 7, 8, 5, 3, 4, 6, 2, 1, 2, 0, 0, 0, 0, 0,
+		0,
+	}
+
+	// transitionCheck holds the byte class every cell of transitionNext belongs to. A cell which no state occupies
+	// holds 9, which is one past the highest byte class in use and can therefore never be
+	// mistaken for the class a lookup asks for.
+	transitionCheck = [17]uint8{
+		9, 1, 2, 3, 4, 5, 6, 7, 8, 1, 8, 9, 9, 9, 9, 9,
+		9,
+	}
+
+	// acceptTokenByState holds the token a state accepts, or InvalidToken for a state which does not accept.
+	acceptTokenByState = [9]Token{
+		InvalidToken,
+		TokenWhitespace,
+		TokenInteger,
+		TokenPlus,
+		TokenMinus,
+		TokenMultiply,
+		TokenDivide,
+		TokenLparen,
+		TokenRparen,
+	}
+)
+
 // Scanner reads source code and returns tokens.
 type Scanner struct {
 	source []byte
@@ -159,7 +220,6 @@ type Scanner struct {
 	line   int
 	column int
 
-	state int
 	token Token
 
 	filePath string
@@ -224,16 +284,30 @@ func (s *Scanner) FilePath() string {
 func (s *Scanner) Next() bool {
 	s.updateLineAndColumn(s.source[s.lexemeStartIdx:s.lexemeEndIdx])
 	s.lexemeStartIdx = s.lexemeEndIdx
-	s.state = 0
 
+	var state uint32
 	for s.lexemePeekIdx = s.lexemeEndIdx; s.lexemePeekIdx < len(s.source); s.lexemePeekIdx++ {
-		if err := s.dispatchState(); err != nil {
+		// Every accepting state we walk through is the longest match found so far, which is what makes the scanner
+		// return the longest token instead of the first one.
+		if token := acceptTokenByState[state]; token != InvalidToken {
+			s.token = token
+			s.lexemeEndIdx = s.lexemePeekIdx
+		}
+
+		byteClass := byteClassByByte[s.source[s.lexemePeekIdx]]
+		cellIdx := uint32(transitionBase[state]) + uint32(byteClass)
+		if transitionCheck[cellIdx] != byteClass {
+			// The state has no transition on this byte, so the token ends here.
 			break
 		}
+		state = uint32(transitionNext[cellIdx])
 	}
 	if s.lexemePeekIdx == len(s.source) {
 		// We need to capture the last character of the source.
-		s.dispatchEOF()
+		if token := acceptTokenByState[state]; token != InvalidToken {
+			s.token = token
+			s.lexemeEndIdx = s.lexemePeekIdx
+		}
 	}
 
 	if s.lexemeStartIdx < s.lexemeEndIdx {
@@ -247,9 +321,11 @@ func (s *Scanner) Next() bool {
 		return false
 	}
 
-	// We found some characters which do not form a token. We need to emit an invalid token for them.
+	// We found some characters which do not form a token. The invalid token ends where the automaton stopped, because
+	// the byte it could not consume is where the next attempt starts. Only when the automaton consumed nothing does it
+	// cover that byte, which is what keeps the scan moving forward.
 	s.token = InvalidToken
-	s.lexemeEndIdx = s.lexemePeekIdx + 1
+	s.lexemeEndIdx = max(s.lexemeStartIdx+1, s.lexemePeekIdx)
 	return true
 }
 
@@ -263,179 +339,4 @@ func (s *Scanner) updateLineAndColumn(source []byte) {
 			s.column++
 		}
 	}
-}
-
-// dispatchState calls the code corresponding to the current scanner state.
-func (s *Scanner) dispatchState() error {
-	switch s.state {
-	case 0:
-		return s.state0Whitespace()
-	case 1:
-		return s.state1Whitespace()
-	case 2:
-		return s.state2Integer()
-	case 3:
-		return s.state3Plus()
-	case 4:
-		return s.state4Minus()
-	case 5:
-		return s.state5Multiply()
-	case 6:
-		return s.state6Divide()
-	case 7:
-		return s.state7Lparen()
-	case 8:
-		return s.state8Rparen()
-	default:
-		return fmt.Errorf("unexpected scanner state %d", s.state)
-	}
-}
-
-func (s *Scanner) dispatchEOF() {
-	switch s.state {
-	case 1:
-		s.token = TokenWhitespace
-		s.lexemeEndIdx = s.lexemePeekIdx
-	case 2:
-		s.token = TokenInteger
-		s.lexemeEndIdx = s.lexemePeekIdx
-	case 3:
-		s.token = TokenPlus
-		s.lexemeEndIdx = s.lexemePeekIdx
-	case 4:
-		s.token = TokenMinus
-		s.lexemeEndIdx = s.lexemePeekIdx
-	case 5:
-		s.token = TokenMultiply
-		s.lexemeEndIdx = s.lexemePeekIdx
-	case 6:
-		s.token = TokenDivide
-		s.lexemeEndIdx = s.lexemePeekIdx
-	case 7:
-		s.token = TokenLparen
-		s.lexemeEndIdx = s.lexemePeekIdx
-	case 8:
-		s.token = TokenRparen
-		s.lexemeEndIdx = s.lexemePeekIdx
-	}
-}
-
-var (
-	// errInvalidByte is an error which is returned when no transition matches the current byte.
-	errInvalidByte = errors.New("invalid byte")
-)
-
-func (s *Scanner) state0Whitespace() error {
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == '\t':
-		s.state = 1
-	case nextByte == '\n':
-		s.state = 1
-	case nextByte == '\r':
-		s.state = 1
-	case nextByte == ' ':
-		s.state = 1
-	case nextByte == '(':
-		s.state = 7
-	case nextByte == ')':
-		s.state = 8
-	case nextByte == '*':
-		s.state = 5
-	case nextByte == '+':
-		s.state = 3
-	case nextByte == '-':
-		s.state = 4
-	case nextByte == '/':
-		s.state = 6
-	case '0' <= nextByte && nextByte <= '9':
-		s.state = 2
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state1Whitespace() error {
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenWhitespace
-	s.lexemeEndIdx = s.lexemePeekIdx
-
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case nextByte == '\t':
-		s.state = 1
-	case nextByte == '\n':
-		s.state = 1
-	case nextByte == '\r':
-		s.state = 1
-	case nextByte == ' ':
-		s.state = 1
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state2Integer() error {
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenInteger
-	s.lexemeEndIdx = s.lexemePeekIdx
-
-	nextByte := s.source[s.lexemePeekIdx]
-	switch {
-	case '0' <= nextByte && nextByte <= '9':
-		s.state = 2
-	default:
-		return errInvalidByte
-	}
-	return nil
-}
-
-func (s *Scanner) state3Plus() error {
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenPlus
-	s.lexemeEndIdx = s.lexemePeekIdx
-
-	return errInvalidByte
-}
-
-func (s *Scanner) state4Minus() error {
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenMinus
-	s.lexemeEndIdx = s.lexemePeekIdx
-
-	return errInvalidByte
-}
-
-func (s *Scanner) state5Multiply() error {
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenMultiply
-	s.lexemeEndIdx = s.lexemePeekIdx
-
-	return errInvalidByte
-}
-
-func (s *Scanner) state6Divide() error {
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenDivide
-	s.lexemeEndIdx = s.lexemePeekIdx
-
-	return errInvalidByte
-}
-
-func (s *Scanner) state7Lparen() error {
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenLparen
-	s.lexemeEndIdx = s.lexemePeekIdx
-
-	return errInvalidByte
-}
-
-func (s *Scanner) state8Rparen() error {
-	// We have an accepting state, update our bookkeeping.
-	s.token = TokenRparen
-	s.lexemeEndIdx = s.lexemePeekIdx
-
-	return errInvalidByte
 }
