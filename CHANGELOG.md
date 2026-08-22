@@ -19,6 +19,7 @@
 - Added a C++ scanner generator backend, selected with --backend cpp.
 - Added a C++ parser generator backend, selected with --backend cpp.
 - Fixed the generated scanners consuming one byte too many when a match failed after the automaton had already consumed bytes. The byte which ended the failed match now starts the next token instead of being swallowed by the invalid token, which had corrupted the token following the error.
+- Fixed the generated parser rejecting an empty input which the grammar accepts. The end of input is now a token the parse table decides on like any other.
 
 ## v0.2.0 (2026-08-08)
 

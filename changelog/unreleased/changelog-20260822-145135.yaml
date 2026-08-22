@@ -1,0 +1,2 @@
+description: Fixed the generated parser rejecting an empty input which the grammar
+  accepts. The end of input is now a token the parse table decides on like any other.

@@ -301,9 +301,10 @@ var errAccept = errors.New("accept")
 func (p *Parser) Parse(scanner ParserScanner) (Node, error) {
     p.scanner = scanner
     p.resetArena()
-    if !p.scanner.Next() {
-        return Node{}, errors.New("Unexpected end of tokens")
-    }
+
+    // A source with no tokens at all reports false right away. That is not an error: the token is the end of input
+    // either way, and whether a parse of nothing but that is legal is for the table to decide.
+    p.scanner.Next()
 
     p.stateStack = p.stateStack[:0]
     p.stateStack = append(p.stateStack, 0)
