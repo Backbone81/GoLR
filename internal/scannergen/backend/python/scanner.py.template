@@ -352,11 +352,11 @@ class Scanner:
             self._token = Token.END_TOKEN
             return False
 
-        # The bytes here form no token. The invalid token covers the byte which could not be consumed as well, so that
-        # the scan always moves forward. Its end is clamped, because a source which ends in the middle of a token
-        # leaves the peek index one past the last byte.
+        # The bytes here form no token. The invalid token ends where the automaton stopped, because the byte it could
+        # not consume is where the next attempt starts. Only when the automaton consumed nothing does it cover that
+        # byte, which is what keeps the scan moving forward.
         self._token = Token.INVALID_TOKEN
-        self._lexeme_end_idx = min(lexeme_peek_idx + 1, source_len)
+        self._lexeme_end_idx = max(self._lexeme_start_idx + 1, lexeme_peek_idx)
         return True
 
     def _update_line_and_column(self, start_idx: int, end_idx: int) -> None:

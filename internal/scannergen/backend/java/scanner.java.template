@@ -305,11 +305,11 @@ public final class Scanner implements TokenSkipperScanner {
             return false;
         }
 
-        // The bytes here form no token. The invalid token covers the byte which could not be consumed as well, so that
-        // the scan always moves forward. Its end is clamped, because a source which ends in the middle of a token
-        // leaves the peek index one past the last byte.
+        // The bytes here form no token. The invalid token ends where the automaton stopped, because the byte it could
+        // not consume is where the next attempt starts. Only when the automaton consumed nothing does it cover that
+        // byte, which is what keeps the scan moving forward.
         token = Token.INVALID_TOKEN;
-        lexemeEndIdx = Math.min(lexemePeekIdx + 1, source.length);
+        lexemeEndIdx = Math.max(lexemeStartIdx + 1, lexemePeekIdx);
         return true;
     }
 

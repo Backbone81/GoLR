@@ -32,6 +32,15 @@ func deadEndDFA() backend.DFA {
 	return rulesToDFA(dsl.Rule("ABCD", dsl.Literal("abcd")))
 }
 
+// partialMatchDFA is a scanner in which a failed match can be followed by a real token: "-" leads into the state which
+// only ARROW completes, and the byte which ends that attempt is one an IDENT can start with.
+func partialMatchDFA() backend.DFA {
+	return rulesToDFA(
+		dsl.Rule("ARROW", dsl.Literal("->")),
+		dsl.Rule("IDENT", dsl.OneOrMore(dsl.CharClass(dsl.CharRange('a', 'z')))),
+	)
+}
+
 var _ = Describe("Scanner", func() {
 	Context("maximal munch", func() {
 		It("prefers the longer match over the keyword", func() {
@@ -102,9 +111,19 @@ var _ = Describe("Scanner", func() {
 			)
 		})
 
-		It("consumes everything it looked at, including the byte it could not consume", func() {
+		It("ends a failed match at the byte it could not consume", func() {
 			expectScannerTrace(deadEndDFA(), "abcx",
 				"ERROR 0",
+				"ERROR 3",
+				"EOF 4",
+			)
+		})
+
+		It("leaves the token which follows a failed match whole", func() {
+			expectScannerTrace(partialMatchDFA(), "-ab-",
+				"ERROR 0",
+				`TOKEN IDENT 1 3 "ab"`,
+				"ERROR 3",
 				"EOF 4",
 			)
 		})

@@ -425,11 +425,11 @@ export class Scanner {
             return false;
         }
 
-        // The bytes here form no token. The invalid token covers the byte which could not be consumed as well, so that
-        // the scan always moves forward. Its end is clamped, because a source which ends in the middle of a token
-        // leaves the peek index one past the last byte.
+        // The bytes here form no token. The invalid token ends where the automaton stopped, because the byte it could
+        // not consume is where the next attempt starts. Only when the automaton consumed nothing does it cover that
+        // byte, which is what keeps the scan moving forward.
         this.#token = Token.InvalidToken;
-        this.#lexemeEndIdx = Math.min(this.#lexemePeekIdx + 1, this.#source.length);
+        this.#lexemeEndIdx = Math.max(this.#lexemeStartIdx + 1, this.#lexemePeekIdx);
         return true;
     }
 

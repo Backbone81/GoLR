@@ -99,11 +99,18 @@ func (s *Scanner) Next() (Match, bool) {
 		return Match{RuleIdx: ruleIdx, Start: startIdx, End: endIdx}, true
 	}
 
-	// No rule matched. The scanner consumes everything it looked at, including the byte it could not consume, and
-	// tries again after it. Consuming at least one byte is what keeps the scan from standing still, and it is also
-	// what a rule matching the empty string comes down to: such a rule accepts in the start state, leaves the match
-	// empty, and therefore ends up here.
-	s.offset = min(peekIdx+1, len(s.source))
+	// No rule matched. The failed match is the bytes the automaton consumed, and the byte at peekIdx is not one of
+	// them: that is the byte it could not consume, so it is where the next attempt starts. Consuming it here would
+	// throw away the start of the token which follows.
+	//
+	// The automaton consumed nothing when it failed on the very first byte, and then that byte is the failed match
+	// itself. Consuming at least one byte is what keeps the scan from standing still, and it is also what a rule
+	// matching the empty string comes down to: such a rule accepts in the start state, leaves the match empty, and
+	// therefore ends up here.
+	//
+	// No clamp is needed. This is only reached with startIdx below the length of the source, so startIdx+1 is at most
+	// that length, and peekIdx never runs past it either.
+	s.offset = max(startIdx+1, peekIdx)
 	return Match{RuleIdx: table.NoRule, Start: startIdx, End: s.offset}, true
 }
 

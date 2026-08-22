@@ -236,11 +236,11 @@ public:
             return false;
         }
 
-        // The bytes here form no token. The invalid token covers the byte which could not be consumed as well, so that
-        // the scan always moves forward. Its end is clamped, because a source which ends in the middle of a token
-        // leaves the peek index one past the last byte.
+        // The bytes here form no token. The invalid token ends where the automaton stopped, because the byte it could
+        // not consume is where the next attempt starts. Only when the automaton consumed nothing does it cover that
+        // byte, which is what keeps the scan moving forward.
         token_ = Token::InvalidToken;
-        lexeme_end_idx_ = std::min(lexeme_peek_idx + 1, source_.size());
+        lexeme_end_idx_ = std::max(lexeme_start_idx_ + 1, lexeme_peek_idx);
         return true;
     }
 

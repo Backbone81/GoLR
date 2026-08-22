@@ -1,6 +1,7 @@
-// Bytes which no rule matches. Every failed attempt consumes the bytes the automaton looked at including the one it
-// could not consume, so two unmatchable bytes next to each other are two errors and not one, and the scan carries on
-// afterwards instead of giving up. A single bad byte therefore never hides the rest of the input.
+// Bytes which no rule matches. The automaton fails on the very first byte here, which is the one case in which the
+// failed attempt consumes the byte it could not consume - see partial-match-no-accept for the other one. So two
+// unmatchable bytes next to each other are two errors and not one, and the scan carries on afterwards instead of
+// giving up. A single bad byte therefore never hides the rest of the input.
 //
 // The parser is not what this case is about, so the grammar is the single empty production the file format requires.
 

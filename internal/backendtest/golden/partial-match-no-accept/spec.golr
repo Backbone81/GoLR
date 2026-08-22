@@ -1,0 +1,25 @@
+// A failed match which got somewhere before it failed. Scanning "-" enters the state which only ARROW can complete,
+// then runs out of transitions on "a" without ever having passed an accepting state. The failed match is the bytes the
+// automaton consumed; the byte it merely looked at is not one of them, and consuming that one as well throws away the
+// start of the token which follows.
+//
+// The case asserts on the token after the error and not on the length of the error itself, because a trace records
+// where an error started and never how far it ran. A scanner with the defect reports IDENT "b" here, which is an
+// ordinary successful match with nothing about it to say that a byte of it was eaten - so the token which follows the
+// error is the only place the defect is visible at all.
+//
+// The input ends on a second "-" so that a failed match which runs into the end of the input is covered as well.
+//
+// The parser is not what this case is about, so the grammar is the single empty production the file format requires.
+
+@scanner {
+    ARROW: "->";
+
+    IDENT: /[a-z]+/;
+}
+
+@parser {
+    tokens
+        : @empty
+        ;
+}

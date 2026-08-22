@@ -266,9 +266,11 @@ func (s *Scanner) Next() bool {
         return false
     }
 
-    // We found some characters which do not form a token. We need to emit an invalid token for them.
+    // We found some characters which do not form a token. The invalid token ends where the automaton stopped, because
+    // the byte it could not consume is where the next attempt starts. Only when the automaton consumed nothing does it
+    // cover that byte, which is what keeps the scan moving forward.
     s.token = InvalidToken
-    s.lexemeEndIdx = s.lexemePeekIdx+1
+    s.lexemeEndIdx = max(s.lexemeStartIdx+1, s.lexemePeekIdx)
     return true
 }
 
