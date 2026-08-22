@@ -9,7 +9,8 @@
 # A language therefore provides nothing but a language.sh, which sets two variables and defines one or two functions:
 #
 #   SCANNER_FILE_NAME   the names the generated scanner and the generated parser are written under. The generator is
-#   PARSER_FILE_NAME    pointed at them directly, so no language has to rename anything.
+#   PARSER_FILE_NAME    pointed at them directly, so no language has to rename anything. A name may carry a directory,
+#                       which is what a language needs whose compiler ties a package to one, and it is created here.
 #
 #   setup               runs once, before any case, in /work/<language>, above the case directories. It is optional:
 #                       the default below does nothing, so a language which needs none defines only execute.
@@ -124,6 +125,10 @@ for casePath in /cases/*/; do
         esac
         cp "$runnerFile" "$caseName/"
     done
+
+    # A file name may carry a directory, and the generator writes a file without creating one. Preparing the directory
+    # here keeps that out of every language which needs it.
+    mkdir -p "$(dirname "$caseName/$SCANNER_FILE_NAME")" "$(dirname "$caseName/$PARSER_FILE_NAME")"
 
     # The core is pinned rather than left to the default, for the same reason scripts/generate.sh pins one: a change of
     # the default must not silently change what every backend is held to. It is the native Go core and never the bison

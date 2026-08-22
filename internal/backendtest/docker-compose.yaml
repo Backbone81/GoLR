@@ -80,10 +80,19 @@ x-common: &common
   entrypoint: ["/bin/sh", "/runners/entrypoint.sh"]
 
 services:
-  go:
+  # There are two Go backends, and this service tests the table driven one. It is named after that backend, the way
+  # every service here is named after the backend it generates with.
+  go-table:
     <<: *common
     image: golang:1.26
-    command: ["go"]
+    # The only service which needs an environment at all, and the reason is the image and not the language: it has no
+    # user at the uid the container runs as, so HOME is / and nothing can write below it. The Go build cache is what
+    # notices first - every build fails with "failed to initialize build cache at /.cache/go-build" - but a home a
+    # toolchain cannot write to is the general problem, so the home is what is fixed rather than the one path which
+    # tripped over it. The writable mount is where it can go, and the Makefile empties that before every run.
+    environment:
+      HOME: /work
+    command: ["go-table"]
 
   java:
     <<: *common
