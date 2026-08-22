@@ -11,7 +11,6 @@ import (
 	csharpbackend "github.com/backbone81/golr/pkg/scannergen/backend/csharp"
 	dotbackend "github.com/backbone81/golr/pkg/scannergen/backend/dot"
 	golangbackend "github.com/backbone81/golr/pkg/scannergen/backend/golang"
-	golangtablebackend "github.com/backbone81/golr/pkg/scannergen/backend/golangtable"
 	javabackend "github.com/backbone81/golr/pkg/scannergen/backend/java"
 	javascriptbackend "github.com/backbone81/golr/pkg/scannergen/backend/javascript"
 	jsonbackend "github.com/backbone81/golr/pkg/scannergen/backend/json"
@@ -122,22 +121,13 @@ func executeScannerBackend(dfa backend.DFA) error {
 			return dotbackend.FromDFA(os.Stdout, dfa)
 		}
 		return dotbackend.DFAToFile(scannerBackendFilePath, dfa)
-	case "go-direct":
+	case "go":
 		if scannerBackendFilePath == "-" {
 			return golangbackend.FromDFA(os.Stdout, dfa, golangbackend.Config{
 				PackageName: scannerBackendGoPackageName,
 			})
 		}
 		return golangbackend.DFAToFile(scannerBackendFilePath, dfa, golangbackend.Config{
-			PackageName: scannerBackendGoPackageName,
-		})
-	case "go", "go-table":
-		if scannerBackendFilePath == "-" {
-			return golangtablebackend.FromDFA(os.Stdout, dfa, golangtablebackend.Config{
-				PackageName: scannerBackendGoPackageName,
-			})
-		}
-		return golangtablebackend.DFAToFile(scannerBackendFilePath, dfa, golangtablebackend.Config{
 			PackageName: scannerBackendGoPackageName,
 		})
 	case "java":
@@ -217,7 +207,7 @@ func init() {
 		&scannerBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the scanner. One of: cpp, csharp, dot, go, go-direct, go-table, java,"+
+		"The backend to use for writing the scanner. One of: cpp, csharp, dot, go, java,"+
 			" javascript, json, null, python, rust, typescript, yaml.",
 	)
 	scannerCmd.PersistentFlags().StringVar(

@@ -60,8 +60,8 @@ sub-expression.
 
 ```shell
 # Generate the scanner and parser from the grammar (re-run whenever the grammar changes)
-golr scanner --frontend golr --frontend-file-path calculator.golr --backend go-table --backend-file-path golang/parser/scanner.go
-golr parser --frontend golr --frontend-file-path calculator.golr --backend go-table --backend-file-path golang/parser/parser.go
+golr scanner --frontend golr --frontend-file-path calculator.golr --backend go --backend-file-path golang/parser/scanner.go
+golr parser --frontend golr --frontend-file-path calculator.golr --backend go --backend-file-path golang/parser/parser.go
 
 # Build and run
 cd golang

@@ -22,26 +22,8 @@ import (
 var parserTemplate string
 
 var parsedTemplate = template.Must(template.New("parser.go.template").Funcs(template.FuncMap{
-	"stateActions":         buildStateActions,
-	"rejectedTerminals":    buildRejectedTerminals,
-	"defaultReduce":        buildDefaultReduce,
-	"gotoAfterNonterminal": buildGotoAfterNonterminal,
-	"errorShiftStates":     buildErrorShiftStates,
-	"hasErrorRecovery":     hasErrorRecovery,
-	"displayProduction":    displayProduction,
-	"terminalName":         terminalName,
-	"nonterminalName":      nonterminalName,
+	"nonterminalName": nonterminalName,
 }).Parse(parserTemplate))
-
-const (
-	// acceptProductionIdx is the production index of `$accept -> Start $end` in the augmented grammar. Reducing by it
-	// means the parse is done, which the template renders as the accept instead of as a reduce.
-	acceptProductionIdx = 0
-
-	// acceptNonterminalIdx is the nonterminal index of `$accept` in the augmented grammar. It never appears on the right
-	// hand side of a production, so no state ever has a goto on it.
-	acceptNonterminalIdx = 0
-)
 
 type Config struct {
 	PackageName string
@@ -50,17 +32,23 @@ type Config struct {
 type TemplateContext struct {
 	Config Config
 	Parser backend.Parser
+	Tables Tables
 }
 
 // FromParser writes the parser as Go source code to the given writer. Returns an error if the Go source code can not be
 // encoded successfully.
 func FromParser(writer io.Writer, parser backend.Parser, config Config) error {
-	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Backends: Golang: FromParser").End()
+	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Backends: Golang Table: FromParser").End()
+
+	if len(parser.States) == 0 {
+		return errors.New("the parser does not have any state")
+	}
 
 	var buffer bytes.Buffer
 	if err := parsedTemplate.Execute(&buffer, TemplateContext{
 		Config: config,
 		Parser: parser,
+		Tables: NewTables(parser),
 	}); err != nil {
 		return fmt.Errorf("rendering the template: %w", err)
 	}
@@ -107,247 +95,32 @@ func ParserToString(parser backend.Parser, config Config) (string, error) {
 	return builder.String(), nil
 }
 
-type StateAction struct {
-	LookaheadTerminalIdxs []int
-	LookaheadSymbols      []frontend.Symbol
-	IsReduce              bool
-
-	// Reduce action: number of symbols to pop from stack.
-	PopSymbolCount int
-
-	// Reduce action: symbol to push onto stack.
-	PushSymbol int
-
-	// Shift action: state to push onto stack.
-	PushState int
-
-	// Reduce action: the production which is reduced
-	ProductionIdx int
-}
-
-func buildStateActions(grammar frontend.Grammar, state backend.State) ([]StateAction, error) {
-	errorRef, hasErrorTerminal := frontend.ErrorTerminalRef(grammar)
-
-	var result []StateAction
-	for _, reduceAction := range state.ReduceActions.All() {
-		if reduceAction.ProductionIdx == acceptProductionIdx {
-			// The accept is not keyed on a lookahead. The end of input marker has already been shifted when the state is
-			// reached, so there is no terminal left to switch on and the reduction lookahead set is empty by
-			// construction. buildDefaultReduce renders it as the unconditional default action instead, which is also
-			// what the Bison backed cores report it as (`$default accept` in the XML report).
-			continue
-		}
-		if reduceAction.LookaheadSet.IsEmpty() {
-			// A reduce which no terminal can trigger is a dead action. Emitting it would produce a `case` without any
-			// terminal to switch on, which is not valid Go.
-			continue
-		}
-
-		var action StateAction
-		for symbol := range reduceAction.LookaheadSet.All() {
-			action.LookaheadTerminalIdxs = append(action.LookaheadTerminalIdxs, symbol)
-			action.LookaheadSymbols = append(action.LookaheadSymbols, grammar.Terminals[symbol])
-		}
-		action.IsReduce = true
-
-		production := grammar.Productions[reduceAction.ProductionIdx]
-		action.ProductionIdx = reduceAction.ProductionIdx
-		action.PopSymbolCount = len(production.SymbolRefs)
-		action.PushSymbol = production.NonterminalIdx
-		result = append(result, action)
-	}
-	for _, transitionAction := range state.TransitionActions.All() {
-		if transitionAction.SymbolRef().IsNonterminal() {
-			continue
-		}
-		if hasErrorTerminal && transitionAction.SymbolRef() == errorRef {
-			// The shift on the error symbol is not keyed on a lookahead the scanner can deliver: no scanner ever produces
-			// the error symbol, the parser shifts it itself while recovering. The arm would be unreachable, so the shift
-			// is rendered as an entry of errorShiftState instead, which is where the recovery reads it.
-			continue
-		}
-		var action StateAction
-		action.LookaheadTerminalIdxs = append(action.LookaheadTerminalIdxs, transitionAction.SymbolRef().Idx())
-		action.LookaheadSymbols = append(action.LookaheadSymbols, grammar.Terminals[transitionAction.SymbolRef().Idx()])
-		action.PushState = transitionAction.StateIdx()
-		result = append(result, action)
-	}
-	return result, nil
-}
-
-// buildRejectedTerminals returns the terminals the state rejects on purpose, which the state renders as an arm of its
-// own which reports a syntax error.
-//
-// The arm is what makes the rejection survive the default reduction of the state: an explicit arm is taken before the
-// `default` arm, so a state which rejects a terminal and reduces on anything else reports the error for the rejected
-// terminal instead of reducing.
-//
-// The error symbol is left out for the same reason the shift on it is, see buildStateActions: no scanner delivers it,
-// so an arm for it could never be taken. A grammar can reject it by declaring it nonassociative.
-func buildRejectedTerminals(grammar frontend.Grammar, state backend.State) []frontend.Symbol {
-	errorRef, hasErrorTerminal := frontend.ErrorTerminalRef(grammar)
-
-	var result []frontend.Symbol
-	for terminalIdx := range state.RejectedTerminals.All() {
-		if hasErrorTerminal && frontend.NewTerminalRef(terminalIdx) == errorRef {
-			continue
-		}
-		result = append(result, grammar.Terminals[terminalIdx])
-	}
-	return result
-}
-
-// buildDefaultReduce returns the action for the `default` arm of a state, or nil when the state has none and an
-// unexpected terminal is an error there.
-//
-// Besides the default reduce a core asked for, this also covers the accept. The cores encode the accept differently:
-// the Bison backed ones report it as `$default accept` and it arrives as DefaultReduceProductionIdx, while the native
-// GoLR ones keep it a reduce of the accept production with the empty reduction lookahead set the DeRemer-Pennello
-// computation yields for it. Both mean the same unconditional action, so both render into the default arm.
-func buildDefaultReduce(grammar frontend.Grammar, state backend.State) (*StateAction, error) {
-	productionIdx, ok := defaultReduceProductionIdx(state)
-	if !ok {
-		return nil, nil //nolint:nilnil // The nil value is our sentinel value and therefore fine here.
-	}
-
-	var action StateAction
-	action.IsReduce = true
-
-	production := grammar.Productions[productionIdx]
-	action.ProductionIdx = productionIdx
-	action.PopSymbolCount = len(production.SymbolRefs)
-	action.PushSymbol = production.NonterminalIdx
-	return &action, nil
-}
-
-// defaultReduceProductionIdx returns the production which reduces on any lookahead in the state. The boolean reports if
-// there is one at all.
-func defaultReduceProductionIdx(state backend.State) (int, bool) {
-	if state.DefaultReduceProductionIdx != nil {
-		return *state.DefaultReduceProductionIdx, true
-	}
-	for _, reduceAction := range state.ReduceActions.All() {
-		if reduceAction.ProductionIdx == acceptProductionIdx {
-			return acceptProductionIdx, true
-		}
-	}
-	return 0, false
-}
-
-type Goto struct {
-	SourceStateIdx      int
-	DestinationStateIdx int
-}
-
-func buildGotoAfterNonterminal(parser backend.Parser, nonterminalIdx int) []Goto {
-	if nonterminalIdx == acceptNonterminalIdx {
-		// `$accept` never appears on the right hand side of a production, so no state has a goto on it and nothing ever
-		// reduces to it either - the accept production ends the parse instead of pushing its left hand side. Its goto
-		// function would be empty and unreferenced.
-		return nil
-	}
-
-	var result []Goto
-	nonterminalRef := frontend.NewNonterminalRef(nonterminalIdx)
-	for stateIdx, state := range parser.States {
-		for _, transitionAction := range state.TransitionActions.All() {
-			if transitionAction.SymbolRef() == nonterminalRef {
-				result = append(result, Goto{
-					SourceStateIdx:      stateIdx,
-					DestinationStateIdx: transitionAction.StateIdx(),
-				})
-				break
-			}
-		}
-	}
-	return result
-}
-
-// buildErrorShiftStates returns the transitions on the error symbol of the whole parser, as the pairs of source and
-// destination state the errorShiftState function of the generated parser is built from. Those are the
-// resynchronization points of the error recovery productions: the states the recovery pops the stack down to, and the
-// states the parse continues in after it shifted the error symbol there.
-//
-// The result is empty for a grammar which does not use the error symbol, which renders into an errorShiftState that
-// never reports a state. Such a parser cannot recover and reports the first syntax error it hits.
-func buildErrorShiftStates(parser backend.Parser) []Goto {
-	errorRef, hasErrorTerminal := frontend.ErrorTerminalRef(parser.Grammar)
-	if !hasErrorTerminal {
-		return nil
-	}
-
-	var result []Goto
-	for stateIdx := range parser.States {
-		destinationStateIdx, ok := backend.ErrorShiftStateIdx(&parser.States[stateIdx], errorRef)
-		if !ok {
-			continue
-		}
-		result = append(result, Goto{
-			SourceStateIdx:      stateIdx,
-			DestinationStateIdx: destinationStateIdx,
-		})
-	}
-	return result
-}
-
-// hasErrorRecovery reports if any state of the parser can shift the error symbol, which is the case for a grammar which
-// marks places to resume at after a syntax error. The generated parser leaves out the parts of the recovery which cost
-// something on the hot path when no state can, see the countdown of tokens to shift in the parser template.
-//
-// The presence of the error terminal in the grammar is not the test to use here: the Bison backed cores seed the symbol
-// into every grammar they hand back, whether the grammar uses it or not, so most grammars carry a terminal which
-// nothing ever shifts.
-func hasErrorRecovery(parser backend.Parser) bool {
-	errorRef, hasErrorTerminal := frontend.ErrorTerminalRef(parser.Grammar)
-	if !hasErrorTerminal {
-		return false
-	}
-
-	for stateIdx := range parser.States {
-		if _, ok := backend.ErrorShiftStateIdx(&parser.States[stateIdx], errorRef); ok {
-			return true
-		}
-	}
-	return false
-}
-
-func displayProduction(grammar frontend.Grammar, productionIdx int) string {
-	var builder strings.Builder
-	production := grammar.Productions[productionIdx]
-
-	lhs := grammar.Nonterminals[production.NonterminalIdx]
-	builder.WriteString(lhs.String())
-	builder.WriteString(" -> ")
-	for idx, symbolRef := range production.SymbolRefs {
-		if idx > 0 {
-			builder.WriteString(" ")
-		}
-		if symbolRef.IsNonterminal() {
-			builder.WriteString(grammar.Nonterminals[symbolRef.Idx()].String())
-		} else {
-			builder.WriteString(grammar.Terminals[symbolRef.Idx()].String())
-		}
-	}
-	if len(production.SymbolRefs) == 0 {
-		builder.WriteString("%empty")
-	}
-	return builder.String()
-}
-
+// terminalName returns the name of the token constant which stands for the given terminal. The constants themselves are
+// written by the scanner backend, so this has to name them the same way the scanner does, see its tokenName helper.
 func terminalName(symbol frontend.Symbol) string {
 	if symbol.Name == "$end" {
 		return "EndToken"
 	}
 	if symbol.Name == frontend.SymbolError.Name {
 		// The error symbol reaches the generated scanner as a rule which matches nothing, where it is named the same
-		// way. See the tokenName helper of the scanner backend.
+		// way.
 		return "ErrorToken"
 	}
 	name := utils.GoIdentifier(symbol.Name)
 	return "Token" + name
 }
 
+// nonterminalName returns the name of the constant which stands for the given nonterminal.
+//
+// A nonterminal of the grammar is prefixed, which is what keeps a grammar free to name a nonterminal anything without
+// colliding with a nonterminal the generator needs for itself. The augmented start symbol is such a generator owned
+// nonterminal, and it is suffixed instead, the way terminalName suffixes the ones the grammar cannot name either. The
+// two shapes are what tells them apart: a grammar which does have a nonterminal called accept gets NonterminalAccept,
+// which is not the AcceptNonterminal returned here.
 func nonterminalName(symbol frontend.Symbol) string {
+	if symbol.Name == "$accept" {
+		return "AcceptNonterminal"
+	}
 	name := utils.GoIdentifier(symbol.Name)
 	return "Nonterminal" + name
 }

@@ -1,4 +1,4 @@
-package golangtable
+package golang
 
 // TokenColumn is one entry of the table which translates a token into the column of the action table holding the
 // decisions for it.

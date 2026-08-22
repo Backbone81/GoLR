@@ -7,7 +7,6 @@
 package {{ .Config.PackageName }}
 
 import (
-    "errors"
     "fmt"
 )
 
@@ -124,6 +123,37 @@ func (s *TokenSkipper) Next() bool {
 	}
 }
 
+// The automaton of this scanner is stored in lookup tables instead of in code.
+//
+// A transition is looked up in two steps. The input byte is mapped to its byte class, which is the column of the
+// transition table, and the transition table is stored as a single array in which the row of every state is displaced
+// so that its entries fall into the holes of the other rows. This is the row displacement method described in "Storing
+// a Sparse Table" by Tarjan and Yao.
+var (
+    // byteClassByByte maps an input byte to its byte class. Bytes which every state of the automaton treats alike
+    // share a class, which is what makes a row of the transition table short.
+    byteClassByByte = [{{ len .Tables.ByteClassByByte.Values }}]{{ .Tables.ByteClassByByte.Type }}{ {{- .Tables.ByteClassByByte.Literal "        " -}} }
+
+    // transitionBase maps a state to the displacement of its row within transitionNext.
+    transitionBase = [{{ len .Tables.TransitionBase.Values }}]{{ .Tables.TransitionBase.Type }}{ {{- .Tables.TransitionBase.Literal "        " -}} }
+
+    // transitionNext holds the target state of every transition. The transition a state has on a byte class lives at
+    // transitionBase[state] + class, but only if transitionCheck confirms that the cell belongs to that class.
+    transitionNext = [{{ len .Tables.TransitionNext.Values }}]{{ .Tables.TransitionNext.Type }}{ {{- .Tables.TransitionNext.Literal "        " -}} }
+
+    // transitionCheck holds the byte class every cell of transitionNext belongs to. A cell which no state occupies
+    // holds {{ .Tables.NoByteClass }}, which is one past the highest byte class in use and can therefore never be
+    // mistaken for the class a lookup asks for.
+    transitionCheck = [{{ len .Tables.TransitionCheck.Values }}]{{ .Tables.TransitionCheck.Type }}{ {{- .Tables.TransitionCheck.Literal "        " -}} }
+
+    // acceptTokenByState holds the token a state accepts, or InvalidToken for a state which does not accept.
+    acceptTokenByState = [{{ len .Tables.AcceptTokenByState }}]Token{
+        {{- range .Tables.AcceptTokenByState }}
+        {{ . }},
+        {{- end }}
+    }
+)
+
 // Scanner reads source code and returns tokens.
 type Scanner struct {
     source []byte
@@ -135,7 +165,6 @@ type Scanner struct {
 	line   int
 	column int
 
-    state int
 	token Token
 
 	filePath string
@@ -200,16 +229,30 @@ func (s *Scanner) FilePath() string {
 func (s *Scanner) Next() bool {
     s.updateLineAndColumn(s.source[s.lexemeStartIdx:s.lexemeEndIdx])
 	s.lexemeStartIdx = s.lexemeEndIdx
-	s.state = 0
 
+	var state uint32
     for s.lexemePeekIdx = s.lexemeEndIdx; s.lexemePeekIdx < len(s.source); s.lexemePeekIdx++ {
-        if err := s.dispatchState(); err != nil {
+        // Every accepting state we walk through is the longest match found so far, which is what makes the scanner
+        // return the longest token instead of the first one.
+        if token := acceptTokenByState[state]; token != InvalidToken {
+            s.token = token
+            s.lexemeEndIdx = s.lexemePeekIdx
+        }
+
+        byteClass := byteClassByByte[s.source[s.lexemePeekIdx]]
+        cellIdx := uint32(transitionBase[state]) + uint32(byteClass)
+        if transitionCheck[cellIdx] != byteClass {
+            // The state has no transition on this byte, so the token ends here.
             break
         }
+        state = uint32(transitionNext[cellIdx])
     }
     if s.lexemePeekIdx == len(s.source) {
         // We need to capture the last character of the source.
-        s.dispatchEOF()
+        if token := acceptTokenByState[state]; token != InvalidToken {
+            s.token = token
+            s.lexemeEndIdx = s.lexemePeekIdx
+        }
     }
 
     if s.lexemeStartIdx < s.lexemeEndIdx {
@@ -223,9 +266,11 @@ func (s *Scanner) Next() bool {
         return false
     }
 
-    // We found some characters which do not form a token. We need to emit an invalid token for them.
+    // We found some characters which do not form a token. The invalid token ends where the automaton stopped, because
+    // the byte it could not consume is where the next attempt starts. Only when the automaton consumed nothing does it
+    // cover that byte, which is what keeps the scan moving forward.
     s.token = InvalidToken
-    s.lexemeEndIdx = s.lexemePeekIdx+1
+    s.lexemeEndIdx = max(s.lexemeStartIdx+1, s.lexemePeekIdx)
     return true
 }
 
@@ -240,58 +285,3 @@ func (s *Scanner) updateLineAndColumn(source []byte) {
         }
     }
 }
-
-// dispatchState calls the code corresponding to the current scanner state.
-func (s *Scanner) dispatchState() error {
-    switch s.state {
-{{- range $i, $state := .DFA.States }}
-    case {{ $i }}: return s.{{ stateName $i (index $.DFA.Rules $state.RuleIdx) }}()
-{{- end }}
-    default:
-        return fmt.Errorf("unexpected scanner state %d", s.state)
-    }
-}
-
-func (s *Scanner) dispatchEOF() {
-    switch s.state {
-{{- range $i, $state := .DFA.States }}{{- if $state.Accept }}
-    case {{ $i }}:
-        s.token = {{ tokenName $state.RuleIdx (index $.DFA.Rules $state.RuleIdx) }}
-        s.lexemeEndIdx = s.lexemePeekIdx
-{{- end }}{{- end }}
-    }
-}
-
-var (
-    // errInvalidByte is an error which is returned when no transition matches the current byte.
-    errInvalidByte = errors.New("invalid byte")
-)
-
-{{ range $i, $state := .DFA.States }}
-func (s *Scanner) {{ stateName $i (index $.DFA.Rules $state.RuleIdx) }}() error {
-    {{- if $state.Accept }}
-    // We have an accepting state, update our bookkeeping.
-    s.token = {{ tokenName $state.RuleIdx (index $.DFA.Rules $state.RuleIdx) }}
-    s.lexemeEndIdx = s.lexemePeekIdx
-    {{ end }}
-
-    {{- if $state.Transitions }}
-    nextByte := s.source[s.lexemePeekIdx]
-    switch {
-        {{- range $state.Transitions }}
-            {{- if eq .ByteRange.Low .ByteRange.High }}
-    case nextByte == {{ printByte .ByteRange.Low }}:
-            {{- else }}
-    case {{ printByte .ByteRange.Low }} <= nextByte && nextByte <= {{ printByte .ByteRange.High }}:
-            {{- end}}
-        s.state = {{ .StateIdx }}
-        {{- end }}
-    default:
-        return errInvalidByte
-    }
-    return nil
-    {{- else }}
-    return errInvalidByte
-    {{- end }}
-}
-{{ end }}

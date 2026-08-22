@@ -80,9 +80,7 @@ x-common: &common
   entrypoint: ["/bin/sh", "/runners/entrypoint.sh"]
 
 services:
-  # There are two Go backends, and this service tests the table driven one. It is named after that backend, the way
-  # every service here is named after the backend it generates with.
-  go-table:
+  go:
     <<: *common
     image: golang:1.26
     # The only service which needs an environment at all, and the reason is the image and not the language: it has no
@@ -92,7 +90,7 @@ services:
     # tripped over it. The writable mount is where it can go, and the Makefile empties that before every run.
     environment:
       HOME: /work
-    command: ["go-table"]
+    command: ["go"]
 
   java:
     <<: *common

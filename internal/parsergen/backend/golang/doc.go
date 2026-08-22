@@ -1,2 +1,3 @@
-// Package golang provides a parser generator backend which takes a parser as input and outputs Go source code.
+// Package golang contains the backend which writes the parser as Go source code holding the parse table in lookup
+// tables.
 package golang

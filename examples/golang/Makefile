@@ -12,12 +12,12 @@ build: prepare
 	go run ../../cmd/golr scanner \
 	  --frontend golr \
 	  --frontend-file-path spec/golang.golr \
-	  --backend go-table \
+	  --backend go \
 	  --backend-file-path parser/scanner.go
 	go run ../../cmd/golr parser \
 	  --frontend golr \
 	  --frontend-file-path spec/golang.golr \
-	  --backend go-table \
+	  --backend go \
 	  --backend-file-path parser/parser.go
 	go build .
 

@@ -17,13 +17,15 @@ import (
 	"github.com/backbone81/golr/internal/utils"
 )
 
+// invalidTokenName is the name of the token constant the generated scanner uses when it has no token, which is what the
+// accept table holds for a state which does not accept.
+const invalidTokenName = "InvalidToken"
+
 //go:embed scanner.go.template
 var scannerTemplate string
 
 var parsedTemplate = template.Must(template.New("scanner.go.template").Funcs(template.FuncMap{
-	"printByte": printByte,
 	"tokenName": tokenName,
-	"stateName": stateName,
 }).Parse(scannerTemplate))
 
 type Config struct {
@@ -33,17 +35,23 @@ type Config struct {
 type TemplateContext struct {
 	Config Config
 	DFA    backend.DFA
+	Tables Tables
 }
 
 // FromDFA writes the DFA as Go source code to the given writer. Returns an error if the Go source code can not be
 // encoded successfully.
 func FromDFA(writer io.Writer, dfa backend.DFA, config Config) error {
-	defer trace.StartRegion(context.TODO(), "GoLR: Scannergen: Backend: Golang: FromDFA").End()
+	defer trace.StartRegion(context.TODO(), "GoLR: Scannergen: Backend: Golang Table: FromDFA").End()
+
+	if len(dfa.States) == 0 {
+		return errors.New("the DFA does not have any state")
+	}
 
 	var buffer bytes.Buffer
 	if err := parsedTemplate.Execute(&buffer, TemplateContext{
 		Config: config,
 		DFA:    dfa,
+		Tables: NewTables(dfa),
 	}); err != nil {
 		return fmt.Errorf("rendering the template: %w", err)
 	}
@@ -78,36 +86,6 @@ func DFAToFile(filePath string, dfa backend.DFA, config Config) (err error) {
 	}()
 
 	return FromDFA(file, dfa, config)
-}
-
-// printByte returns a string for a rune which is safe to use in go source. Standard ASCII characters are printed
-// as is to be human-readable. Special characters which are not printable or any Unicode codepoint is printed as
-// its hexadecimal value. That way the direct coded scanner can be easily inspected and debugged by a human.
-func printByte(r byte) string {
-	switch r {
-	case ' ':
-		return "' '"
-	case '\t':
-		return "'\\t'"
-	case '\r':
-		return "'\\r'"
-	case '\n':
-		return "'\\n'"
-	case '\'':
-		return "'\\''"
-	case '\\':
-		return "'\\\\'"
-	default:
-		if 32 <= r && r < 127 {
-			return fmt.Sprintf("'%c'", r)
-		}
-		return fmt.Sprintf("0x%x", r)
-	}
-}
-
-func stateName(stateIdx int, rule frontend.Rule) string {
-	name := utils.GoIdentifier(rule.Name)
-	return fmt.Sprintf("state%d%s", stateIdx, name)
 }
 
 func tokenName(ruleIdx int, rule frontend.Rule) string {

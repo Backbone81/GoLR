@@ -1,4 +1,4 @@
-package golangtable
+package golang
 
 import (
 	"github.com/backbone81/golr/internal/parsergen/backend"

@@ -1,2 +1,3 @@
-// Package golang provides a scanner generator backend which takes a DFA as input and outputs Go source code.
+// Package golang contains the backend which writes the scanner as Go source code holding the automaton in lookup
+// tables.
 package golang

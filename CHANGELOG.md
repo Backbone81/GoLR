@@ -22,6 +22,8 @@
 - Fixed the generated parser rejecting an empty input which the grammar accepts. The end of input is now a token the parse table decides on like any other.
 - Fixed Symbol.String of the generated Go parser printing the index of a symbol instead of its name.
 - BREAKING: The generated Go parser now spells the augmented start symbol AcceptNonterminal instead of Nonterminal_accept, which is the name every other language backend already uses.
+- BREAKING: --backend go now writes the table driven scanner and parser, which is smaller and faster than the directly coded one it replaces. The directly coded Go backend is gone, and with it the names go-direct and go-table.
+- BREAKING: The public packages pkg/parsergen/backend/golangtable and pkg/scannergen/backend/golangtable are now pkg/parsergen/backend/golang and pkg/scannergen/backend/golang, taking the place of the re-exports of the directly coded backend.
 
 ## v0.2.0 (2026-08-08)
 

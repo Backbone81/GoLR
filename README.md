@@ -86,7 +86,7 @@ Available Commands:
   help        Help about any command
   parser      Generates a LR(1) parser.
   scanner     Generates a DFA scanner.
-  selftest    Checks the IELR(1) parser core against a canonical LR(1) oracle.
+  selftest    Fuzz tests the IELR(1) parser core against a canonical LR(1) oracle.
 
 Flags:
   -h, --help   help for golr
@@ -103,14 +103,22 @@ Usage:
   golr parser [flags]
 
 Flags:
-      --backend string                   The backend to use for writing the parser. One of: dot, go, go-direct, go-table, json, null, yaml. (default "go")
-      --backend-file-path string         The file path to write the parser to. Can be '-' to write to stdout.
-      --backend-go-package-name string   The Go package name to use for the generated Go code. (default "parser")
-      --core string                      The core to use for generating the parser from the context free grammar. One of: ielr1, ielr1-golr, ielr1-bison, lalr1, lalr1-golr, lalr1-bison, lr1, lr1-golr, lr1-bison. (default "ielr1")
-      --frontend string                  The frontend to use for reading the context free grammar. One of: bison, golr, json, yaml. (default "golr")
-      --frontend-file-path string        The file path to read the context free grammar from. Can be '-' to read from stdin.
-  -h, --help                             help for parser
-  -v, --verbose                          List every conflict the parser generator resolved on its own, instead of only summarizing them.
+      --backend string                             The backend to use for writing the parser. One of: cpp, csharp, dot, go, java, javascript, json, null, python, rust, typescript, yaml. (default "go")
+      --backend-cpp-namespace string               The C++ namespace to use for the generated C++ code. Has to be the one the scanner was generated into. (default "parser")
+      --backend-cpp-scanner-include string         The header the generated C++ parser includes the token type from. (default "scanner.hpp")
+      --backend-csharp-namespace string            The C# namespace to use for the generated C# code. Has to be the one the scanner was generated into. (default "Parser")
+      --backend-file-path string                   The file path to write the parser to. Can be '-' to write to stdout.
+      --backend-go-package-name string             The Go package name to use for the generated Go code. (default "parser")
+      --backend-java-package-name string           The Java package name to use for the generated Java code. Has to be the one the scanner was generated into. (default "parser")
+      --backend-javascript-scanner-module string   The module specifier the generated JavaScript parser imports the token constants from. (default "./scanner.js")
+      --backend-python-scanner-module string       The module the generated Python parser imports the token constants from. (default "scanner")
+      --backend-rust-scanner-module string         The module path the generated Rust parser takes the token type from. (default "super::scanner")
+      --backend-typescript-scanner-module string   The module specifier the generated TypeScript parser imports the token constants from. (default "./scanner.js")
+      --core string                                The core to use for generating the parser from the context free grammar. One of: ielr1, ielr1-golr, ielr1-bison, lalr1, lalr1-golr, lalr1-bison, lr1, lr1-golr, lr1-bison. (default "ielr1")
+      --frontend string                            The frontend to use for reading the context free grammar. One of: bison, golr, json, yaml. (default "golr")
+      --frontend-file-path string                  The file path to read the context free grammar from. Can be '-' to read from stdin.
+  -h, --help                                       help for parser
+  -v, --verbose                                    List every conflict the parser generator resolved on its own, instead of only summarizing them.
 ```
 
 The `scanner` sub-command allows for selecting frontend, core and backend for the scanner:
@@ -122,7 +130,9 @@ Usage:
   golr scanner [flags]
 
 Flags:
-      --backend string                     The backend to use for writing the scanner. One of: dot, go, go-direct, go-table, java, json, null, rust, yaml. (default "go")
+      --backend string                     The backend to use for writing the scanner. One of: cpp, csharp, dot, go, java, javascript, json, null, python, rust, typescript, yaml. (default "go")
+      --backend-cpp-namespace string       The C++ namespace to use for the generated C++ code. (default "parser")
+      --backend-csharp-namespace string    The C# namespace to use for the generated C# code. (default "Parser")
       --backend-file-path string           The file path to write the scanner to. Can be '-' to write to stdout.
       --backend-go-package-name string     The Go package name to use for the generated Go code. (default "parser")
       --backend-java-package-name string   The Java package name to use for the generated Java code. (default "parser")
@@ -247,8 +257,6 @@ These backends are currently supported:
 - [C++](docs/parsergen-backend-cpp.md)
 - [DOT](docs/parsergen-backend-dot.md)
 - [Go](docs/parsergen-backend-golang.md)
-- [Go Direct](docs/parsergen-backend-golang-direct.md)
-- [Go Table](docs/parsergen-backend-golang-table.md)
 - [Java](docs/parsergen-backend-java.md)
 - [JavaScript](docs/parsergen-backend-javascript.md)
 - [JSON](docs/parsergen-backend-json.md)
@@ -296,8 +304,6 @@ These backends are currently supported:
 - [C++](docs/scannergen-backend-cpp.md)
 - [DOT](docs/scannergen-backend-dot.md)
 - [Go](docs/scannergen-backend-golang.md)
-- [Go Direct](docs/scannergen-backend-golang-direct.md)
-- [Go Table](docs/scannergen-backend-golang-table.md)
 - [Java](docs/scannergen-backend-java.md)
 - [JavaScript](docs/scannergen-backend-javascript.md)
 - [JSON](docs/scannergen-backend-json.md)

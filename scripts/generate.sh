@@ -8,24 +8,24 @@ set -ex
 go run ./cmd/golr scanner \
   --frontend golr \
   --frontend-file-path internal/parsergen/frontend/bison/spec/bison.golr \
-  --backend go-table \
+  --backend go \
   --backend-file-path internal/parsergen/frontend/bison/parser/scanner.go
 go run ./cmd/golr parser \
   --frontend bison \
   --frontend-file-path internal/parsergen/frontend/bison/spec/bison-3.8.2.y \
-  --backend go-table \
+  --backend go \
   --backend-file-path internal/parsergen/frontend/bison/parser/parser.go
 
 # Generate the internal parsergen GoLR frontend parser.
 go run ./cmd/golr scanner \
   --frontend golr \
   --frontend-file-path internal/parsergen/frontend/golr/spec/golr.golr \
-  --backend go-table \
+  --backend go \
   --backend-file-path internal/parsergen/frontend/golr/parser/scanner.go
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path internal/parsergen/frontend/golr/spec/golr.golr \
-  --backend go-table \
+  --backend go \
   --backend-file-path internal/parsergen/frontend/golr/parser/parser.go
 
 # Copy files from the internal parsergen GNU Bison frontend to the examples folder.
@@ -40,12 +40,12 @@ cp internal/parsergen/frontend/bison/parser/*.go examples/bison/parser
 go run ./cmd/golr scanner \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
-  --backend go-table \
+  --backend go \
   --backend-file-path examples/calculator/golang/parser/scanner.go
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
-  --backend go-table \
+  --backend go \
   --backend-file-path examples/calculator/golang/parser/parser.go
 go run ./cmd/golr scanner \
   --frontend golr \
@@ -127,12 +127,12 @@ go run ./cmd/golr parser \
 go run ./cmd/golr scanner \
   --frontend golr \
   --frontend-file-path examples/golang/spec/golang.golr \
-  --backend go-table \
+  --backend go \
   --backend-file-path examples/golang/parser/scanner.go
 go run ./cmd/golr parser \
   --frontend golr \
   --frontend-file-path examples/golang/spec/golang.golr \
-  --backend go-table \
+  --backend go \
   --backend-file-path examples/golang/parser/parser.go
 
 # Let's make sure that our examples folder does not reference any internal package.
