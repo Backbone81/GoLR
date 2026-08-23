@@ -22,10 +22,9 @@ namespace calculator::parser {
 
 /// Every nonterminal symbol of the grammar.
 enum class Nonterminal : std::uint8_t {
-    /// The nonterminal `$accept`.
+    /// The start symbol the generator adds around the one the grammar declares. Reaching it accepts the input.
     AcceptNonterminal,
 
-    /// The nonterminal `expression`.
     NonterminalExpression,
 };
 

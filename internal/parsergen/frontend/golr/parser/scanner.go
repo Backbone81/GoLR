@@ -217,15 +217,14 @@ func (s *TokenSkipper) Next() bool {
 	return false
 }
 
-// The automaton of this scanner is stored in lookup tables instead of in code.
+// The automaton is held in lookup tables. An input byte is mapped to its byte class, which is the column of the
+// transition table, and the rows of that table are displaced into a single array so that the entries of one row fall
+// into the holes of another. This is the row displacement method of "Storing a Sparse Table" by Tarjan and Yao.
 //
-// A transition is looked up in two steps. The input byte is mapped to its byte class, which is the column of the
-// transition table, and the transition table is stored as a single array in which the row of every state is displaced
-// so that its entries fall into the holes of the other rows. This is the row displacement method described in "Storing
-// a Sparse Table" by Tarjan and Yao.
+// The displaced arrays are padded so that every state and byte class lands inside them, which is why a lookup needs no
+// range check of its own.
 var (
-	// byteClassByByte maps an input byte to its byte class. Bytes which every state of the automaton treats alike
-	// share a class, which is what makes a row of the transition table short.
+	// byteClassByByte maps an input byte to its byte class. Bytes which every state treats alike share a class.
 	byteClassByByte = [256]uint8{
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 1, 3, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -258,7 +257,7 @@ var (
 	}
 
 	// transitionNext holds the target state of every transition. The transition a state has on a byte class lives at
-	// transitionBase[state] + class, but only if transitionCheck confirms that the cell belongs to that class.
+	// transitionBase[state] + class, but only if transitionCheck confirms the cell belongs to that class.
 	transitionNext = [675]uint8{
 		17, 17, 17, 17, 17, 17, 17, 15, 17, 16, 17, 17, 17, 17, 17, 18,
 		17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17,
@@ -305,9 +304,8 @@ var (
 		0, 0, 0,
 	}
 
-	// transitionCheck holds the byte class every cell of transitionNext belongs to. A cell which no state occupies
-	// holds 47, which is one past the highest byte class in use and can therefore never be
-	// mistaken for the class a lookup asks for.
+	// transitionCheck holds the byte class every cell of transitionNext belongs to. A cell no state occupies holds
+	// 47, which is one past the highest byte class in use and can never be asked for.
 	transitionCheck = [675]uint8{
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 		16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,

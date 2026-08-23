@@ -27,9 +27,12 @@
 /// Every nonterminal symbol of the grammar.
 typedef enum {{ .Type "Nonterminal" }} {
 {{- range $i, $nonterminal := .Parser.Grammar.Nonterminals }}
-{{ if $i }}
-{{ end }}    /// The nonterminal `{{ $nonterminal.Name }}`.{{ if ne $nonterminal.Alias "" }} Spelled `{{ $nonterminal.Alias }}` in the grammar.{{ end }}
+{{- if $.IsAcceptNonterminal $nonterminal }}
+    /// The start symbol the generator adds around the one the grammar declares. Reaching it accepts the input.
     {{ $.NonterminalName $nonterminal }},
+{{ else }}
+    {{ $.NonterminalName $nonterminal }},
+{{- end }}
 {{- end }}
 } {{ .Type "Nonterminal" }};
 
@@ -526,6 +529,19 @@ static bool {{ .Func "ParserPushNode" }}({{ .Type "Parser" }} *parser, const {{ 
     return true;
 }
 
+/// Returns the column of the action table which holds the decisions for the given token. A token the grammar does not
+/// have gets the column no state occupies.
+static size_t {{ .Func "TerminalColumn" }}({{ .Type "Token" }} token) {
+    switch (token) {
+{{- range .Tables.TerminalColumnByToken }}
+    case {{ .Name }}:
+        return {{ .Column }};
+{{- end }}
+    default:
+        return {{ .Const "NoTerminalColumn" }};
+    }
+}
+
 /// Returns the state to continue in when the error symbol is shifted in the given state, and whether the state can
 /// shift it at all. The states which can are the places the grammar marked to resume at after a syntax error.
 ///
@@ -546,19 +562,6 @@ static bool {{ .Func "ErrorShiftState" }}(size_t state, size_t *next_state) {
     }
     *next_state = action >> {{ .Const "ActionKindBits" }};
     return true;
-}
-
-/// Returns the column of the action table which holds the decisions for the given token. A token the grammar does not
-/// have gets the column no state occupies.
-static size_t {{ .Func "TerminalColumn" }}({{ .Type "Token" }} token) {
-    switch (token) {
-{{- range .Tables.TerminalColumnByToken }}
-    case {{ .Name }}:
-        return {{ .Column }};
-{{- end }}
-    default:
-        return {{ .Const "NoTerminalColumn" }};
-    }
 }
 
 /// Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side, and

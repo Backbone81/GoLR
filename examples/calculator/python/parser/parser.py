@@ -28,10 +28,9 @@ class Nonterminal(IntEnum):
     """Every nonterminal symbol of the grammar."""
 
     ACCEPT_NONTERMINAL = 0
-    """The nonterminal `$accept`."""
+    """The start symbol the generator adds around the one the grammar declares. Reaching it accepts the input."""
 
     NONTERMINAL_EXPRESSION = 1
-    """The nonterminal `expression`."""
 
     def __str__(self) -> str:
         """Returns the name of the nonterminal, as the grammar spells it."""
@@ -342,33 +341,6 @@ _NONTERMINAL_BY_PRODUCTION: Final[tuple[int, ...]] = (
 """Holds the nonterminal on the left hand side of a production."""
 
 
-def _terminal_column(token: Token) -> int:
-    """Returns the column of the action table which holds the decisions for the given token.
-
-    A token the grammar does not have gets `_NO_TERMINAL_COLUMN`.
-    """
-    return _TERMINAL_COLUMN_BY_TOKEN.get(token, _NO_TERMINAL_COLUMN)
-
-
-def _error_shift_state(state: int) -> int | None:
-    """Returns the state to continue in when the error symbol is shifted in the given state.
-
-    Returns `None` when the state cannot shift it. The states which can are the places the grammar marked to resume at
-    after a syntax error.
-
-    The default action of the state is deliberately not consulted, because only an entry the state has of its own is a
-    place to resume at.
-    """
-    cell_idx = _ACTION_BASE[state] + _ERROR_TERMINAL_COLUMN
-    if _ACTION_CHECK[cell_idx] != _ERROR_TERMINAL_COLUMN:
-        return None
-
-    action = _ACTION_NEXT[cell_idx]
-    if action & _ACTION_KIND_MASK != _ACTION_KIND_SHIFT:
-        return None
-    return action >> _ACTION_KIND_BITS
-
-
 class Parser:
     """Parses the tokens of a scanner into a parse tree. One parser serves one source after another."""
 
@@ -455,9 +427,9 @@ class Parser:
         terminal = scanner.token
 
         # A token which is no terminal of this grammar takes the default action of the state.
-        column = _terminal_column(terminal)
+        column = self._terminal_column(terminal)
 
-        state = self._state_stack[-1]
+        state = self._current_state()
         cell_idx = _ACTION_BASE[state] + column
         if _ACTION_CHECK[cell_idx] == column:
             # An entry the state has of its own beats its default action, which is what keeps a token the grammar
@@ -494,7 +466,7 @@ class Parser:
 
         del self._state_stack[len(self._state_stack) - pop_count:]
 
-        state = self._state_stack[-1]
+        state = self._current_state()
         cell_idx = _GOTO_BASE[state] + nonterminal
         if _GOTO_CHECK[cell_idx] == nonterminal:
             goto_state = _GOTO_NEXT[cell_idx]
@@ -529,7 +501,7 @@ class Parser:
         self._error_recovery_shifts_remaining = _ERROR_RECOVERY_SHIFTS
 
         while True:
-            next_state = _error_shift_state(self._state_stack[-1])
+            next_state = self._error_shift_state(self._current_state())
             if next_state is not None:
                 # Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 self._state_stack.append(next_state)
@@ -542,3 +514,34 @@ class Parser:
             # node, so dropping one drops one.
             self._state_stack.pop()
             self._node_stack.pop()
+
+    def _current_state(self) -> int:
+        """Returns the state on top of the stack, which is the one the parse is in."""
+        return self._state_stack[-1]
+
+    @staticmethod
+    def _terminal_column(token: Token) -> int:
+        """Returns the column of the action table which holds the decisions for the given token.
+
+        A token the grammar does not have gets `_NO_TERMINAL_COLUMN`.
+        """
+        return _TERMINAL_COLUMN_BY_TOKEN.get(token, _NO_TERMINAL_COLUMN)
+
+    @staticmethod
+    def _error_shift_state(state: int) -> int | None:
+        """Returns the state to continue in when the error symbol is shifted in the given state.
+
+        Returns `None` when the state cannot shift it. The states which can are the places the grammar marked to
+        resume at after a syntax error.
+
+        The default action of the state is deliberately not consulted, because only an entry the state has of its own
+        is a place to resume at.
+        """
+        cell_idx = _ACTION_BASE[state] + _ERROR_TERMINAL_COLUMN
+        if _ACTION_CHECK[cell_idx] != _ERROR_TERMINAL_COLUMN:
+            return None
+
+        action = _ACTION_NEXT[cell_idx]
+        if action & _ACTION_KIND_MASK != _ACTION_KIND_SHIFT:
+            return None
+        return action >> _ACTION_KIND_BITS

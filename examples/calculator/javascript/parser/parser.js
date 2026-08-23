@@ -34,7 +34,9 @@ import { Token, tokenToString } from "./scanner.js";
  * @enum {number}
  */
 export const Nonterminal = Object.freeze({
+    /** The start symbol the generator adds around the one the grammar declares. Reaching it accepts the input. */
     AcceptNonterminal: 0,
+
     NonterminalExpression: 1,
 });
 
@@ -317,8 +319,8 @@ const actionNext = new Uint8Array([
 ]);
 
 /**
- * Holds the column every cell of actionNext belongs to. A cell no state occupies holds a value one past the highest
- * column in use, which a lookup can never ask for.
+ * Holds the column every cell of actionNext belongs to. A cell no state occupies holds 11, which is
+ * one past the highest column in use and can never be asked for.
  */
 const actionCheck = new Uint8Array([
     11, 1, 11, 11, 4, 5, 6, 7, 4, 5, 6, 7, 3, 9, 5, 11,
@@ -349,8 +351,8 @@ const gotoNext = new Uint8Array([
 ]);
 
 /**
- * Holds the nonterminal every cell of gotoNext belongs to. A cell no state occupies holds a value one past the highest
- * nonterminal, which a lookup can never ask for.
+ * Holds the nonterminal every cell of gotoNext belongs to. A cell no state occupies holds
+ * 2, which is one past the highest nonterminal and can never be asked for.
  */
 const gotoCheck = new Uint8Array([
     2, 1, 1, 1, 1, 1, 1, 2,
@@ -370,29 +372,6 @@ const popCountByProduction = new Uint8Array([
 const nonterminalByProduction = new Uint8Array([
     0, 1, 1, 1, 1, 1, 1, 1,
 ]);
-
-/**
- * Returns the state to continue in when the error symbol is shifted in the given state, or noErrorShiftState when the
- * state cannot shift it. The states which can are the places the grammar marked to resume at after a syntax error.
- *
- * The default action of the state is deliberately not consulted, because only an entry the state has of its own is a
- * place to resume at.
- *
- * @param {number} state
- * @returns {number}
- */
-function errorShiftState(state) {
-    const cellIdx = actionBase[state] + errorTerminalColumn;
-    if (actionCheck[cellIdx] !== errorTerminalColumn) {
-        return noErrorShiftState;
-    }
-
-    const action = actionNext[cellIdx];
-    if ((action & actionKindMask) !== actionKindShift) {
-        return noErrorShiftState;
-    }
-    return action >>> actionKindBits;
-}
 
 /**
  * Parses the tokens of a scanner into a parse tree.
@@ -494,14 +473,10 @@ export class Parser {
     #step() {
         const terminal = this.#scanner.token();
 
-        // A token which is no terminal of this grammar, and one outside the range the scanner promises, both take the
-        // default action of the state.
-        let column = noTerminalColumn;
-        if (0 <= terminal && terminal < terminalColumnByToken.length) {
-            column = terminalColumnByToken[terminal];
-        }
+        // A token which is no terminal of this grammar takes the default action of the state.
+        const column = Parser.#terminalColumn(terminal);
 
-        const state = this.#stateStack[this.#stateStack.length - 1];
+        const state = this.#currentState();
         const cellIdx = actionBase[state] + column;
         let action = defaultActionByState[state];
         if (actionCheck[cellIdx] === column) {
@@ -544,7 +519,7 @@ export class Parser {
 
         this.#stateStack.length -= popCount;
 
-        const state = this.#stateStack[this.#stateStack.length - 1];
+        const state = this.#currentState();
         // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
         // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
         let gotoState = defaultGotoByNonterminal[nonterminal];
@@ -583,7 +558,7 @@ export class Parser {
         this.#errorRecoveryShiftsRemaining = errorRecoveryShifts;
 
         for (;;) {
-            const nextState = errorShiftState(this.#stateStack[this.#stateStack.length - 1]);
+            const nextState = Parser.#errorShiftState(this.#currentState());
             if (nextState !== noErrorShiftState) {
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 this.#stateStack.push(nextState);
@@ -599,5 +574,52 @@ export class Parser {
             this.#stateStack.length--;
             this.#nodeStack.length--;
         }
+    }
+
+    /**
+     * Returns the state on top of the stack, which is the one the parse is in.
+     *
+     * @returns {number}
+     */
+    #currentState() {
+        return this.#stateStack[this.#stateStack.length - 1];
+    }
+
+    /**
+     * Returns the column of the action table which holds the decisions for the given token. A token the grammar does
+     * not have, and one outside the range the scanner promises, both get noTerminalColumn.
+     *
+     * @param {number} terminal
+     * @returns {number}
+     */
+    static #terminalColumn(terminal) {
+        if (0 <= terminal && terminal < terminalColumnByToken.length) {
+            return terminalColumnByToken[terminal];
+        }
+        return noTerminalColumn;
+    }
+
+    /**
+     * Returns the state to continue in when the error symbol is shifted in the given state, or noErrorShiftState when
+     * the state cannot shift it. The states which can are the places the grammar marked to resume at after a syntax
+     * error.
+     *
+     * The default action of the state is deliberately not consulted, because only an entry the state has of its own is
+     * a place to resume at.
+     *
+     * @param {number} state
+     * @returns {number}
+     */
+    static #errorShiftState(state) {
+        const cellIdx = actionBase[state] + errorTerminalColumn;
+        if (actionCheck[cellIdx] !== errorTerminalColumn) {
+            return noErrorShiftState;
+        }
+
+        const action = actionNext[cellIdx];
+        if ((action & actionKindMask) !== actionKindShift) {
+            return noErrorShiftState;
+        }
+        return action >>> actionKindBits;
     }
 }

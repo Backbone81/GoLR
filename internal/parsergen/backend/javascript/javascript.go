@@ -21,7 +21,8 @@ import (
 var parserTemplate string
 
 var parsedTemplate = template.Must(template.New("parser.js.template").Funcs(template.FuncMap{
-	"nonterminalName": nonterminalName,
+	"nonterminalName":     nonterminalName,
+	"isAcceptNonterminal": isAcceptNonterminal,
 }).Parse(parserTemplate))
 
 // DefaultScannerModule is the module specifier the generated parser imports the token constants from when the caller
@@ -120,9 +121,15 @@ func terminalName(symbol frontend.Symbol) string {
 // two shapes are what tells them apart: a grammar which does have a nonterminal called accept gets NonterminalAccept,
 // which is not the AcceptNonterminal returned here.
 func nonterminalName(symbol frontend.Symbol) string {
-	if symbol.Name == "$accept" {
+	if isAcceptNonterminal(symbol) {
 		return "AcceptNonterminal"
 	}
 	name := utils.GoIdentifier(symbol.Name)
 	return "Nonterminal" + name
+}
+
+// isAcceptNonterminal reports whether the given nonterminal is the augmented start symbol, which the generator owns
+// rather than the grammar. It is the one nonterminal the generated parser documents.
+func isAcceptNonterminal(symbol frontend.Symbol) bool {
+	return symbol.Name == "$accept"
 }

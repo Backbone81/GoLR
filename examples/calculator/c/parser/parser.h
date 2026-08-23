@@ -26,10 +26,9 @@
 
 /// Every nonterminal symbol of the grammar.
 typedef enum CalculatorNonterminal {
-    /// The nonterminal `$accept`.
+    /// The start symbol the generator adds around the one the grammar declares. Reaching it accepts the input.
     CALCULATOR_ACCEPT_NONTERMINAL,
 
-    /// The nonterminal `expression`.
     CALCULATOR_NONTERMINAL_EXPRESSION,
 } CalculatorNonterminal;
 
@@ -541,28 +540,6 @@ static bool calculator_parser_push_node(CalculatorParser *parser, const Calculat
     return true;
 }
 
-/// Returns the state to continue in when the error symbol is shifted in the given state, and whether the state can
-/// shift it at all. The states which can are the places the grammar marked to resume at after a syntax error.
-///
-/// The default action of the state is deliberately not consulted, because only an entry the state has of its own is a
-/// place to resume at.
-static bool calculator_error_shift_state(size_t state, size_t *next_state) {
-    size_t cell_idx = CALCULATOR_ACTION_BASE[state] + CALCULATOR_ERROR_TERMINAL_COLUMN;
-    size_t cell_column = CALCULATOR_ACTION_CHECK[cell_idx];
-    size_t action;
-
-    if (cell_column != CALCULATOR_ERROR_TERMINAL_COLUMN) {
-        return false;
-    }
-
-    action = CALCULATOR_ACTION_NEXT[cell_idx];
-    if ((action & CALCULATOR_ACTION_KIND_MASK) != CALCULATOR_ACTION_KIND_SHIFT) {
-        return false;
-    }
-    *next_state = action >> CALCULATOR_ACTION_KIND_BITS;
-    return true;
-}
-
 /// Returns the column of the action table which holds the decisions for the given token. A token the grammar does not
 /// have gets the column no state occupies.
 static size_t calculator_terminal_column(CalculatorToken token) {
@@ -590,6 +567,28 @@ static size_t calculator_terminal_column(CalculatorToken token) {
     default:
         return CALCULATOR_NO_TERMINAL_COLUMN;
     }
+}
+
+/// Returns the state to continue in when the error symbol is shifted in the given state, and whether the state can
+/// shift it at all. The states which can are the places the grammar marked to resume at after a syntax error.
+///
+/// The default action of the state is deliberately not consulted, because only an entry the state has of its own is a
+/// place to resume at.
+static bool calculator_error_shift_state(size_t state, size_t *next_state) {
+    size_t cell_idx = CALCULATOR_ACTION_BASE[state] + CALCULATOR_ERROR_TERMINAL_COLUMN;
+    size_t cell_column = CALCULATOR_ACTION_CHECK[cell_idx];
+    size_t action;
+
+    if (cell_column != CALCULATOR_ERROR_TERMINAL_COLUMN) {
+        return false;
+    }
+
+    action = CALCULATOR_ACTION_NEXT[cell_idx];
+    if ((action & CALCULATOR_ACTION_KIND_MASK) != CALCULATOR_ACTION_KIND_SHIFT) {
+        return false;
+    }
+    *next_state = action >> CALCULATOR_ACTION_KIND_BITS;
+    return true;
 }
 
 /// Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side, and

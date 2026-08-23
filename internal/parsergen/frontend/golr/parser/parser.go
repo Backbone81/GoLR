@@ -15,29 +15,32 @@ import (
 type Nonterminal int
 
 const (
-	AcceptNonterminal                    Nonterminal = 0  // $accept
-	NonterminalFile                      Nonterminal = 1  // file
-	NonterminalScannerSection            Nonterminal = 2  // scanner_section
-	NonterminalScannerDeclList           Nonterminal = 3  // scanner_decl_list
-	NonterminalScannerDecl               Nonterminal = 4  // scanner_decl
-	NonterminalScannerDeclRhs            Nonterminal = 5  // scanner_decl_rhs
-	NonterminalScannerPattern            Nonterminal = 6  // scanner_pattern
-	NonterminalScannerAnnotationList     Nonterminal = 7  // scanner_annotation_list
-	NonterminalScannerAnnotation         Nonterminal = 8  // scanner_annotation
-	NonterminalParserSection             Nonterminal = 9  // parser_section
-	NonterminalStartDecl                 Nonterminal = 10 // start_decl
-	NonterminalPrecedenceSection         Nonterminal = 11 // precedence_section
-	NonterminalPrecedenceDeclList        Nonterminal = 12 // precedence_decl_list
-	NonterminalPrecedenceDecl            Nonterminal = 13 // precedence_decl
-	NonterminalAssociativity             Nonterminal = 14 // associativity
-	NonterminalRuleDeclList              Nonterminal = 15 // rule_decl_list
-	NonterminalProductionDecl            Nonterminal = 16 // production_decl
-	NonterminalAlternativeList           Nonterminal = 17 // alternative_list
-	NonterminalAlternative               Nonterminal = 18 // alternative
-	NonterminalAlternativeAnnotationList Nonterminal = 19 // alternative_annotation_list
-	NonterminalAlternativeAnnotation     Nonterminal = 20 // alternative_annotation
-	NonterminalSymbolList                Nonterminal = 21 // symbol_list
-	NonterminalSymbol                    Nonterminal = 22 // symbol
+	// AcceptNonterminal is the start symbol the generator adds around the one the grammar declares.
+	// Reaching it accepts the input.
+	AcceptNonterminal Nonterminal = 0
+
+	NonterminalFile                      Nonterminal = 1
+	NonterminalScannerSection            Nonterminal = 2
+	NonterminalScannerDeclList           Nonterminal = 3
+	NonterminalScannerDecl               Nonterminal = 4
+	NonterminalScannerDeclRhs            Nonterminal = 5
+	NonterminalScannerPattern            Nonterminal = 6
+	NonterminalScannerAnnotationList     Nonterminal = 7
+	NonterminalScannerAnnotation         Nonterminal = 8
+	NonterminalParserSection             Nonterminal = 9
+	NonterminalStartDecl                 Nonterminal = 10
+	NonterminalPrecedenceSection         Nonterminal = 11
+	NonterminalPrecedenceDeclList        Nonterminal = 12
+	NonterminalPrecedenceDecl            Nonterminal = 13
+	NonterminalAssociativity             Nonterminal = 14
+	NonterminalRuleDeclList              Nonterminal = 15
+	NonterminalProductionDecl            Nonterminal = 16
+	NonterminalAlternativeList           Nonterminal = 17
+	NonterminalAlternative               Nonterminal = 18
+	NonterminalAlternativeAnnotationList Nonterminal = 19
+	NonterminalAlternativeAnnotation     Nonterminal = 20
+	NonterminalSymbolList                Nonterminal = 21
+	NonterminalSymbol                    Nonterminal = 22
 )
 
 // Nonterminal implements fmt.Stringer.
@@ -203,20 +206,19 @@ func (e *Error) Unwrap() error {
 	return e.Cause
 }
 
-// The parse table of this parser is stored in lookup tables.
+// The parse table is held in lookup tables. A token is translated into the column of the action table which holds the
+// decisions for it, and the rows of that table are displaced into a single array so that the entries of one row fall
+// into the holes of another. This is the row displacement method of "Storing a Sparse Table" by Tarjan and Yao. The
+// gotos are held the same way, with the nonterminal as the column.
 //
-// An action is looked up in two steps. The token the scanner delivers is translated into the column of the action table
-// which holds the decisions for it, and the action table is stored as a single array in which the row of every state is
-// displaced so that its entries fall into the holes of the other rows. This is the row displacement method described in
-// "Storing a Sparse Table" by Tarjan and Yao. The gotos are stored the same way, with the nonterminal as the column.
+// The rows are sparse because what most entries of a row agree on is taken out of it and kept as a default: the action
+// table defaults per state and the goto table per nonterminal. Only the entries which deviate are in the tables.
 //
-// The rows are sparse because what most of their entries agree on is taken out of them and kept as a default. The
-// action table defaults per state, to the reduction the state performs on most of its lookaheads, and the goto table
-// defaults per nonterminal, to the state a goto on it leads to in most of the states which have one. Only the entries
-// which deviate from those defaults are in the tables at all, which is what leaves the holes the displacement fills.
+// The displaced arrays are padded so that every state and column lands inside them, which is why a lookup needs no
+// range check of its own.
 const (
-	// actionKindBits is the number of low bits of an action which hold what the action does. The value the action
-	// carries sits above them.
+	// actionKindBits is the number of low bits of an action which hold what it does. The value it carries sits above
+	// them.
 	actionKindBits = 2
 
 	// actionKindMask selects out of an action what it does.
@@ -228,27 +230,18 @@ const (
 	// actionKindReduce reduces by the production the action carries.
 	actionKindReduce = 1
 
-	// actionKindAccept ends the parse successfully, because the input has been reduced to the start symbol.
+	// actionKindAccept ends the parse successfully, the input having been reduced to the start symbol.
 	actionKindAccept = 2
 
 	// actionKindError rejects the terminal as a syntax error.
 	actionKindError = 3
 
 	// noTerminalColumn is the column a token gets which is no terminal of this grammar. No state has an entry in it,
-	// so a lookup falls through to the default action of the state, which is what this parser does with a token it
-	// does not know.
+	// so a lookup falls through to the default action of the state.
 	noTerminalColumn = 0
 
-	// noColumn is the entry actionCheck holds for a cell which no state occupies. It is one past the highest column
-	// in use and can therefore never be mistaken for the column a lookup asks for.
-	noColumn = 26
-
-	// noNonterminal is the entry gotoCheck holds for a cell which no state occupies. It is one past the highest
-	// nonterminal and can therefore never be mistaken for the nonterminal a lookup asks for.
-	noNonterminal = 23
-
-	// errorTerminalColumn is the column which holds the shifts of the error symbol, which is where the error
-	// recovery reads the state to resume in.
+	// errorTerminalColumn is the column holding the shifts of the error symbol, where the recovery reads the state to
+	// resume in.
 	errorTerminalColumn = 0
 )
 
@@ -297,7 +290,7 @@ var (
 	}
 
 	// actionNext holds the action of every entry. The action a state has for a column lives at
-	// actionBase[state] + column, but only if actionCheck confirms that the cell belongs to that column.
+	// actionBase[state] + column, but only if actionCheck confirms the cell belongs to that column.
 	actionNext = [66]uint16{
 		0, 0, 0, 0, 0, 0, 152, 4, 156, 160, 164, 20, 24, 188, 192, 192,
 		168, 76, 52, 16, 140, 192, 244, 144, 196, 196, 200, 200, 40, 80, 84, 196,
@@ -306,8 +299,8 @@ var (
 		0, 0,
 	}
 
-	// actionCheck holds the column every cell of actionNext belongs to. A cell which no state occupies holds
-	// noColumn.
+	// actionCheck holds the column every cell of actionNext belongs to. A cell no state occupies holds
+	// 26, which is one past the highest column in use and can never be asked for.
 	actionCheck = [66]uint8{
 		26, 26, 26, 26, 26, 26, 6, 4, 8, 9, 10, 1, 5, 12, 13, 13,
 		16, 12, 7, 15, 11, 13, 20, 14, 23, 23, 25, 25, 16, 24, 25, 23,
@@ -317,7 +310,7 @@ var (
 	}
 
 	// defaultActionByState holds the action a state takes for every column it has no entry of its own for. A state
-	// which has none carries the error action, which makes such a token a syntax error.
+	// which has none carries the error action.
 	defaultActionByState = [68]uint8{
 		3, 3, 3, 3, 13, 2, 3, 5, 3, 61, 9, 3, 17, 3, 69, 3,
 		3, 3, 105, 41, 33, 37, 3, 41, 3, 77, 3, 29, 21, 25, 65, 3,
@@ -336,37 +329,35 @@ var (
 	}
 
 	// gotoNext holds the state a goto leads to. The goto a state has for a nonterminal lives at
-	// gotoBase[state] + nonterminal, but only if gotoCheck confirms that the cell belongs to that nonterminal.
+	// gotoBase[state] + nonterminal, but only if gotoCheck confirms the cell belongs to that nonterminal.
 	gotoNext = [29]uint8{
 		0, 0, 0, 0, 0, 0, 0, 0, 29, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 59, 0, 0, 60, 55, 64, 60, 66, 0, 0,
 	}
 
-	// gotoCheck holds the nonterminal every cell of gotoNext belongs to. A cell which no state occupies holds
-	// noNonterminal.
+	// gotoCheck holds the nonterminal every cell of gotoNext belongs to. A cell no state occupies holds
+	// 23, which is one past the highest nonterminal and can never be asked for.
 	gotoCheck = [29]uint8{
 		23, 23, 23, 23, 23, 23, 23, 23, 7, 23, 23, 23, 23, 23, 23, 23,
 		23, 23, 23, 19, 23, 23, 22, 21, 18, 22, 22, 23, 23,
 	}
 
-	// defaultGotoByNonterminal holds the state a goto on a nonterminal leads to for every state which gotoNext has
-	// no entry for. Most states agree on where a nonterminal takes them, so only the ones which deviate are in the
-	// table at all.
+	// defaultGotoByNonterminal holds the state a goto on a nonterminal leads to for every state gotoNext has no entry
+	// for.
 	defaultGotoByNonterminal = [23]uint8{
 		0, 2, 3, 8, 12, 22, 23, 27, 37, 7, 14, 18, 31, 43, 44, 26,
 		34, 51, 52, 56, 63, 53, 54,
 	}
 
-	// popCountByProduction holds the number of symbols a reduction takes off the stacks, which is the length of the
-	// right hand side of the production.
+	// popCountByProduction holds how many symbols a reduction takes off the stacks, which is the length of the right
+	// hand side.
 	popCountByProduction = [41]uint8{
 		2, 2, 4, 0, 2, 4, 2, 2, 1, 1, 0, 2, 1, 1, 6, 0,
 		4, 0, 4, 0, 2, 4, 1, 1, 1, 1, 0, 2, 4, 1, 3, 2,
 		2, 0, 2, 4, 1, 2, 1, 1, 1,
 	}
 
-	// nonterminalByProduction holds the nonterminal on the left hand side of a production, which a reduction looks
-	// up its goto with and labels the node it pushes with.
+	// nonterminalByProduction holds the nonterminal on the left hand side of a production.
 	nonterminalByProduction = [41]uint8{
 		0, 1, 2, 3, 3, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 10,
 		10, 11, 11, 12, 12, 13, 14, 14, 14, 14, 15, 15, 16, 17, 17, 18,
@@ -473,14 +464,10 @@ func (p *Parser) Parse(scanner ParserScanner) (Node, error) {
 func (p *Parser) step() error {
 	terminal := p.scanner.Token()
 
-	// A token which is no terminal of this grammar, and a token outside the range the scanner promises, both get the
-	// column which no state has an entry in, so both end up taking the default action of the state.
-	column := uint32(noTerminalColumn)
-	if uint32(terminal) < uint32(len(terminalColumnByToken)) {
-		column = uint32(terminalColumnByToken[terminal])
-	}
+	// A token which is no terminal of this grammar takes the default action of the state.
+	column := p.terminalColumn(terminal)
 
-	state := p.stateStack[len(p.stateStack)-1]
+	state := p.currentState()
 	cellIdx := uint32(actionBase[state]) + column
 	action := uint32(defaultActionByState[state])
 	if uint32(actionCheck[cellIdx]) == column {
@@ -523,7 +510,7 @@ func (p *Parser) reduce(productionIdx uint32) {
 
 	p.stateStack = p.stateStack[:len(p.stateStack)-popCount]
 
-	state := p.stateStack[len(p.stateStack)-1]
+	state := p.currentState()
 	// A state which does not have a goto of its own on the nonterminal goes where most states go with it. The LR
 	// construction creates the goto together with the production, so a state which a reduction uncovers always has
 	// one, which is why the lookup needs no case for a nonterminal missing from both.
@@ -571,7 +558,7 @@ func (p *Parser) recoverFromError() bool {
 	p.errorRecoveryShiftsRemaining = errorRecoveryShifts
 
 	for {
-		if nextState, ok := errorShiftState(p.stateStack[len(p.stateStack)-1]); ok {
+		if nextState, ok := p.errorShiftState(p.currentState()); ok {
 			// Shift the error symbol. Its node stands for the part of the input which was dropped and has no lexeme.
 			p.stateStack = append(p.stateStack, nextState)
 			p.nodeStack = append(p.nodeStack, Node{
@@ -592,6 +579,20 @@ func (p *Parser) recoverFromError() bool {
 	}
 }
 
+// currentState returns the state on top of the stack, which is the one the parse is in.
+func (p *Parser) currentState() int {
+	return p.stateStack[len(p.stateStack)-1]
+}
+
+// terminalColumn returns the column of the action table which holds the decisions for the given token. A token the
+// grammar does not have, and one outside the range the scanner promises, both get noTerminalColumn.
+func (p *Parser) terminalColumn(terminal Token) uint32 {
+	if uint32(terminal) < uint32(len(terminalColumnByToken)) {
+		return uint32(terminalColumnByToken[terminal])
+	}
+	return noTerminalColumn
+}
+
 // errorShiftState returns the state to continue in when the error symbol is shifted in the given state, and reports if
 // the state can shift the error symbol at all. The states which can are the places the grammar marked to resume at
 // after a syntax error, which is what the error recovery pops the stack down to. For a grammar which marks no such
@@ -601,7 +602,7 @@ func (p *Parser) recoverFromError() bool {
 // table in the column of the error symbol. Nothing else can read that column, because no scanner ever delivers the
 // symbol. The default action of the state is deliberately not consulted, because only an entry the state has of its own
 // is a place to resume at.
-func errorShiftState(state int) (int, bool) {
+func (p *Parser) errorShiftState(state int) (int, bool) {
 	cellIdx := uint32(actionBase[state]) + errorTerminalColumn
 	if uint32(actionCheck[cellIdx]) != errorTerminalColumn {
 		return 0, false

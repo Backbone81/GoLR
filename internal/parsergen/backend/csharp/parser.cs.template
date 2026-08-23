@@ -18,7 +18,14 @@ namespace {{ .Config.Namespace }};
 public enum Nonterminal
 {
 {{- range $i, $nonterminal := .Parser.Grammar.Nonterminals }}
-    {{ nonterminalName $nonterminal }} = {{ $i }},{{ if ne $nonterminal.Alias "" }} // {{ $nonterminal.Alias }}{{ end }}
+{{- if isAcceptNonterminal $nonterminal }}
+    /// <summary>
+    /// The start symbol the generator adds around the one the grammar declares. Reaching it accepts the input.
+    /// </summary>
+    {{ nonterminalName $nonterminal }} = {{ $i }},
+{{ else }}
+    {{ nonterminalName $nonterminal }} = {{ $i }},
+{{- end }}
 {{- end }}
 }
 
@@ -308,8 +315,8 @@ public sealed class Parser
     { {{- .Tables.ActionNext.Literal "        " }}    };
 
     /// <summary>
-    /// Holds the column every cell of <see cref="ActionNext"/> belongs to. A cell no state occupies holds a value one
-    /// past the highest column in use, which a lookup can never ask for.
+    /// Holds the column every cell of <see cref="ActionNext"/> belongs to. A cell no state occupies holds
+    /// {{ .Tables.NoColumn }}, which is one past the highest column in use and can never be asked for.
     /// </summary>
     private static readonly {{ .Tables.ActionCheck.Type }}[] ActionCheck =
     { {{- .Tables.ActionCheck.Literal "        " }}    };
@@ -333,8 +340,8 @@ public sealed class Parser
     { {{- .Tables.GotoNext.Literal "        " }}    };
 
     /// <summary>
-    /// Holds the nonterminal every cell of <see cref="GotoNext"/> belongs to. A cell no state occupies holds a value
-    /// one past the highest nonterminal, which a lookup can never ask for.
+    /// Holds the nonterminal every cell of <see cref="GotoNext"/> belongs to. A cell no state occupies holds
+    /// {{ .Tables.NoNonterminal }}, which is one past the highest nonterminal and can never be asked for.
     /// </summary>
     private static readonly {{ .Tables.GotoCheck.Type }}[] GotoCheck =
     { {{- .Tables.GotoCheck.Literal "        " }}    };
@@ -460,6 +467,20 @@ public sealed class Parser
     }
 
     /// <summary>
+    /// Returns the column of the action table which holds the decisions for the given token. A token the grammar does
+    /// not have, and one outside the range the scanner promises, both get <see cref="NoTerminalColumn"/>.
+    /// </summary>
+    /// <param name="terminal">The token to look up.</param>
+    private static int TerminalColumn(Token terminal)
+    {
+        if (0 <= (int)terminal && (int)terminal < TerminalColumnByToken.Length)
+        {
+            return TerminalColumnByToken[(int)terminal];
+        }
+        return NoTerminalColumn;
+    }
+
+    /// <summary>
     /// Returns the state to continue in when the error symbol is shifted in the given state, or
     /// <see cref="NoErrorShiftState"/> when the state cannot shift it. The states which can are the places the grammar
     /// marked to resume at after a syntax error.
@@ -494,15 +515,10 @@ public sealed class Parser
         error = null;
         Token terminal = _scanner.Token;
 
-        // A token which is no terminal of this grammar, and one outside the range the scanner promises, both take the
-        // default action of the state.
-        int column = NoTerminalColumn;
-        if (0 <= (int)terminal && (int)terminal < TerminalColumnByToken.Length)
-        {
-            column = TerminalColumnByToken[(int)terminal];
-        }
+        // A token which is no terminal of this grammar takes the default action of the state.
+        int column = TerminalColumn(terminal);
 
-        int state = _stateStack[^1];
+        int state = CurrentState();
         int cellIdx = ActionBase[state] + column;
         int action = DefaultActionByState[state];
         if (ActionCheck[cellIdx] == column)
@@ -551,7 +567,7 @@ public sealed class Parser
 
         _stateStack.RemoveRange(_stateStack.Count - popCount, popCount);
 
-        int state = _stateStack[^1];
+        int state = CurrentState();
         // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
         // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
         int gotoState = DefaultGotoByNonterminal[nonterminal];
@@ -596,7 +612,7 @@ public sealed class Parser
 
         while (true)
         {
-            int nextState = ErrorShiftState(_stateStack[^1]);
+            int nextState = ErrorShiftState(CurrentState());
             if (nextState != NoErrorShiftState)
             {
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
@@ -616,4 +632,7 @@ public sealed class Parser
             _nodeStack.RemoveAt(_nodeStack.Count - 1);
         }
     }
+
+    /// <summary>Returns the state on top of the stack, which is the one the parse is in.</summary>
+    private int CurrentState() => _stateStack[^1];
 }

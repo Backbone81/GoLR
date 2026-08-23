@@ -15,148 +15,151 @@ import (
 type Nonterminal int
 
 const (
-	AcceptNonterminal                         Nonterminal = 0   // $accept
-	NonterminalSourcefile                     Nonterminal = 1   // SourceFile
-	NonterminalZeroormoreimportdeclsemicolon  Nonterminal = 2   // ZeroOrMoreImportDeclSemicolon
-	NonterminalOneormoretopleveldeclsemicolon Nonterminal = 3   // OneOrMoreTopLevelDeclSemicolon
-	NonterminalPackageclause                  Nonterminal = 4   // PackageClause
-	NonterminalImportdecl                     Nonterminal = 5   // ImportDecl
-	NonterminalImportspec                     Nonterminal = 6   // ImportSpec
-	NonterminalZeroormoreimportspecsemicolon  Nonterminal = 7   // ZeroOrMoreImportSpecSemicolon
-	NonterminalIdentifierlist                 Nonterminal = 8   // IdentifierList
-	NonterminalOperand                        Nonterminal = 9   // Operand
-	NonterminalLiteral                        Nonterminal = 10  // Literal
-	NonterminalBasiclit                       Nonterminal = 11  // BasicLit
-	NonterminalOperandname                    Nonterminal = 12  // OperandName
-	NonterminalQualifiedident                 Nonterminal = 13  // QualifiedIdent
-	NonterminalCompositelit                   Nonterminal = 14  // CompositeLit
-	NonterminalLiteraltype                    Nonterminal = 15  // LiteralType
-	NonterminalLiteralvalue                   Nonterminal = 16  // LiteralValue
-	NonterminalElementlist                    Nonterminal = 17  // ElementList
-	NonterminalKeyedelement                   Nonterminal = 18  // KeyedElement
-	NonterminalKey                            Nonterminal = 19  // Key
-	NonterminalElement                        Nonterminal = 20  // Element
-	NonterminalFunctionlit                    Nonterminal = 21  // FunctionLit
-	NonterminalPrimaryexpr                    Nonterminal = 22  // PrimaryExpr
-	NonterminalSelector                       Nonterminal = 23  // Selector
-	NonterminalIndex                          Nonterminal = 24  // Index
-	NonterminalIndexelemlist                  Nonterminal = 25  // IndexElemList
-	NonterminalIndexelem                      Nonterminal = 26  // IndexElem
-	NonterminalSlice                          Nonterminal = 27  // Slice
-	NonterminalTypeassertion                  Nonterminal = 28  // TypeAssertion
-	NonterminalArguments                      Nonterminal = 29  // Arguments
-	NonterminalArgumenttype                   Nonterminal = 30  // ArgumentType
-	NonterminalExpressionlist                 Nonterminal = 31  // ExpressionList
-	NonterminalExpression                     Nonterminal = 32  // Expression
-	NonterminalUnaryexpr                      Nonterminal = 33  // UnaryExpr
-	NonterminalConversion                     Nonterminal = 34  // Conversion
-	NonterminalConversiontype                 Nonterminal = 35  // ConversionType
-	NonterminalType                           Nonterminal = 36  // Type
-	NonterminalTypenochanreceive              Nonterminal = 37  // TypeNoChanReceive
-	NonterminalTypename                       Nonterminal = 38  // TypeName
-	NonterminalTypeargs                       Nonterminal = 39  // TypeArgs
-	NonterminalTypelist                       Nonterminal = 40  // TypeList
-	NonterminalTypelit                        Nonterminal = 41  // TypeLit
-	NonterminalTypelitnochanreceive           Nonterminal = 42  // TypeLitNoChanReceive
-	NonterminalArraytype                      Nonterminal = 43  // ArrayType
-	NonterminalSlicetype                      Nonterminal = 44  // SliceType
-	NonterminalStructtype                     Nonterminal = 45  // StructType
-	NonterminalFielddecl                      Nonterminal = 46  // FieldDecl
-	NonterminalOpttag                         Nonterminal = 47  // OptTag
-	NonterminalOpttypeargs                    Nonterminal = 48  // OptTypeArgs
-	NonterminalBracketfield                   Nonterminal = 49  // BracketField
-	NonterminalBracketlist                    Nonterminal = 50  // BracketList
-	NonterminalBracketelem                    Nonterminal = 51  // BracketElem
-	NonterminalTypenoleadingbracket           Nonterminal = 52  // TypeNoLeadingBracket
-	NonterminalZeroormorefielddecl            Nonterminal = 53  // ZeroOrMoreFieldDecl
-	NonterminalZeroormorefielddeclsemicolon   Nonterminal = 54  // ZeroOrMoreFieldDeclSemicolon
-	NonterminalPointertype                    Nonterminal = 55  // PointerType
-	NonterminalFunctiontype                   Nonterminal = 56  // FunctionType
-	NonterminalSignature                      Nonterminal = 57  // Signature
-	NonterminalResult                         Nonterminal = 58  // Result
-	NonterminalTypenoparen                    Nonterminal = 59  // TypeNoParen
-	NonterminalParameters                     Nonterminal = 60  // Parameters
-	NonterminalParameterlist                  Nonterminal = 61  // ParameterList
-	NonterminalParameterdecl                  Nonterminal = 62  // ParameterDecl
-	NonterminalInterfacetype                  Nonterminal = 63  // InterfaceType
-	NonterminalInterfaceelem                  Nonterminal = 64  // InterfaceElem
-	NonterminalMethodelem                     Nonterminal = 65  // MethodElem
-	NonterminalTypeelem                       Nonterminal = 66  // TypeElem
-	NonterminalTypeterm                       Nonterminal = 67  // TypeTerm
-	NonterminalUnderlyingtype                 Nonterminal = 68  // UnderlyingType
-	NonterminalOneormoreinterfaceelem         Nonterminal = 69  // OneOrMoreInterfaceElem
-	NonterminalMaptype                        Nonterminal = 70  // MapType
-	NonterminalChanneltype                    Nonterminal = 71  // ChannelType
-	NonterminalChanneltypenochanreceive       Nonterminal = 72  // ChannelTypeNoChanReceive
-	NonterminalBlock                          Nonterminal = 73  // Block
-	NonterminalStatementlist                  Nonterminal = 74  // StatementList
-	NonterminalStatement                      Nonterminal = 75  // Statement
-	NonterminalSimplestmt                     Nonterminal = 76  // SimpleStmt
-	NonterminalLabeledstmt                    Nonterminal = 77  // LabeledStmt
-	NonterminalSendstmt                       Nonterminal = 78  // SendStmt
-	NonterminalIncdecstmt                     Nonterminal = 79  // IncDecStmt
-	NonterminalAssignment                     Nonterminal = 80  // Assignment
-	NonterminalExpressionnobrace              Nonterminal = 81  // ExpressionNoBrace
-	NonterminalUnaryexprnobrace               Nonterminal = 82  // UnaryExprNoBrace
-	NonterminalPrimaryexprnobrace             Nonterminal = 83  // PrimaryExprNoBrace
-	NonterminalOperandnobrace                 Nonterminal = 84  // OperandNoBrace
-	NonterminalLiteralnobrace                 Nonterminal = 85  // LiteralNoBrace
-	NonterminalCompositelitnobrace            Nonterminal = 86  // CompositeLitNoBrace
-	NonterminalExpressionlistnobrace          Nonterminal = 87  // ExpressionListNoBrace
-	NonterminalSimplestmtnobrace              Nonterminal = 88  // SimpleStmtNoBrace
-	NonterminalSendstmtnobrace                Nonterminal = 89  // SendStmtNoBrace
-	NonterminalIncdecstmtnobrace              Nonterminal = 90  // IncDecStmtNoBrace
-	NonterminalAssignmentnobrace              Nonterminal = 91  // AssignmentNoBrace
-	NonterminalShortvardeclnobrace            Nonterminal = 92  // ShortVarDeclNoBrace
-	NonterminalIfstmt                         Nonterminal = 93  // IfStmt
-	NonterminalIfstmtorblock                  Nonterminal = 94  // IfStmtOrBlock
-	NonterminalSwitchstmt                     Nonterminal = 95  // SwitchStmt
-	NonterminalExprswitchstmt                 Nonterminal = 96  // ExprSwitchStmt
-	NonterminalExprcaseclause                 Nonterminal = 97  // ExprCaseClause
-	NonterminalExprswitchcase                 Nonterminal = 98  // ExprSwitchCase
-	NonterminalZeroormoreexprcaseclause       Nonterminal = 99  // ZeroOrMoreExprCaseClause
-	NonterminalTypeswitchstmt                 Nonterminal = 100 // TypeSwitchStmt
-	NonterminalTypeswitchguard                Nonterminal = 101 // TypeSwitchGuard
-	NonterminalTypecaseclause                 Nonterminal = 102 // TypeCaseClause
-	NonterminalTypeswitchcase                 Nonterminal = 103 // TypeSwitchCase
-	NonterminalZeroormoretypecaseclause       Nonterminal = 104 // ZeroOrMoreTypeCaseClause
-	NonterminalForstmt                        Nonterminal = 105 // ForStmt
-	NonterminalForclause                      Nonterminal = 106 // ForClause
-	NonterminalRangeclause                    Nonterminal = 107 // RangeClause
-	NonterminalGostmt                         Nonterminal = 108 // GoStmt
-	NonterminalSelectstmt                     Nonterminal = 109 // SelectStmt
-	NonterminalCommclause                     Nonterminal = 110 // CommClause
-	NonterminalCommcase                       Nonterminal = 111 // CommCase
-	NonterminalRecvstmt                       Nonterminal = 112 // RecvStmt
-	NonterminalZeroormorecommclause           Nonterminal = 113 // ZeroOrMoreCommClause
-	NonterminalReturnstmt                     Nonterminal = 114 // ReturnStmt
-	NonterminalBreakstmt                      Nonterminal = 115 // BreakStmt
-	NonterminalContinuestmt                   Nonterminal = 116 // ContinueStmt
-	NonterminalGotostmt                       Nonterminal = 117 // GotoStmt
-	NonterminalFallthroughstmt                Nonterminal = 118 // FallthroughStmt
-	NonterminalDeferstmt                      Nonterminal = 119 // DeferStmt
-	NonterminalDeclaration                    Nonterminal = 120 // Declaration
-	NonterminalTopleveldecl                   Nonterminal = 121 // TopLevelDecl
-	NonterminalConstdecl                      Nonterminal = 122 // ConstDecl
-	NonterminalConstspec                      Nonterminal = 123 // ConstSpec
-	NonterminalZeroormoreconstspec            Nonterminal = 124 // ZeroOrMoreConstSpec
-	NonterminalTypedecl                       Nonterminal = 125 // TypeDecl
-	NonterminalZeroormoretypespecsemicolon    Nonterminal = 126 // ZeroOrMoreTypeSpecSemicolon
-	NonterminalAliasdecl                      Nonterminal = 127 // AliasDecl
-	NonterminalTypedef                        Nonterminal = 128 // TypeDef
-	NonterminalTypeparameters                 Nonterminal = 129 // TypeParameters
-	NonterminalTypeparamlist                  Nonterminal = 130 // TypeParamList
-	NonterminalTypeparamdecl                  Nonterminal = 131 // TypeParamDecl
-	NonterminalZeroormoreuniontypeterm        Nonterminal = 132 // ZeroOrMoreUnionTypeTerm
-	NonterminalFunctypeparameters             Nonterminal = 133 // FuncTypeParameters
-	NonterminalFunctypeparamlist              Nonterminal = 134 // FuncTypeParamList
-	NonterminalFunctypeparamdecl              Nonterminal = 135 // FuncTypeParamDecl
-	NonterminalVardecl                        Nonterminal = 136 // VarDecl
-	NonterminalVarspec                        Nonterminal = 137 // VarSpec
-	NonterminalZeroormorevarspecsemicolon     Nonterminal = 138 // ZeroOrMoreVarSpecSemicolon
-	NonterminalShortvardecl                   Nonterminal = 139 // ShortVarDecl
-	NonterminalFunctiondecl                   Nonterminal = 140 // FunctionDecl
-	NonterminalMethoddecl                     Nonterminal = 141 // MethodDecl
+	// AcceptNonterminal is the start symbol the generator adds around the one the grammar declares.
+	// Reaching it accepts the input.
+	AcceptNonterminal Nonterminal = 0
+
+	NonterminalSourcefile                     Nonterminal = 1
+	NonterminalZeroormoreimportdeclsemicolon  Nonterminal = 2
+	NonterminalOneormoretopleveldeclsemicolon Nonterminal = 3
+	NonterminalPackageclause                  Nonterminal = 4
+	NonterminalImportdecl                     Nonterminal = 5
+	NonterminalImportspec                     Nonterminal = 6
+	NonterminalZeroormoreimportspecsemicolon  Nonterminal = 7
+	NonterminalIdentifierlist                 Nonterminal = 8
+	NonterminalOperand                        Nonterminal = 9
+	NonterminalLiteral                        Nonterminal = 10
+	NonterminalBasiclit                       Nonterminal = 11
+	NonterminalOperandname                    Nonterminal = 12
+	NonterminalQualifiedident                 Nonterminal = 13
+	NonterminalCompositelit                   Nonterminal = 14
+	NonterminalLiteraltype                    Nonterminal = 15
+	NonterminalLiteralvalue                   Nonterminal = 16
+	NonterminalElementlist                    Nonterminal = 17
+	NonterminalKeyedelement                   Nonterminal = 18
+	NonterminalKey                            Nonterminal = 19
+	NonterminalElement                        Nonterminal = 20
+	NonterminalFunctionlit                    Nonterminal = 21
+	NonterminalPrimaryexpr                    Nonterminal = 22
+	NonterminalSelector                       Nonterminal = 23
+	NonterminalIndex                          Nonterminal = 24
+	NonterminalIndexelemlist                  Nonterminal = 25
+	NonterminalIndexelem                      Nonterminal = 26
+	NonterminalSlice                          Nonterminal = 27
+	NonterminalTypeassertion                  Nonterminal = 28
+	NonterminalArguments                      Nonterminal = 29
+	NonterminalArgumenttype                   Nonterminal = 30
+	NonterminalExpressionlist                 Nonterminal = 31
+	NonterminalExpression                     Nonterminal = 32
+	NonterminalUnaryexpr                      Nonterminal = 33
+	NonterminalConversion                     Nonterminal = 34
+	NonterminalConversiontype                 Nonterminal = 35
+	NonterminalType                           Nonterminal = 36
+	NonterminalTypenochanreceive              Nonterminal = 37
+	NonterminalTypename                       Nonterminal = 38
+	NonterminalTypeargs                       Nonterminal = 39
+	NonterminalTypelist                       Nonterminal = 40
+	NonterminalTypelit                        Nonterminal = 41
+	NonterminalTypelitnochanreceive           Nonterminal = 42
+	NonterminalArraytype                      Nonterminal = 43
+	NonterminalSlicetype                      Nonterminal = 44
+	NonterminalStructtype                     Nonterminal = 45
+	NonterminalFielddecl                      Nonterminal = 46
+	NonterminalOpttag                         Nonterminal = 47
+	NonterminalOpttypeargs                    Nonterminal = 48
+	NonterminalBracketfield                   Nonterminal = 49
+	NonterminalBracketlist                    Nonterminal = 50
+	NonterminalBracketelem                    Nonterminal = 51
+	NonterminalTypenoleadingbracket           Nonterminal = 52
+	NonterminalZeroormorefielddecl            Nonterminal = 53
+	NonterminalZeroormorefielddeclsemicolon   Nonterminal = 54
+	NonterminalPointertype                    Nonterminal = 55
+	NonterminalFunctiontype                   Nonterminal = 56
+	NonterminalSignature                      Nonterminal = 57
+	NonterminalResult                         Nonterminal = 58
+	NonterminalTypenoparen                    Nonterminal = 59
+	NonterminalParameters                     Nonterminal = 60
+	NonterminalParameterlist                  Nonterminal = 61
+	NonterminalParameterdecl                  Nonterminal = 62
+	NonterminalInterfacetype                  Nonterminal = 63
+	NonterminalInterfaceelem                  Nonterminal = 64
+	NonterminalMethodelem                     Nonterminal = 65
+	NonterminalTypeelem                       Nonterminal = 66
+	NonterminalTypeterm                       Nonterminal = 67
+	NonterminalUnderlyingtype                 Nonterminal = 68
+	NonterminalOneormoreinterfaceelem         Nonterminal = 69
+	NonterminalMaptype                        Nonterminal = 70
+	NonterminalChanneltype                    Nonterminal = 71
+	NonterminalChanneltypenochanreceive       Nonterminal = 72
+	NonterminalBlock                          Nonterminal = 73
+	NonterminalStatementlist                  Nonterminal = 74
+	NonterminalStatement                      Nonterminal = 75
+	NonterminalSimplestmt                     Nonterminal = 76
+	NonterminalLabeledstmt                    Nonterminal = 77
+	NonterminalSendstmt                       Nonterminal = 78
+	NonterminalIncdecstmt                     Nonterminal = 79
+	NonterminalAssignment                     Nonterminal = 80
+	NonterminalExpressionnobrace              Nonterminal = 81
+	NonterminalUnaryexprnobrace               Nonterminal = 82
+	NonterminalPrimaryexprnobrace             Nonterminal = 83
+	NonterminalOperandnobrace                 Nonterminal = 84
+	NonterminalLiteralnobrace                 Nonterminal = 85
+	NonterminalCompositelitnobrace            Nonterminal = 86
+	NonterminalExpressionlistnobrace          Nonterminal = 87
+	NonterminalSimplestmtnobrace              Nonterminal = 88
+	NonterminalSendstmtnobrace                Nonterminal = 89
+	NonterminalIncdecstmtnobrace              Nonterminal = 90
+	NonterminalAssignmentnobrace              Nonterminal = 91
+	NonterminalShortvardeclnobrace            Nonterminal = 92
+	NonterminalIfstmt                         Nonterminal = 93
+	NonterminalIfstmtorblock                  Nonterminal = 94
+	NonterminalSwitchstmt                     Nonterminal = 95
+	NonterminalExprswitchstmt                 Nonterminal = 96
+	NonterminalExprcaseclause                 Nonterminal = 97
+	NonterminalExprswitchcase                 Nonterminal = 98
+	NonterminalZeroormoreexprcaseclause       Nonterminal = 99
+	NonterminalTypeswitchstmt                 Nonterminal = 100
+	NonterminalTypeswitchguard                Nonterminal = 101
+	NonterminalTypecaseclause                 Nonterminal = 102
+	NonterminalTypeswitchcase                 Nonterminal = 103
+	NonterminalZeroormoretypecaseclause       Nonterminal = 104
+	NonterminalForstmt                        Nonterminal = 105
+	NonterminalForclause                      Nonterminal = 106
+	NonterminalRangeclause                    Nonterminal = 107
+	NonterminalGostmt                         Nonterminal = 108
+	NonterminalSelectstmt                     Nonterminal = 109
+	NonterminalCommclause                     Nonterminal = 110
+	NonterminalCommcase                       Nonterminal = 111
+	NonterminalRecvstmt                       Nonterminal = 112
+	NonterminalZeroormorecommclause           Nonterminal = 113
+	NonterminalReturnstmt                     Nonterminal = 114
+	NonterminalBreakstmt                      Nonterminal = 115
+	NonterminalContinuestmt                   Nonterminal = 116
+	NonterminalGotostmt                       Nonterminal = 117
+	NonterminalFallthroughstmt                Nonterminal = 118
+	NonterminalDeferstmt                      Nonterminal = 119
+	NonterminalDeclaration                    Nonterminal = 120
+	NonterminalTopleveldecl                   Nonterminal = 121
+	NonterminalConstdecl                      Nonterminal = 122
+	NonterminalConstspec                      Nonterminal = 123
+	NonterminalZeroormoreconstspec            Nonterminal = 124
+	NonterminalTypedecl                       Nonterminal = 125
+	NonterminalZeroormoretypespecsemicolon    Nonterminal = 126
+	NonterminalAliasdecl                      Nonterminal = 127
+	NonterminalTypedef                        Nonterminal = 128
+	NonterminalTypeparameters                 Nonterminal = 129
+	NonterminalTypeparamlist                  Nonterminal = 130
+	NonterminalTypeparamdecl                  Nonterminal = 131
+	NonterminalZeroormoreuniontypeterm        Nonterminal = 132
+	NonterminalFunctypeparameters             Nonterminal = 133
+	NonterminalFunctypeparamlist              Nonterminal = 134
+	NonterminalFunctypeparamdecl              Nonterminal = 135
+	NonterminalVardecl                        Nonterminal = 136
+	NonterminalVarspec                        Nonterminal = 137
+	NonterminalZeroormorevarspecsemicolon     Nonterminal = 138
+	NonterminalShortvardecl                   Nonterminal = 139
+	NonterminalFunctiondecl                   Nonterminal = 140
+	NonterminalMethoddecl                     Nonterminal = 141
 )
 
 // Nonterminal implements fmt.Stringer.
@@ -560,20 +563,19 @@ func (e *Error) Unwrap() error {
 	return e.Cause
 }
 
-// The parse table of this parser is stored in lookup tables.
+// The parse table is held in lookup tables. A token is translated into the column of the action table which holds the
+// decisions for it, and the rows of that table are displaced into a single array so that the entries of one row fall
+// into the holes of another. This is the row displacement method of "Storing a Sparse Table" by Tarjan and Yao. The
+// gotos are held the same way, with the nonterminal as the column.
 //
-// An action is looked up in two steps. The token the scanner delivers is translated into the column of the action table
-// which holds the decisions for it, and the action table is stored as a single array in which the row of every state is
-// displaced so that its entries fall into the holes of the other rows. This is the row displacement method described in
-// "Storing a Sparse Table" by Tarjan and Yao. The gotos are stored the same way, with the nonterminal as the column.
+// The rows are sparse because what most entries of a row agree on is taken out of it and kept as a default: the action
+// table defaults per state and the goto table per nonterminal. Only the entries which deviate are in the tables.
 //
-// The rows are sparse because what most of their entries agree on is taken out of them and kept as a default. The
-// action table defaults per state, to the reduction the state performs on most of its lookaheads, and the goto table
-// defaults per nonterminal, to the state a goto on it leads to in most of the states which have one. Only the entries
-// which deviate from those defaults are in the tables at all, which is what leaves the holes the displacement fills.
+// The displaced arrays are padded so that every state and column lands inside them, which is why a lookup needs no
+// range check of its own.
 const (
-	// actionKindBits is the number of low bits of an action which hold what the action does. The value the action
-	// carries sits above them.
+	// actionKindBits is the number of low bits of an action which hold what it does. The value it carries sits above
+	// them.
 	actionKindBits = 2
 
 	// actionKindMask selects out of an action what it does.
@@ -585,27 +587,18 @@ const (
 	// actionKindReduce reduces by the production the action carries.
 	actionKindReduce = 1
 
-	// actionKindAccept ends the parse successfully, because the input has been reduced to the start symbol.
+	// actionKindAccept ends the parse successfully, the input having been reduced to the start symbol.
 	actionKindAccept = 2
 
 	// actionKindError rejects the terminal as a syntax error.
 	actionKindError = 3
 
 	// noTerminalColumn is the column a token gets which is no terminal of this grammar. No state has an entry in it,
-	// so a lookup falls through to the default action of the state, which is what this parser does with a token it
-	// does not know.
+	// so a lookup falls through to the default action of the state.
 	noTerminalColumn = 0
 
-	// noColumn is the entry actionCheck holds for a cell which no state occupies. It is one past the highest column
-	// in use and can therefore never be mistaken for the column a lookup asks for.
-	noColumn = 88
-
-	// noNonterminal is the entry gotoCheck holds for a cell which no state occupies. It is one past the highest
-	// nonterminal and can therefore never be mistaken for the nonterminal a lookup asks for.
-	noNonterminal = 142
-
-	// errorTerminalColumn is the column which holds the shifts of the error symbol, which is where the error
-	// recovery reads the state to resume in.
+	// errorTerminalColumn is the column holding the shifts of the error symbol, where the recovery reads the state to
+	// resume in.
 	errorTerminalColumn = 0
 )
 
@@ -764,7 +757,7 @@ var (
 	}
 
 	// actionNext holds the action of every entry. The action a state has for a column lives at
-	// actionBase[state] + column, but only if actionCheck confirms that the cell belongs to that column.
+	// actionBase[state] + column, but only if actionCheck confirms the cell belongs to that column.
 	actionNext = [3591]uint16{
 		0, 0, 464, 0, 272, 0, 64, 276, 280, 808, 284, 0, 288, 292, 68, 296,
 		300, 304, 0, 72, 76, 304, 2428, 308, 312, 80, 316, 320, 324, 328, 88, 92,
@@ -993,8 +986,8 @@ var (
 		0, 0, 0, 0, 0, 0, 0,
 	}
 
-	// actionCheck holds the column every cell of actionNext belongs to. A cell which no state occupies holds
-	// noColumn.
+	// actionCheck holds the column every cell of actionNext belongs to. A cell no state occupies holds
+	// 88, which is one past the highest column in use and can never be asked for.
 	actionCheck = [3591]uint8{
 		88, 88, 1, 88, 4, 88, 6, 7, 8, 6, 10, 88, 12, 13, 14, 15,
 		16, 17, 88, 19, 20, 17, 11, 23, 24, 25, 26, 27, 28, 29, 30, 31,
@@ -1224,7 +1217,7 @@ var (
 	}
 
 	// defaultActionByState holds the action a state takes for every column it has no entry of its own for. A state
-	// which has none carries the error action, which makes such a token a syntax error.
+	// which has none carries the error action.
 	defaultActionByState = [836]uint16{
 		33, 3, 3, 3, 3, 1121, 3, 3, 3, 53, 117, 121, 125, 129, 133, 13,
 		3, 3, 3, 3, 3, 137, 3, 3, 3, 3, 3, 3, 3, 3, 3, 221,
@@ -1339,7 +1332,7 @@ var (
 	}
 
 	// gotoNext holds the state a goto leads to. The goto a state has for a nonterminal lives at
-	// gotoBase[state] + nonterminal, but only if gotoCheck confirms that the cell belongs to that nonterminal.
+	// gotoBase[state] + nonterminal, but only if gotoCheck confirms the cell belongs to that nonterminal.
 	gotoNext = [1339]uint16{
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 222, 223, 261, 15,
 		224, 261, 0, 643, 807, 161, 225, 692, 0, 166, 167, 693, 772, 168, 169, 170,
@@ -1427,8 +1420,8 @@ var (
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	}
 
-	// gotoCheck holds the nonterminal every cell of gotoNext belongs to. A cell which no state occupies holds
-	// noNonterminal.
+	// gotoCheck holds the nonterminal every cell of gotoNext belongs to. A cell no state occupies holds
+	// 142, which is one past the highest nonterminal and can never be asked for.
 	gotoCheck = [1339]uint8{
 		142, 142, 142, 142, 142, 142, 142, 142, 142, 142, 142, 142, 11, 12, 8, 11,
 		15, 8, 142, 8, 6, 16, 21, 16, 142, 23, 24, 20, 8, 27, 28, 29,
@@ -1516,9 +1509,8 @@ var (
 		142, 142, 142, 142, 142, 142, 142, 142, 142, 142, 142,
 	}
 
-	// defaultGotoByNonterminal holds the state a goto on a nonterminal leads to for every state which gotoNext has
-	// no entry for. Most states agree on where a nonterminal takes them, so only the ones which deviate are in the
-	// table at all.
+	// defaultGotoByNonterminal holds the state a goto on a nonterminal leads to for every state gotoNext has no entry
+	// for.
 	defaultGotoByNonterminal = [142]uint16{
 		0, 7, 285, 483, 8, 484, 653, 763, 209, 31, 32, 33, 34, 56, 35, 36,
 		165, 327, 328, 329, 330, 37, 38, 419, 420, 344, 345, 421, 422, 423, 346, 84,
@@ -1531,8 +1523,8 @@ var (
 		259, 455, 631, 632, 833, 480, 644, 645, 109, 262, 457, 110, 114, 115,
 	}
 
-	// popCountByProduction holds the number of symbols a reduction takes off the stacks, which is the length of the
-	// right hand side of the production.
+	// popCountByProduction holds how many symbols a reduction takes off the stacks, which is the length of the right
+	// hand side.
 	popCountByProduction = [473]uint8{
 		2, 3, 4, 2, 2, 2, 2, 2, 0, 3, 0, 2, 3, 2, 2, 4,
 		1, 2, 2, 3, 0, 1, 3, 1, 1, 3, 1, 1, 1, 1, 1, 1,
@@ -1566,8 +1558,7 @@ var (
 		3, 0, 3, 3, 4, 4, 5, 4, 5,
 	}
 
-	// nonterminalByProduction holds the nonterminal on the left hand side of a production, which a reduction looks
-	// up its goto with and labels the node it pushes with.
+	// nonterminalByProduction holds the nonterminal on the left hand side of a production.
 	nonterminalByProduction = [473]uint8{
 		0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 4, 5, 5,
 		6, 6, 6, 7, 7, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11,
@@ -1701,14 +1692,10 @@ func (p *Parser) Parse(scanner ParserScanner) (Node, error) {
 func (p *Parser) step() error {
 	terminal := p.scanner.Token()
 
-	// A token which is no terminal of this grammar, and a token outside the range the scanner promises, both get the
-	// column which no state has an entry in, so both end up taking the default action of the state.
-	column := uint32(noTerminalColumn)
-	if uint32(terminal) < uint32(len(terminalColumnByToken)) {
-		column = uint32(terminalColumnByToken[terminal])
-	}
+	// A token which is no terminal of this grammar takes the default action of the state.
+	column := p.terminalColumn(terminal)
 
-	state := p.stateStack[len(p.stateStack)-1]
+	state := p.currentState()
 	cellIdx := uint32(actionBase[state]) + column
 	action := uint32(defaultActionByState[state])
 	if uint32(actionCheck[cellIdx]) == column {
@@ -1751,7 +1738,7 @@ func (p *Parser) reduce(productionIdx uint32) {
 
 	p.stateStack = p.stateStack[:len(p.stateStack)-popCount]
 
-	state := p.stateStack[len(p.stateStack)-1]
+	state := p.currentState()
 	// A state which does not have a goto of its own on the nonterminal goes where most states go with it. The LR
 	// construction creates the goto together with the production, so a state which a reduction uncovers always has
 	// one, which is why the lookup needs no case for a nonterminal missing from both.
@@ -1799,7 +1786,7 @@ func (p *Parser) recoverFromError() bool {
 	p.errorRecoveryShiftsRemaining = errorRecoveryShifts
 
 	for {
-		if nextState, ok := errorShiftState(p.stateStack[len(p.stateStack)-1]); ok {
+		if nextState, ok := p.errorShiftState(p.currentState()); ok {
 			// Shift the error symbol. Its node stands for the part of the input which was dropped and has no lexeme.
 			p.stateStack = append(p.stateStack, nextState)
 			p.nodeStack = append(p.nodeStack, Node{
@@ -1820,6 +1807,20 @@ func (p *Parser) recoverFromError() bool {
 	}
 }
 
+// currentState returns the state on top of the stack, which is the one the parse is in.
+func (p *Parser) currentState() int {
+	return p.stateStack[len(p.stateStack)-1]
+}
+
+// terminalColumn returns the column of the action table which holds the decisions for the given token. A token the
+// grammar does not have, and one outside the range the scanner promises, both get noTerminalColumn.
+func (p *Parser) terminalColumn(terminal Token) uint32 {
+	if uint32(terminal) < uint32(len(terminalColumnByToken)) {
+		return uint32(terminalColumnByToken[terminal])
+	}
+	return noTerminalColumn
+}
+
 // errorShiftState returns the state to continue in when the error symbol is shifted in the given state, and reports if
 // the state can shift the error symbol at all. The states which can are the places the grammar marked to resume at
 // after a syntax error, which is what the error recovery pops the stack down to. For a grammar which marks no such
@@ -1829,7 +1830,7 @@ func (p *Parser) recoverFromError() bool {
 // table in the column of the error symbol. Nothing else can read that column, because no scanner ever delivers the
 // symbol. The default action of the state is deliberately not consulted, because only an entry the state has of its own
 // is a place to resume at.
-func errorShiftState(state int) (int, bool) {
+func (p *Parser) errorShiftState(state int) (int, bool) {
 	cellIdx := uint32(actionBase[state]) + errorTerminalColumn
 	if uint32(actionCheck[cellIdx]) != errorTerminalColumn {
 		return 0, false

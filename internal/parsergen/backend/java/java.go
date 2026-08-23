@@ -21,7 +21,8 @@ import (
 var parserTemplate string
 
 var parsedTemplate = template.Must(template.New("parser.java.template").Funcs(template.FuncMap{
-	"nonterminalName": nonterminalName,
+	"nonterminalName":     nonterminalName,
+	"isAcceptNonterminal": isAcceptNonterminal,
 }).Parse(parserTemplate))
 
 type Config struct {
@@ -113,8 +114,14 @@ func terminalName(symbol frontend.Symbol) string {
 // two shapes are what tells them apart: a grammar which does have a nonterminal called accept gets
 // NONTERMINAL_ACCEPT, which is not the ACCEPT_NONTERMINAL returned here.
 func nonterminalName(symbol frontend.Symbol) string {
-	if symbol.Name == "$accept" {
+	if isAcceptNonterminal(symbol) {
 		return "ACCEPT_NONTERMINAL"
 	}
 	return utils.JavaConstantName("Nonterminal" + utils.GoIdentifier(symbol.Name))
+}
+
+// isAcceptNonterminal reports whether the given nonterminal is the augmented start symbol, which the generator owns
+// rather than the grammar. It is the one nonterminal the generated parser documents.
+func isAcceptNonterminal(symbol frontend.Symbol) bool {
+	return symbol.Name == "$accept"
 }

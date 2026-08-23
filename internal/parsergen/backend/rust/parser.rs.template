@@ -15,9 +15,12 @@ use {{ .Config.ScannerModule }}::{Token, TokenSkipperScanner};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Nonterminal {
 {{- range $i, $nonterminal := .Parser.Grammar.Nonterminals }}
-{{ if $i }}
-{{ end }}    /// The nonterminal `{{ $nonterminal.Name }}`.{{ if ne $nonterminal.Alias "" }} Spelled `{{ $nonterminal.Alias }}` in the grammar.{{ end }}
+{{- if isAcceptNonterminal $nonterminal }}
+    /// The start symbol the generator adds around the one the grammar declares. Reaching it accepts the input.
     {{ nonterminalName $nonterminal }},
+{{ else }}
+    {{ nonterminalName $nonterminal }},
+{{- end }}
 {{- end }}
 }
 
@@ -254,35 +257,6 @@ static POP_COUNT_BY_PRODUCTION: [{{ .Tables.PopCountByProduction.Type }}; {{ len
 static NONTERMINAL_BY_PRODUCTION: [{{ .Tables.NonterminalByProduction.Type }}; {{ len .Tables.NonterminalByProduction.Values }}] = [
     {{- .Tables.NonterminalByProduction.Literal "    " }}];
 
-/// Returns the column of the action table which holds the decisions for the given token. A token the grammar does not
-/// have gets [`NO_TERMINAL_COLUMN`].
-fn terminal_column(token: Token) -> usize {
-    match token {
-{{- range .Tables.TerminalColumnByToken }}
-        Token::{{ .Name }} => {{ .Column }},
-{{- end }}
-        _ => NO_TERMINAL_COLUMN,
-    }
-}
-
-/// Returns the state to continue in when the error symbol is shifted in the given state, or `None` when the state
-/// cannot shift it. The states which can are the places the grammar marked to resume at after a syntax error.
-///
-/// The default action of the state is deliberately not consulted, because only an entry the state has of its own is a
-/// place to resume at.
-fn error_shift_state(state: usize) -> Option<usize> {
-    let cell_idx = ACTION_BASE[state] as usize + ERROR_TERMINAL_COLUMN;
-    if ACTION_CHECK[cell_idx] as usize != ERROR_TERMINAL_COLUMN {
-        return None;
-    }
-
-    let action = ACTION_NEXT[cell_idx] as usize;
-    if action & ACTION_KIND_MASK != ACTION_KIND_SHIFT {
-        return None;
-    }
-    Some(action >> ACTION_KIND_BITS)
-}
-
 /// Parses the tokens of a scanner into a parse tree. One parser serves one source after another.
 #[derive(Debug, Default)]
 pub struct Parser;
@@ -374,7 +348,7 @@ impl<'a> ParseState<'a> {
         let terminal = scanner.token();
 
         // A token which is no terminal of this grammar takes the default action of the state.
-        let column = terminal_column(terminal);
+        let column = Self::terminal_column(terminal);
 
         let state = self.current_state();
         let cell_idx = ACTION_BASE[state] as usize + column;
@@ -467,7 +441,7 @@ impl<'a> ParseState<'a> {
         self.error_recovery_shifts_remaining = ERROR_RECOVERY_SHIFTS;
 
         loop {
-            if let Some(next_state) = error_shift_state(self.current_state()) {
+            if let Some(next_state) = Self::error_shift_state(self.current_state()) {
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 self.state_stack.push(next_state);
                 self.node_stack.push(ParseNode {
@@ -491,5 +465,34 @@ impl<'a> ParseState<'a> {
     /// Returns the state on top of the stack, which is the one the parse is in.
     fn current_state(&self) -> usize {
         *self.state_stack.last().expect("the parse has a state")
+    }
+
+    /// Returns the column of the action table which holds the decisions for the given token. A token the grammar does
+    /// not have gets [`NO_TERMINAL_COLUMN`].
+    fn terminal_column(token: Token) -> usize {
+        match token {
+{{- range .Tables.TerminalColumnByToken }}
+            Token::{{ .Name }} => {{ .Column }},
+{{- end }}
+            _ => NO_TERMINAL_COLUMN,
+        }
+    }
+
+    /// Returns the state to continue in when the error symbol is shifted in the given state, or `None` when the state
+    /// cannot shift it. The states which can are the places the grammar marked to resume at after a syntax error.
+    ///
+    /// The default action of the state is deliberately not consulted, because only an entry the state has of its own
+    /// is a place to resume at.
+    fn error_shift_state(state: usize) -> Option<usize> {
+        let cell_idx = ACTION_BASE[state] as usize + ERROR_TERMINAL_COLUMN;
+        if ACTION_CHECK[cell_idx] as usize != ERROR_TERMINAL_COLUMN {
+            return None;
+        }
+
+        let action = ACTION_NEXT[cell_idx] as usize;
+        if action & ACTION_KIND_MASK != ACTION_KIND_SHIFT {
+            return None;
+        }
+        Some(action >> ACTION_KIND_BITS)
     }
 }

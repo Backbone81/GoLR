@@ -23,9 +23,12 @@ namespace {{ .Config.Namespace }} {
 /// Every nonterminal symbol of the grammar.
 enum class Nonterminal : {{ .Tables.NonterminalType }} {
 {{- range $i, $nonterminal := .Parser.Grammar.Nonterminals }}
-{{ if $i }}
-{{ end }}    /// The nonterminal `{{ $nonterminal.Name }}`.{{ if ne $nonterminal.Alias "" }} Spelled `{{ $nonterminal.Alias }}` in the grammar.{{ end }}
+{{- if isAcceptNonterminal $nonterminal }}
+    /// The start symbol the generator adds around the one the grammar declares. Reaching it accepts the input.
     {{ nonterminalName $nonterminal }},
+{{ else }}
+    {{ nonterminalName $nonterminal }},
+{{- end }}
 {{- end }}
 };
 

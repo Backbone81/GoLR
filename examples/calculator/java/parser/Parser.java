@@ -16,7 +16,9 @@ import java.util.List;
 public final class Parser {
     /** Every nonterminal symbol of the grammar. */
     public enum Nonterminal {
+        /** The start symbol the generator adds around the one the grammar declares. Reaching it accepts the input. */
         ACCEPT_NONTERMINAL("$accept"),
+
         NONTERMINAL_EXPRESSION("expression"),
         ;
 
@@ -359,6 +361,17 @@ public final class Parser {
     }
 
     /**
+     * Returns the column of the action table which holds the decisions for the given token. A token the grammar does
+     * not have, and one outside the range the scanner promises, both get {@link #NO_TERMINAL_COLUMN}.
+     */
+    private static int terminalColumn(Scanner.Token terminal) {
+        if (terminal.ordinal() < TERMINAL_COLUMN_BY_TOKEN.length) {
+            return TERMINAL_COLUMN_BY_TOKEN[terminal.ordinal()];
+        }
+        return NO_TERMINAL_COLUMN;
+    }
+
+    /**
      * Returns the state to continue in when the error symbol is shifted in the given state, or
      * {@link #NO_ERROR_SHIFT_STATE} when the state cannot shift it. The states which can are the places the grammar
      * marked to resume at after a syntax error.
@@ -387,10 +400,7 @@ public final class Parser {
         Scanner.Token terminal = scanner.token();
 
         // A token which is no terminal of this grammar takes the default action of the state.
-        int column = NO_TERMINAL_COLUMN;
-        if (terminal.ordinal() < TERMINAL_COLUMN_BY_TOKEN.length) {
-            column = TERMINAL_COLUMN_BY_TOKEN[terminal.ordinal()];
-        }
+        int column = terminalColumn(terminal);
 
         int state = currentState();
         int cellIdx = ACTION_BASE[state] + column;

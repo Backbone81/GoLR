@@ -68,6 +68,12 @@ func (c TemplateContext) NonterminalName(symbol frontend.Symbol) string {
 	return nonterminalName(c.Config.Prefix, symbol)
 }
 
+// IsAcceptNonterminal reports whether the given nonterminal is the augmented start symbol, which the generator owns
+// rather than the grammar. It is the one nonterminal the generated parser documents.
+func (c TemplateContext) IsAcceptNonterminal(symbol frontend.Symbol) bool {
+	return isAcceptNonterminal(symbol)
+}
+
 // FromParser writes the parser as C source code to the given writer. Returns an error if the C source code can not be
 // encoded successfully.
 func FromParser(writer io.Writer, parser backend.Parser, config Config) error {
@@ -147,8 +153,14 @@ func terminalName(prefix string, symbol frontend.Symbol) string {
 // two shapes are what tells them apart: a grammar which does have a nonterminal called accept gets
 // NONTERMINAL_ACCEPT, which is not the ACCEPT_NONTERMINAL returned here.
 func nonterminalName(prefix string, symbol frontend.Symbol) string {
-	if symbol.Name == "$accept" {
+	if isAcceptNonterminal(symbol) {
 		return utils.CConstantName(prefix, "AcceptNonterminal")
 	}
 	return utils.CConstantName(prefix, "Nonterminal"+utils.GoIdentifier(symbol.Name))
+}
+
+// isAcceptNonterminal reports whether the given nonterminal is the augmented start symbol, which the generator owns
+// rather than the grammar. It is the one nonterminal the generated parser documents.
+func isAcceptNonterminal(symbol frontend.Symbol) bool {
+	return symbol.Name == "$accept"
 }
