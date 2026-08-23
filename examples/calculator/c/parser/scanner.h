@@ -339,7 +339,6 @@ bool calculator_scanner_next(CalculatorScanner *scanner) {
     for (;;) {
         size_t byte_class;
         size_t cell_idx;
-        size_t cell_class;
 
         /* Remember every accepting state passed through, so the longest match wins over the first one. */
         if (CALCULATOR_ACCEPT_TOKEN_BY_STATE[state] != CALCULATOR_TOKEN_INVALID_TOKEN) {
@@ -355,8 +354,7 @@ bool calculator_scanner_next(CalculatorScanner *scanner) {
            every byte above 0x7f would index in front of the table. */
         byte_class = CALCULATOR_BYTE_CLASS_BY_BYTE[(unsigned char)scanner->source[lexeme_peek_idx]];
         cell_idx = CALCULATOR_TRANSITION_BASE[state] + byte_class;
-        cell_class = CALCULATOR_TRANSITION_CHECK[cell_idx];
-        if (cell_class != byte_class) {
+        if (CALCULATOR_TRANSITION_CHECK[cell_idx] != byte_class) {
             /* The state has no transition on this byte, so the token ends here. */
             break;
         }

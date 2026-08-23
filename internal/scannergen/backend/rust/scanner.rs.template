@@ -275,11 +275,15 @@ impl<'a> TokenSkipperScanner<'a> for Scanner<'a> {
 
         let mut state = 0usize;
         let mut lexeme_peek_idx = self.lexeme_end_idx;
-        while lexeme_peek_idx < self.source.len() {
+        loop {
             // Remember every accepting state passed through, so the longest match wins over the first one.
             if ACCEPT_TOKEN_BY_STATE[state] != Token::InvalidToken {
                 self.token = ACCEPT_TOKEN_BY_STATE[state];
                 self.lexeme_end_idx = lexeme_peek_idx;
+            }
+            if lexeme_peek_idx == self.source.len() {
+                // The end of the source is reached, so the state it stopped in was the last one to test.
+                break;
             }
 
             let byte_class = BYTE_CLASS_BY_BYTE[self.source[lexeme_peek_idx] as usize] as usize;
@@ -290,13 +294,6 @@ impl<'a> TokenSkipperScanner<'a> for Scanner<'a> {
             }
             state = TRANSITION_NEXT[cell_idx] as usize;
             lexeme_peek_idx += 1;
-        }
-        if lexeme_peek_idx == self.source.len() {
-            // The loop ran off the end of the source, leaving the state it stopped in still to be tested.
-            if ACCEPT_TOKEN_BY_STATE[state] != Token::InvalidToken {
-                self.token = ACCEPT_TOKEN_BY_STATE[state];
-                self.lexeme_end_idx = lexeme_peek_idx;
-            }
         }
 
         if self.lexeme_start_idx < self.lexeme_end_idx {

@@ -216,8 +216,7 @@ public:
             // every byte above 0x7f would index in front of the table.
             const std::size_t byte_class = BYTE_CLASS_BY_BYTE[static_cast<unsigned char>(source_[lexeme_peek_idx])];
             const std::size_t cell_idx = TRANSITION_BASE[state] + byte_class;
-            const std::size_t cell_class = TRANSITION_CHECK[cell_idx];
-            if (cell_class != byte_class) {
+            if (TRANSITION_CHECK[cell_idx] != byte_class) {
                 // The state has no transition on this byte, so the token ends here.
                 break;
             }

@@ -281,11 +281,15 @@ public final class Scanner implements TokenSkipperScanner {
 
         int state = 0;
         int lexemePeekIdx = lexemeEndIdx;
-        for (; lexemePeekIdx < source.length; lexemePeekIdx++) {
+        while (true) {
             // Remember every accepting state passed through, so the longest match wins over the first one.
             if (ACCEPT_TOKEN_BY_STATE[state] != Token.INVALID_TOKEN) {
                 token = ACCEPT_TOKEN_BY_STATE[state];
                 lexemeEndIdx = lexemePeekIdx;
+            }
+            if (lexemePeekIdx == source.length) {
+                // The end of the source is reached, so the state it stopped in was the last one to test.
+                break;
             }
 
             // Java has no unsigned byte, so every byte of 0x80 and above is negative and has to be masked before it
@@ -297,13 +301,7 @@ public final class Scanner implements TokenSkipperScanner {
                 break;
             }
             state = TRANSITION_NEXT[cellIdx];
-        }
-        if (lexemePeekIdx == source.length) {
-            // The loop ran off the end of the source, leaving the state it stopped in still to be tested.
-            if (ACCEPT_TOKEN_BY_STATE[state] != Token.INVALID_TOKEN) {
-                token = ACCEPT_TOKEN_BY_STATE[state];
-                lexemeEndIdx = lexemePeekIdx;
-            }
+            lexemePeekIdx++;
         }
 
         if (lexemeStartIdx < lexemeEndIdx) {

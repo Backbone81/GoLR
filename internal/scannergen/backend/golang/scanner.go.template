@@ -233,12 +233,16 @@ func (s *Scanner) Next() bool {
 	s.lexemeStartIdx = s.lexemeEndIdx
 
 	var state uint32
-    for s.lexemePeekIdx = s.lexemeEndIdx; s.lexemePeekIdx < len(s.source); s.lexemePeekIdx++ {
-        // Every accepting state we walk through is the longest match found so far, which is what makes the scanner
-        // return the longest token instead of the first one.
+    s.lexemePeekIdx = s.lexemeEndIdx
+    for {
+        // Remember every accepting state passed through, so the longest match wins over the first one.
         if token := acceptTokenByState[state]; token != InvalidToken {
             s.token = token
             s.lexemeEndIdx = s.lexemePeekIdx
+        }
+        if s.lexemePeekIdx == len(s.source) {
+            // The end of the source is reached, so the state it stopped in was the last one to test.
+            break
         }
 
         byteClass := byteClassByByte[s.source[s.lexemePeekIdx]]
@@ -248,13 +252,7 @@ func (s *Scanner) Next() bool {
             break
         }
         state = uint32(transitionNext[cellIdx])
-    }
-    if s.lexemePeekIdx == len(s.source) {
-        // We need to capture the last character of the source.
-        if token := acceptTokenByState[state]; token != InvalidToken {
-            s.token = token
-            s.lexemeEndIdx = s.lexemePeekIdx
-        }
+        s.lexemePeekIdx++
     }
 
     if s.lexemeStartIdx < s.lexemeEndIdx {

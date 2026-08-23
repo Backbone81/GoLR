@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Fixed the scanner walking its line and column counters past the end of the source when Reset was given an offset beyond it. The offset is now clamped, as it already was in the C and C++ backends.
+- Aligned the generated scanners and parsers across all language backends, so that the same data types, names, comments and code structure appear in each of them. The generated code behaves as before.
 
 ## v0.3.0 (2026-08-23)
 

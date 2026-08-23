@@ -1,0 +1,3 @@
+description: Aligned the generated scanners and parsers across all language backends,
+  so that the same data types, names, comments and code structure appear in each of
+  them. The generated code behaves as before.

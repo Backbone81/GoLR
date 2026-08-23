@@ -278,7 +278,6 @@ bool {{ .Func "ScannerNext" }}({{ .Type "Scanner" }} *scanner) {
     for (;;) {
         size_t byte_class;
         size_t cell_idx;
-        size_t cell_class;
 
         /* Remember every accepting state passed through, so the longest match wins over the first one. */
         if ({{ .Const "AcceptTokenByState" }}[state] != {{ .Const "TokenInvalidToken" }}) {
@@ -294,8 +293,7 @@ bool {{ .Func "ScannerNext" }}({{ .Type "Scanner" }} *scanner) {
            every byte above 0x7f would index in front of the table. */
         byte_class = {{ .Const "ByteClassByByte" }}[(unsigned char)scanner->source[lexeme_peek_idx]];
         cell_idx = {{ .Const "TransitionBase" }}[state] + byte_class;
-        cell_class = {{ .Const "TransitionCheck" }}[cell_idx];
-        if (cell_class != byte_class) {
+        if ({{ .Const "TransitionCheck" }}[cell_idx] != byte_class) {
             /* The state has no transition on this byte, so the token ends here. */
             break;
         }

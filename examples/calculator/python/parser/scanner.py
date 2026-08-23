@@ -385,11 +385,14 @@ class Scanner:
 
         state = 0
         lexeme_peek_idx = self._lexeme_end_idx
-        while lexeme_peek_idx < source_len:
+        while True:
             # Remember every accepting state passed through, so the longest match wins over the first one.
             if _ACCEPT_TOKEN_BY_STATE[state] != Token.INVALID_TOKEN:
                 self._token = _ACCEPT_TOKEN_BY_STATE[state]
                 self._lexeme_end_idx = lexeme_peek_idx
+            if lexeme_peek_idx == source_len:
+                # The end of the source is reached, so the state it stopped in was the last one to test.
+                break
 
             byte_class = _BYTE_CLASS_BY_BYTE[source[lexeme_peek_idx]]
             cell_idx = _TRANSITION_BASE[state] + byte_class
@@ -398,11 +401,6 @@ class Scanner:
                 break
             state = _TRANSITION_NEXT[cell_idx]
             lexeme_peek_idx += 1
-        if lexeme_peek_idx == source_len:
-            # The loop ran off the end of the source, leaving the state it stopped in still to be tested.
-            if _ACCEPT_TOKEN_BY_STATE[state] != Token.INVALID_TOKEN:
-                self._token = _ACCEPT_TOKEN_BY_STATE[state]
-                self._lexeme_end_idx = lexeme_peek_idx
 
         if self._lexeme_start_idx < self._lexeme_end_idx:
             # A token was found.

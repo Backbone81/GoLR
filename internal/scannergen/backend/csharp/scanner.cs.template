@@ -249,13 +249,19 @@ public sealed class Scanner : IScanner
         _lexemeStartIdx = _lexemeEndIdx;
 
         int state = 0;
-        for (_lexemePeekIdx = _lexemeEndIdx; _lexemePeekIdx < source.Length; _lexemePeekIdx++)
+        _lexemePeekIdx = _lexemeEndIdx;
+        while (true)
         {
             // Remember every accepting state passed through, so the longest match wins over the first one.
             if (AcceptTokenByState[state] != Token.InvalidToken)
             {
                 Token = AcceptTokenByState[state];
                 _lexemeEndIdx = _lexemePeekIdx;
+            }
+            if (_lexemePeekIdx == source.Length)
+            {
+                // The end of the source is reached, so the state it stopped in was the last one to test.
+                break;
             }
 
             int byteClass = ByteClassByByte[source[_lexemePeekIdx]];
@@ -266,15 +272,7 @@ public sealed class Scanner : IScanner
                 break;
             }
             state = TransitionNext[cellIdx];
-        }
-        if (_lexemePeekIdx == source.Length)
-        {
-            // The loop ran off the end of the source, leaving the state it stopped in still to be tested.
-            if (AcceptTokenByState[state] != Token.InvalidToken)
-            {
-                Token = AcceptTokenByState[state];
-                _lexemeEndIdx = _lexemePeekIdx;
-            }
+            _lexemePeekIdx++;
         }
 
         if (_lexemeStartIdx < _lexemeEndIdx)

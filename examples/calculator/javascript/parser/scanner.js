@@ -393,11 +393,16 @@ export class Scanner {
         this.#lexemeStartIdx = this.#lexemeEndIdx;
 
         let state = 0;
-        for (this.#lexemePeekIdx = this.#lexemeEndIdx; this.#lexemePeekIdx < this.#source.length; this.#lexemePeekIdx++) {
+        this.#lexemePeekIdx = this.#lexemeEndIdx;
+        for (;;) {
             // Remember every accepting state passed through, so the longest match wins over the first one.
             if (acceptTokenByState[state] !== Token.InvalidToken) {
                 this.#token = acceptTokenByState[state];
                 this.#lexemeEndIdx = this.#lexemePeekIdx;
+            }
+            if (this.#lexemePeekIdx === this.#source.length) {
+                // The end of the source is reached, so the state it stopped in was the last one to test.
+                break;
             }
 
             const byteClass = byteClassByByte[this.#source[this.#lexemePeekIdx]];
@@ -407,13 +412,7 @@ export class Scanner {
                 break;
             }
             state = transitionNext[cellIdx];
-        }
-        if (this.#lexemePeekIdx === this.#source.length) {
-            // The loop ran off the end of the source, leaving the state it stopped in still to be tested.
-            if (acceptTokenByState[state] !== Token.InvalidToken) {
-                this.#token = acceptTokenByState[state];
-                this.#lexemeEndIdx = this.#lexemePeekIdx;
-            }
+            this.#lexemePeekIdx++;
         }
 
         if (this.#lexemeStartIdx < this.#lexemeEndIdx) {
