@@ -257,7 +257,9 @@ impl<'a> TokenSkipperScanner<'a> for Scanner<'a> {
         self.source = source;
 
         self.lexeme_start_idx = 0;
-        self.lexeme_end_idx = offset;
+        // An offset past the end of the source would walk the line and column counters over bytes which are not
+        // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+        self.lexeme_end_idx = offset.min(source.len());
 
         self.line = 1;
         self.column = 1;

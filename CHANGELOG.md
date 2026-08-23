@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fixed the scanner walking its line and column counters past the end of the source when Reset was given an offset beyond it. The offset is now clamped, as it already was in the C and C++ backends.
 
 ## v0.3.0 (2026-08-23)
 

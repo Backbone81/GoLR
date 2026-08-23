@@ -363,7 +363,9 @@ class Scanner:
         self._source = source
 
         self._lexeme_start_idx = 0
-        self._lexeme_end_idx = offset
+        # An offset past the end of the source would walk the line and column counters over bytes which are not
+        # there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+        self._lexeme_end_idx = min(offset, len(source))
 
         self._line = 1
         self._column = 1

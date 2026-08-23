@@ -260,7 +260,9 @@ public final class Scanner implements TokenSkipperScanner {
         sourceBuffer = ByteBuffer.wrap(source).asReadOnlyBuffer();
 
         lexemeStartIdx = 0;
-        lexemeEndIdx = offset;
+        // An offset past the end of the source would walk the line and column counters over bytes which are not
+        // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+        lexemeEndIdx = Math.min(offset, source.length);
 
         line = 1;
         column = 1;

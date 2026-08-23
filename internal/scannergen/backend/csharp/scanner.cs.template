@@ -226,8 +226,10 @@ public sealed class Scanner : IScanner
         _source = source;
 
         _lexemeStartIdx = 0;
-        _lexemeEndIdx = offset;
-        _lexemePeekIdx = offset;
+        // An offset past the end of the source would walk the line and column counters over bytes which are not
+        // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+        _lexemeEndIdx = Math.Min(offset, source.Length);
+        _lexemePeekIdx = _lexemeEndIdx;
 
         Line = 1;
         Column = 1;

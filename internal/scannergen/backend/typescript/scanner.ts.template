@@ -219,8 +219,10 @@ export class Scanner implements TokenSkipperScanner {
         this.#source = source;
 
         this.#lexemeStartIdx = 0;
-        this.#lexemeEndIdx = offset;
-        this.#lexemePeekIdx = offset;
+        // An offset past the end of the source would walk the line and column counters over bytes which are not
+        // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+        this.#lexemeEndIdx = Math.min(offset, source.length);
+        this.#lexemePeekIdx = this.#lexemeEndIdx;
 
         this.#line = 1;
         this.#column = 1;
