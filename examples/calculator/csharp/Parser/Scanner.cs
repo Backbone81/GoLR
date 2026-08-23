@@ -57,6 +57,16 @@ public static class TokenExtensions
         Token.TokenUminus => "UMINUS",
         _ => "unknown",
     };
+
+    /// <summary>
+    /// Reports whether the grammar marked the token for skipping, which is what the token skipper drops.
+    /// </summary>
+    /// <param name="token">The token to test.</param>
+    public static bool IsSkipped(this Token token) => token switch
+    {
+        Token.TokenWhitespace => true,
+        _ => false,
+    };
 }
 
 /// <summary>What a scanner offers. Both <see cref="Scanner"/> and <see cref="TokenSkipper"/> implement it.</summary>
@@ -137,13 +147,9 @@ public sealed class TokenSkipper : IScanner
     {
         while (_scanner.Next())
         {
-            // A continue inside a switch continues the enclosing loop, so a skipped token goes on to the next one.
-            switch (_scanner.Token)
+            if (!_scanner.Token.IsSkipped())
             {
-                case Token.TokenWhitespace:
-                    continue;
-                default:
-                    return true;
+                return true;
             }
         }
         return false;

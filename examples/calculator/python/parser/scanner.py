@@ -10,7 +10,7 @@ from collections.abc import Iterator
 from enum import IntEnum
 from typing import Final, Protocol
 
-__all__ = ["Scanner", "Token", "TokenSkipper", "TokenSkipperScanner"]
+__all__ = ["Scanner", "Token", "TokenSkipper", "TokenSkipperScanner", "is_skipped"]
 
 
 class Token(IntEnum):
@@ -74,6 +74,17 @@ _TOKEN_NAMES: Final[dict[Token, str]] = {
 """The name of every token, as the grammar spells it."""
 
 
+_SKIPPED_TOKENS: Final[frozenset[Token]] = frozenset((
+    Token.TOKEN_WHITESPACE,
+))
+"""The tokens the grammar marked for skipping."""
+
+
+def is_skipped(token: Token) -> bool:
+    """Reports whether the grammar marked the token for skipping, which is what the token skipper drops."""
+    return token in _SKIPPED_TOKENS
+
+
 class TokenSkipperScanner(Protocol):
     """What a scanner offers. Both `Scanner` and `TokenSkipper` satisfy it."""
 
@@ -123,12 +134,6 @@ class TokenSkipperScanner(Protocol):
         Useful for re-tokenizing the part of a source which changed.
         """
         ...
-
-
-_SKIPPED_TOKENS: Final[frozenset[Token]] = frozenset((
-    Token.TOKEN_WHITESPACE,
-))
-"""The tokens the grammar marked for skipping."""
 
 
 class TokenSkipper:
@@ -193,7 +198,7 @@ class TokenSkipper:
         Returns false when the source holds no such token any more.
         """
         while self._scanner.next():
-            if self._scanner.token not in _SKIPPED_TOKENS:
+            if not is_skipped(self._scanner.token):
                 return True
         return False
 

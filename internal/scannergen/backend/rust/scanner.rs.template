@@ -43,6 +43,19 @@ impl fmt::Display for Token {
     }
 }
 
+/// Holds the tokens the grammar marked for skipping.
+#[rustfmt::skip]
+static SKIPPED_TOKENS: [Token; {{ len .Tables.SkippedTokens }}] = [
+{{- range .Tables.SkippedTokens }}
+    Token::{{ . }},
+{{- end }}
+];
+
+/// Reports whether the grammar marked the token for skipping, which is what the token skipper drops.
+pub fn is_skipped(token: Token) -> bool {
+    SKIPPED_TOKENS.contains(&token)
+}
+
 /// What a scanner offers. Both [`Scanner`] and [`TokenSkipper`] implement it. The lifetime is the one of the source.
 pub trait TokenSkipperScanner<'a> {
     /// Returns the current token.
@@ -125,19 +138,6 @@ impl<'a, S: TokenSkipperScanner<'a>> TokenSkipperScanner<'a> for TokenSkipper<S>
         }
         false
     }
-}
-
-/// Holds the tokens the grammar marked for skipping.
-#[rustfmt::skip]
-static SKIPPED_TOKENS: [Token; {{ len .Tables.SkippedTokens }}] = [
-{{- range .Tables.SkippedTokens }}
-    Token::{{ . }},
-{{- end }}
-];
-
-/// Reports whether the grammar marked the token for skipping.
-fn is_skipped(token: Token) -> bool {
-    SKIPPED_TOKENS.contains(&token)
 }
 
 // The automaton is held in lookup tables. An input byte is mapped to its byte class, which is the column of the

@@ -235,6 +235,18 @@ func (t Token) String() string {
 	}
 }
 
+// IsSkipped reports whether the grammar marked the token for skipping, which is what the token skipper drops.
+func (t Token) IsSkipped() bool {
+	switch t {
+	case TokenWs:
+		return true
+	case TokenComment:
+		return true
+	default:
+		return false
+	}
+}
+
 // TokenSkipperScanner is the interface the scanner needs to implement for the TokenSkipper.
 type TokenSkipperScanner interface {
 	Token() Token
@@ -299,19 +311,12 @@ func (s *TokenSkipper) FilePath() string {
 
 // Next consumes tokens until it found a token which should not be skipped.
 func (s *TokenSkipper) Next() bool {
-	for {
-		if !s.scanner.Next() {
-			return false
-		}
-		switch s.scanner.Token() {
-		case TokenWs:
-			continue
-		case TokenComment:
-			continue
-		default:
+	for s.scanner.Next() {
+		if !s.scanner.Token().IsSkipped() {
 			return true
 		}
 	}
+	return false
 }
 
 // The automaton of this scanner is stored in lookup tables instead of in code.

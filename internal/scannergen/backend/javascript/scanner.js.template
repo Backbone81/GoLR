@@ -44,6 +44,22 @@ export function tokenToString(token) {
 }
 
 /**
+ * Reports whether the grammar marked the token for skipping, which is what the token skipper drops.
+ *
+ * @param {number} token
+ * @returns {boolean}
+ */
+export function isSkipped(token) {
+    switch (token) {
+{{- range $i, $rule := .DFA.Rules }}{{ if $rule.Skip }}
+        case Token.{{ tokenName $i $rule }}: return true;
+{{- end }}{{- end }}
+        default:
+            return false;
+    }
+}
+
+/**
  * The scanner a TokenSkipper wraps. The generated Scanner provides it.
  *
  * @typedef {object} ScannerLike
@@ -149,19 +165,12 @@ export class TokenSkipper {
      * @returns {boolean}
      */
     next() {
-        for (;;) {
-            if (!this.#scanner.next()) {
-                return false;
-            }
-            // A continue inside a switch continues the enclosing loop, so a skipped token goes on to the next one.
-            switch (this.#scanner.token()) {
-            {{- range $i, $rule := .DFA.Rules }}{{ if $rule.Skip }}
-                case Token.{{ tokenName $i $rule }}: continue;
-            {{- end}}{{- end }}
-                default:
-                    return true;
+        while (this.#scanner.next()) {
+            if (!isSkipped(this.#scanner.token())) {
+                return true;
             }
         }
+        return false;
     }
 }
 

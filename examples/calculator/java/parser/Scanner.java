@@ -82,6 +82,16 @@ public final class Scanner implements TokenSkipperScanner {
         public String toString() {
             return displayName;
         }
+
+        /**
+         * Reports whether the grammar marked the token for skipping, which is what the token skipper drops.
+         */
+        public boolean isSkipped() {
+            return switch (this) {
+                case TOKEN_WHITESPACE -> true;
+                default -> false;
+            };
+        }
     }
 
     /**
@@ -139,19 +149,11 @@ public final class Scanner implements TokenSkipperScanner {
         @Override
         public boolean next() {
             while (scanner.next()) {
-                if (!isSkipped(scanner.token())) {
+                if (!scanner.token().isSkipped()) {
                     return true;
                 }
             }
             return false;
-        }
-
-        /** Reports whether the grammar marked the token for skipping. */
-        private static boolean isSkipped(Token token) {
-            return switch (token) {
-                case TOKEN_WHITESPACE -> true;
-                default -> false;
-            };
         }
     }
 

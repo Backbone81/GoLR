@@ -57,6 +57,20 @@ export function tokenToString(token) {
 }
 
 /**
+ * Reports whether the grammar marked the token for skipping, which is what the token skipper drops.
+ *
+ * @param {number} token
+ * @returns {boolean}
+ */
+export function isSkipped(token) {
+    switch (token) {
+        case Token.TokenWhitespace: return true;
+        default:
+            return false;
+    }
+}
+
+/**
  * The scanner a TokenSkipper wraps. The generated Scanner provides it.
  *
  * @typedef {object} ScannerLike
@@ -162,17 +176,12 @@ export class TokenSkipper {
      * @returns {boolean}
      */
     next() {
-        for (;;) {
-            if (!this.#scanner.next()) {
-                return false;
-            }
-            // A continue inside a switch continues the enclosing loop, so a skipped token goes on to the next one.
-            switch (this.#scanner.token()) {
-                case Token.TokenWhitespace: continue;
-                default:
-                    return true;
+        while (this.#scanner.next()) {
+            if (!isSkipped(this.#scanner.token())) {
+                return true;
             }
         }
+        return false;
     }
 }
 

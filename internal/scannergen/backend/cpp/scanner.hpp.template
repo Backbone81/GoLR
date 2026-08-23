@@ -48,7 +48,7 @@ enum class Token : {{ .Tables.TokenType }} {
     return "unknown";
 }
 
-/// Reports whether the grammar marked the token for skipping, which is what TokenSkipper drops.
+/// Reports whether the grammar marked the token for skipping, which is what the token skipper drops.
 [[nodiscard]] constexpr bool is_skipped(Token token) noexcept {
     switch (token) {
 {{- range $i, $rule := .DFA.Rules }}{{ if $rule.Skip }}

@@ -84,7 +84,7 @@ enum class Token : std::uint8_t {
     return "unknown";
 }
 
-/// Reports whether the grammar marked the token for skipping, which is what TokenSkipper drops.
+/// Reports whether the grammar marked the token for skipping, which is what the token skipper drops.
 [[nodiscard]] constexpr bool is_skipped(Token token) noexcept {
     switch (token) {
     case Token::TokenWhitespace:
