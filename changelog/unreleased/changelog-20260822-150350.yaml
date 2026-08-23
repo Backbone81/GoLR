@@ -1,3 +1,0 @@
-description: 'BREAKING: The generated Go parser now spells the augmented start symbol
-  AcceptNonterminal instead of Nonterminal_accept, which is the name every other language
-  backend already uses.'

@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+
+## v0.3.0 (2026-08-23)
+
 - Added a JavaScript scanner backend.
 - Added a JavaScript parser generator backend, selected with --backend javascript. The generated ECMAScript module imports the token constants from the generated scanner, whose module specifier can be set with --backend-javascript-scanner-module.
 - Added a TypeScript scanner generator backend.
@@ -24,6 +27,8 @@
 - BREAKING: The generated Go parser now spells the augmented start symbol AcceptNonterminal instead of Nonterminal_accept, which is the name every other language backend already uses.
 - BREAKING: --backend go now writes the table driven scanner and parser, which is smaller and faster than the directly coded one it replaces. The directly coded Go backend is gone, and with it the names go-direct and go-table.
 - BREAKING: The public packages pkg/parsergen/backend/golangtable and pkg/scannergen/backend/golangtable are now pkg/parsergen/backend/golang and pkg/scannergen/backend/golang, taking the place of the re-exports of the directly coded backend.
+- Added a C scanner generator backend, selected with --backend c.
+- Added a C parser generator backend, selected with --backend c.
 
 ## v0.2.0 (2026-08-08)
 

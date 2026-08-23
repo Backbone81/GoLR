@@ -1,2 +1,0 @@
-description: Fixed Symbol.String of the generated Go parser printing the index of
-  a symbol instead of its name.

@@ -1,4 +1,0 @@
-description: Fixed the generated scanners consuming one byte too many when a match
-  failed after the automaton had already consumed bytes. The byte which ended the
-  failed match now starts the next token instead of being swallowed by the invalid
-  token, which had corrupted the token following the error.

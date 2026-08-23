@@ -1,3 +1,0 @@
-description: 'BREAKING: The public packages pkg/parsergen/backend/golangtable and
-  pkg/scannergen/backend/golangtable are now pkg/parsergen/backend/golang and pkg/scannergen/backend/golang,
-  taking the place of the re-exports of the directly coded backend.'

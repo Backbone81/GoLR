@@ -1,3 +1,0 @@
-description: 'BREAKING: --backend go now writes the table driven scanner and parser,
-  which is smaller and faster than the directly coded one it replaces. The directly
-  coded Go backend is gone, and with it the names go-direct and go-table.'

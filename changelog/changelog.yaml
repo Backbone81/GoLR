@@ -1,38 +1,48 @@
-unreleased:
-- description: Added a JavaScript scanner backend.
-- description: Added a JavaScript parser generator backend, selected with --backend
-    javascript. The generated ECMAScript module imports the token constants from the
-    generated scanner, whose module specifier can be set with --backend-javascript-scanner-module.
-- description: Added a TypeScript scanner generator backend.
-- description: Added a TypeScript parser generator backend.
-- description: Added a C# scanner generator backend.
-- description: Added a C# parser generator backend.
-- description: Replaced the Java scanner backend with a table driven one.
-- description: Added a Java parser generator backend, selected with --backend java.
-- description: Replaced the Rust scanner backend with a table driven one.
-- description: Added a Rust parser generator backend, selected with --backend rust.
-- description: Added a Python scanner generator backend, selected with --backend python.
-- description: Added a Python parser generator backend, selected with --backend python.
-- description: Added a C++ scanner generator backend, selected with --backend cpp.
-- description: Added a C++ parser generator backend, selected with --backend cpp.
-- description: Fixed the generated scanners consuming one byte too many when a match
-    failed after the automaton had already consumed bytes. The byte which ended the
-    failed match now starts the next token instead of being swallowed by the invalid
-    token, which had corrupted the token following the error.
-- description: Fixed the generated parser rejecting an empty input which the grammar
-    accepts. The end of input is now a token the parse table decides on like any other.
-- description: Fixed Symbol.String of the generated Go parser printing the index of
-    a symbol instead of its name.
-- description: 'BREAKING: The generated Go parser now spells the augmented start symbol
-    AcceptNonterminal instead of Nonterminal_accept, which is the name every other
-    language backend already uses.'
-- description: 'BREAKING: --backend go now writes the table driven scanner and parser,
-    which is smaller and faster than the directly coded one it replaces. The directly
-    coded Go backend is gone, and with it the names go-direct and go-table.'
-- description: 'BREAKING: The public packages pkg/parsergen/backend/golangtable and
-    pkg/scannergen/backend/golangtable are now pkg/parsergen/backend/golang and pkg/scannergen/backend/golang,
-    taking the place of the re-exports of the directly coded backend.'
+unreleased: []
 releases:
+- version: |
+    v0.3.0
+  date: 2026-08-23T02:00:00+02:00
+  entries:
+  - description: Added a JavaScript scanner backend.
+  - description: Added a JavaScript parser generator backend, selected with --backend
+      javascript. The generated ECMAScript module imports the token constants from
+      the generated scanner, whose module specifier can be set with --backend-javascript-scanner-module.
+  - description: Added a TypeScript scanner generator backend.
+  - description: Added a TypeScript parser generator backend.
+  - description: Added a C# scanner generator backend.
+  - description: Added a C# parser generator backend.
+  - description: Replaced the Java scanner backend with a table driven one.
+  - description: Added a Java parser generator backend, selected with --backend java.
+  - description: Replaced the Rust scanner backend with a table driven one.
+  - description: Added a Rust parser generator backend, selected with --backend rust.
+  - description: Added a Python scanner generator backend, selected with --backend
+      python.
+  - description: Added a Python parser generator backend, selected with --backend
+      python.
+  - description: Added a C++ scanner generator backend, selected with --backend cpp.
+  - description: Added a C++ parser generator backend, selected with --backend cpp.
+  - description: Fixed the generated scanners consuming one byte too many when a match
+      failed after the automaton had already consumed bytes. The byte which ended
+      the failed match now starts the next token instead of being swallowed by the
+      invalid token, which had corrupted the token following the error.
+  - description: Fixed the generated parser rejecting an empty input which the grammar
+      accepts. The end of input is now a token the parse table decides on like any
+      other.
+  - description: Fixed Symbol.String of the generated Go parser printing the index
+      of a symbol instead of its name.
+  - description: 'BREAKING: The generated Go parser now spells the augmented start
+      symbol AcceptNonterminal instead of Nonterminal_accept, which is the name every
+      other language backend already uses.'
+  - description: 'BREAKING: --backend go now writes the table driven scanner and parser,
+      which is smaller and faster than the directly coded one it replaces. The directly
+      coded Go backend is gone, and with it the names go-direct and go-table.'
+  - description: 'BREAKING: The public packages pkg/parsergen/backend/golangtable
+      and pkg/scannergen/backend/golangtable are now pkg/parsergen/backend/golang
+      and pkg/scannergen/backend/golang, taking the place of the re-exports of the
+      directly coded backend.'
+  - description: Added a C scanner generator backend, selected with --backend c.
+  - description: Added a C parser generator backend, selected with --backend c.
 - version: |
     v0.2.0
   date: 2026-08-08T02:00:00+02:00
