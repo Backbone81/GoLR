@@ -103,7 +103,9 @@ Usage:
   golr parser [flags]
 
 Flags:
-      --backend string                             The backend to use for writing the parser. One of: cpp, csharp, dot, go, java, javascript, json, null, python, rust, typescript, yaml. (default "go")
+      --backend string                             The backend to use for writing the parser. One of: c, cpp, csharp, dot, go, java, javascript, json, null, python, rust, typescript, yaml. (default "go")
+      --backend-c-prefix string                    The prefix to put in front of every name the generated C code declares. Has to be the one the scanner was generated with. (default "parser")
+      --backend-c-scanner-include string           The header the generated C parser includes the token type from. (default "scanner.h")
       --backend-cpp-namespace string               The C++ namespace to use for the generated C++ code. Has to be the one the scanner was generated into. (default "parser")
       --backend-cpp-scanner-include string         The header the generated C++ parser includes the token type from. (default "scanner.hpp")
       --backend-csharp-namespace string            The C# namespace to use for the generated C# code. Has to be the one the scanner was generated into. (default "Parser")
@@ -130,7 +132,8 @@ Usage:
   golr scanner [flags]
 
 Flags:
-      --backend string                     The backend to use for writing the scanner. One of: cpp, csharp, dot, go, java, javascript, json, null, python, rust, typescript, yaml. (default "go")
+      --backend string                     The backend to use for writing the scanner. One of: c, cpp, csharp, dot, go, java, javascript, json, null, python, rust, typescript, yaml. (default "go")
+      --backend-c-prefix string            The prefix to put in front of every name the generated C code declares. (default "parser")
       --backend-cpp-namespace string       The C++ namespace to use for the generated C++ code. (default "parser")
       --backend-csharp-namespace string    The C# namespace to use for the generated C# code. (default "Parser")
       --backend-file-path string           The file path to write the scanner to. Can be '-' to write to stdout.
