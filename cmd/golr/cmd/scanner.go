@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/backbone81/golr/pkg/scannergen/backend"
+	cbackend "github.com/backbone81/golr/pkg/scannergen/backend/c"
 	cppbackend "github.com/backbone81/golr/pkg/scannergen/backend/cpp"
 	csharpbackend "github.com/backbone81/golr/pkg/scannergen/backend/csharp"
 	dotbackend "github.com/backbone81/golr/pkg/scannergen/backend/dot"
@@ -34,10 +35,11 @@ var (
 	scannerBackend         string
 	scannerBackendFilePath string
 
-	scannerBackendGoPackageName   string
-	scannerBackendJavaPackageName string
+	scannerBackendCPrefix         string
 	scannerBackendCSharpNamespace string
 	scannerBackendCppNamespace    string
+	scannerBackendGoPackageName   string
+	scannerBackendJavaPackageName string
 )
 
 var scannerCmd = &cobra.Command{
@@ -98,6 +100,15 @@ func executeScannerCore(rules []frontend.Rule) (backend.DFA, error) {
 
 func executeScannerBackend(dfa backend.DFA) error {
 	switch scannerBackend {
+	case "c":
+		if scannerBackendFilePath == "-" {
+			return cbackend.FromDFA(os.Stdout, dfa, cbackend.Config{
+				Prefix: scannerBackendCPrefix,
+			})
+		}
+		return cbackend.DFAToFile(scannerBackendFilePath, dfa, cbackend.Config{
+			Prefix: scannerBackendCPrefix,
+		})
 	case "cpp":
 		if scannerBackendFilePath == "-" {
 			return cppbackend.FromDFA(os.Stdout, dfa, cppbackend.Config{
@@ -207,7 +218,7 @@ func init() {
 		&scannerBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the scanner. One of: cpp, csharp, dot, go, java,"+
+		"The backend to use for writing the scanner. One of: c, cpp, csharp, dot, go, java,"+
 			" javascript, json, null, python, rust, typescript, yaml.",
 	)
 	scannerCmd.PersistentFlags().StringVar(
@@ -243,5 +254,11 @@ func init() {
 		"backend-cpp-namespace",
 		"parser",
 		"The C++ namespace to use for the generated C++ code.",
+	)
+	scannerCmd.PersistentFlags().StringVar(
+		&scannerBackendCPrefix,
+		"backend-c-prefix",
+		cbackend.DefaultPrefix,
+		"The prefix to put in front of every name the generated C code declares.",
 	)
 }

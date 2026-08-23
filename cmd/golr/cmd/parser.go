@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/backbone81/golr/pkg/parsergen/backend"
+	cbackend "github.com/backbone81/golr/pkg/parsergen/backend/c"
 	cppbackend "github.com/backbone81/golr/pkg/parsergen/backend/cpp"
 	csharpbackend "github.com/backbone81/golr/pkg/parsergen/backend/csharp"
 	dotbackend "github.com/backbone81/golr/pkg/parsergen/backend/dot"
@@ -41,21 +42,16 @@ var (
 	parserBackend         string
 	parserBackendFilePath string
 
-	parserBackendGoPackageName string
-
-	parserBackendCppNamespace      string
-	parserBackendCppScannerInclude string
-
-	parserBackendCSharpNamespace string
-
-	parserBackendJavaPackageName string
-
+	parserBackendCPrefix                 string
+	parserBackendCScannerInclude         string
+	parserBackendCSharpNamespace         string
+	parserBackendCppNamespace            string
+	parserBackendCppScannerInclude       string
+	parserBackendGoPackageName           string
+	parserBackendJavaPackageName         string
 	parserBackendJavaScriptScannerModule string
-
-	parserBackendPythonScannerModule string
-
-	parserBackendRustScannerModule string
-
+	parserBackendPythonScannerModule     string
+	parserBackendRustScannerModule       string
 	parserBackendTypeScriptScannerModule string
 
 	parserVerbose bool
@@ -139,6 +135,17 @@ func executeParserCore(grammar frontend.Grammar) (backend.Parser, []conflict.Con
 
 func executeParserBackend(parser backend.Parser) error {
 	switch parserBackend {
+	case "c":
+		if parserBackendFilePath == "-" {
+			return cbackend.FromParser(os.Stdout, parser, cbackend.Config{
+				Prefix:         parserBackendCPrefix,
+				ScannerInclude: parserBackendCScannerInclude,
+			})
+		}
+		return cbackend.ParserToFile(parserBackendFilePath, parser, cbackend.Config{
+			Prefix:         parserBackendCPrefix,
+			ScannerInclude: parserBackendCScannerInclude,
+		})
 	case "cpp":
 		if parserBackendFilePath == "-" {
 			return cppbackend.FromParser(os.Stdout, parser, cppbackend.Config{
@@ -266,7 +273,7 @@ func init() {
 		&parserBackend,
 		"backend",
 		"go",
-		"The backend to use for writing the parser. One of: cpp, csharp, dot, go, java,"+
+		"The backend to use for writing the parser. One of: c, cpp, csharp, dot, go, java,"+
 			" javascript, json, null, python, rust, typescript, yaml.",
 	)
 	parserCmd.PersistentFlags().StringVar(
@@ -284,6 +291,20 @@ func init() {
 		"backend-go-package-name",
 		"parser",
 		"The Go package name to use for the generated Go code.",
+	)
+
+	parserCmd.PersistentFlags().StringVar(
+		&parserBackendCPrefix,
+		"backend-c-prefix",
+		cbackend.DefaultPrefix,
+		"The prefix to put in front of every name the generated C code declares. Has to be the one the scanner was"+
+			" generated with.",
+	)
+	parserCmd.PersistentFlags().StringVar(
+		&parserBackendCScannerInclude,
+		"backend-c-scanner-include",
+		cbackend.DefaultScannerInclude,
+		"The header the generated C parser includes the token type from.",
 	)
 
 	parserCmd.PersistentFlags().StringVar(

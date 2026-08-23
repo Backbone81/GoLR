@@ -253,6 +253,7 @@ These cores are currently supported:
 
 These backends are currently supported:
 
+- [C](docs/parsergen-backend-c.md)
 - [C#](docs/parsergen-backend-csharp.md)
 - [C++](docs/parsergen-backend-cpp.md)
 - [DOT](docs/parsergen-backend-dot.md)
@@ -300,6 +301,7 @@ These cores are currently supported:
 
 These backends are currently supported:
 
+- [C](docs/scannergen-backend-c.md)
 - [C#](docs/scannergen-backend-csharp.md)
 - [C++](docs/scannergen-backend-cpp.md)
 - [DOT](docs/scannergen-backend-dot.md)

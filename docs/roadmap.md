@@ -17,7 +17,6 @@
   gets, and discard the first few samples, which are consistently high.
 - Publish Visual Studio Code extension for syntax highlighting of GoLR files
 - Publish IntelliJ plugin for syntax highlighting of GoLR files
-- Add support for C backend
 - Support extended Backus-Naur form for GoLR productions
 - Reduce shift/reduce conflict of the golang example to 0.
 

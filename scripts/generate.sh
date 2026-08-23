@@ -101,6 +101,18 @@ go run ./cmd/golr parser \
 go run ./cmd/golr scanner \
   --frontend golr \
   --frontend-file-path examples/calculator/calculator.golr \
+  --backend c \
+  --backend-c-prefix calculator \
+  --backend-file-path examples/calculator/c/parser/scanner.h
+go run ./cmd/golr parser \
+  --frontend golr \
+  --frontend-file-path examples/calculator/calculator.golr \
+  --backend c \
+  --backend-c-prefix calculator \
+  --backend-file-path examples/calculator/c/parser/parser.h
+go run ./cmd/golr scanner \
+  --frontend golr \
+  --frontend-file-path examples/calculator/calculator.golr \
   --backend cpp \
   --backend-cpp-namespace calculator::parser \
   --backend-file-path examples/calculator/cpp/parser/scanner.hpp
