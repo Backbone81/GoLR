@@ -380,21 +380,21 @@ export class Parser {
      *
      * @type {number[]}
      */
-    #stateStack;
+    #stateStack = [];
 
     /**
      * One node per symbol shifted or reduced so far.
      *
      * @type {ParseNode[]}
      */
-    #nodeStack;
+    #nodeStack = [];
 
     /**
      * The errors of the running parse, which parse returns next to the tree.
      *
      * @type {ParseError[]}
      */
-    #errors;
+    #errors = [];
 
     /**
      * Counts down the tokens which still have to be shifted before syntax errors are reported again. Zero while the
@@ -417,9 +417,12 @@ export class Parser {
     parse(scanner) {
         this.#scanner = scanner;
 
-        this.#stateStack = [0];
-        this.#nodeStack = [];
-        this.#errors = [];
+        // The stacks are emptied rather than replaced, so a parser hands out the room it already has to the parse
+        // after it instead of allocating anew.
+        this.#stateStack.length = 0;
+        this.#stateStack.push(0);
+        this.#nodeStack.length = 0;
+        this.#errors.length = 0;
         this.#errorRecoveryShiftsRemaining = 0;
 
         // A source with no tokens at all reports false right away. That is not an error: the token is the end of input
@@ -432,12 +435,14 @@ export class Parser {
                 continue;
             }
             if (result === accept) {
-                return { tree: this.#nodeStack[0], errors: this.#errors };
+                // The errors are copied out, because the array they were collected in is handed to the parse after
+                // this one.
+                return { tree: this.#nodeStack[0], errors: [...this.#errors] };
             }
             if (!result.isSyntaxError) {
                 // Only an error in the input can be recovered from.
                 this.#errors.push(result);
-                return { tree: null, errors: this.#errors };
+                return { tree: null, errors: [...this.#errors] };
             }
             if (this.#errorRecoveryShiftsRemaining === 0) {
                 // While recovering, the parser is not in sync with the input, so the errors it runs into there follow
@@ -445,7 +450,7 @@ export class Parser {
                 this.#errors.push(result);
             }
             if (!this.#recoverFromError()) {
-                return { tree: null, errors: this.#errors };
+                return { tree: null, errors: [...this.#errors] };
             }
         }
     }

@@ -291,16 +291,16 @@ public final class Parser {
     private TokenSkipperScanner scanner;
 
     /** The states of the running parse, the current one on top. */
-    private int[] stateStack;
+    private int[] stateStack = new int[INITIAL_STACK_CAPACITY];
 
     /** How many entries of {@link #stateStack} are in use. */
     private int stateStackSize;
 
     /** One node per symbol shifted or reduced so far. */
-    private List<ParseNode> nodeStack;
+    private final List<ParseNode> nodeStack = new ArrayList<>(INITIAL_STACK_CAPACITY);
 
     /** The errors of the running parse, which {@link #parse} returns next to the tree. */
-    private List<ParseError> errors;
+    private final List<ParseError> errors = new ArrayList<>();
 
     /**
      * Counts down the tokens which still have to be shifted before syntax errors are reported again. Zero while the
@@ -318,10 +318,11 @@ public final class Parser {
     public ParseResult parse(TokenSkipperScanner scanner) {
         this.scanner = scanner;
 
-        stateStack = new int[INITIAL_STACK_CAPACITY];
+        // The stacks are emptied rather than replaced, so a parser hands out the room it already has to the parse
+        // after it instead of allocating anew.
         stateStackSize = 0;
-        nodeStack = new ArrayList<>(INITIAL_STACK_CAPACITY);
-        errors = new ArrayList<>();
+        nodeStack.clear();
+        errors.clear();
         errorRecoveryShiftsRemaining = 0;
 
         pushState(0);

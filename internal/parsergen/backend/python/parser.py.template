@@ -362,6 +362,9 @@ class Parser:
 
     def __init__(self) -> None:
         """Creates a parser which is ready to be given a scanner to parse."""
+        self._state_stack = []
+        self._node_stack = []
+        self._errors = []
         self._reset()
 
     def parse(self, scanner: TokenSkipperScanner) -> ParseResult:
@@ -399,10 +402,15 @@ class Parser:
                 return ParseResult(None, tuple(self._errors))
 
     def _reset(self) -> None:
-        """Puts the parser into the state it begins a parse in."""
-        self._state_stack = [0]
-        self._node_stack = []
-        self._errors = []
+        """Puts the parser into the state it begins a parse in.
+
+        The stacks are emptied rather than replaced, so a parser hands out the room it already has to the parse after
+        it instead of allocating anew.
+        """
+        self._state_stack.clear()
+        self._state_stack.append(0)
+        self._node_stack.clear()
+        self._errors.clear()
         self._error_recovery_shifts_remaining = 0
 
     def _step(self, scanner: TokenSkipperScanner) -> _StepOutcome | ParseError:

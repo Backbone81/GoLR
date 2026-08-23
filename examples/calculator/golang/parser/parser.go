@@ -298,9 +298,7 @@ type Parser struct {
 
 	// errorRecoveryShiftsRemaining counts down the tokens which still have to be shifted before syntax errors are
 	// reported again. It is zero while the parser is in sync with the input and errorRecoveryShifts right after the
-	// error symbol was shifted. In a parser for a grammar which marks no place to resume at it never leaves zero,
-	// because there is nothing to recover from an error with, which is why such a parser does not carry the countdown
-	// on its shift at all.
+	// error symbol was shifted.
 	errorRecoveryShiftsRemaining int
 }
 
@@ -399,6 +397,10 @@ func (p *Parser) step() error {
 			Lexeme: p.scanner.Lexeme(),
 		})
 		p.scanner.Next()
+		if p.errorRecoveryShiftsRemaining > 0 {
+			// Getting tokens of the input shifted again is what makes the parser trust its position again.
+			p.errorRecoveryShiftsRemaining--
+		}
 		return nil
 	case actionKindReduce:
 		p.reduce(action >> actionKindBits)
@@ -500,8 +502,15 @@ func (p *Parser) recoverFromError() bool {
 // symbol. The default action of the state is deliberately not consulted, because only an entry the state has of its own
 // is a place to resume at.
 func errorShiftState(state int) (int, bool) {
-	// This grammar marks no place to resume at, so no state can shift the error symbol.
-	return 0, false
+	cellIdx := uint32(actionBase[state]) + errorTerminalColumn
+	if uint32(actionCheck[cellIdx]) != errorTerminalColumn {
+		return 0, false
+	}
+	action := uint32(actionNext[cellIdx])
+	if action&actionKindMask != actionKindShift {
+		return 0, false
+	}
+	return int(action >> actionKindBits), true
 }
 
 // raiseError is a helper function which collects the current location of the parse and wraps the given cause.

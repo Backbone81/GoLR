@@ -382,13 +382,13 @@ public sealed class Parser
     private IScanner _scanner = null!;
 
     /// <summary>The states of the running parse, the current one on top.</summary>
-    private List<int> _stateStack = null!;
+    private readonly List<int> _stateStack = new();
 
     /// <summary>One node per symbol shifted or reduced so far.</summary>
-    private List<ParseNode> _nodeStack = null!;
+    private readonly List<ParseNode> _nodeStack = new();
 
     /// <summary>The errors of the running parse, which <see cref="Parse"/> returns next to the tree.</summary>
-    private List<ParseError> _errors = null!;
+    private readonly List<ParseError> _errors = new();
 
     /// <summary>
     /// Counts down the tokens which still have to be shifted before syntax errors are reported again. Zero while the
@@ -408,9 +408,12 @@ public sealed class Parser
     {
         _scanner = scanner;
 
-        _stateStack = new List<int> { 0 };
-        _nodeStack = new List<ParseNode>();
-        _errors = new List<ParseError>();
+        // The stacks are emptied rather than replaced, so a parser hands out the room it already has to the parse
+        // after it instead of allocating anew.
+        _stateStack.Clear();
+        _stateStack.Add(0);
+        _nodeStack.Clear();
+        _errors.Clear();
         _errorRecoveryShiftsRemaining = 0;
 
         // A source with no tokens at all reports false right away. That is not an error: the token is the end of input
@@ -422,7 +425,9 @@ public sealed class Parser
             StepOutcome outcome = Step(out ParseError? error);
             if (outcome == StepOutcome.Accept)
             {
-                return new ParseResult(_nodeStack[0], _errors);
+                // The errors are copied out, because the list they were collected in is handed to the parse after
+                // this one.
+                return new ParseResult(_nodeStack[0], _errors.ToArray());
             }
             if (outcome == StepOutcome.Continue)
             {
@@ -435,7 +440,7 @@ public sealed class Parser
             {
                 // Only an error in the input can be recovered from.
                 _errors.Add(failure);
-                return new ParseResult(null, _errors);
+                return new ParseResult(null, _errors.ToArray());
             }
             if (_errorRecoveryShiftsRemaining == 0)
             {
@@ -445,7 +450,7 @@ public sealed class Parser
             }
             if (!RecoverFromError())
             {
-                return new ParseResult(null, _errors);
+                return new ParseResult(null, _errors.ToArray());
             }
         }
     }

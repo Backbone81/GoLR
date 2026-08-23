@@ -528,9 +528,7 @@ type Parser struct {
 
 	// errorRecoveryShiftsRemaining counts down the tokens which still have to be shifted before syntax errors are
 	// reported again. It is zero while the parser is in sync with the input and errorRecoveryShifts right after the
-	// error symbol was shifted. In a parser for a grammar which marks no place to resume at it never leaves zero,
-	// because there is nothing to recover from an error with, which is why such a parser does not carry the countdown
-	// on its shift at all.
+	// error symbol was shifted.
 	errorRecoveryShiftsRemaining int
 }
 
