@@ -70,11 +70,15 @@ run: prepare
 	go run ./cmd/golr
 
 .PHONY: test
-test: test-examples
+test: prepare
+	go test $(PACKAGE) -args --ginkgo.label-filter='!$(BACKEND_LABEL)'
+
+.PHONY: test-race
+test-race: prepare
 	CGO_ENABLED=1 go test --race $(PACKAGE) -args --ginkgo.label-filter='!$(BACKEND_LABEL)'
 
 .PHONY: test-coverage
-test-coverage: test-examples
+test-coverage: prepare
 	mkdir -p tmp
 	rm -rf tmp/coverage
 	mkdir -p tmp/coverage
@@ -86,7 +90,7 @@ test-coverage: test-examples
 	go tool cover -html=tmp/cover.out -o tmp/cover.html
 
 .PHONY: test-examples
-test-examples: build
+test-examples: build-examples
 	$(MAKE) -C examples test
 
 # test-backends proves that the code every language backend emits behaves like the reference implementation in Go. It

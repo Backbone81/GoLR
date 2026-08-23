@@ -13,9 +13,6 @@ type WellKnownGrammar struct {
 	// FileName provides the on-disk file name for the well-known grammar.
 	FileName string
 
-	// Content provides the content of the well-known grammar.
-	Content []byte
-
 	// Terminals provides the number of terminals this grammar contains.
 	Terminals int
 
@@ -204,14 +201,15 @@ var WellKnownGrammars = []WellKnownGrammar{
 	},
 }
 
-func init() {
-	// We read the content of the grammar file and fill the Content attributes of all well-known grammars for ease of
-	// access.
-	for i := range WellKnownGrammars {
-		data, err := grammarFS.ReadFile(WellKnownGrammars[i].FileName)
-		if err != nil {
-			panic(err)
-		}
-		WellKnownGrammars[i].Content = data
+// Content provides the content of the well-known grammar.
+//
+// The grammar is read on demand instead of in an init function, so that a binary which never asks for one does not
+// carry the embedded grammar files. Panics if the grammar file is missing, which is a programming error.
+func (w WellKnownGrammar) Content() []byte {
+	data, err := grammarFS.ReadFile(w.FileName)
+	if err != nil {
+		panic(err)
 	}
+
+	return data
 }

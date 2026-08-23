@@ -26,7 +26,7 @@ func TestTable(t *testing.T) {
 // wellKnownParser builds the parser tables of one of the well-known grammars the same way the parser generator does.
 // Those grammars are the real-world tables the compression is checked against, next to the small ones built by hand.
 func wellKnownParser(wellKnownGrammar testdata.WellKnownGrammar, options ...core.Option) backend.Parser {
-	grammar, err := bisonfrontend.ToGrammar(bytes.NewBuffer(wellKnownGrammar.Content), wellKnownGrammar.FileName)
+	grammar, err := bisonfrontend.ToGrammar(bytes.NewBuffer(wellKnownGrammar.Content()), wellKnownGrammar.FileName)
 	Expect(err).ToNot(HaveOccurred())
 
 	parser, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy, options...)

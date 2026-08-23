@@ -18,7 +18,7 @@ var _ = Describe("IELR(1)", func() {
 		for _, wellKnownGrammar := range testdata.WellKnownGrammars {
 			It("should correctly build the "+wellKnownGrammar.Title+" parser", func() {
 				grammar, err := bisonfrontend.ToGrammar(
-					bytes.NewBuffer(wellKnownGrammar.Content),
+					bytes.NewBuffer(wellKnownGrammar.Content()),
 					wellKnownGrammar.FileName,
 				)
 				Expect(err).ToNot(HaveOccurred())
@@ -40,7 +40,7 @@ func BenchmarkGrammarToParser(b *testing.B) {
 	for _, wellKnownGrammar := range testdata.WellKnownGrammars {
 		b.Run(wellKnownGrammar.Title, func(b *testing.B) {
 			grammar, err := bisonfrontend.ToGrammar(
-				bytes.NewBuffer(wellKnownGrammar.Content),
+				bytes.NewBuffer(wellKnownGrammar.Content()),
 				wellKnownGrammar.FileName,
 			)
 			if err != nil {

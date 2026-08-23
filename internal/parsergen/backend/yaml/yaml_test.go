@@ -1,32 +1,27 @@
 package yaml_test
 
 import (
-	"bytes"
 	"io"
 	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/backbone81/golr/internal/parsergen/backend/yaml"
-	ielr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/bison"
-	bisonfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/bison"
-	"github.com/backbone81/golr/testdata"
+	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 )
 
+var _ = Describe("FromParser", func() {
+	for wellKnownGrammar, parser := range ielr1golrcore.WellKnownParsers() {
+		It("emits a parser for the "+wellKnownGrammar.Title+" grammar", func() {
+			Expect(yaml.FromParser(io.Discard, parser)).To(Succeed())
+		})
+	}
+})
+
 func BenchmarkFromParser(b *testing.B) {
-	for _, wellKnownGrammar := range testdata.WellKnownGrammars {
+	for wellKnownGrammar, parser := range ielr1golrcore.WellKnownParsers() {
 		b.Run(wellKnownGrammar.Title, func(b *testing.B) {
-			grammar, err := bisonfrontend.ToGrammar(
-				bytes.NewBuffer(wellKnownGrammar.Content),
-				wellKnownGrammar.FileName,
-			)
-			if err != nil {
-				b.Fatal(err)
-			}
-
-			parser, _, err := ielr1bisoncore.GrammarToParser(grammar)
-			if err != nil {
-				b.Fatal(err)
-			}
-
 			for b.Loop() {
 				if err := yaml.FromParser(io.Discard, parser); err != nil {
 					b.Fatal(err)

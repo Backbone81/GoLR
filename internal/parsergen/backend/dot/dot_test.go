@@ -1,4 +1,4 @@
-package golang_test
+package dot_test
 
 import (
 	"io"
@@ -7,16 +7,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/backbone81/golr/internal/parsergen/backend/golang"
+	"github.com/backbone81/golr/internal/parsergen/backend/dot"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 )
 
 var _ = Describe("FromParser", func() {
 	for wellKnownGrammar, parser := range ielr1golrcore.WellKnownParsers() {
 		It("emits a parser for the "+wellKnownGrammar.Title+" grammar", func() {
-			Expect(golang.FromParser(io.Discard, parser, golang.Config{
-				PackageName: "parser",
-			})).To(Succeed())
+			Expect(dot.FromParser(io.Discard, parser)).To(Succeed())
 		})
 	}
 })
@@ -25,9 +23,7 @@ func BenchmarkFromParser(b *testing.B) {
 	for wellKnownGrammar, parser := range ielr1golrcore.WellKnownParsers() {
 		b.Run(wellKnownGrammar.Title, func(b *testing.B) {
 			for b.Loop() {
-				if err := golang.FromParser(io.Discard, parser, golang.Config{
-					PackageName: "parser",
-				}); err != nil {
+				if err := dot.FromParser(io.Discard, parser); err != nil {
 					b.Fatal(err)
 				}
 			}

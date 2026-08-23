@@ -1603,7 +1603,7 @@ var _ = Describe("Bison Grammar Files", func() {
 		for _, wellKnownGrammar := range testdata.WellKnownGrammars {
 			It("should correctly parse the "+wellKnownGrammar.Title+" grammar", func() {
 				grammar, err := bisonfrontend.ToGrammar(
-					bytes.NewBuffer(wellKnownGrammar.Content),
+					bytes.NewBuffer(wellKnownGrammar.Content()),
 					wellKnownGrammar.FileName,
 				)
 				Expect(err).ToNot(HaveOccurred())
@@ -1621,7 +1621,7 @@ func BenchmarkToGrammar(b *testing.B) {
 		b.Run(wellKnownGrammar.Title, func(b *testing.B) {
 			for b.Loop() {
 				if _, err := bisonfrontend.ToGrammar(
-					bytes.NewBuffer(wellKnownGrammar.Content),
+					bytes.NewBuffer(wellKnownGrammar.Content()),
 					wellKnownGrammar.FileName,
 				); err != nil {
 					b.Fatal(err)

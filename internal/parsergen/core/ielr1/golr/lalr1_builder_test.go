@@ -204,7 +204,7 @@ var _ = Describe("LALR(1) Builder", func() {
 		for _, wellKnownGrammar := range testdata.WellKnownGrammars {
 			It("should correctly build the "+wellKnownGrammar.Title+" parser", func() {
 				grammar, err := bisonfrontend.ToGrammar(
-					bytes.NewBuffer(wellKnownGrammar.Content),
+					bytes.NewBuffer(wellKnownGrammar.Content()),
 					wellKnownGrammar.FileName,
 				)
 				Expect(err).ToNot(HaveOccurred())

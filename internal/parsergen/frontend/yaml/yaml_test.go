@@ -13,7 +13,7 @@ func BenchmarkToGrammar(b *testing.B) {
 	for _, wellKnownGrammar := range testdata.WellKnownGrammars {
 		b.Run(wellKnownGrammar.Title, func(b *testing.B) {
 			grammar, err := bisonfrontend.ToGrammar(
-				bytes.NewBuffer(wellKnownGrammar.Content),
+				bytes.NewBuffer(wellKnownGrammar.Content()),
 				wellKnownGrammar.FileName,
 			)
 			if err != nil {
