@@ -30,31 +30,14 @@ typedef enum CalculatorToken {
     /// The symbol a grammar marks its error recovery points with. No input ever produces it.
     CALCULATOR_TOKEN_ERROR_TOKEN,
 
-    /// The token of the rule `WHITESPACE`.
     CALCULATOR_TOKEN_WHITESPACE,
-
-    /// The token of the rule `INTEGER`.
     CALCULATOR_TOKEN_INTEGER,
-
-    /// The token of the rule `PLUS`.
     CALCULATOR_TOKEN_PLUS,
-
-    /// The token of the rule `MINUS`.
     CALCULATOR_TOKEN_MINUS,
-
-    /// The token of the rule `MULTIPLY`.
     CALCULATOR_TOKEN_MULTIPLY,
-
-    /// The token of the rule `DIVIDE`.
     CALCULATOR_TOKEN_DIVIDE,
-
-    /// The token of the rule `LPAREN`.
     CALCULATOR_TOKEN_LPAREN,
-
-    /// The token of the rule `RPAREN`.
     CALCULATOR_TOKEN_RPAREN,
-
-    /// The token of the rule `UMINUS`.
     CALCULATOR_TOKEN_UMINUS,
 } CalculatorToken;
 

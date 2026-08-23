@@ -25,31 +25,14 @@ enum class Token : std::uint8_t {
     /// The symbol a grammar marks its error recovery points with. No input ever produces it.
     ErrorToken,
 
-    /// The token of the rule `WHITESPACE`.
     TokenWhitespace,
-
-    /// The token of the rule `INTEGER`.
     TokenInteger,
-
-    /// The token of the rule `PLUS`.
     TokenPlus,
-
-    /// The token of the rule `MINUS`.
     TokenMinus,
-
-    /// The token of the rule `MULTIPLY`.
     TokenMultiply,
-
-    /// The token of the rule `DIVIDE`.
     TokenDivide,
-
-    /// The token of the rule `LPAREN`.
     TokenLparen,
-
-    /// The token of the rule `RPAREN`.
     TokenRparen,
-
-    /// The token of the rule `UMINUS`.
     TokenUminus,
 };
 

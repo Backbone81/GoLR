@@ -10,18 +10,17 @@ import (
 	"fmt"
 )
 
-// Token is the data type representing all terminal symbols.
+// Token is every terminal symbol this scanner knows.
 type Token int
 
 const (
-	// InvalidToken is a terminal which does not exist. It is used for situations where no token was found.
+	// InvalidToken means no token was found.
 	InvalidToken Token = iota
 
-	// EndToken is a terminal which does not exist. It is used for situations where the end of the source was reached.
+	// EndToken means the end of the source was reached.
 	EndToken
 
-	// ErrorToken is a terminal which does not exist. It is the symbol a grammar marks its error recovery points with,
-	// which no input can produce: the parser shifts it itself while recovering from a syntax error.
+	// ErrorToken is the symbol a grammar marks its error recovery points with. No input ever produces it.
 	ErrorToken
 
 	TokenWs
@@ -93,7 +92,7 @@ const (
 // Token implements fmt.Stringer.
 var _ fmt.Stringer = (*Token)(nil)
 
-// String returns a string representation of the terminal.
+// String returns the name of the token, as the grammar spells it.
 func (t Token) String() string {
 	switch t {
 	case InvalidToken:
@@ -247,33 +246,51 @@ func (t Token) IsSkipped() bool {
 	}
 }
 
-// TokenSkipperScanner is the interface the scanner needs to implement for the TokenSkipper.
+// TokenSkipperScanner is what a scanner offers. Both Scanner and TokenSkipper implement it.
 type TokenSkipperScanner interface {
+	// Token returns the current token.
 	Token() Token
+
+	// ByteOffset returns the start of the token in bytes from the start of the source. After Next returned false it
+	// is the offset one past the last byte.
 	ByteOffset() int
+
+	// Line returns the line the token starts on, counted from one.
 	Line() int
+
+	// Column returns the column the token starts on, counted from one.
 	Column() int
+
+	// Lexeme returns the bytes of the token, as a view into the source rather than a copy of it.
 	Lexeme() []byte
+
+	// Next advances to the next token. Returns false when the source holds no such token any more.
 	Next() bool
+
+	// FilePath returns the file path the scanner was given.
 	FilePath() string
+
+	// Reset scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
+	// changed.
 	Reset(source []byte, offset int)
 }
 
-// TokenSkipper wraps a scanner and skips all tokens which were marked for skipping. This is usually used for skipping
-// whitespaces and comments.
+// TokenSkipper wraps a scanner and skips the tokens marked for skipping, which are usually whitespace and comments. It
+// offers the same members as Scanner.
 type TokenSkipper struct {
+	// scanner is the wrapped scanner.
 	scanner TokenSkipperScanner
 }
 
-// NewTokenSkipper creates a new TokenSkipper by wrapping the given Scanner.
+// NewTokenSkipper creates a skipper which hands on the tokens of the given scanner.
 func NewTokenSkipper(scanner TokenSkipperScanner) *TokenSkipper {
 	return &TokenSkipper{
 		scanner: scanner,
 	}
 }
 
-// Reset updates the scanner with the given source and starts scanning at the given offset. This can be useful for
-// situations where you only want to re-tokenize parts of the source after the source has been changed.
+// Reset scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
+// changed.
 func (s *TokenSkipper) Reset(source []byte, offset int) {
 	s.scanner.Reset(source, offset)
 }
@@ -283,33 +300,34 @@ func (s *TokenSkipper) Token() Token {
 	return s.scanner.Token()
 }
 
-// ByteOffset returns the start of the token in bytes from the source start.
-// When Next() returned false, it returns the location after the last byte.
+// ByteOffset returns the start of the token in bytes from the start of the source. After Next returned false it is the
+// offset one past the last byte.
 func (s *TokenSkipper) ByteOffset() int {
 	return s.scanner.ByteOffset()
 }
 
-// Line returns the line the token is located on.
+// Line returns the line the token starts on, counted from one.
 func (s *TokenSkipper) Line() int {
 	return s.scanner.Line()
 }
 
-// Column returns the column the token is located on.
+// Column returns the column the token starts on, counted from one.
 func (s *TokenSkipper) Column() int {
 	return s.scanner.Column()
 }
 
-// Lexeme returns the bytes which make up the token.
+// Lexeme returns the bytes of the token, as a view into the source rather than a copy of it.
 func (s *TokenSkipper) Lexeme() []byte {
 	return s.scanner.Lexeme()
 }
 
-// FilePath returns the file path of the file being parsed. This information can be useful in error messages.
+// FilePath returns the file path the scanner was given.
 func (s *TokenSkipper) FilePath() string {
 	return s.scanner.FilePath()
 }
 
-// Next consumes tokens until it found a token which should not be skipped.
+// Next advances to the next token which is not marked for skipping. Returns false when the source holds no such token
+// any more.
 func (s *TokenSkipper) Next() bool {
 	for s.scanner.Next() {
 		if !s.scanner.Token().IsSkipped() {
@@ -870,23 +888,32 @@ var (
 	}
 )
 
-// Scanner reads source code and returns tokens.
+// Scanner turns the bytes of a source into tokens.
 type Scanner struct {
+	// source is the bytes being scanned.
 	source []byte
 
+	// lexemeStartIdx is the index of the first byte of the current token.
 	lexemeStartIdx int
-	lexemeEndIdx   int
 
-	line   int
+	// lexemeEndIdx is the index one past the last byte of the current token.
+	lexemeEndIdx int
+
+	// line is the line the current token starts on, counted from one.
+	line int
+
+	// column is the column the current token starts on, counted from one.
 	column int
 
+	// token is the current token.
 	token Token
 
+	// filePath is the file path the scanner was given.
 	filePath string
 }
 
-// NewScanner creates a new instance of the scanner with the given source. The filePath parameter is used to
-// return information about which file has an error. You can provide any string you want if you don't have a file.
+// NewScanner creates a scanner which turns the given bytes into tokens, starting at the first of them. The file path is
+// used in error messages, so any string will do when the source is not a file.
 func NewScanner(source []byte, filePath string) *Scanner {
 	scanner := Scanner{
 		filePath: filePath,
@@ -895,8 +922,8 @@ func NewScanner(source []byte, filePath string) *Scanner {
 	return &scanner
 }
 
-// Reset updates the scanner with the given source and starts scanning at the given offset. This can be useful for
-// situations where you only want to re-tokenize parts of the source after the source has been changed.
+// Reset scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
+// changed.
 func (s *Scanner) Reset(source []byte, offset int) {
 	s.source = source
 
@@ -916,33 +943,34 @@ func (s *Scanner) Token() Token {
 	return s.token
 }
 
-// ByteOffset returns the start of the token in bytes from the source start.
-// When Next() returned false, it returns the location after the last byte.
+// ByteOffset returns the start of the token in bytes from the start of the source. After Next returned false it is the
+// offset one past the last byte.
 func (s *Scanner) ByteOffset() int {
 	return s.lexemeStartIdx
 }
 
-// Line returns the line the token is located on.
+// Line returns the line the token starts on, counted from one.
 func (s *Scanner) Line() int {
 	return s.line
 }
 
-// Column returns the column the token is located on.
+// Column returns the column the token starts on, counted from one.
 func (s *Scanner) Column() int {
 	return s.column
 }
 
-// Lexeme returns the bytes which make up the token.
+// Lexeme returns the bytes of the token, as a view into the source rather than a copy of it.
 func (s *Scanner) Lexeme() []byte {
 	return s.source[s.lexemeStartIdx:s.lexemeEndIdx]
 }
 
-// FilePath returns the file path of the file being parsed. This information can be useful in error messages.
+// FilePath returns the file path the scanner was given.
 func (s *Scanner) FilePath() string {
 	return s.filePath
 }
 
-// Next consumes characters until it found the next token.
+// Next advances to the next token. Bytes which form no token become an invalid token. Returns false once the end of the
+// source is reached, which sets the token to the end token.
 func (s *Scanner) Next() bool {
 	s.updateLineAndColumn(s.lexemeStartIdx, s.lexemeEndIdx)
 	s.lexemeStartIdx = s.lexemeEndIdx

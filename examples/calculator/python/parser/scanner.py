@@ -26,31 +26,14 @@ class Token(IntEnum):
     """The symbol a grammar marks its error recovery points with. No input ever produces it."""
 
     TOKEN_WHITESPACE = 3
-    """The token of the rule `WHITESPACE`."""
-
     TOKEN_INTEGER = 4
-    """The token of the rule `INTEGER`."""
-
     TOKEN_PLUS = 5
-    """The token of the rule `PLUS`."""
-
     TOKEN_MINUS = 6
-    """The token of the rule `MINUS`."""
-
     TOKEN_MULTIPLY = 7
-    """The token of the rule `MULTIPLY`."""
-
     TOKEN_DIVIDE = 8
-    """The token of the rule `DIVIDE`."""
-
     TOKEN_LPAREN = 9
-    """The token of the rule `LPAREN`."""
-
     TOKEN_RPAREN = 10
-    """The token of the rule `RPAREN`."""
-
     TOKEN_UMINUS = 11
-    """The token of the rule `UMINUS`."""
 
     def __str__(self) -> str:
         """Returns the name of the token, as the grammar spells it."""

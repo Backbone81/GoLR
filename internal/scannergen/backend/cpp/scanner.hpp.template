@@ -24,9 +24,7 @@ enum class Token : {{ .Tables.TokenType }} {
 
     /// The symbol a grammar marks its error recovery points with. No input ever produces it.
     ErrorToken,
-{{- range $i, $rule := .DFA.Rules }}
-
-    /// The token of the rule `{{ $rule.Name }}`.
+{{ range $i, $rule := .DFA.Rules }}
     {{ tokenName $i $rule }},
 {{- end }}
 };

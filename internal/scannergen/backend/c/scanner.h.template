@@ -29,9 +29,7 @@ typedef enum {{ .Type "Token" }} {
 
     /// The symbol a grammar marks its error recovery points with. No input ever produces it.
     {{ .Const "TokenErrorToken" }},
-{{- range $rule := .DFA.Rules }}
-
-    /// The token of the rule `{{ $rule.Name }}`.
+{{ range $rule := .DFA.Rules }}
     {{ $.TokenName $rule }},
 {{- end }}
 } {{ .Type "Token" }};

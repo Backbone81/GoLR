@@ -26,8 +26,8 @@ class Token(IntEnum):
     """The symbol a grammar marks its error recovery points with. No input ever produces it."""
 {{ range $i, $rule := .DFA.Rules }}
     {{ tokenName $i $rule }} = {{ tokenValue $i }}
-    """The token of the rule `{{ $rule.Name }}`."""
-{{ end }}
+{{- end }}
+
     def __str__(self) -> str:
         """Returns the name of the token, as the grammar spells it."""
         return _TOKEN_NAMES[self]
