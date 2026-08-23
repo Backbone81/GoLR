@@ -36,14 +36,14 @@ interface TokenSkipperScanner {
     /** Returns the file path the scanner was given. */
     String filePath();
 
-    /** Advances to the next token. Returns false when the source holds no such token any more. */
-    boolean next();
-
     /**
      * Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
      * changed.
      */
     void reset(byte[] source, int offset);
+
+    /** Advances to the next token. Returns false when the source holds no such token any more. */
+    boolean next();
 }
 
 /** Turns the bytes of a source into tokens. */
@@ -193,14 +193,14 @@ public final class Scanner implements TokenSkipperScanner {
     private static final Token[] ACCEPT_TOKEN_BY_STATE = concat(
             acceptTokenByState0());
 
-    /** The file path the scanner was given. */
-    private final String filePath;
-
     /** The bytes being scanned. */
     private byte[] source;
 
     /** The bytes being scanned, as the read only view the lexemes are sliced out of. */
     private ByteBuffer sourceBuffer;
+
+    /** The file path the scanner was given. */
+    private final String filePath;
 
     /** The current token. */
     private Token token;

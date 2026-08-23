@@ -82,9 +82,6 @@ public interface IScanner
     /// <summary>The file path the scanner was given.</summary>
     string FilePath { get; }
 
-    /// <summary>Advances to the next token. Returns false when the source holds no such token any more.</summary>
-    bool Next();
-
     /// <summary>
     /// Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
     /// changed.
@@ -92,6 +89,9 @@ public interface IScanner
     /// <param name="source">The bytes to scan.</param>
     /// <param name="offset">The byte offset to start at.</param>
     void Reset(ReadOnlyMemory<byte> source, int offset);
+
+    /// <summary>Advances to the next token. Returns false when the source holds no such token any more.</summary>
+    bool Next();
 }
 
 /// <summary>

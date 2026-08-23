@@ -69,8 +69,8 @@ export function isSkipped(token) {
  * @property {() => number} column
  * @property {() => Uint8Array} lexeme
  * @property {() => string} filePath
- * @property {() => boolean} next
  * @property {(source: Uint8Array, offset: number) => void} reset
+ * @property {() => boolean} next
  */
 
 /**
@@ -90,17 +90,6 @@ export class TokenSkipper {
      */
     constructor(scanner) {
         this.#scanner = scanner;
-    }
-
-    /**
-     * Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
-     * changed.
-     *
-     * @param {Uint8Array} source
-     * @param {number} offset
-     */
-    reset(source, offset) {
-        this.#scanner.reset(source, offset);
     }
 
     /**
@@ -156,6 +145,17 @@ export class TokenSkipper {
      */
     filePath() {
         return this.#scanner.filePath();
+    }
+
+    /**
+     * Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
+     * changed.
+     *
+     * @param {Uint8Array} source
+     * @param {number} offset
+     */
+    reset(source, offset) {
+        this.#scanner.reset(source, offset);
     }
 
     /**
@@ -215,6 +215,20 @@ export class Scanner {
     #source;
 
     /**
+     * The file path the scanner was given.
+     *
+     * @type {string}
+     */
+    #filePath;
+
+    /**
+     * The current token.
+     *
+     * @type {number}
+     */
+    #token;
+
+    /**
      * Index of the first byte of the current token.
      *
      * @type {number}
@@ -229,32 +243,18 @@ export class Scanner {
     #lexemeEndIdx;
 
     /**
-     * Line the current token starts on.
+     * The line the current token starts on, counted from one.
      *
      * @type {number}
      */
     #line;
 
     /**
-     * Column the current token starts on.
+     * The column the current token starts on, counted from one.
      *
      * @type {number}
      */
     #column;
-
-    /**
-     * The current token.
-     *
-     * @type {number}
-     */
-    #token;
-
-    /**
-     * The file path reported for the source.
-     *
-     * @type {string}
-     */
-    #filePath;
 
     /**
      * @param {Uint8Array} source The bytes to scan.
@@ -263,27 +263,6 @@ export class Scanner {
     constructor(source, filePath) {
         this.#filePath = filePath;
         this.reset(source, 0);
-    }
-
-    /**
-     * Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
-     * changed.
-     *
-     * @param {Uint8Array} source
-     * @param {number} offset
-     */
-    reset(source, offset) {
-        this.#source = source;
-
-        this.#lexemeStartIdx = 0;
-        // An offset past the end of the source would walk the line and column counters over bytes which are not
-        // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
-        this.#lexemeEndIdx = Math.min(offset, source.length);
-
-        this.#line = 1;
-        this.#column = 1;
-
-        this.#token = Token.InvalidToken;
     }
 
     /**
@@ -339,6 +318,27 @@ export class Scanner {
      */
     filePath() {
         return this.#filePath;
+    }
+
+    /**
+     * Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
+     * changed.
+     *
+     * @param {Uint8Array} source
+     * @param {number} offset
+     */
+    reset(source, offset) {
+        this.#source = source;
+
+        this.#lexemeStartIdx = 0;
+        // An offset past the end of the source would walk the line and column counters over bytes which are not
+        // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+        this.#lexemeEndIdx = Math.min(offset, source.length);
+
+        this.#line = 1;
+        this.#column = 1;
+
+        this.#token = Token.InvalidToken;
     }
 
     /**

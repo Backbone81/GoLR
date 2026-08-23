@@ -75,12 +75,12 @@ pub trait TokenSkipperScanner<'a> {
     /// Returns the file path the scanner was given.
     fn file_path(&self) -> &str;
 
-    /// Advances to the next token. Returns false when the source holds no such token any more.
-    fn next(&mut self) -> bool;
-
     /// Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
     /// changed.
     fn reset(&mut self, source: &'a [u8], offset: usize);
+
+    /// Advances to the next token. Returns false when the source holds no such token any more.
+    fn next(&mut self) -> bool;
 }
 
 /// Wraps a scanner and skips the tokens marked for skipping, which are usually whitespace and comments. It offers the

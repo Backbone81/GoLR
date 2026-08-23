@@ -104,17 +104,17 @@ class TokenSkipperScanner(Protocol):
         """The file path the scanner was given."""
         ...
 
-    def next(self) -> bool:
-        """Advances to the next token.
-
-        Returns false when the source holds no such token any more.
-        """
-        ...
-
     def reset(self, source: bytes, offset: int) -> None:
         """Scans the given source from the given byte offset on.
 
         Useful for re-tokenizing the part of a source which changed.
+        """
+        ...
+
+    def next(self) -> bool:
+        """Advances to the next token.
+
+        Returns false when the source holds no such token any more.
         """
         ...
 
@@ -175,6 +175,13 @@ class TokenSkipper:
         while self.next():
             yield self.token
 
+    def reset(self, source: bytes, offset: int) -> None:
+        """Scans the given source from the given byte offset on.
+
+        Useful for re-tokenizing the part of a source which changed.
+        """
+        self._scanner.reset(source, offset)
+
     def next(self) -> bool:
         """Advances to the next token which is not marked for skipping.
 
@@ -184,13 +191,6 @@ class TokenSkipper:
             if not is_skipped(self._scanner.token):
                 return True
         return False
-
-    def reset(self, source: bytes, offset: int) -> None:
-        """Scans the given source from the given byte offset on.
-
-        Useful for re-tokenizing the part of a source which changed.
-        """
-        self._scanner.reset(source, offset)
 
 
 # The automaton is held in lookup tables. An input byte is mapped to its byte class, which is the column of the

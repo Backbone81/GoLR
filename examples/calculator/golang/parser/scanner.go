@@ -97,15 +97,15 @@ type TokenSkipperScanner interface {
 	// Lexeme returns the bytes of the token, as a view into the source rather than a copy of it.
 	Lexeme() []byte
 
-	// Next advances to the next token. Returns false when the source holds no such token any more.
-	Next() bool
-
 	// FilePath returns the file path the scanner was given.
 	FilePath() string
 
 	// Reset scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
 	// changed.
 	Reset(source []byte, offset int)
+
+	// Next advances to the next token. Returns false when the source holds no such token any more.
+	Next() bool
 }
 
 // TokenSkipper wraps a scanner and skips the tokens marked for skipping, which are usually whitespace and comments. It
@@ -120,12 +120,6 @@ func NewTokenSkipper(scanner TokenSkipperScanner) *TokenSkipper {
 	return &TokenSkipper{
 		scanner: scanner,
 	}
-}
-
-// Reset scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
-// changed.
-func (s *TokenSkipper) Reset(source []byte, offset int) {
-	s.scanner.Reset(source, offset)
 }
 
 // Token returns the current token.
@@ -157,6 +151,12 @@ func (s *TokenSkipper) Lexeme() []byte {
 // FilePath returns the file path the scanner was given.
 func (s *TokenSkipper) FilePath() string {
 	return s.scanner.FilePath()
+}
+
+// Reset scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
+// changed.
+func (s *TokenSkipper) Reset(source []byte, offset int) {
+	s.scanner.Reset(source, offset)
 }
 
 // Next advances to the next token which is not marked for skipping. Returns false when the source holds no such token
@@ -237,6 +237,12 @@ type Scanner struct {
 	// source is the bytes being scanned.
 	source []byte
 
+	// filePath is the file path the scanner was given.
+	filePath string
+
+	// token is the current token.
+	token Token
+
 	// lexemeStartIdx is the index of the first byte of the current token.
 	lexemeStartIdx int
 
@@ -248,12 +254,6 @@ type Scanner struct {
 
 	// column is the column the current token starts on, counted from one.
 	column int
-
-	// token is the current token.
-	token Token
-
-	// filePath is the file path the scanner was given.
-	filePath string
 }
 
 // NewScanner creates a scanner which turns the given bytes into tokens, starting at the first of them. The file path is
@@ -264,22 +264,6 @@ func NewScanner(source []byte, filePath string) *Scanner {
 	}
 	scanner.Reset(source, 0)
 	return &scanner
-}
-
-// Reset scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
-// changed.
-func (s *Scanner) Reset(source []byte, offset int) {
-	s.source = source
-
-	s.lexemeStartIdx = 0
-	// An offset past the end of the source would walk the line and column counters over bytes which are not
-	// there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
-	s.lexemeEndIdx = min(offset, len(source))
-
-	s.line = 1
-	s.column = 1
-
-	s.token = InvalidToken
 }
 
 // Token returns the current token.
@@ -311,6 +295,22 @@ func (s *Scanner) Lexeme() []byte {
 // FilePath returns the file path the scanner was given.
 func (s *Scanner) FilePath() string {
 	return s.filePath
+}
+
+// Reset scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
+// changed.
+func (s *Scanner) Reset(source []byte, offset int) {
+	s.source = source
+
+	s.lexemeStartIdx = 0
+	// An offset past the end of the source would walk the line and column counters over bytes which are not
+	// there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+	s.lexemeEndIdx = min(offset, len(source))
+
+	s.line = 1
+	s.column = 1
+
+	s.token = InvalidToken
 }
 
 // Next advances to the next token. Bytes which form no token become an invalid token. Returns false once the end of the

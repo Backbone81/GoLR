@@ -118,7 +118,7 @@ class Scanner final {
 public:
     /// Creates a scanner which turns the given bytes into tokens, starting at the first of them. The file path is used
     /// in error messages, so any string will do when the source is not a file.
-    Scanner(std::string_view source, std::string_view file_path) : source_(source), file_path_(file_path) {}
+    Scanner(std::string_view source, std::string_view file_path) : file_path_(file_path) { reset(source, 0); }
 
     /// Returns the current token.
     [[nodiscard]] Token token() const noexcept { return token_; }
@@ -260,19 +260,19 @@ private:
     std::string file_path_;
 
     /// The current token.
-    Token token_ = Token::InvalidToken;
+    Token token_;
 
     /// Index of the first byte of the current token.
-    std::size_t lexeme_start_idx_ = 0;
+    std::size_t lexeme_start_idx_;
 
     /// Index one past the last byte of the current token.
-    std::size_t lexeme_end_idx_ = 0;
+    std::size_t lexeme_end_idx_;
 
     /// The line the current token starts on, counted from one.
-    std::size_t line_ = 1;
+    std::size_t line_;
 
     /// The column the current token starts on, counted from one.
-    std::size_t column_ = 1;
+    std::size_t column_;
 };
 
 }  // namespace {{ .Config.Namespace }}
