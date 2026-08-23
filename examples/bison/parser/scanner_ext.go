@@ -3,11 +3,9 @@ package parser
 // ReadEpilogue is an extension of the generated scanner providing functionality to consume the epilogue.
 func (s *Scanner) ReadEpilogue() {
 	s.lexemeStartIdx = s.lexemeEndIdx
-	s.lexemePeekIdx = s.lexemeEndIdx
 
 	// Consume all runes until the end of source
-	s.lexemePeekIdx = len(s.source)
-	s.lexemeEndIdx = s.lexemePeekIdx
+	s.lexemeEndIdx = len(s.source)
 	s.token = TokenEpilogue
 }
 
@@ -15,8 +13,9 @@ func (s *Scanner) ReadEpilogue() {
 func (s *Scanner) ReadTag() {
 	var nesting int
 	var previousRune byte
-	for s.lexemePeekIdx < len(s.source) {
-		currRune := s.source[s.lexemePeekIdx]
+	peekIdx := s.lexemeEndIdx
+	for peekIdx < len(s.source) {
+		currRune := s.source[peekIdx]
 		switch currRune {
 		case '<':
 			nesting++
@@ -25,8 +24,8 @@ func (s *Scanner) ReadTag() {
 			if previousRune != '-' {
 				if nesting == 0 {
 					// Advance the rune reader to the next rune
-					s.lexemePeekIdx++
-					s.lexemeEndIdx = s.lexemePeekIdx
+					peekIdx++
+					s.lexemeEndIdx = peekIdx
 					s.token = TokenTag
 					return
 				}
@@ -34,7 +33,7 @@ func (s *Scanner) ReadTag() {
 			}
 		}
 		previousRune = currRune
-		s.lexemePeekIdx++
+		peekIdx++
 	}
 
 	// The tag was not closed.
@@ -44,32 +43,33 @@ func (s *Scanner) ReadTag() {
 // ReadPrologue is an extension to the generated scanner providing functionality to consume the prologue.
 func (s *Scanner) ReadPrologue() {
 	var previousRune byte
-	for s.lexemePeekIdx < len(s.source) {
-		currRune := s.source[s.lexemePeekIdx]
+	peekIdx := s.lexemeEndIdx
+	for peekIdx < len(s.source) {
+		currRune := s.source[peekIdx]
 		switch {
 		case previousRune == '%' && currRune == '}':
-			s.lexemePeekIdx++
-			s.lexemeEndIdx = s.lexemePeekIdx
+			peekIdx++
+			s.lexemeEndIdx = peekIdx
 			s.token = TokenPrologue
 			return
 		case previousRune == '/' && currRune == '*':
-			s.skipBlockComment()
+			peekIdx = s.skipBlockComment(peekIdx)
 		case previousRune == '/' && currRune == '/':
-			s.skipLineComment()
+			peekIdx = s.skipLineComment(peekIdx)
 		case currRune == '"':
-			s.skipString('"')
+			peekIdx = s.skipString(peekIdx, '"')
 		case currRune == '\'':
-			s.skipString('\'')
+			peekIdx = s.skipString(peekIdx, '\'')
 		}
 
 		// The skip helper methods might have moved the rune reader to the end of the source.
-		if s.lexemePeekIdx >= len(s.source) {
+		if peekIdx >= len(s.source) {
 			break
 		}
 
 		// We do not use currRune here, because the skip helper methods might move the rune reader forward.
-		previousRune = s.source[s.lexemePeekIdx]
-		s.lexemePeekIdx++
+		previousRune = s.source[peekIdx]
+		peekIdx++
 	}
 
 	// The prologue was not closed.
@@ -90,8 +90,9 @@ func (s *Scanner) ReadBracedPredicate() {
 func (s *Scanner) readBracedContent(token Token) {
 	var previousRune byte
 	var nestingLevel int
-	for s.lexemePeekIdx < len(s.source) {
-		currRune := s.source[s.lexemePeekIdx]
+	peekIdx := s.lexemeEndIdx
+	for peekIdx < len(s.source) {
+		currRune := s.source[peekIdx]
 		switch {
 		// <% is the C digraph for {
 		case currRune == '{' || (previousRune == '<' && currRune == '%'):
@@ -99,80 +100,80 @@ func (s *Scanner) readBracedContent(token Token) {
 		// %> is the C digraph for }
 		case currRune == '}' || (previousRune == '%' && currRune == '>'):
 			if nestingLevel == 0 {
-				s.lexemePeekIdx++
-				s.lexemeEndIdx = s.lexemePeekIdx
+				peekIdx++
+				s.lexemeEndIdx = peekIdx
 				s.token = token
 				return
 			}
 			nestingLevel--
 		case previousRune == '/' && currRune == '*':
-			s.skipBlockComment()
+			peekIdx = s.skipBlockComment(peekIdx)
 		case previousRune == '/' && currRune == '/':
-			s.skipLineComment()
+			peekIdx = s.skipLineComment(peekIdx)
 		case currRune == '"':
-			s.skipString('"')
+			peekIdx = s.skipString(peekIdx, '"')
 		case currRune == '\'':
-			s.skipString('\'')
+			peekIdx = s.skipString(peekIdx, '\'')
 		}
 
 		// The skip helper methods might have moved the rune reader to the end of the source.
-		if s.lexemePeekIdx >= len(s.source) {
+		if peekIdx >= len(s.source) {
 			break
 		}
 
-		previousRune = s.source[s.lexemePeekIdx]
-		s.lexemePeekIdx++
+		previousRune = s.source[peekIdx]
+		peekIdx++
 	}
 
 	// The braced content was not closed.
 	s.token = InvalidToken
 }
 
-func (s *Scanner) skipBlockComment() {
+func (s *Scanner) skipBlockComment(peekIdx int) int {
 	var previousRune byte
 	for {
-		s.lexemePeekIdx++
-		if s.lexemePeekIdx >= len(s.source) {
-			return
+		peekIdx++
+		if peekIdx >= len(s.source) {
+			return peekIdx
 		}
-		currRune := s.source[s.lexemePeekIdx]
+		currRune := s.source[peekIdx]
 
 		if previousRune == '*' && currRune == '/' {
-			return
+			return peekIdx
 		}
 
 		previousRune = currRune
 	}
 }
 
-func (s *Scanner) skipLineComment() {
+func (s *Scanner) skipLineComment(peekIdx int) int {
 	for {
-		s.lexemePeekIdx++
-		if s.lexemePeekIdx >= len(s.source) {
-			return
+		peekIdx++
+		if peekIdx >= len(s.source) {
+			return peekIdx
 		}
-		if s.source[s.lexemePeekIdx] == '\n' {
-			return
+		if s.source[peekIdx] == '\n' {
+			return peekIdx
 		}
 	}
 }
 
-func (s *Scanner) skipString(quote byte) {
+func (s *Scanner) skipString(peekIdx int, quote byte) int {
 	for {
-		s.lexemePeekIdx++
-		if s.lexemePeekIdx >= len(s.source) {
-			return
+		peekIdx++
+		if peekIdx >= len(s.source) {
+			return peekIdx
 		}
-		currRune := s.source[s.lexemePeekIdx]
+		currRune := s.source[peekIdx]
 
 		if currRune == '\\' {
 			// The escaped character is consumed by the increment at the top of the loop, so a quote or backslash
 			// following a backslash can never be misread as a delimiter.
-			s.lexemePeekIdx++
+			peekIdx++
 			continue
 		}
 		if currRune == quote {
-			return
+			return peekIdx
 		}
 	}
 }

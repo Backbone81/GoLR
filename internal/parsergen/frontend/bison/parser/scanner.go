@@ -871,7 +871,6 @@ type Scanner struct {
 
 	lexemeStartIdx int
 	lexemeEndIdx   int
-	lexemePeekIdx  int
 
 	line   int
 	column int
@@ -940,30 +939,30 @@ func (s *Scanner) FilePath() string {
 
 // Next consumes characters until it found the next token.
 func (s *Scanner) Next() bool {
-	s.updateLineAndColumn(s.source[s.lexemeStartIdx:s.lexemeEndIdx])
+	s.updateLineAndColumn(s.lexemeStartIdx, s.lexemeEndIdx)
 	s.lexemeStartIdx = s.lexemeEndIdx
 
 	var state uint32
-	s.lexemePeekIdx = s.lexemeEndIdx
+	lexemePeekIdx := s.lexemeEndIdx
 	for {
 		// Remember every accepting state passed through, so the longest match wins over the first one.
 		if token := acceptTokenByState[state]; token != InvalidToken {
 			s.token = token
-			s.lexemeEndIdx = s.lexemePeekIdx
+			s.lexemeEndIdx = lexemePeekIdx
 		}
-		if s.lexemePeekIdx == len(s.source) {
+		if lexemePeekIdx == len(s.source) {
 			// The end of the source is reached, so the state it stopped in was the last one to test.
 			break
 		}
 
-		byteClass := byteClassByByte[s.source[s.lexemePeekIdx]]
+		byteClass := byteClassByByte[s.source[lexemePeekIdx]]
 		cellIdx := uint32(transitionBase[state]) + uint32(byteClass)
 		if transitionCheck[cellIdx] != byteClass {
 			// The state has no transition on this byte, so the token ends here.
 			break
 		}
 		state = uint32(transitionNext[cellIdx])
-		s.lexemePeekIdx++
+		lexemePeekIdx++
 	}
 
 	if s.lexemeStartIdx < s.lexemeEndIdx {
@@ -981,13 +980,13 @@ func (s *Scanner) Next() bool {
 	// the byte it could not consume is where the next attempt starts. Only when the automaton consumed nothing does it
 	// cover that byte, which is what keeps the scan moving forward.
 	s.token = InvalidToken
-	s.lexemeEndIdx = max(s.lexemeStartIdx+1, s.lexemePeekIdx)
+	s.lexemeEndIdx = max(s.lexemeStartIdx+1, lexemePeekIdx)
 	return true
 }
 
-// updateLineAndColumn updates the current line and column information by scanning the given source for newlines.
-func (s *Scanner) updateLineAndColumn(source []byte) {
-	for _, currByte := range source {
+// updateLineAndColumn advances the line and column counters over the bytes between the two indexes.
+func (s *Scanner) updateLineAndColumn(startIdx int, endIdx int) {
+	for _, currByte := range s.source[startIdx:endIdx] {
 		if currByte == '\n' {
 			s.line++
 			s.column = 1

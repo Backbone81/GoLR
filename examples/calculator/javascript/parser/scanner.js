@@ -262,13 +262,6 @@ export class Scanner {
     #lexemeEndIdx;
 
     /**
-     * Index of the byte the automaton is looking at.
-     *
-     * @type {number}
-     */
-    #lexemePeekIdx;
-
-    /**
      * Line the current token starts on.
      *
      * @type {number}
@@ -319,7 +312,6 @@ export class Scanner {
         // An offset past the end of the source would walk the line and column counters over bytes which are not
         // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
         this.#lexemeEndIdx = Math.min(offset, source.length);
-        this.#lexemePeekIdx = this.#lexemeEndIdx;
 
         this.#line = 1;
         this.#column = 1;
@@ -389,30 +381,30 @@ export class Scanner {
      * @returns {boolean}
      */
     next() {
-        this.#updateLineAndColumn(this.#source.subarray(this.#lexemeStartIdx, this.#lexemeEndIdx));
+        this.#updateLineAndColumn(this.#lexemeStartIdx, this.#lexemeEndIdx);
         this.#lexemeStartIdx = this.#lexemeEndIdx;
 
         let state = 0;
-        this.#lexemePeekIdx = this.#lexemeEndIdx;
+        let lexemePeekIdx = this.#lexemeEndIdx;
         for (;;) {
             // Remember every accepting state passed through, so the longest match wins over the first one.
             if (acceptTokenByState[state] !== Token.InvalidToken) {
                 this.#token = acceptTokenByState[state];
-                this.#lexemeEndIdx = this.#lexemePeekIdx;
+                this.#lexemeEndIdx = lexemePeekIdx;
             }
-            if (this.#lexemePeekIdx === this.#source.length) {
+            if (lexemePeekIdx === this.#source.length) {
                 // The end of the source is reached, so the state it stopped in was the last one to test.
                 break;
             }
 
-            const byteClass = byteClassByByte[this.#source[this.#lexemePeekIdx]];
+            const byteClass = byteClassByByte[this.#source[lexemePeekIdx]];
             const cellIdx = transitionBase[state] + byteClass;
             if (transitionCheck[cellIdx] !== byteClass) {
                 // The state has no transition on this byte, so the token ends here.
                 break;
             }
             state = transitionNext[cellIdx];
-            this.#lexemePeekIdx++;
+            lexemePeekIdx++;
         }
 
         if (this.#lexemeStartIdx < this.#lexemeEndIdx) {
@@ -430,17 +422,18 @@ export class Scanner {
         // not consume is where the next attempt starts. Only when the automaton consumed nothing does it cover that
         // byte, which is what keeps the scan moving forward.
         this.#token = Token.InvalidToken;
-        this.#lexemeEndIdx = Math.max(this.#lexemeStartIdx + 1, this.#lexemePeekIdx);
+        this.#lexemeEndIdx = Math.max(this.#lexemeStartIdx + 1, lexemePeekIdx);
         return true;
     }
 
     /**
-     * Advances the line and column counters over the given bytes.
+     * Advances the line and column counters over the bytes between the two indexes.
      *
-     * @param {Uint8Array} source
+     * @param {number} startIdx
+     * @param {number} endIdx
      */
-    #updateLineAndColumn(source) {
-        for (const currByte of source) {
+    #updateLineAndColumn(startIdx, endIdx) {
+        for (const currByte of this.#source.subarray(startIdx, endIdx)) {
             if (currByte === 0x0a) {
                 this.#line++;
                 this.#column = 1;

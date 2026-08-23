@@ -232,9 +232,6 @@ public sealed class Scanner : IScanner
     /// <summary>Index one past the last byte of the current token.</summary>
     private int _lexemeEndIdx;
 
-    /// <summary>Index of the byte the automaton is looking at.</summary>
-    private int _lexemePeekIdx;
-
     /// <summary>Creates a scanner which turns the given bytes into tokens, starting at the first of them.</summary>
     /// <param name="source">The bytes to scan.</param>
     /// <param name="filePath">Used in error messages. Any string will do when the source is not a file.</param>
@@ -271,7 +268,6 @@ public sealed class Scanner : IScanner
         // An offset past the end of the source would walk the line and column counters over bytes which are not
         // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
         _lexemeEndIdx = Math.Min(offset, source.Length);
-        _lexemePeekIdx = _lexemeEndIdx;
 
         Line = 1;
         Column = 1;
@@ -287,26 +283,26 @@ public sealed class Scanner : IScanner
     {
         ReadOnlySpan<byte> source = _source.Span;
 
-        UpdateLineAndColumn(source[_lexemeStartIdx.._lexemeEndIdx]);
+        UpdateLineAndColumn(_lexemeStartIdx, _lexemeEndIdx);
         _lexemeStartIdx = _lexemeEndIdx;
 
         int state = 0;
-        _lexemePeekIdx = _lexemeEndIdx;
+        int lexemePeekIdx = _lexemeEndIdx;
         while (true)
         {
             // Remember every accepting state passed through, so the longest match wins over the first one.
             if (AcceptTokenByState[state] != Token.InvalidToken)
             {
                 Token = AcceptTokenByState[state];
-                _lexemeEndIdx = _lexemePeekIdx;
+                _lexemeEndIdx = lexemePeekIdx;
             }
-            if (_lexemePeekIdx == source.Length)
+            if (lexemePeekIdx == source.Length)
             {
                 // The end of the source is reached, so the state it stopped in was the last one to test.
                 break;
             }
 
-            int byteClass = ByteClassByByte[source[_lexemePeekIdx]];
+            int byteClass = ByteClassByByte[source[lexemePeekIdx]];
             int cellIdx = TransitionBase[state] + byteClass;
             if (TransitionCheck[cellIdx] != byteClass)
             {
@@ -314,7 +310,7 @@ public sealed class Scanner : IScanner
                 break;
             }
             state = TransitionNext[cellIdx];
-            _lexemePeekIdx++;
+            lexemePeekIdx++;
         }
 
         if (_lexemeStartIdx < _lexemeEndIdx)
@@ -334,15 +330,16 @@ public sealed class Scanner : IScanner
         // not consume is where the next attempt starts. Only when the automaton consumed nothing does it cover that
         // byte, which is what keeps the scan moving forward.
         Token = Token.InvalidToken;
-        _lexemeEndIdx = Math.Max(_lexemeStartIdx + 1, _lexemePeekIdx);
+        _lexemeEndIdx = Math.Max(_lexemeStartIdx + 1, lexemePeekIdx);
         return true;
     }
 
-    /// <summary>Advances the line and column counters over the given bytes.</summary>
-    /// <param name="source">The bytes the scan moved over.</param>
-    private void UpdateLineAndColumn(ReadOnlySpan<byte> source)
+    /// <summary>Advances the line and column counters over the bytes between the two indexes.</summary>
+    /// <param name="startIdx">Index of the first byte to move over.</param>
+    /// <param name="endIdx">Index one past the last byte to move over.</param>
+    private void UpdateLineAndColumn(int startIdx, int endIdx)
     {
-        foreach (byte currByte in source)
+        foreach (byte currByte in _source.Span[startIdx..endIdx])
         {
             if (currByte == 0x0a)
             {
