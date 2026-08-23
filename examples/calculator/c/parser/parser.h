@@ -14,13 +14,15 @@
 // Without that definition in one place the link fails with the parser functions undefined. The scanner is a separate
 // file with a definition of its own, so a translation unit which brings in both defines both.
 
+/* The scanner is included in front of the guard below, so that including this file a second time to bring in the
+   implementation reaches the scanner header again. */
+#include "scanner.h"
+
 #ifndef CALCULATOR_PARSER_H
 #define CALCULATOR_PARSER_H
 
 #include <stdbool.h>
 #include <stddef.h>
-
-#include "scanner.h"
 
 /// Every nonterminal symbol of the grammar.
 typedef enum CalculatorNonterminal {
@@ -360,7 +362,7 @@ size_t calculator_parse_error_reason(const CalculatorParseError *error, char *bu
 }
 
 size_t calculator_parse_error_message(const CalculatorParseError *error, char *buffer, size_t buffer_size) {
-    char reason[128];
+    char reason[1024];
     int written;
     calculator_parse_error_reason(error, reason, sizeof(reason));
     written = snprintf(buffer, buffer_size, "%s:%zu:%zu: %s", error->file_path, error->line, error->column, reason);
@@ -840,7 +842,9 @@ CalculatorParseResult calculator_parser_parse(CalculatorParser *parser, const Ca
         /* The step neither went on nor accepted, so it failed and the error says why. */
         if (failure.kind != CALCULATOR_ERROR_KIND_SYNTAX) {
             /* Only an error in the input can be recovered from. */
-            calculator_parser_append_error(parser, &failure);
+            if (!calculator_parser_append_error(parser, &failure)) {
+                calculator_parser_report_out_of_memory(parser, source, calculator_parser_current_state(parser));
+            }
             break;
         }
         if (parser->error_recovery_shifts_remaining == 0) {

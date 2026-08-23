@@ -14,13 +14,15 @@
 // Without that definition in one place the link fails with the parser functions undefined. The scanner is a separate
 // file with a definition of its own, so a translation unit which brings in both defines both.
 
+/* The scanner is included in front of the guard below, so that including this file a second time to bring in the
+   implementation reaches the scanner header again. */
+#include "{{ .Config.ScannerInclude }}"
+
 #ifndef {{ .Const "ParserH" }}
 #define {{ .Const "ParserH" }}
 
 #include <stdbool.h>
 #include <stddef.h>
-
-#include "{{ .Config.ScannerInclude }}"
 
 /// Every nonterminal symbol of the grammar.
 typedef enum {{ .Type "Nonterminal" }} {
@@ -345,7 +347,7 @@ size_t {{ .Func "ParseErrorReason" }}(const {{ .Type "ParseError" }} *error, cha
 }
 
 size_t {{ .Func "ParseErrorMessage" }}(const {{ .Type "ParseError" }} *error, char *buffer, size_t buffer_size) {
-    char reason[128];
+    char reason[1024];
     int written;
     {{ .Func "ParseErrorReason" }}(error, reason, sizeof(reason));
     written = snprintf(buffer, buffer_size, "%s:%zu:%zu: %s", error->file_path, error->line, error->column, reason);
@@ -809,7 +811,9 @@ void {{ .Func "ParseResultFree" }}({{ .Type "ParseResult" }} *result) {
         /* The step neither went on nor accepted, so it failed and the error says why. */
         if (failure.kind != {{ .Const "ErrorKindSyntax" }}) {
             /* Only an error in the input can be recovered from. */
-            {{ .Func "ParserAppendError" }}(parser, &failure);
+            if (!{{ .Func "ParserAppendError" }}(parser, &failure)) {
+                {{ .Func "ParserReportOutOfMemory" }}(parser, source, {{ .Func "ParserCurrentState" }}(parser));
+            }
             break;
         }
         if (parser->error_recovery_shifts_remaining == 0) {
