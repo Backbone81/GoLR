@@ -468,79 +468,6 @@ public sealed class Parser
     }
 
     /// <summary>
-    /// Builds <see cref="TerminalColumnByToken"/> from pairs of token and column, sized to the highest token named in
-    /// them.
-    /// </summary>
-    private static byte[] NewTerminalColumnByToken()
-    {
-        (Token Token, byte Column)[] entries =
-        {
-            (Token.EndToken, 1),
-            (Token.TokenWhitespace, 2),
-            (Token.TokenInteger, 3),
-            (Token.TokenPlus, 4),
-            (Token.TokenMinus, 5),
-            (Token.TokenMultiply, 6),
-            (Token.TokenDivide, 7),
-            (Token.TokenLparen, 8),
-            (Token.TokenRparen, 9),
-            (Token.TokenUminus, 10),
-        };
-
-        int length = 0;
-        foreach ((Token token, _) in entries)
-        {
-            length = Math.Max(length, (int)token + 1);
-        }
-
-        byte[] result = new byte[length];
-        foreach ((Token token, byte column) in entries)
-        {
-            result[(int)token] = column;
-        }
-        return result;
-    }
-
-    /// <summary>
-    /// Returns the column of the action table which holds the decisions for the given token. A token the grammar does
-    /// not have, and one outside the range the scanner promises, both get <see cref="NoTerminalColumn"/>.
-    /// </summary>
-    /// <param name="terminal">The token to look up.</param>
-    private static int TerminalColumn(Token terminal)
-    {
-        if (0 <= (int)terminal && (int)terminal < TerminalColumnByToken.Length)
-        {
-            return TerminalColumnByToken[(int)terminal];
-        }
-        return NoTerminalColumn;
-    }
-
-    /// <summary>
-    /// Returns the state to continue in when the error symbol is shifted in the given state, or
-    /// <see cref="NoErrorShiftState"/> when the state cannot shift it. The states which can are the places the grammar
-    /// marked to resume at after a syntax error.
-    ///
-    /// The default action of the state is deliberately not consulted, because only an entry the state has of its own
-    /// is a place to resume at.
-    /// </summary>
-    /// <param name="state">The state to look up.</param>
-    private static int ErrorShiftState(int state)
-    {
-        int cellIdx = ActionBase[state] + ErrorTerminalColumn;
-        if (ActionCheck[cellIdx] != ErrorTerminalColumn)
-        {
-            return NoErrorShiftState;
-        }
-
-        int action = ActionNext[cellIdx];
-        if ((action & ActionKindMask) != ActionKindShift)
-        {
-            return NoErrorShiftState;
-        }
-        return action >> ActionKindBits;
-    }
-
-    /// <summary>
     /// Performs the one action the state on top of the stack takes for the current token. The error is set only when
     /// the parse cannot go on.
     /// </summary>
@@ -670,4 +597,77 @@ public sealed class Parser
 
     /// <summary>Returns the state on top of the stack, which is the one the parse is in.</summary>
     private int CurrentState() => _stateStack[^1];
+
+    /// <summary>
+    /// Returns the column of the action table which holds the decisions for the given token. A token the grammar does
+    /// not have, and one outside the range the scanner promises, both get <see cref="NoTerminalColumn"/>.
+    /// </summary>
+    /// <param name="terminal">The token to look up.</param>
+    private static int TerminalColumn(Token terminal)
+    {
+        if (0 <= (int)terminal && (int)terminal < TerminalColumnByToken.Length)
+        {
+            return TerminalColumnByToken[(int)terminal];
+        }
+        return NoTerminalColumn;
+    }
+
+    /// <summary>
+    /// Returns the state to continue in when the error symbol is shifted in the given state, or
+    /// <see cref="NoErrorShiftState"/> when the state cannot shift it. The states which can are the places the grammar
+    /// marked to resume at after a syntax error.
+    ///
+    /// The default action of the state is deliberately not consulted, because only an entry the state has of its own
+    /// is a place to resume at.
+    /// </summary>
+    /// <param name="state">The state to look up.</param>
+    private static int ErrorShiftState(int state)
+    {
+        int cellIdx = ActionBase[state] + ErrorTerminalColumn;
+        if (ActionCheck[cellIdx] != ErrorTerminalColumn)
+        {
+            return NoErrorShiftState;
+        }
+
+        int action = ActionNext[cellIdx];
+        if ((action & ActionKindMask) != ActionKindShift)
+        {
+            return NoErrorShiftState;
+        }
+        return action >> ActionKindBits;
+    }
+
+    /// <summary>
+    /// Builds <see cref="TerminalColumnByToken"/> from pairs of token and column, sized to the highest token named in
+    /// them.
+    /// </summary>
+    private static byte[] NewTerminalColumnByToken()
+    {
+        (Token Token, byte Column)[] entries =
+        {
+            (Token.EndToken, 1),
+            (Token.TokenWhitespace, 2),
+            (Token.TokenInteger, 3),
+            (Token.TokenPlus, 4),
+            (Token.TokenMinus, 5),
+            (Token.TokenMultiply, 6),
+            (Token.TokenDivide, 7),
+            (Token.TokenLparen, 8),
+            (Token.TokenRparen, 9),
+            (Token.TokenUminus, 10),
+        };
+
+        int length = 0;
+        foreach ((Token token, _) in entries)
+        {
+            length = Math.Max(length, (int)token + 1);
+        }
+
+        byte[] result = new byte[length];
+        foreach ((Token token, byte column) in entries)
+        {
+            result[(int)token] = column;
+        }
+        return result;
+    }
 }

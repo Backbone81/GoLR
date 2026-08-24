@@ -6,41 +6,6 @@
 
 import { Token, tokenToString } from "./scanner.js";
 
-/**
- * The scanner a parse reads its tokens from. Both the Scanner and the TokenSkipper of the generated scanner provide it.
- */
-export interface ParserScanner {
-    /** Returns the current token. */
-    token(): Token;
-
-    /** Returns the start of the token in bytes from the start of the source. */
-    byteOffset(): number;
-
-    /** Returns the line the token starts on, counted from one. */
-    line(): number;
-
-    /** Returns the column the token starts on, counted from one. */
-    column(): number;
-
-    /** Returns the bytes of the token. */
-    lexeme(): Uint8Array;
-
-    /** Returns the file path the scanner was given. */
-    filePath(): string;
-
-    /** Advances to the next token. Returns false when the source holds no more tokens. */
-    next(): boolean;
-}
-
-/** What a parse returns. */
-export interface ParseResult {
-    /** The parse tree, or null when the parse could not be finished. */
-    tree: ParseNode | null;
-
-    /** Every error the parse reported, in the order they were found. */
-    errors: ParseError[];
-}
-
 /** Every nonterminal symbol of the grammar. */
 export const Nonterminal = Object.freeze({
     /** The start symbol the generator adds around the one the grammar declares. Reaching it accepts the input. */
@@ -209,6 +174,41 @@ export class ParseError {
     toString(): string {
         return `ParseError: ${this.message}`;
     }
+}
+
+/** What a parse returns. */
+export interface ParseResult {
+    /** The parse tree, or null when the parse could not be finished. */
+    tree: ParseNode | null;
+
+    /** Every error the parse reported, in the order they were found. */
+    errors: ParseError[];
+}
+
+/**
+ * The scanner a parse reads its tokens from. Both the Scanner and the TokenSkipper of the generated scanner provide it.
+ */
+export interface ParserScanner {
+    /** Returns the current token. */
+    token(): Token;
+
+    /** Returns the start of the token in bytes from the start of the source. */
+    byteOffset(): number;
+
+    /** Returns the line the token starts on, counted from one. */
+    line(): number;
+
+    /** Returns the column the token starts on, counted from one. */
+    column(): number;
+
+    /** Returns the bytes of the token. */
+    lexeme(): Uint8Array;
+
+    /** Returns the file path the scanner was given. */
+    filePath(): string;
+
+    /** Advances to the next token. Returns false when the source holds no more tokens. */
+    next(): boolean;
 }
 
 /**

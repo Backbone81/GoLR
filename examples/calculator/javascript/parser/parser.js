@@ -7,27 +7,6 @@
 import { Token, tokenToString } from "./scanner.js";
 
 /**
- * The scanner a parse reads its tokens from. Both the Scanner and the TokenSkipper of the generated scanner provide it.
- *
- * @typedef {object} ScannerLike
- * @property {() => number} token
- * @property {() => number} byteOffset
- * @property {() => number} line
- * @property {() => number} column
- * @property {() => Uint8Array} lexeme
- * @property {() => string} filePath
- * @property {() => boolean} next
- */
-
-/**
- * What a parse returns.
- *
- * @typedef {object} ParseResult
- * @property {ParseNode|null} tree The parse tree, or null when the parse could not be finished.
- * @property {ParseError[]} errors Every error the parse reported, in the order they were found.
- */
-
-/**
  * Every nonterminal symbol of the grammar.
  *
  * @readonly
@@ -233,6 +212,27 @@ export class ParseError {
         return `ParseError: ${this.message}`;
     }
 }
+
+/**
+ * What a parse returns.
+ *
+ * @typedef {object} ParseResult
+ * @property {ParseNode|null} tree The parse tree, or null when the parse could not be finished.
+ * @property {ParseError[]} errors Every error the parse reported, in the order they were found.
+ */
+
+/**
+ * The scanner a parse reads its tokens from. Both the Scanner and the TokenSkipper of the generated scanner provide it.
+ *
+ * @typedef {object} ScannerLike
+ * @property {() => number} token
+ * @property {() => number} byteOffset
+ * @property {() => number} line
+ * @property {() => number} column
+ * @property {() => Uint8Array} lexeme
+ * @property {() => string} filePath
+ * @property {() => boolean} next
+ */
 
 /**
  * How many tokens have to be shifted after a syntax error before errors are reported again. Suppressing the errors in

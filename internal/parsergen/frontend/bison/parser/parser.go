@@ -200,17 +200,6 @@ type Node struct {
 	Children []Node
 }
 
-// ParserScanner is the interface the scanner for the parser needs to implement.
-type ParserScanner interface {
-	Token() Token
-	ByteOffset() int
-	Line() int
-	Column() int
-	Lexeme() []byte
-	Next() bool
-	FilePath() string
-}
-
 var (
 	// This error is used in cases where the mechanic of the parser is wrong.
 	ErrInternal = errors.New("internal parser error")
@@ -220,16 +209,6 @@ var (
 	// so Parse can return several of them joined together.
 	ErrSyntax = errors.New("syntax error")
 )
-
-// errorRecoveryShifts is the number of tokens which have to be shifted after a syntax error before the parser reports
-// errors again. Suppressing the errors in between keeps a single mistake in the input from producing an avalanche of
-// messages which are all consequences of the first one. It is the number of tokens yacc and GNU Bison use, see
-// section 7 "Error Handling" of the yacc report.
-const errorRecoveryShifts = 3
-
-// arenaChunkSize is the number of nodes the arena allocator hands out from a single chunk. A parse which needs more
-// nodes than one chunk holds takes further chunks of the same size and keeps them for the parses after it.
-const arenaChunkSize = 16 * 1024
 
 // Error represents a single parse error.
 type Error struct {
@@ -253,6 +232,27 @@ func (e *Error) Error() string {
 func (e *Error) Unwrap() error {
 	return e.Cause
 }
+
+// ParserScanner is the interface the scanner for the parser needs to implement.
+type ParserScanner interface {
+	Token() Token
+	ByteOffset() int
+	Line() int
+	Column() int
+	Lexeme() []byte
+	Next() bool
+	FilePath() string
+}
+
+// errorRecoveryShifts is the number of tokens which have to be shifted after a syntax error before the parser reports
+// errors again. Suppressing the errors in between keeps a single mistake in the input from producing an avalanche of
+// messages which are all consequences of the first one. It is the number of tokens yacc and GNU Bison use, see
+// section 7 "Error Handling" of the yacc report.
+const errorRecoveryShifts = 3
+
+// arenaChunkSize is the number of nodes the arena allocator hands out from a single chunk. A parse which needs more
+// nodes than one chunk holds takes further chunks of the same size and keeps them for the parses after it.
+const arenaChunkSize = 16 * 1024
 
 // The parse table is held in lookup tables. A token is translated into the column of the action table which holds the
 // decisions for it, and the rows of that table are displaced into a single array so that the entries of one row fall

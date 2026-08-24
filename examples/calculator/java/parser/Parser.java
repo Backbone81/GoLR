@@ -369,38 +369,6 @@ public final class Parser {
     }
 
     /**
-     * Returns the column of the action table which holds the decisions for the given token. A token the grammar does
-     * not have, and one outside the range the scanner promises, both get {@link #NO_TERMINAL_COLUMN}.
-     */
-    private static int terminalColumn(Scanner.Token terminal) {
-        if (terminal.ordinal() < TERMINAL_COLUMN_BY_TOKEN.length) {
-            return TERMINAL_COLUMN_BY_TOKEN[terminal.ordinal()];
-        }
-        return NO_TERMINAL_COLUMN;
-    }
-
-    /**
-     * Returns the state to continue in when the error symbol is shifted in the given state, or
-     * {@link #NO_ERROR_SHIFT_STATE} when the state cannot shift it. The states which can are the places the grammar
-     * marked to resume at after a syntax error.
-     *
-     * <p>The default action of the state is deliberately not consulted, because only an entry the state has of its own
-     * is a place to resume at.
-     */
-    private static int errorShiftState(int state) {
-        int cellIdx = ACTION_BASE[state] + ERROR_TERMINAL_COLUMN;
-        if (ACTION_CHECK[cellIdx] != ERROR_TERMINAL_COLUMN) {
-            return NO_ERROR_SHIFT_STATE;
-        }
-
-        int action = ACTION_NEXT[cellIdx];
-        if ((action & ACTION_KIND_MASK) != ACTION_KIND_SHIFT) {
-            return NO_ERROR_SHIFT_STATE;
-        }
-        return action >> ACTION_KIND_BITS;
-    }
-
-    /**
      * Performs the one action the state on top of the stack takes for the current token. The outcome carries the error
      * only when the parse cannot go on.
      */
@@ -523,6 +491,38 @@ public final class Parser {
         }
         stateStack[stateStackSize] = state;
         stateStackSize++;
+    }
+
+    /**
+     * Returns the column of the action table which holds the decisions for the given token. A token the grammar does
+     * not have, and one outside the range the scanner promises, both get {@link #NO_TERMINAL_COLUMN}.
+     */
+    private static int terminalColumn(Scanner.Token terminal) {
+        if (terminal.ordinal() < TERMINAL_COLUMN_BY_TOKEN.length) {
+            return TERMINAL_COLUMN_BY_TOKEN[terminal.ordinal()];
+        }
+        return NO_TERMINAL_COLUMN;
+    }
+
+    /**
+     * Returns the state to continue in when the error symbol is shifted in the given state, or
+     * {@link #NO_ERROR_SHIFT_STATE} when the state cannot shift it. The states which can are the places the grammar
+     * marked to resume at after a syntax error.
+     *
+     * <p>The default action of the state is deliberately not consulted, because only an entry the state has of its own
+     * is a place to resume at.
+     */
+    private static int errorShiftState(int state) {
+        int cellIdx = ACTION_BASE[state] + ERROR_TERMINAL_COLUMN;
+        if (ACTION_CHECK[cellIdx] != ERROR_TERMINAL_COLUMN) {
+            return NO_ERROR_SHIFT_STATE;
+        }
+
+        int action = ACTION_NEXT[cellIdx];
+        if ((action & ACTION_KIND_MASK) != ACTION_KIND_SHIFT) {
+            return NO_ERROR_SHIFT_STATE;
+        }
+        return action >> ACTION_KIND_BITS;
     }
 
     /**
