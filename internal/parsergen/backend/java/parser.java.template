@@ -80,14 +80,22 @@ public final class Parser {
         }
     }
 
+    /** What a parse error is about. */
+    public enum ErrorKind {
+        /** An error in the input. */
+        SYNTAX,
+
+        /** A defect of the parser itself, which ends the parse. */
+        INTERNAL,
+    }
+
     /**
      * A single parse error. Parse errors are returned by {@link Parser#parse} rather than thrown, and this is no
      * exception, so reporting many of them costs no stack traces. Throw one with
      * {@code new IllegalStateException(parseError.message())}.
      *
      * @param reason what is wrong, without the position in front of it
-     * @param isSyntaxError true for an error in the input, false for a defect of the parser itself, which ends the
-     *     parse
+     * @param kind what the error is about
      * @param token the token the parse stopped on
      * @param byteOffset start of that token in bytes from the start of the source
      * @param line line that token starts on, counted from one
@@ -97,7 +105,7 @@ public final class Parser {
      */
     public record ParseError(
             String reason,
-            boolean isSyntaxError,
+            ErrorKind kind,
             Scanner.Token token,
             int byteOffset,
             int line,
@@ -106,13 +114,13 @@ public final class Parser {
             String filePath) {
         /**
          * @param reason what is wrong, without the position in front of it
-         * @param isSyntaxError true for an error in the input, false for a defect of the parser itself
+         * @param kind what the error is about
          * @param scanner the scanner the token and its position are taken from
          */
-        ParseError(String reason, boolean isSyntaxError, TokenSkipperScanner scanner) {
+        ParseError(String reason, ErrorKind kind, TokenSkipperScanner scanner) {
             this(
                     reason,
-                    isSyntaxError,
+                    kind,
                     scanner.token(),
                     scanner.byteOffset(),
                     scanner.line(),
@@ -338,7 +346,7 @@ public final class Parser {
             }
             ParseError failure = failed.error();
 
-            if (!failure.isSyntaxError()) {
+            if (failure.kind() != ErrorKind.SYNTAX) {
                 // Only an error in the input can be recovered from.
                 errors.add(failure);
                 return new ParseResult(null, List.copyOf(errors));
@@ -422,10 +430,11 @@ public final class Parser {
             }
             case ACTION_KIND_ACCEPT -> ACCEPT;
             case ACTION_KIND_ERROR ->
-                new StepOutcome.Failed(new ParseError("unexpected token " + terminal, true, scanner));
+                new StepOutcome.Failed(new ParseError("unexpected token " + terminal, ErrorKind.SYNTAX, scanner));
             default ->
                 new StepOutcome.Failed(
-                        new ParseError("unexpected action " + action + " in state " + state, false, scanner));
+                        new ParseError(
+                                "unexpected action " + action + " in state " + state, ErrorKind.INTERNAL, scanner));
         };
     }
 

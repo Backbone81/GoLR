@@ -86,6 +86,16 @@ class ParseNode:
     """The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal."""
 
 
+class ErrorKind(Enum):
+    """What a parse error is about."""
+
+    SYNTAX = auto()
+    """An error in the input."""
+
+    INTERNAL = auto()
+    """A defect of the parser itself, which ends the parse."""
+
+
 class ParseError(Exception):
     """A single parse error.
 
@@ -96,8 +106,8 @@ class ParseError(Exception):
     reason: str
     """What is wrong, without the position in front of it."""
 
-    is_syntax_error: bool
-    """True for an error in the input, false for a defect of the parser itself, which ends the parse."""
+    kind: ErrorKind
+    """What the error is about."""
 
     token: Token
     """The token the parse stopped on."""
@@ -120,7 +130,7 @@ class ParseError(Exception):
     def __init__(
         self,
         reason: str,
-        is_syntax_error: bool,
+        kind: ErrorKind,
         token: Token,
         byte_offset: int,
         line: int,
@@ -134,7 +144,7 @@ class ParseError(Exception):
         an error has to do to get out of a worker process.
 
         :param reason: What is wrong, without the position in front of it.
-        :param is_syntax_error: True for an error in the input, false for a defect of the parser itself.
+        :param kind: What the error is about.
         :param token: The token the parse stopped on.
         :param byte_offset: Start of that token in bytes from the start of the source.
         :param line: Line that token starts on, counted from one.
@@ -142,10 +152,10 @@ class ParseError(Exception):
         :param lexeme: The bytes of that token.
         :param file_path: The file path the scanner was given.
         """
-        super().__init__(reason, is_syntax_error, token, byte_offset, line, column, lexeme, file_path)
+        super().__init__(reason, kind, token, byte_offset, line, column, lexeme, file_path)
 
         self.reason = reason
-        self.is_syntax_error = is_syntax_error
+        self.kind = kind
         self.token = token
         self.byte_offset = byte_offset
         self.line = line
@@ -154,16 +164,16 @@ class ParseError(Exception):
         self.file_path = file_path
 
     @classmethod
-    def from_scanner(cls, reason: str, is_syntax_error: bool, scanner: TokenSkipperScanner) -> "ParseError":
+    def from_scanner(cls, reason: str, kind: ErrorKind, scanner: TokenSkipperScanner) -> "ParseError":
         """Creates an error with the given reason at the position the scanner is at.
 
         :param reason: What is wrong, without the position in front of it.
-        :param is_syntax_error: True for an error in the input, false for a defect of the parser itself.
+        :param kind: What the error is about.
         :param scanner: The scanner the token and its position are taken from.
         """
         return cls(
             reason,
-            is_syntax_error,
+            kind,
             scanner.token,
             scanner.byte_offset,
             scanner.line,
@@ -396,7 +406,7 @@ class Parser:
                 # What is left on the node stack is the start symbol, which is the root of the tree.
                 return ParseResult(self._node_stack[0], tuple(self._errors))
 
-            if not outcome.is_syntax_error:
+            if outcome.kind is not ErrorKind.SYNTAX:
                 # Only an error in the input can be recovered from.
                 self._errors.append(outcome)
                 return ParseResult(None, tuple(self._errors))
@@ -453,8 +463,8 @@ class Parser:
         if action_kind == _ACTION_KIND_ACCEPT:
             return _StepOutcome.ACCEPT
         if action_kind == _ACTION_KIND_ERROR:
-            return ParseError.from_scanner(f"unexpected token {terminal}", True, scanner)
-        return ParseError.from_scanner(f"unexpected action {action} in state {state}", False, scanner)
+            return ParseError.from_scanner(f"unexpected token {terminal}", ErrorKind.SYNTAX, scanner)
+        return ParseError.from_scanner(f"unexpected action {action} in state {state}", ErrorKind.INTERNAL, scanner)
 
     def _reduce(self, production_idx: int) -> None:
         """Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side.

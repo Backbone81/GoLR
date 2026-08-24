@@ -158,6 +158,20 @@ export class ParseNode {
 }
 
 /**
+ * What a parse error is about.
+ *
+ * @readonly
+ * @enum {number}
+ */
+export const ErrorKind = Object.freeze({
+    /** An error in the input. */
+    Syntax: 0,
+
+    /** A defect of the parser itself, which ends the parse. */
+    Internal: 1,
+});
+
+/**
  * A single parse error. Parse errors are returned by parse rather than thrown, and this is not an Error, so reporting
  * many of them costs no stack traces. Wrap one to throw it: `new Error(parseError.message, { cause: parseError })`.
  */
@@ -165,8 +179,8 @@ export class ParseError {
     /** What is wrong, without the position in front of it. */
     reason;
 
-    /** True for an error in the input, false for a defect of the parser itself, which ends the parse. */
-    isSyntaxError;
+    /** What the error is about. */
+    kind;
 
     /** The token the parse stopped on. */
     token;
@@ -188,12 +202,12 @@ export class ParseError {
 
     /**
      * @param {string} reason
-     * @param {boolean} isSyntaxError
+     * @param {ErrorKind} kind
      * @param {ScannerLike} scanner
      */
-    constructor(reason, isSyntaxError, scanner) {
+    constructor(reason, kind, scanner) {
         this.reason = reason;
-        this.isSyntaxError = isSyntaxError;
+        this.kind = kind;
 
         this.token = scanner.token();
         this.byteOffset = scanner.byteOffset();
@@ -448,7 +462,7 @@ export class Parser {
                 // this one.
                 return { tree: this.#nodeStack[0], errors: [...this.#errors] };
             }
-            if (!result.isSyntaxError) {
+            if (result.kind !== ErrorKind.Syntax) {
                 // Only an error in the input can be recovered from.
                 this.#errors.push(result);
                 return { tree: null, errors: [...this.#errors] };
@@ -501,9 +515,13 @@ export class Parser {
             case actionKindAccept:
                 return accept;
             case actionKindError:
-                return new ParseError(`unexpected token ${tokenToString(terminal)}`, true, this.#scanner);
+                return new ParseError(`unexpected token ${tokenToString(terminal)}`, ErrorKind.Syntax, this.#scanner);
             default:
-                return new ParseError(`unexpected action ${action} in state ${state}`, false, this.#scanner);
+                return new ParseError(
+                    `unexpected action ${action} in state ${state}`,
+                    ErrorKind.Internal,
+                    this.#scanner,
+                );
         }
     }
 

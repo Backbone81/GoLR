@@ -65,6 +65,16 @@ pub struct ParseNode<'a> {
     pub children: Vec<ParseNode<'a>>,
 }
 
+/// What a parse error is about.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ErrorKind {
+    /// An error in the input.
+    Syntax,
+
+    /// A defect of the parser itself, which ends the parse.
+    Internal,
+}
+
 /// A single parse error. Parse errors are returned by [`Parser::parse`] rather than raised as a panic, so reporting
 /// many of them costs nothing.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -72,8 +82,8 @@ pub struct ParseError<'a> {
     /// What is wrong, without the position in front of it.
     pub reason: String,
 
-    /// True for an error in the input, false for a defect of the parser itself, which ends the parse.
-    pub is_syntax_error: bool,
+    /// What the error is about.
+    pub kind: ErrorKind,
 
     /// The token the parse stopped on.
     pub token: Token,
@@ -96,13 +106,13 @@ pub struct ParseError<'a> {
 
 impl<'a> ParseError<'a> {
     /// Creates an error with the given reason at the position the scanner is at.
-    fn new<S>(reason: String, is_syntax_error: bool, scanner: &S) -> Self
+    fn new<S>(reason: String, kind: ErrorKind, scanner: &S) -> Self
     where
         S: TokenSkipperScanner<'a> + ?Sized,
     {
         Self {
             reason,
-            is_syntax_error,
+            kind,
             token: scanner.token(),
             byte_offset: scanner.byte_offset(),
             line: scanner.line(),
@@ -329,7 +339,7 @@ impl<'a> ParseState<'a> {
                 StepOutcome::Failed(failure) => failure,
             };
 
-            if !failure.is_syntax_error {
+            if failure.kind != ErrorKind::Syntax {
                 // Only an error in the input can be recovered from.
                 self.errors.push(failure);
                 return ParseResult {
@@ -391,12 +401,12 @@ impl<'a> ParseState<'a> {
             ACTION_KIND_ACCEPT => StepOutcome::Accept,
             ACTION_KIND_ERROR => StepOutcome::Failed(ParseError::new(
                 format!("unexpected token {terminal}"),
-                true,
+                ErrorKind::Syntax,
                 scanner,
             )),
             _ => StepOutcome::Failed(ParseError::new(
                 format!("unexpected action {action} in state {state}"),
-                false,
+                ErrorKind::Internal,
                 scanner,
             )),
         }

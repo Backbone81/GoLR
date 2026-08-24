@@ -150,6 +150,16 @@ public sealed class ParseNode
     public IReadOnlyList<ParseNode> Children { get; }
 }
 
+/// <summary>What a parse error is about.</summary>
+public enum ErrorKind
+{
+    /// <summary>An error in the input.</summary>
+    Syntax,
+
+    /// <summary>A defect of the parser itself, which ends the parse.</summary>
+    Internal,
+}
+
 /// <summary>
 /// A single parse error. Parse errors are returned by <see cref="Parser.Parse"/> rather than thrown, and this is no
 /// Exception, so reporting many of them costs no stack traces. Throw one with
@@ -159,12 +169,12 @@ public sealed class ParseError
 {
     /// <summary>Creates an error which stands at the position the given scanner is at.</summary>
     /// <param name="reason">What is wrong, without the position in front of it.</param>
-    /// <param name="isSyntaxError">True for an error in the input, false for a defect of the parser itself.</param>
+    /// <param name="kind">What the error is about.</param>
     /// <param name="scanner">The scanner the token and its position are taken from.</param>
-    public ParseError(string reason, bool isSyntaxError, IScanner scanner)
+    public ParseError(string reason, ErrorKind kind, IScanner scanner)
     {
         Reason = reason;
-        IsSyntaxError = isSyntaxError;
+        Kind = kind;
 
         Token = scanner.Token;
         ByteOffset = scanner.ByteOffset;
@@ -177,10 +187,8 @@ public sealed class ParseError
     /// <summary>What is wrong, without the position in front of it.</summary>
     public string Reason { get; }
 
-    /// <summary>
-    /// True for an error in the input, false for a defect of the parser itself, which ends the parse.
-    /// </summary>
-    public bool IsSyntaxError { get; }
+    /// <summary>What the error is about.</summary>
+    public ErrorKind Kind { get; }
 
     /// <summary>The token the parse stopped on.</summary>
     public Token Token { get; }
@@ -420,7 +428,7 @@ public sealed class Parser
 
             // Only a failed step carries an error.
             ParseError failure = error!;
-            if (!failure.IsSyntaxError)
+            if (failure.Kind != ErrorKind.Syntax)
             {
                 // Only an error in the input can be recovered from.
                 _errors.Add(failure);
@@ -547,10 +555,10 @@ public sealed class Parser
             case ActionKindAccept:
                 return StepOutcome.Accept;
             case ActionKindError:
-                error = new ParseError($"unexpected token {terminal.ToDisplayString()}", true, _scanner);
+                error = new ParseError($"unexpected token {terminal.ToDisplayString()}", ErrorKind.Syntax, _scanner);
                 return StepOutcome.Failed;
             default:
-                error = new ParseError($"unexpected action {action} in state {state}", false, _scanner);
+                error = new ParseError($"unexpected action {action} in state {state}", ErrorKind.Internal, _scanner);
                 return StepOutcome.Failed;
         }
     }
