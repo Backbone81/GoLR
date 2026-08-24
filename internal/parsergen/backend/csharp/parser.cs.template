@@ -171,7 +171,7 @@ public sealed class ParseError
     /// <param name="reason">What is wrong, without the position in front of it.</param>
     /// <param name="kind">What the error is about.</param>
     /// <param name="scanner">The scanner the token and its position are taken from.</param>
-    public ParseError(string reason, ErrorKind kind, IScanner scanner)
+    public ParseError(string reason, ErrorKind kind, ITokenSource scanner)
     {
         Reason = reason;
         Kind = kind;
@@ -371,7 +371,7 @@ public sealed class Parser
     { {{- .Tables.NonterminalByProduction.Literal "        " }}    };
 
     /// <summary>The scanner of the running parse.</summary>
-    private IScanner _scanner = null!;
+    private ITokenSource _scanner = null!;
 
     /// <summary>The states of the running parse, the current one on top.</summary>
     private readonly List<int> _stateStack = new();
@@ -396,7 +396,7 @@ public sealed class Parser
     /// every error found. The tree is null when the parse could not be carried to its end.
     /// </summary>
     /// <param name="scanner">The scanner to take the tokens from.</param>
-    public ParseResult Parse(IScanner scanner)
+    public ParseResult Parse(ITokenSource scanner)
     {
         _scanner = scanner;
 

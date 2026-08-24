@@ -10,7 +10,7 @@ from .parser import (
     ParseSymbol,
     TerminalSymbol,
 )
-from .scanner import Scanner, Token, TokenSkipper, TokenSkipperScanner
+from .scanner import Scanner, Token, TokenSkipper, TokenSource
 
 __all__ = [
     "Nonterminal",
@@ -24,5 +24,5 @@ __all__ = [
     "TerminalSymbol",
     "Token",
     "TokenSkipper",
-    "TokenSkipperScanner",
+    "TokenSource",
 ]

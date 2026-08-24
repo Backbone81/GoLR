@@ -101,15 +101,15 @@ static bool evaluate(const char *expression, size_t length, long *value, char *e
     CalculatorScanner scanner;
     /* The generated token skipper will skip all whitespaces which the parser is not interested in. */
     CalculatorTokenSkipper skipper;
-    CalculatorTokenSkipperScanner source;
+    CalculatorTokenSource source;
     CalculatorParser parser;
     CalculatorParseResult result;
     const char *error = NULL;
     bool evaluated;
 
     calculator_scanner_init(&scanner, expression, length, "expression");
-    calculator_token_skipper_init(&skipper, &scanner);
-    source = calculator_token_skipper_as_token_skipper_scanner(&skipper);
+    calculator_token_skipper_init(&skipper, calculator_scanner_as_token_source(&scanner));
+    source = calculator_token_skipper_as_token_source(&skipper);
 
     /* The expression is parsed by giving the generated parser the scanner to pull tokens from. We get the root node of
        the parse tree and the errors the parse found. */

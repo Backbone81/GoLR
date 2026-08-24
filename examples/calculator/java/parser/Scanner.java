@@ -9,12 +9,12 @@ package parser;
 import java.nio.ByteBuffer;
 
 /**
- * The scanner a TokenSkipper wraps. The generated Scanner provides it.
+ * What a scanner offers. Both Scanner and TokenSkipper implement it.
  *
  * <p>A public type has to live in a file named after it, which is why this one is package private. An implementation
  * belongs into this package. Code outside it can implement a public interface which extends this one.
  */
-interface TokenSkipperScanner {
+interface TokenSource {
     /** Returns the current token. */
     Scanner.Token token();
 
@@ -47,7 +47,7 @@ interface TokenSkipperScanner {
 }
 
 /** Turns the bytes of a source into tokens. */
-public final class Scanner implements TokenSkipperScanner {
+public final class Scanner implements TokenSource {
     /** Every terminal symbol this scanner knows. */
     public enum Token {
         /** No token was found. */
@@ -98,12 +98,12 @@ public final class Scanner implements TokenSkipperScanner {
      * Wraps a scanner and skips the tokens marked for skipping, which are usually whitespace and comments. It offers
      * the same members as {@link Scanner}.
      */
-    public static final class TokenSkipper implements TokenSkipperScanner {
+    public static final class TokenSkipper implements TokenSource {
         /** The wrapped scanner. */
-        private final TokenSkipperScanner scanner;
+        private final TokenSource scanner;
 
         /** @param scanner the scanner to take the tokens from */
-        public TokenSkipper(TokenSkipperScanner scanner) {
+        public TokenSkipper(TokenSource scanner) {
             this.scanner = scanner;
         }
 

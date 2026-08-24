@@ -125,17 +125,6 @@ func (e *Error) Unwrap() error {
     return e.Cause
 }
 
-// ParserScanner is the interface the scanner for the parser needs to implement.
-type ParserScanner interface {
-    Token() Token
-    ByteOffset() int
-    Line() int
-    Column() int
-    Lexeme() []byte
-    Next() bool
-    FilePath() string
-}
-
 // errorRecoveryShifts is the number of tokens which have to be shifted after a syntax error before the parser reports
 // errors again. Suppressing the errors in between keeps a single mistake in the input from producing an avalanche of
 // messages which are all consequences of the first one. It is the number of tokens yacc and GNU Bison use, see
@@ -238,7 +227,7 @@ var (
 
 // Parser provides the parser implementation.
 type Parser struct {
-    scanner ParserScanner
+    scanner TokenSource
 
     stateStack []int
     nodeStack  []Node
@@ -290,7 +279,7 @@ var errAccept = errors.New("accept")
 //
 // The errors are joined even when there is only one of them, so the shape of the returned error does not depend on how
 // many errors the parse found. Use errors.Is and errors.As to get at them, both of which look into a join.
-func (p *Parser) Parse(scanner ParserScanner) (Node, error) {
+func (p *Parser) Parse(scanner TokenSource) (Node, error) {
     p.scanner = scanner
     p.resetArena()
 

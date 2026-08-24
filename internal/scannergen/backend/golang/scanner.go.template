@@ -55,8 +55,8 @@ func (t Token) IsSkipped() bool {
     }
 }
 
-// TokenSkipperScanner is what a scanner offers. Both Scanner and TokenSkipper implement it.
-type TokenSkipperScanner interface {
+// TokenSource is what a scanner offers. Both Scanner and TokenSkipper implement it.
+type TokenSource interface {
 	// Token returns the current token.
 	Token() Token
 
@@ -88,11 +88,11 @@ type TokenSkipperScanner interface {
 // offers the same members as Scanner.
 type TokenSkipper struct {
 	// scanner is the wrapped scanner.
-	scanner TokenSkipperScanner
+	scanner TokenSource
 }
 
 // NewTokenSkipper creates a skipper which hands on the tokens of the given scanner.
-func NewTokenSkipper(scanner TokenSkipperScanner) *TokenSkipper {
+func NewTokenSkipper(scanner TokenSource) *TokenSkipper {
     return &TokenSkipper {
         scanner: scanner,
     }

@@ -93,10 +93,10 @@ void {{ .Func "ScannerReset" }}({{ .Type "Scanner" }} *scanner, const char *sour
 /// source is reached, which sets the token to the end token.
 bool {{ .Func "ScannerNext" }}({{ .Type "Scanner" }} *scanner);
 
-/// The scanner the parser reads its tokens through. C has no interfaces, so it is a set of function pointers together
-/// with the thing they act on, which is what lets the parser take the scanner, the token skipper or a source of tokens
-/// written by hand.
-typedef struct {{ .Type "TokenSkipperScanner" }} {
+/// What a scanner offers. C has no interfaces, so it is a set of function pointers together with the thing they act on,
+/// which is what lets the token skipper and the parser take the scanner, each other or a source of tokens written by
+/// hand.
+typedef struct {{ .Type "TokenSource" }} {
     /// What the functions below act on.
     void *context;
 
@@ -118,21 +118,26 @@ typedef struct {{ .Type "TokenSkipperScanner" }} {
     /// Returns the file path the tokens are read from.
     const char *(*file_path)(const void *context);
 
+    /// Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
+    /// changed.
+    void (*reset)(void *context, const char *source, size_t source_length, size_t offset);
+
     /// Advances to the next token and reports whether there is one.
     bool (*next)(void *context);
-} {{ .Type "TokenSkipperScanner" }};
+} {{ .Type "TokenSource" }};
 
 /// Returns the scanner as a source of tokens the parser can read. The scanner has to outlive what this returns.
-{{ .Type "TokenSkipperScanner" }} {{ .Func "ScannerAsTokenSkipperScanner" }}({{ .Type "Scanner" }} *scanner);
+{{ .Type "TokenSource" }} {{ .Func "ScannerAsTokenSource" }}({{ .Type "Scanner" }} *scanner);
 
 /// Wraps a scanner and drops the tokens marked for skipping, which are usually whitespace and comments. The fields are
 /// internal; read it through the functions below.
 typedef struct {{ .Type "TokenSkipper" }} {
-    {{ .Type "Scanner" }} *scanner;
+    {{ .Type "TokenSource" }} scanner;
 } {{ .Type "TokenSkipper" }};
 
-/// Prepares a skipper which hands on the tokens of the given scanner. That scanner has to outlive the skipper.
-void {{ .Func "TokenSkipperInit" }}({{ .Type "TokenSkipper" }} *skipper, {{ .Type "Scanner" }} *scanner);
+/// Prepares a skipper which hands on the tokens of the given scanner. Whatever that scanner reads through has to
+/// outlive the skipper.
+void {{ .Func "TokenSkipperInit" }}({{ .Type "TokenSkipper" }} *skipper, {{ .Type "TokenSource" }} scanner);
 
 /// Returns the current token.
 {{ .Type "Token" }} {{ .Func "TokenSkipperToken" }}(const {{ .Type "TokenSkipper" }} *skipper);
@@ -152,12 +157,15 @@ size_t {{ .Func "TokenSkipperColumn" }}(const {{ .Type "TokenSkipper" }} *skippe
 /// Returns the file path the scanner was given.
 const char *{{ .Func "TokenSkipperFilePath" }}(const {{ .Type "TokenSkipper" }} *skipper);
 
+/// Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which changed.
+void {{ .Func "TokenSkipperReset" }}({{ .Type "TokenSkipper" }} *skipper, const char *source, size_t source_length, size_t offset);
+
 /// Advances to the next token which is not marked for skipping. Returns false when the source holds no such token any
 /// more.
 bool {{ .Func "TokenSkipperNext" }}({{ .Type "TokenSkipper" }} *skipper);
 
 /// Returns the skipper as a source of tokens the parser can read. The skipper has to outlive what this returns.
-{{ .Type "TokenSkipperScanner" }} {{ .Func "TokenSkipperAsTokenSkipperScanner" }}({{ .Type "TokenSkipper" }} *skipper);
+{{ .Type "TokenSource" }} {{ .Func "TokenSkipperAsTokenSource" }}({{ .Type "TokenSkipper" }} *skipper);
 
 #endif  /* {{ .Const "ScannerH" }} */
 
@@ -347,37 +355,41 @@ bool {{ .Func "ScannerNext" }}({{ .Type "Scanner" }} *scanner) {
     return true;
 }
 
-void {{ .Func "TokenSkipperInit" }}({{ .Type "TokenSkipper" }} *skipper, {{ .Type "Scanner" }} *scanner) {
+void {{ .Func "TokenSkipperInit" }}({{ .Type "TokenSkipper" }} *skipper, {{ .Type "TokenSource" }} scanner) {
     skipper->scanner = scanner;
 }
 
 {{ .Type "Token" }} {{ .Func "TokenSkipperToken" }}(const {{ .Type "TokenSkipper" }} *skipper) {
-    return {{ .Func "ScannerToken" }}(skipper->scanner);
+    return skipper->scanner.token(skipper->scanner.context);
 }
 
 size_t {{ .Func "TokenSkipperByteOffset" }}(const {{ .Type "TokenSkipper" }} *skipper) {
-    return {{ .Func "ScannerByteOffset" }}(skipper->scanner);
+    return skipper->scanner.byte_offset(skipper->scanner.context);
 }
 
 size_t {{ .Func "TokenSkipperLine" }}(const {{ .Type "TokenSkipper" }} *skipper) {
-    return {{ .Func "ScannerLine" }}(skipper->scanner);
+    return skipper->scanner.line(skipper->scanner.context);
 }
 
 size_t {{ .Func "TokenSkipperColumn" }}(const {{ .Type "TokenSkipper" }} *skipper) {
-    return {{ .Func "ScannerColumn" }}(skipper->scanner);
+    return skipper->scanner.column(skipper->scanner.context);
 }
 
 {{ .Type "StringView" }} {{ .Func "TokenSkipperLexeme" }}(const {{ .Type "TokenSkipper" }} *skipper) {
-    return {{ .Func "ScannerLexeme" }}(skipper->scanner);
+    return skipper->scanner.lexeme(skipper->scanner.context);
 }
 
 const char *{{ .Func "TokenSkipperFilePath" }}(const {{ .Type "TokenSkipper" }} *skipper) {
-    return {{ .Func "ScannerFilePath" }}(skipper->scanner);
+    return skipper->scanner.file_path(skipper->scanner.context);
+}
+
+void {{ .Func "TokenSkipperReset" }}({{ .Type "TokenSkipper" }} *skipper, const char *source, size_t source_length, size_t offset) {
+    skipper->scanner.reset(skipper->scanner.context, source, source_length, offset);
 }
 
 bool {{ .Func "TokenSkipperNext" }}({{ .Type "TokenSkipper" }} *skipper) {
-    while ({{ .Func "ScannerNext" }}(skipper->scanner)) {
-        if (!{{ .Func "TokenIsSkipped" }}({{ .Func "ScannerToken" }}(skipper->scanner))) {
+    while (skipper->scanner.next(skipper->scanner.context)) {
+        if (!{{ .Func "TokenIsSkipped" }}(skipper->scanner.token(skipper->scanner.context))) {
             return true;
         }
     }
@@ -412,21 +424,26 @@ static const char *{{ .Func "ScannerFilePathAdapter" }}(const void *context) {
     return {{ .Func "ScannerFilePath" }}((const {{ .Type "Scanner" }} *)context);
 }
 
+static void {{ .Func "ScannerResetAdapter" }}(void *context, const char *source, size_t source_length, size_t offset) {
+    {{ .Func "ScannerReset" }}(({{ .Type "Scanner" }} *)context, source, source_length, offset);
+}
+
 static bool {{ .Func "ScannerNextAdapter" }}(void *context) {
     return {{ .Func "ScannerNext" }}(({{ .Type "Scanner" }} *)context);
 }
 
-{{ .Type "TokenSkipperScanner" }} {{ .Func "ScannerAsTokenSkipperScanner" }}({{ .Type "Scanner" }} *scanner) {
-    {{ .Type "TokenSkipperScanner" }} source;
-    source.context = scanner;
-    source.token = {{ .Func "ScannerTokenAdapter" }};
-    source.byte_offset = {{ .Func "ScannerByteOffsetAdapter" }};
-    source.line = {{ .Func "ScannerLineAdapter" }};
-    source.column = {{ .Func "ScannerColumnAdapter" }};
-    source.lexeme = {{ .Func "ScannerLexemeAdapter" }};
-    source.file_path = {{ .Func "ScannerFilePathAdapter" }};
-    source.next = {{ .Func "ScannerNextAdapter" }};
-    return source;
+{{ .Type "TokenSource" }} {{ .Func "ScannerAsTokenSource" }}({{ .Type "Scanner" }} *scanner) {
+    {{ .Type "TokenSource" }} result;
+    result.context = scanner;
+    result.token = {{ .Func "ScannerTokenAdapter" }};
+    result.byte_offset = {{ .Func "ScannerByteOffsetAdapter" }};
+    result.line = {{ .Func "ScannerLineAdapter" }};
+    result.column = {{ .Func "ScannerColumnAdapter" }};
+    result.lexeme = {{ .Func "ScannerLexemeAdapter" }};
+    result.file_path = {{ .Func "ScannerFilePathAdapter" }};
+    result.reset = {{ .Func "ScannerResetAdapter" }};
+    result.next = {{ .Func "ScannerNextAdapter" }};
+    return result;
 }
 
 static {{ .Type "Token" }} {{ .Func "TokenSkipperTokenAdapter" }}(const void *context) {
@@ -453,21 +470,26 @@ static const char *{{ .Func "TokenSkipperFilePathAdapter" }}(const void *context
     return {{ .Func "TokenSkipperFilePath" }}((const {{ .Type "TokenSkipper" }} *)context);
 }
 
+static void {{ .Func "TokenSkipperResetAdapter" }}(void *context, const char *source, size_t source_length, size_t offset) {
+    {{ .Func "TokenSkipperReset" }}(({{ .Type "TokenSkipper" }} *)context, source, source_length, offset);
+}
+
 static bool {{ .Func "TokenSkipperNextAdapter" }}(void *context) {
     return {{ .Func "TokenSkipperNext" }}(({{ .Type "TokenSkipper" }} *)context);
 }
 
-{{ .Type "TokenSkipperScanner" }} {{ .Func "TokenSkipperAsTokenSkipperScanner" }}({{ .Type "TokenSkipper" }} *skipper) {
-    {{ .Type "TokenSkipperScanner" }} source;
-    source.context = skipper;
-    source.token = {{ .Func "TokenSkipperTokenAdapter" }};
-    source.byte_offset = {{ .Func "TokenSkipperByteOffsetAdapter" }};
-    source.line = {{ .Func "TokenSkipperLineAdapter" }};
-    source.column = {{ .Func "TokenSkipperColumnAdapter" }};
-    source.lexeme = {{ .Func "TokenSkipperLexemeAdapter" }};
-    source.file_path = {{ .Func "TokenSkipperFilePathAdapter" }};
-    source.next = {{ .Func "TokenSkipperNextAdapter" }};
-    return source;
+{{ .Type "TokenSource" }} {{ .Func "TokenSkipperAsTokenSource" }}({{ .Type "TokenSkipper" }} *skipper) {
+    {{ .Type "TokenSource" }} result;
+    result.context = skipper;
+    result.token = {{ .Func "TokenSkipperTokenAdapter" }};
+    result.byte_offset = {{ .Func "TokenSkipperByteOffsetAdapter" }};
+    result.line = {{ .Func "TokenSkipperLineAdapter" }};
+    result.column = {{ .Func "TokenSkipperColumnAdapter" }};
+    result.lexeme = {{ .Func "TokenSkipperLexemeAdapter" }};
+    result.file_path = {{ .Func "TokenSkipperFilePathAdapter" }};
+    result.reset = {{ .Func "TokenSkipperResetAdapter" }};
+    result.next = {{ .Func "TokenSkipperNextAdapter" }};
+    return result;
 }
 
 #endif  /* {{ .Const "ScannerImplementationOnce" }} */

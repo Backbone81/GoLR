@@ -100,10 +100,10 @@ void calculator_scanner_reset(CalculatorScanner *scanner, const char *source, si
 /// source is reached, which sets the token to the end token.
 bool calculator_scanner_next(CalculatorScanner *scanner);
 
-/// The scanner the parser reads its tokens through. C has no interfaces, so it is a set of function pointers together
-/// with the thing they act on, which is what lets the parser take the scanner, the token skipper or a source of tokens
-/// written by hand.
-typedef struct CalculatorTokenSkipperScanner {
+/// What a scanner offers. C has no interfaces, so it is a set of function pointers together with the thing they act on,
+/// which is what lets the token skipper and the parser take the scanner, each other or a source of tokens written by
+/// hand.
+typedef struct CalculatorTokenSource {
     /// What the functions below act on.
     void *context;
 
@@ -125,21 +125,26 @@ typedef struct CalculatorTokenSkipperScanner {
     /// Returns the file path the tokens are read from.
     const char *(*file_path)(const void *context);
 
+    /// Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which
+    /// changed.
+    void (*reset)(void *context, const char *source, size_t source_length, size_t offset);
+
     /// Advances to the next token and reports whether there is one.
     bool (*next)(void *context);
-} CalculatorTokenSkipperScanner;
+} CalculatorTokenSource;
 
 /// Returns the scanner as a source of tokens the parser can read. The scanner has to outlive what this returns.
-CalculatorTokenSkipperScanner calculator_scanner_as_token_skipper_scanner(CalculatorScanner *scanner);
+CalculatorTokenSource calculator_scanner_as_token_source(CalculatorScanner *scanner);
 
 /// Wraps a scanner and drops the tokens marked for skipping, which are usually whitespace and comments. The fields are
 /// internal; read it through the functions below.
 typedef struct CalculatorTokenSkipper {
-    CalculatorScanner *scanner;
+    CalculatorTokenSource scanner;
 } CalculatorTokenSkipper;
 
-/// Prepares a skipper which hands on the tokens of the given scanner. That scanner has to outlive the skipper.
-void calculator_token_skipper_init(CalculatorTokenSkipper *skipper, CalculatorScanner *scanner);
+/// Prepares a skipper which hands on the tokens of the given scanner. Whatever that scanner reads through has to
+/// outlive the skipper.
+void calculator_token_skipper_init(CalculatorTokenSkipper *skipper, CalculatorTokenSource scanner);
 
 /// Returns the current token.
 CalculatorToken calculator_token_skipper_token(const CalculatorTokenSkipper *skipper);
@@ -159,12 +164,15 @@ CalculatorStringView calculator_token_skipper_lexeme(const CalculatorTokenSkippe
 /// Returns the file path the scanner was given.
 const char *calculator_token_skipper_file_path(const CalculatorTokenSkipper *skipper);
 
+/// Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which changed.
+void calculator_token_skipper_reset(CalculatorTokenSkipper *skipper, const char *source, size_t source_length, size_t offset);
+
 /// Advances to the next token which is not marked for skipping. Returns false when the source holds no such token any
 /// more.
 bool calculator_token_skipper_next(CalculatorTokenSkipper *skipper);
 
 /// Returns the skipper as a source of tokens the parser can read. The skipper has to outlive what this returns.
-CalculatorTokenSkipperScanner calculator_token_skipper_as_token_skipper_scanner(CalculatorTokenSkipper *skipper);
+CalculatorTokenSource calculator_token_skipper_as_token_source(CalculatorTokenSkipper *skipper);
 
 #endif  /* CALCULATOR_SCANNER_H */
 
@@ -393,37 +401,41 @@ bool calculator_scanner_next(CalculatorScanner *scanner) {
     return true;
 }
 
-void calculator_token_skipper_init(CalculatorTokenSkipper *skipper, CalculatorScanner *scanner) {
+void calculator_token_skipper_init(CalculatorTokenSkipper *skipper, CalculatorTokenSource scanner) {
     skipper->scanner = scanner;
 }
 
 CalculatorToken calculator_token_skipper_token(const CalculatorTokenSkipper *skipper) {
-    return calculator_scanner_token(skipper->scanner);
+    return skipper->scanner.token(skipper->scanner.context);
 }
 
 size_t calculator_token_skipper_byte_offset(const CalculatorTokenSkipper *skipper) {
-    return calculator_scanner_byte_offset(skipper->scanner);
+    return skipper->scanner.byte_offset(skipper->scanner.context);
 }
 
 size_t calculator_token_skipper_line(const CalculatorTokenSkipper *skipper) {
-    return calculator_scanner_line(skipper->scanner);
+    return skipper->scanner.line(skipper->scanner.context);
 }
 
 size_t calculator_token_skipper_column(const CalculatorTokenSkipper *skipper) {
-    return calculator_scanner_column(skipper->scanner);
+    return skipper->scanner.column(skipper->scanner.context);
 }
 
 CalculatorStringView calculator_token_skipper_lexeme(const CalculatorTokenSkipper *skipper) {
-    return calculator_scanner_lexeme(skipper->scanner);
+    return skipper->scanner.lexeme(skipper->scanner.context);
 }
 
 const char *calculator_token_skipper_file_path(const CalculatorTokenSkipper *skipper) {
-    return calculator_scanner_file_path(skipper->scanner);
+    return skipper->scanner.file_path(skipper->scanner.context);
+}
+
+void calculator_token_skipper_reset(CalculatorTokenSkipper *skipper, const char *source, size_t source_length, size_t offset) {
+    skipper->scanner.reset(skipper->scanner.context, source, source_length, offset);
 }
 
 bool calculator_token_skipper_next(CalculatorTokenSkipper *skipper) {
-    while (calculator_scanner_next(skipper->scanner)) {
-        if (!calculator_token_is_skipped(calculator_scanner_token(skipper->scanner))) {
+    while (skipper->scanner.next(skipper->scanner.context)) {
+        if (!calculator_token_is_skipped(skipper->scanner.token(skipper->scanner.context))) {
             return true;
         }
     }
@@ -458,21 +470,26 @@ static const char *calculator_scanner_file_path_adapter(const void *context) {
     return calculator_scanner_file_path((const CalculatorScanner *)context);
 }
 
+static void calculator_scanner_reset_adapter(void *context, const char *source, size_t source_length, size_t offset) {
+    calculator_scanner_reset((CalculatorScanner *)context, source, source_length, offset);
+}
+
 static bool calculator_scanner_next_adapter(void *context) {
     return calculator_scanner_next((CalculatorScanner *)context);
 }
 
-CalculatorTokenSkipperScanner calculator_scanner_as_token_skipper_scanner(CalculatorScanner *scanner) {
-    CalculatorTokenSkipperScanner source;
-    source.context = scanner;
-    source.token = calculator_scanner_token_adapter;
-    source.byte_offset = calculator_scanner_byte_offset_adapter;
-    source.line = calculator_scanner_line_adapter;
-    source.column = calculator_scanner_column_adapter;
-    source.lexeme = calculator_scanner_lexeme_adapter;
-    source.file_path = calculator_scanner_file_path_adapter;
-    source.next = calculator_scanner_next_adapter;
-    return source;
+CalculatorTokenSource calculator_scanner_as_token_source(CalculatorScanner *scanner) {
+    CalculatorTokenSource result;
+    result.context = scanner;
+    result.token = calculator_scanner_token_adapter;
+    result.byte_offset = calculator_scanner_byte_offset_adapter;
+    result.line = calculator_scanner_line_adapter;
+    result.column = calculator_scanner_column_adapter;
+    result.lexeme = calculator_scanner_lexeme_adapter;
+    result.file_path = calculator_scanner_file_path_adapter;
+    result.reset = calculator_scanner_reset_adapter;
+    result.next = calculator_scanner_next_adapter;
+    return result;
 }
 
 static CalculatorToken calculator_token_skipper_token_adapter(const void *context) {
@@ -499,21 +516,26 @@ static const char *calculator_token_skipper_file_path_adapter(const void *contex
     return calculator_token_skipper_file_path((const CalculatorTokenSkipper *)context);
 }
 
+static void calculator_token_skipper_reset_adapter(void *context, const char *source, size_t source_length, size_t offset) {
+    calculator_token_skipper_reset((CalculatorTokenSkipper *)context, source, source_length, offset);
+}
+
 static bool calculator_token_skipper_next_adapter(void *context) {
     return calculator_token_skipper_next((CalculatorTokenSkipper *)context);
 }
 
-CalculatorTokenSkipperScanner calculator_token_skipper_as_token_skipper_scanner(CalculatorTokenSkipper *skipper) {
-    CalculatorTokenSkipperScanner source;
-    source.context = skipper;
-    source.token = calculator_token_skipper_token_adapter;
-    source.byte_offset = calculator_token_skipper_byte_offset_adapter;
-    source.line = calculator_token_skipper_line_adapter;
-    source.column = calculator_token_skipper_column_adapter;
-    source.lexeme = calculator_token_skipper_lexeme_adapter;
-    source.file_path = calculator_token_skipper_file_path_adapter;
-    source.next = calculator_token_skipper_next_adapter;
-    return source;
+CalculatorTokenSource calculator_token_skipper_as_token_source(CalculatorTokenSkipper *skipper) {
+    CalculatorTokenSource result;
+    result.context = skipper;
+    result.token = calculator_token_skipper_token_adapter;
+    result.byte_offset = calculator_token_skipper_byte_offset_adapter;
+    result.line = calculator_token_skipper_line_adapter;
+    result.column = calculator_token_skipper_column_adapter;
+    result.lexeme = calculator_token_skipper_lexeme_adapter;
+    result.file_path = calculator_token_skipper_file_path_adapter;
+    result.reset = calculator_token_skipper_reset_adapter;
+    result.next = calculator_token_skipper_next_adapter;
+    return result;
 }
 
 #endif  /* CALCULATOR_SCANNER_IMPLEMENTATION_ONCE */

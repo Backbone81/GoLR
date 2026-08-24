@@ -71,9 +71,9 @@ export function isSkipped(token) {
 }
 
 /**
- * The scanner a TokenSkipper wraps. The generated Scanner provides it.
+ * What a scanner offers. Both Scanner and TokenSkipper implement it.
  *
- * @typedef {object} ScannerLike
+ * @typedef {object} TokenSource
  * @property {() => number} token
  * @property {() => number} byteOffset
  * @property {() => number} line
@@ -92,12 +92,12 @@ export class TokenSkipper {
     /**
      * The wrapped scanner.
      *
-     * @type {ScannerLike}
+     * @type {TokenSource}
      */
     #scanner;
 
     /**
-     * @param {ScannerLike} scanner
+     * @param {TokenSource} scanner
      */
     constructor(scanner) {
         this.#scanner = scanner;

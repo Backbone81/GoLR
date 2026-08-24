@@ -4,7 +4,7 @@
 // Apache-2.0 license and may be licensed under terms of your choosing.
 // See https://github.com/backbone81/golr/blob/main/LICENSE.OUTPUT
 
-import { Token, tokenToString } from "{{ .Config.ScannerModule }}";
+import { Token, tokenToString, type TokenSource } from "{{ .Config.ScannerModule }}";
 
 /** Every nonterminal symbol of the grammar. */
 export const Nonterminal = Object.freeze({
@@ -157,7 +157,7 @@ export class ParseError {
      * @param kind What the error is about.
      * @param scanner The scanner the token and its position are taken from.
      */
-    constructor(reason: string, kind: ErrorKind, scanner: ParserScanner) {
+    constructor(reason: string, kind: ErrorKind, scanner: TokenSource) {
         this.reason = reason;
         this.kind = kind;
 
@@ -188,32 +188,6 @@ export interface ParseResult {
 
     /** Every error the parse reported, in the order they were found. */
     errors: ParseError[];
-}
-
-/**
- * The scanner a parse reads its tokens from. Both the Scanner and the TokenSkipper of the generated scanner provide it.
- */
-export interface ParserScanner {
-    /** Returns the current token. */
-    token(): Token;
-
-    /** Returns the start of the token in bytes from the start of the source. */
-    byteOffset(): number;
-
-    /** Returns the line the token starts on, counted from one. */
-    line(): number;
-
-    /** Returns the column the token starts on, counted from one. */
-    column(): number;
-
-    /** Returns the bytes of the token. */
-    lexeme(): Uint8Array;
-
-    /** Returns the file path the scanner was given. */
-    filePath(): string;
-
-    /** Advances to the next token. Returns false when the source holds no more tokens. */
-    next(): boolean;
 }
 
 /**
@@ -338,7 +312,7 @@ const nonterminalByProduction = new {{ .Tables.NonterminalByProduction.Type }}([
 /** Parses the tokens of a scanner into a parse tree. */
 export class Parser {
     /** The scanner of the running parse. */
-    #scanner!: ParserScanner;
+    #scanner!: TokenSource;
 
     /** The states of the running parse, the current one on top. */
     readonly #stateStack: number[] = [];
@@ -362,7 +336,7 @@ export class Parser {
      * result then holds both the tree parsed so far, with a node for the error symbol at every place resumed at, and
      * every error found. The tree is null when the parse could not be carried to its end.
      */
-    parse(scanner: ParserScanner): ParseResult {
+    parse(scanner: TokenSource): ParseResult {
         this.#scanner = scanner;
 
         // The stacks are emptied rather than replaced, so a parser hands out the room it already has to the parse

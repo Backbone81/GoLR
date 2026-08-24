@@ -4,12 +4,12 @@ package parser
 // token comes next. This is needed because the GNU Bison grammar has some situations which require to look at the
 // following token to decide the current one (like ID_COLON is generated for an ID which is followed by a COLON).
 type TokenTransformer struct {
-	Scanner    ParserScanner
+	Scanner    TokenSource
 	tokenQueue []TokenSnapshot
 }
 
-// TokenTransformer implements ParserScanner.
-var _ ParserScanner = (*TokenTransformer)(nil)
+// TokenTransformer implements TokenSource.
+var _ TokenSource = (*TokenTransformer)(nil)
 
 // TokenSnapshot stores all relevant information about a token.
 type TokenSnapshot struct {
@@ -72,4 +72,9 @@ func (t *TokenTransformer) ensureQueuedTokens(count int) {
 
 func (t *TokenTransformer) FilePath() string {
 	return t.Scanner.FilePath()
+}
+
+func (t *TokenTransformer) Reset(source []byte, offset int) {
+	t.Scanner.Reset(source, offset)
+	t.tokenQueue = t.tokenQueue[:0]
 }

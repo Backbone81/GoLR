@@ -194,7 +194,7 @@ void calculator_parser_free(CalculatorParser *parser);
 ///
 /// The result owns its tree and its errors, so it has to be released with the free function above. A result with no
 /// tree and no errors at all means not even the first allocation of the parse succeeded.
-CalculatorParseResult calculator_parser_parse(CalculatorParser *parser, const CalculatorTokenSkipperScanner *source);
+CalculatorParseResult calculator_parser_parse(CalculatorParser *parser, const CalculatorTokenSource *scanner);
 
 #endif  /* CALCULATOR_PARSER_H */
 
@@ -483,16 +483,16 @@ static bool calculator_parser_reserve_errors(CalculatorParser *parser, size_t co
     return true;
 }
 
-/// Returns an error which stands at the position the given source is at.
-static CalculatorParseError calculator_parse_error_at(CalculatorErrorKind kind, const CalculatorTokenSkipperScanner *source, size_t state) {
+/// Returns an error which stands at the position the given scanner is at.
+static CalculatorParseError calculator_parse_error_at(CalculatorErrorKind kind, const CalculatorTokenSource *scanner, size_t state) {
     CalculatorParseError error;
     error.kind = kind;
-    error.token = source->token(source->context);
-    error.byte_offset = source->byte_offset(source->context);
-    error.line = source->line(source->context);
-    error.column = source->column(source->context);
-    error.lexeme = source->lexeme(source->context);
-    error.file_path = source->file_path(source->context);
+    error.token = scanner->token(scanner->context);
+    error.byte_offset = scanner->byte_offset(scanner->context);
+    error.line = scanner->line(scanner->context);
+    error.column = scanner->column(scanner->context);
+    error.lexeme = scanner->lexeme(scanner->context);
+    error.file_path = scanner->file_path(scanner->context);
     error.state = state;
     return error;
 }
@@ -508,9 +508,9 @@ static bool calculator_parser_append_error(CalculatorParser *parser, const Calcu
 }
 
 /// Records that an allocation failed, using the slot the appending above keeps in reserve.
-static void calculator_parser_report_out_of_memory(CalculatorParser *parser, const CalculatorTokenSkipperScanner *source, size_t state) {
+static void calculator_parser_report_out_of_memory(CalculatorParser *parser, const CalculatorTokenSource *scanner, size_t state) {
     if (parser->error_count < parser->error_capacity) {
-        parser->errors[parser->error_count] = calculator_parse_error_at(CALCULATOR_ERROR_KIND_OUT_OF_MEMORY, source, state);
+        parser->errors[parser->error_count] = calculator_parse_error_at(CALCULATOR_ERROR_KIND_OUT_OF_MEMORY, scanner, state);
         parser->error_count++;
     }
 }
@@ -651,8 +651,8 @@ typedef enum CalculatorStepKind {
 } CalculatorStepKind;
 
 /// Performs the one action the state on top of the stack takes for the current token.
-static CalculatorStepKind calculator_parser_step(CalculatorParser *parser, const CalculatorTokenSkipperScanner *source, CalculatorParseError *error) {
-    CalculatorToken terminal = source->token(source->context);
+static CalculatorStepKind calculator_parser_step(CalculatorParser *parser, const CalculatorTokenSource *scanner, CalculatorParseError *error) {
+    CalculatorToken terminal = scanner->token(scanner->context);
 
     /* A token which is no terminal of this grammar takes the default action of the state. */
     size_t column = calculator_terminal_column(terminal);
@@ -676,13 +676,13 @@ static CalculatorStepKind calculator_parser_step(CalculatorParser *parser, const
         }
         node.symbol.kind = CALCULATOR_SYMBOL_KIND_TERMINAL;
         node.symbol.value.terminal = terminal;
-        node.lexeme = source->lexeme(source->context);
+        node.lexeme = scanner->lexeme(scanner->context);
         node.children = NULL;
         node.child_count = 0;
         if (!calculator_parser_push_node(parser, &node)) {
             return CALCULATOR_STEP_FAILED;
         }
-        source->next(source->context);
+        scanner->next(scanner->context);
         if (parser->error_recovery_shifts_remaining > 0) {
             /* Getting tokens of the input shifted again is what makes the parser trust its position. */
             parser->error_recovery_shifts_remaining--;
@@ -696,12 +696,12 @@ static CalculatorStepKind calculator_parser_step(CalculatorParser *parser, const
     case CALCULATOR_ACTION_KIND_ACCEPT:
         return CALCULATOR_STEP_ACCEPT;
     case CALCULATOR_ACTION_KIND_ERROR:
-        *error = calculator_parse_error_at(CALCULATOR_ERROR_KIND_SYNTAX, source, state);
+        *error = calculator_parse_error_at(CALCULATOR_ERROR_KIND_SYNTAX, scanner, state);
         return CALCULATOR_STEP_FAILED;
     default:
         /* Every value the mask selects has a case of its own, so this is never reached. It is here to make the switch
            complete. */
-        *error = calculator_parse_error_at(CALCULATOR_ERROR_KIND_INTERNAL, source, state);
+        *error = calculator_parse_error_at(CALCULATOR_ERROR_KIND_INTERNAL, scanner, state);
         return CALCULATOR_STEP_FAILED;
     }
 }
@@ -713,17 +713,17 @@ static CalculatorStepKind calculator_parser_step(CalculatorParser *parser, const
 /// until a state is reached which can shift the error symbol, and the symbol is shifted there. Everything the popped
 /// states had parsed is discarded with them. The token which caused the error is kept for the resumed state to look
 /// at, and only discarded when the parse fails on it a second time.
-static bool calculator_parser_recover_from_error(CalculatorParser *parser, const CalculatorTokenSkipperScanner *source) {
+static bool calculator_parser_recover_from_error(CalculatorParser *parser, const CalculatorTokenSource *scanner) {
     CalculatorParseNode node;
     size_t next_state;
 
     if (parser->error_recovery_shifts_remaining == CALCULATOR_ERROR_RECOVERY_SHIFTS) {
         /* Nothing was shifted since the last error, so the parser is failing on the token it already failed on. */
-        if (source->token(source->context) == CALCULATOR_TOKEN_END_TOKEN) {
+        if (scanner->token(scanner->context) == CALCULATOR_TOKEN_END_TOKEN) {
             /* The end of input is the one token which cannot be discarded. */
             return false;
         }
-        source->next(source->context);
+        scanner->next(scanner->context);
     }
     parser->error_recovery_shifts_remaining = CALCULATOR_ERROR_RECOVERY_SHIFTS;
 
@@ -782,7 +782,7 @@ void calculator_parse_result_free(CalculatorParseResult *result) {
     result->arena = NULL;
 }
 
-CalculatorParseResult calculator_parser_parse(CalculatorParser *parser, const CalculatorTokenSkipperScanner *source) {
+CalculatorParseResult calculator_parser_parse(CalculatorParser *parser, const CalculatorTokenSource *scanner) {
     CalculatorParseResult result;
     CalculatorParseError failure;
     CalculatorStepKind kind;
@@ -809,15 +809,15 @@ CalculatorParseResult calculator_parser_parse(CalculatorParser *parser, const Ca
         return result;
     }
 
-    /* A source with no tokens at all reports false right away. That is not an error: the token is the end of input
+    /* A scanner with no tokens at all reports false right away. That is not an error: the token is the end of input
        either way, and whether a parse of nothing but that is legal is for the table to decide. */
-    source->next(source->context);
+    scanner->next(scanner->context);
 
     for (;;) {
-        kind = calculator_parser_step(parser, source, &failure);
+        kind = calculator_parser_step(parser, scanner, &failure);
 
         if (parser->out_of_memory) {
-            calculator_parser_report_out_of_memory(parser, source, calculator_parser_current_state(parser));
+            calculator_parser_report_out_of_memory(parser, scanner, calculator_parser_current_state(parser));
             break;
         }
         if (kind == CALCULATOR_STEP_CONTINUE) {
@@ -829,7 +829,7 @@ CalculatorParseResult calculator_parser_parse(CalculatorParser *parser, const Ca
                 CalculatorParseNode *root = calculator_arena_allocate(&parser->arena, 1);
                 if (root == NULL) {
                     parser->out_of_memory = true;
-                    calculator_parser_report_out_of_memory(parser, source, calculator_parser_current_state(parser));
+                    calculator_parser_report_out_of_memory(parser, scanner, calculator_parser_current_state(parser));
                     break;
                 }
                 *root = parser->node_stack[0];
@@ -842,7 +842,7 @@ CalculatorParseResult calculator_parser_parse(CalculatorParser *parser, const Ca
         if (failure.kind != CALCULATOR_ERROR_KIND_SYNTAX) {
             /* Only an error in the input can be recovered from. */
             if (!calculator_parser_append_error(parser, &failure)) {
-                calculator_parser_report_out_of_memory(parser, source, calculator_parser_current_state(parser));
+                calculator_parser_report_out_of_memory(parser, scanner, calculator_parser_current_state(parser));
             }
             break;
         }
@@ -850,13 +850,13 @@ CalculatorParseResult calculator_parser_parse(CalculatorParser *parser, const Ca
             /* While recovering, the parser is not in sync with the input, so the errors it runs into there follow from
                the one already reported. */
             if (!calculator_parser_append_error(parser, &failure)) {
-                calculator_parser_report_out_of_memory(parser, source, calculator_parser_current_state(parser));
+                calculator_parser_report_out_of_memory(parser, scanner, calculator_parser_current_state(parser));
                 break;
             }
         }
-        if (!calculator_parser_recover_from_error(parser, source)) {
+        if (!calculator_parser_recover_from_error(parser, scanner)) {
             if (parser->out_of_memory) {
-                calculator_parser_report_out_of_memory(parser, source, calculator_parser_current_state(parser));
+                calculator_parser_report_out_of_memory(parser, scanner, calculator_parser_current_state(parser));
             }
             break;
         }

@@ -70,7 +70,7 @@ public static class TokenExtensions
 }
 
 /// <summary>What a scanner offers. Both <see cref="Scanner"/> and <see cref="TokenSkipper"/> implement it.</summary>
-public interface IScanner
+public interface ITokenSource
 {
     /// <summary>The current token.</summary>
     Token Token { get; }
@@ -109,14 +109,14 @@ public interface IScanner
 /// Wraps a scanner and skips the tokens marked for skipping, which are usually whitespace and comments. It offers the
 /// same members as <see cref="Scanner"/>.
 /// </summary>
-public sealed class TokenSkipper : IScanner
+public sealed class TokenSkipper : ITokenSource
 {
     /// <summary>The wrapped scanner.</summary>
-    private readonly IScanner _scanner;
+    private readonly ITokenSource _scanner;
 
     /// <summary>Creates a skipper which hands on the tokens of the given scanner.</summary>
     /// <param name="scanner">The scanner to take the tokens from.</param>
-    public TokenSkipper(IScanner scanner) => _scanner = scanner;
+    public TokenSkipper(ITokenSource scanner) => _scanner = scanner;
 
     /// <inheritdoc/>
     public Token Token => _scanner.Token;
@@ -157,7 +157,7 @@ public sealed class TokenSkipper : IScanner
 }
 
 /// <summary>Turns the bytes of a source into tokens.</summary>
-public sealed class Scanner : IScanner
+public sealed class Scanner : ITokenSource
 {
     // The automaton is held in lookup tables. An input byte is mapped to its byte class, which is the column of the
     // transition table, and the rows of that table are displaced into a single array so that the entries of one row

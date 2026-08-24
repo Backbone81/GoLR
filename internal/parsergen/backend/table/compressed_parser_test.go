@@ -253,7 +253,6 @@ var _ = Describe("CompressedParser", func() {
 
 		compressed := expectDecodeEquivalence(parser)
 
-		Expect(compressed.HasErrorRecovery()).To(BeTrue())
 		stateIdx, ok := compressed.ErrorShiftStateIdx(0)
 		Expect(ok).To(BeTrue())
 		Expect(stateIdx).To(Equal(1))
@@ -274,7 +273,9 @@ var _ = Describe("CompressedParser", func() {
 		compressed := expectDecodeEquivalence(parser)
 
 		Expect(compressed.ErrorTerminalIdx).To(Equal(table.NoTerminal))
-		Expect(compressed.HasErrorRecovery()).To(BeFalse())
+
+		_, ok := compressed.ErrorShiftStateIdx(0)
+		Expect(ok).To(BeFalse())
 	})
 
 	It("supports a parser without any state", func() {
@@ -285,7 +286,6 @@ var _ = Describe("CompressedParser", func() {
 		Expect(compressed.Gotos.Base).To(BeEmpty())
 		Expect(compressed.DefaultGotoByNonterminalIdx).To(BeEmpty())
 		Expect(compressed.ErrorTerminalIdx).To(Equal(table.NoTerminal))
-		Expect(compressed.HasErrorRecovery()).To(BeFalse())
 	})
 
 	for _, wellKnownGrammar := range testdata.WellKnownGrammars {

@@ -10,7 +10,7 @@ from collections.abc import Iterator
 from enum import IntEnum
 from typing import Final, Protocol
 
-__all__ = ["Scanner", "Token", "TokenSkipper", "TokenSkipperScanner", "is_skipped"]
+__all__ = ["Scanner", "Token", "TokenSkipper", "TokenSource", "is_skipped"]
 
 
 class Token(IntEnum):
@@ -68,7 +68,7 @@ def is_skipped(token: Token) -> bool:
     return token in _SKIPPED_TOKENS
 
 
-class TokenSkipperScanner(Protocol):
+class TokenSource(Protocol):
     """What a scanner offers. Both `Scanner` and `TokenSkipper` satisfy it."""
 
     @property
@@ -127,10 +127,10 @@ class TokenSkipper:
 
     __slots__ = ("_scanner",)
 
-    _scanner: TokenSkipperScanner
+    _scanner: TokenSource
     """The wrapped scanner."""
 
-    def __init__(self, scanner: TokenSkipperScanner) -> None:
+    def __init__(self, scanner: TokenSource) -> None:
         """Creates a skipper which hands on the tokens of the given scanner."""
         self._scanner = scanner
 

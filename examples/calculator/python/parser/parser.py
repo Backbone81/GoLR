@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from enum import Enum, IntEnum, auto
 from typing import Final
 
-from .scanner import Token, TokenSkipperScanner
+from .scanner import Token, TokenSource
 
 __all__ = [
     "Nonterminal",
@@ -164,7 +164,7 @@ class ParseError(Exception):
         self.file_path = file_path
 
     @classmethod
-    def from_scanner(cls, reason: str, kind: ErrorKind, scanner: TokenSkipperScanner) -> "ParseError":
+    def from_scanner(cls, reason: str, kind: ErrorKind, scanner: TokenSource) -> "ParseError":
         """Creates an error with the given reason at the position the scanner is at.
 
         :param reason: What is wrong, without the position in front of it.
@@ -383,7 +383,7 @@ class Parser:
         self._errors = []
         self._reset()
 
-    def parse(self, scanner: TokenSkipperScanner) -> ParseResult:
+    def parse(self, scanner: TokenSource) -> ParseResult:
         """Parses the tokens the scanner delivers.
 
         Can be called more than once, with a different scanner each time.
@@ -429,7 +429,7 @@ class Parser:
         self._errors.clear()
         self._error_recovery_shifts_remaining = 0
 
-    def _step(self, scanner: TokenSkipperScanner) -> _StepOutcome | ParseError:
+    def _step(self, scanner: TokenSource) -> _StepOutcome | ParseError:
         """Performs the one action the state on top of the stack takes for the current token.
 
         Returns an error only when the parse cannot go on.
@@ -492,7 +492,7 @@ class Parser:
         del self._node_stack[split_idx:]
         self._node_stack.append(ParseNode(NonterminalSymbol(Nonterminal(nonterminal)), children=children))
 
-    def _recover_from_error(self, scanner: TokenSkipperScanner) -> bool:
+    def _recover_from_error(self, scanner: TokenSource) -> bool:
         """Puts the parser back where it can carry on with the remaining input after a syntax error.
 
         Once it reports false, the parse is given up.

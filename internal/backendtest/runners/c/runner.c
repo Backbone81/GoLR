@@ -122,14 +122,14 @@ static void write_parser_trace(FILE *out, const char *source, size_t source_leng
     /* The token skipper here, because a skipped rule never reaches the parser. */
     ParserScanner scanner;
     ParserTokenSkipper skipper;
-    ParserTokenSkipperScanner source_of_tokens;
+    ParserTokenSource source_of_tokens;
     ParserParser parser;
     ParserParseResult result;
     size_t idx;
 
     parser_scanner_init(&scanner, source, source_length, input_path);
-    parser_token_skipper_init(&skipper, &scanner);
-    source_of_tokens = parser_token_skipper_as_token_skipper_scanner(&skipper);
+    parser_token_skipper_init(&skipper, parser_scanner_as_token_source(&scanner));
+    source_of_tokens = parser_token_skipper_as_token_source(&skipper);
 
     parser_parser_init(&parser);
     result = parser_parser_parse(&parser, &source_of_tokens);

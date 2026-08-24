@@ -58,8 +58,8 @@ export function isSkipped(token: Token): boolean {
     }
 }
 
-/** The scanner a TokenSkipper wraps. The generated Scanner provides it. */
-export interface TokenSkipperScanner {
+/** What a scanner offers. Both Scanner and TokenSkipper implement it. */
+export interface TokenSource {
     /** Returns the current token. */
     token(): Token;
 
@@ -95,12 +95,12 @@ export interface TokenSkipperScanner {
  * Wraps a scanner and skips the tokens marked for skipping, which are usually whitespace and comments. It offers the
  * same methods as Scanner.
  */
-export class TokenSkipper implements TokenSkipperScanner {
+export class TokenSkipper implements TokenSource {
     /** The wrapped scanner. */
-    readonly #scanner: TokenSkipperScanner;
+    readonly #scanner: TokenSource;
 
     /** @param scanner The scanner to take the tokens from. */
-    constructor(scanner: TokenSkipperScanner) {
+    constructor(scanner: TokenSource) {
         this.#scanner = scanner;
     }
 
@@ -223,7 +223,7 @@ const acceptTokenByState = new Uint8Array([
 ]);
 
 /** Turns the bytes of a source into tokens. */
-export class Scanner implements TokenSkipperScanner {
+export class Scanner implements TokenSource {
     /** The bytes being scanned. */
     #source!: Uint8Array;
 

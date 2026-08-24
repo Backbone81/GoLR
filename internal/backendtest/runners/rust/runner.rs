@@ -13,7 +13,7 @@ mod scanner;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use crate::parser::{ParseNode, ParseSymbol, Parser};
-use crate::scanner::{Scanner, Token, TokenSkipper, TokenSkipperScanner};
+use crate::scanner::{Scanner, Token, TokenSkipper, TokenSource};
 
 const SCANNER_TRACE_FILE_NAME: &str = "scanner.actual";
 const PARSER_TRACE_FILE_NAME: &str = "parser.actual";

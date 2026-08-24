@@ -10,8 +10,8 @@ type ContextScanner struct {
 	percentPercentCount int
 }
 
-// ContextScanner implements ParserScanner.
-var _ ParserScanner = (*ContextScanner)(nil)
+// ContextScanner implements TokenSource.
+var _ TokenSource = (*ContextScanner)(nil)
 
 func (c *ContextScanner) Token() Token {
 	return c.Scanner.Token()

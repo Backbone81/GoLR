@@ -108,15 +108,3 @@ func (c *CompressedParser) ErrorShiftStateIdx(stateIdx int) (int, bool) {
 	}
 	return action.StateIdx(), true
 }
-
-// HasErrorRecovery reports whether any state of the parser can shift the error symbol, which is the case for a grammar
-// which marks places to resume at after a syntax error. A generated parser leaves out the parts of the recovery which
-// cost something on the hot path when no state can.
-func (c *CompressedParser) HasErrorRecovery() bool {
-	for stateIdx := range c.StateCount() {
-		if _, ok := c.ErrorShiftStateIdx(stateIdx); ok {
-			return true
-		}
-	}
-	return false
-}

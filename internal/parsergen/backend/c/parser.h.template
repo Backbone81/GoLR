@@ -198,7 +198,7 @@ void {{ .Func "ParserFree" }}({{ .Type "Parser" }} *parser);
 ///
 /// The result owns its tree and its errors, so it has to be released with the free function above. A result with no
 /// tree and no errors at all means not even the first allocation of the parse succeeded.
-{{ .Type "ParseResult" }} {{ .Func "ParserParse" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSkipperScanner" }} *source);
+{{ .Type "ParseResult" }} {{ .Func "ParserParse" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner);
 
 #endif  /* {{ .Const "ParserH" }} */
 
@@ -472,16 +472,16 @@ static bool {{ .Func "ParserReserveErrors" }}({{ .Type "Parser" }} *parser, size
     return true;
 }
 
-/// Returns an error which stands at the position the given source is at.
-static {{ .Type "ParseError" }} {{ .Func "ParseErrorAt" }}({{ .Type "ErrorKind" }} kind, const {{ .Type "TokenSkipperScanner" }} *source, size_t state) {
+/// Returns an error which stands at the position the given scanner is at.
+static {{ .Type "ParseError" }} {{ .Func "ParseErrorAt" }}({{ .Type "ErrorKind" }} kind, const {{ .Type "TokenSource" }} *scanner, size_t state) {
     {{ .Type "ParseError" }} error;
     error.kind = kind;
-    error.token = source->token(source->context);
-    error.byte_offset = source->byte_offset(source->context);
-    error.line = source->line(source->context);
-    error.column = source->column(source->context);
-    error.lexeme = source->lexeme(source->context);
-    error.file_path = source->file_path(source->context);
+    error.token = scanner->token(scanner->context);
+    error.byte_offset = scanner->byte_offset(scanner->context);
+    error.line = scanner->line(scanner->context);
+    error.column = scanner->column(scanner->context);
+    error.lexeme = scanner->lexeme(scanner->context);
+    error.file_path = scanner->file_path(scanner->context);
     error.state = state;
     return error;
 }
@@ -497,9 +497,9 @@ static bool {{ .Func "ParserAppendError" }}({{ .Type "Parser" }} *parser, const 
 }
 
 /// Records that an allocation failed, using the slot the appending above keeps in reserve.
-static void {{ .Func "ParserReportOutOfMemory" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSkipperScanner" }} *source, size_t state) {
+static void {{ .Func "ParserReportOutOfMemory" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner, size_t state) {
     if (parser->error_count < parser->error_capacity) {
-        parser->errors[parser->error_count] = {{ .Func "ParseErrorAt" }}({{ .Const "ErrorKindOutOfMemory" }}, source, state);
+        parser->errors[parser->error_count] = {{ .Func "ParseErrorAt" }}({{ .Const "ErrorKindOutOfMemory" }}, scanner, state);
         parser->error_count++;
     }
 }
@@ -624,8 +624,8 @@ typedef enum {{ .Type "StepKind" }} {
 } {{ .Type "StepKind" }};
 
 /// Performs the one action the state on top of the stack takes for the current token.
-static {{ .Type "StepKind" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSkipperScanner" }} *source, {{ .Type "ParseError" }} *error) {
-    {{ .Type "Token" }} terminal = source->token(source->context);
+static {{ .Type "StepKind" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner, {{ .Type "ParseError" }} *error) {
+    {{ .Type "Token" }} terminal = scanner->token(scanner->context);
 
     /* A token which is no terminal of this grammar takes the default action of the state. */
     size_t column = {{ .Func "TerminalColumn" }}(terminal);
@@ -649,13 +649,13 @@ static {{ .Type "StepKind" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *par
         }
         node.symbol.kind = {{ .Const "SymbolKindTerminal" }};
         node.symbol.value.terminal = terminal;
-        node.lexeme = source->lexeme(source->context);
+        node.lexeme = scanner->lexeme(scanner->context);
         node.children = NULL;
         node.child_count = 0;
         if (!{{ .Func "ParserPushNode" }}(parser, &node)) {
             return {{ .Const "StepFailed" }};
         }
-        source->next(source->context);
+        scanner->next(scanner->context);
         if (parser->error_recovery_shifts_remaining > 0) {
             /* Getting tokens of the input shifted again is what makes the parser trust its position. */
             parser->error_recovery_shifts_remaining--;
@@ -669,12 +669,12 @@ static {{ .Type "StepKind" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *par
     case {{ .Const "ActionKindAccept" }}:
         return {{ .Const "StepAccept" }};
     case {{ .Const "ActionKindError" }}:
-        *error = {{ .Func "ParseErrorAt" }}({{ .Const "ErrorKindSyntax" }}, source, state);
+        *error = {{ .Func "ParseErrorAt" }}({{ .Const "ErrorKindSyntax" }}, scanner, state);
         return {{ .Const "StepFailed" }};
     default:
         /* Every value the mask selects has a case of its own, so this is never reached. It is here to make the switch
            complete. */
-        *error = {{ .Func "ParseErrorAt" }}({{ .Const "ErrorKindInternal" }}, source, state);
+        *error = {{ .Func "ParseErrorAt" }}({{ .Const "ErrorKindInternal" }}, scanner, state);
         return {{ .Const "StepFailed" }};
     }
 }
@@ -686,17 +686,17 @@ static {{ .Type "StepKind" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *par
 /// until a state is reached which can shift the error symbol, and the symbol is shifted there. Everything the popped
 /// states had parsed is discarded with them. The token which caused the error is kept for the resumed state to look
 /// at, and only discarded when the parse fails on it a second time.
-static bool {{ .Func "ParserRecoverFromError" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSkipperScanner" }} *source) {
+static bool {{ .Func "ParserRecoverFromError" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner) {
     {{ .Type "ParseNode" }} node;
     size_t next_state;
 
     if (parser->error_recovery_shifts_remaining == {{ .Const "ErrorRecoveryShifts" }}) {
         /* Nothing was shifted since the last error, so the parser is failing on the token it already failed on. */
-        if (source->token(source->context) == {{ .Const "TokenEndToken" }}) {
+        if (scanner->token(scanner->context) == {{ .Const "TokenEndToken" }}) {
             /* The end of input is the one token which cannot be discarded. */
             return false;
         }
-        source->next(source->context);
+        scanner->next(scanner->context);
     }
     parser->error_recovery_shifts_remaining = {{ .Const "ErrorRecoveryShifts" }};
 
@@ -755,7 +755,7 @@ void {{ .Func "ParseResultFree" }}({{ .Type "ParseResult" }} *result) {
     result->arena = NULL;
 }
 
-{{ .Type "ParseResult" }} {{ .Func "ParserParse" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSkipperScanner" }} *source) {
+{{ .Type "ParseResult" }} {{ .Func "ParserParse" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner) {
     {{ .Type "ParseResult" }} result;
     {{ .Type "ParseError" }} failure;
     {{ .Type "StepKind" }} kind;
@@ -782,15 +782,15 @@ void {{ .Func "ParseResultFree" }}({{ .Type "ParseResult" }} *result) {
         return result;
     }
 
-    /* A source with no tokens at all reports false right away. That is not an error: the token is the end of input
+    /* A scanner with no tokens at all reports false right away. That is not an error: the token is the end of input
        either way, and whether a parse of nothing but that is legal is for the table to decide. */
-    source->next(source->context);
+    scanner->next(scanner->context);
 
     for (;;) {
-        kind = {{ .Func "ParserStep" }}(parser, source, &failure);
+        kind = {{ .Func "ParserStep" }}(parser, scanner, &failure);
 
         if (parser->out_of_memory) {
-            {{ .Func "ParserReportOutOfMemory" }}(parser, source, {{ .Func "ParserCurrentState" }}(parser));
+            {{ .Func "ParserReportOutOfMemory" }}(parser, scanner, {{ .Func "ParserCurrentState" }}(parser));
             break;
         }
         if (kind == {{ .Const "StepContinue" }}) {
@@ -802,7 +802,7 @@ void {{ .Func "ParseResultFree" }}({{ .Type "ParseResult" }} *result) {
                 {{ .Type "ParseNode" }} *root = {{ .Func "ArenaAllocate" }}(&parser->arena, 1);
                 if (root == NULL) {
                     parser->out_of_memory = true;
-                    {{ .Func "ParserReportOutOfMemory" }}(parser, source, {{ .Func "ParserCurrentState" }}(parser));
+                    {{ .Func "ParserReportOutOfMemory" }}(parser, scanner, {{ .Func "ParserCurrentState" }}(parser));
                     break;
                 }
                 *root = parser->node_stack[0];
@@ -815,7 +815,7 @@ void {{ .Func "ParseResultFree" }}({{ .Type "ParseResult" }} *result) {
         if (failure.kind != {{ .Const "ErrorKindSyntax" }}) {
             /* Only an error in the input can be recovered from. */
             if (!{{ .Func "ParserAppendError" }}(parser, &failure)) {
-                {{ .Func "ParserReportOutOfMemory" }}(parser, source, {{ .Func "ParserCurrentState" }}(parser));
+                {{ .Func "ParserReportOutOfMemory" }}(parser, scanner, {{ .Func "ParserCurrentState" }}(parser));
             }
             break;
         }
@@ -823,13 +823,13 @@ void {{ .Func "ParseResultFree" }}({{ .Type "ParseResult" }} *result) {
             /* While recovering, the parser is not in sync with the input, so the errors it runs into there follow from
                the one already reported. */
             if (!{{ .Func "ParserAppendError" }}(parser, &failure)) {
-                {{ .Func "ParserReportOutOfMemory" }}(parser, source, {{ .Func "ParserCurrentState" }}(parser));
+                {{ .Func "ParserReportOutOfMemory" }}(parser, scanner, {{ .Func "ParserCurrentState" }}(parser));
                 break;
             }
         }
-        if (!{{ .Func "ParserRecoverFromError" }}(parser, source)) {
+        if (!{{ .Func "ParserRecoverFromError" }}(parser, scanner)) {
             if (parser->out_of_memory) {
-                {{ .Func "ParserReportOutOfMemory" }}(parser, source, {{ .Func "ParserCurrentState" }}(parser));
+                {{ .Func "ParserReportOutOfMemory" }}(parser, scanner, {{ .Func "ParserCurrentState" }}(parser));
             }
             break;
         }

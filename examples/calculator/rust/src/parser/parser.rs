@@ -9,7 +9,7 @@
 
 use std::fmt;
 
-use super::scanner::{Token, TokenSkipperScanner};
+use super::scanner::{Token, TokenSource};
 
 /// Every nonterminal symbol of the grammar.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -108,7 +108,7 @@ impl<'a> ParseError<'a> {
     /// Creates an error with the given reason at the position the scanner is at.
     fn new<S>(reason: String, kind: ErrorKind, scanner: &S) -> Self
     where
-        S: TokenSkipperScanner<'a> + ?Sized,
+        S: TokenSource<'a> + ?Sized,
     {
         Self {
             reason,
@@ -293,7 +293,7 @@ impl Parser {
     /// every error found. The tree is `None` when the parse could not be carried to its end.
     pub fn parse<'a, S>(&mut self, scanner: &mut S) -> ParseResult<'a>
     where
-        S: TokenSkipperScanner<'a> + ?Sized,
+        S: TokenSource<'a> + ?Sized,
     {
         ParseState::default().parse(scanner)
     }
@@ -318,7 +318,7 @@ struct ParseState<'a> {
 
 impl<'a> ParseState<'a> {
     /// Runs one parse to its end.
-    fn parse<S: TokenSkipperScanner<'a> + ?Sized>(mut self, scanner: &mut S) -> ParseResult<'a> {
+    fn parse<S: TokenSource<'a> + ?Sized>(mut self, scanner: &mut S) -> ParseResult<'a> {
         self.state_stack.push(0);
 
         // A source with no tokens at all reports false right away. That is not an error: the token is the end of input
@@ -363,7 +363,7 @@ impl<'a> ParseState<'a> {
 
     /// Performs the one action the state on top of the stack takes for the current token. The outcome carries the
     /// error only when the parse cannot go on.
-    fn step<S: TokenSkipperScanner<'a> + ?Sized>(&mut self, scanner: &mut S) -> StepOutcome<'a> {
+    fn step<S: TokenSource<'a> + ?Sized>(&mut self, scanner: &mut S) -> StepOutcome<'a> {
         let terminal = scanner.token();
 
         // A token which is no terminal of this grammar takes the default action of the state.
@@ -448,7 +448,7 @@ impl<'a> ParseState<'a> {
     /// until a state is reached which can shift the error symbol, and the symbol is shifted there. Everything the
     /// popped states had parsed is discarded with them. The token which caused the error is kept for the resumed state
     /// to look at, and only discarded when the parse fails on it a second time.
-    fn recover_from_error<S: TokenSkipperScanner<'a> + ?Sized>(&mut self, scanner: &mut S) -> bool {
+    fn recover_from_error<S: TokenSource<'a> + ?Sized>(&mut self, scanner: &mut S) -> bool {
         if self.error_recovery_shifts_remaining == ERROR_RECOVERY_SHIFTS {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if scanner.token() == Token::EndToken {

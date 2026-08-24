@@ -113,7 +113,7 @@ public final class Parser {
          * @param kind what the error is about
          * @param scanner the scanner the token and its position are taken from
          */
-        ParseError(String reason, ErrorKind kind, TokenSkipperScanner scanner) {
+        ParseError(String reason, ErrorKind kind, TokenSource scanner) {
             this(
                     reason,
                     kind,
@@ -298,7 +298,7 @@ public final class Parser {
             nonterminalByProduction0());
 
     /** The scanner of the running parse. */
-    private TokenSkipperScanner scanner;
+    private TokenSource scanner;
 
     /** The states of the running parse, the current one on top. */
     private int[] stateStack = new int[INITIAL_STACK_CAPACITY];
@@ -325,7 +325,7 @@ public final class Parser {
      * result then holds both the tree parsed so far, with a node for the error symbol at every place resumed at, and
      * every error found. The tree is null when the parse could not be carried to its end.
      */
-    public ParseResult parse(TokenSkipperScanner scanner) {
+    public ParseResult parse(TokenSource scanner) {
         this.scanner = scanner;
 
         // The stacks are emptied rather than replaced, so a parser hands out the room it already has to the parse

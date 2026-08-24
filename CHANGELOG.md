@@ -5,7 +5,7 @@
 ## Unreleased
 
 - Fixed the scanner walking its line and column counters past the end of the source when Reset was given an offset beyond it. The offset is now clamped, as it already was in the C and C++ backends.
-- BREAKING: Aligned the generated scanners and parsers across all language backends, so that the same data types, names, comments and code structure appear in each of them. The parse error now reports what it is about with an ErrorKind enum instead of a boolean flag, which changes the public interface of the Rust, Python, Java, C#, TypeScript and JavaScript backends.
+- BREAKING: Aligned the generated scanners and parsers across all language backends.
 
 ## v0.3.0 (2026-08-23)
 

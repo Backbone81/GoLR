@@ -6,6 +6,8 @@
 
 import { Token, tokenToString } from "./scanner.js";
 
+/** @typedef {import("./scanner.js").TokenSource} TokenSource */
+
 /**
  * Every nonterminal symbol of the grammar.
  *
@@ -182,7 +184,7 @@ export class ParseError {
     /**
      * @param {string} reason
      * @param {ErrorKind} kind
-     * @param {ScannerLike} scanner
+     * @param {TokenSource} scanner
      */
     constructor(reason, kind, scanner) {
         this.reason = reason;
@@ -219,19 +221,6 @@ export class ParseError {
  * @typedef {object} ParseResult
  * @property {ParseNode|null} tree The parse tree, or null when the parse could not be finished.
  * @property {ParseError[]} errors Every error the parse reported, in the order they were found.
- */
-
-/**
- * The scanner a parse reads its tokens from. Both the Scanner and the TokenSkipper of the generated scanner provide it.
- *
- * @typedef {object} ScannerLike
- * @property {() => number} token
- * @property {() => number} byteOffset
- * @property {() => number} line
- * @property {() => number} column
- * @property {() => Uint8Array} lexeme
- * @property {() => string} filePath
- * @property {() => boolean} next
  */
 
 /**
@@ -394,7 +383,7 @@ export class Parser {
     /**
      * The scanner of the running parse.
      *
-     * @type {ScannerLike}
+     * @type {TokenSource}
      */
     #scanner;
 
@@ -434,7 +423,7 @@ export class Parser {
      * result then holds both the tree parsed so far, with a node for the error symbol at every place resumed at, and
      * every error found. The tree is null when the parse could not be carried to its end.
      *
-     * @param {ScannerLike} scanner
+     * @param {TokenSource} scanner
      * @returns {ParseResult}
      */
     parse(scanner) {

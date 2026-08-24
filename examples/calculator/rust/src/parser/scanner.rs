@@ -66,7 +66,7 @@ pub fn is_skipped(token: Token) -> bool {
 }
 
 /// What a scanner offers. Both [`Scanner`] and [`TokenSkipper`] implement it. The lifetime is the one of the source.
-pub trait TokenSkipperScanner<'a> {
+pub trait TokenSource<'a> {
     /// Returns the current token.
     fn token(&self) -> Token;
 
@@ -108,7 +108,7 @@ impl<S> TokenSkipper<S> {
     }
 }
 
-impl<'a, S: TokenSkipperScanner<'a>> TokenSkipperScanner<'a> for TokenSkipper<S> {
+impl<'a, S: TokenSource<'a>> TokenSource<'a> for TokenSkipper<S> {
     fn token(&self) -> Token {
         self.scanner.token()
     }
@@ -264,7 +264,7 @@ impl<'a> Scanner<'a> {
     }
 }
 
-impl<'a> TokenSkipperScanner<'a> for Scanner<'a> {
+impl<'a> TokenSource<'a> for Scanner<'a> {
     fn token(&self) -> Token {
         self.token
     }
