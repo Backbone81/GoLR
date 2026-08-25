@@ -1,12 +1,33 @@
 # Parser Generator Backend: C
 
-This backend outputs a parser as C source code. The generated C code is a table driven parser which holds the parsing
-decisions in lookup tables. It targets C99 and is a self contained header which carries its own implementation the same
-way the generated scanner does, behind `<PREFIX>_PARSER_IMPLEMENTATION`.
+This backend outputs a parser as C source code. See [parser generator backends](parsergen-backend.md) for what every
+generated parser does and [scanner generator backend: C](scannergen-backend-c.md) for the scanner side.
 
-The parse tree and the errors are owned by the result and are released together with `<prefix>_parse_result_free`. An
-allocation which fails ends the parse and is reported as an error of kind `<PREFIX>_ERROR_KIND_OUT_OF_MEMORY`.
+It targets C99 and is a self contained header which carries its own implementation. Include it wherever the parser is
+used, and define `<PREFIX>_PARSER_IMPLEMENTATION` before including it in exactly one translation unit, which is where
+the tables and the function bodies are emitted.
 
-The parser uses the token type and the scanner of the generated scanner. Use `--backend-c-scanner-include` to set the
-header it includes them from, which defaults to `scanner.h`, and `--backend-c-prefix` to set the prefix, which has to
-be the one the scanner was generated with.
+`--backend-c-prefix` sets the prefix every generated name carries, which defaults to `parser` and has to be the one the
+scanner was generated with. `--backend-c-scanner-include` sets the header the token type and the token source are
+included from, which defaults to `scanner.h`.
+
+`<prefix>_parser_parse` takes a `<Prefix>TokenSource` and returns a `<Prefix>ParseResult` holding the tree and the
+errors. The result owns both, including the nodes of the tree, and is released with `<prefix>_parse_result_free`; a
+result already returned is unaffected by later parses. The parser itself is set up with `<prefix>_parser_init` and
+released with `<prefix>_parser_free`, and serves one source after another. Releasing it does not touch the results it
+produced. An allocation which fails ends the parse and is reported as an error of kind
+`<PREFIX>_ERROR_KIND_OUT_OF_MEMORY`.
+
+## Example
+
+[examples/calculator/c/](../examples/calculator/c/) is a calculator built on this backend. Its parser was generated
+with:
+
+```sh
+golr parser \
+  --frontend golr \
+  --frontend-file-path calculator.golr \
+  --backend c \
+  --backend-c-prefix calculator \
+  --backend-file-path parser/parser.h
+```

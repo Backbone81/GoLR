@@ -254,26 +254,8 @@ These cores are currently supported:
 
 ### Parser Generator Backends
 
-These backends are currently supported:
-
-- [C](docs/parsergen-backend-c.md)
-- [C#](docs/parsergen-backend-csharp.md)
-- [C++](docs/parsergen-backend-cpp.md)
-- [DOT](docs/parsergen-backend-dot.md)
-- [Go](docs/parsergen-backend-golang.md)
-- [Java](docs/parsergen-backend-java.md)
-- [JavaScript](docs/parsergen-backend-javascript.md)
-- [JSON](docs/parsergen-backend-json.md)
-- [Null](docs/parsergen-backend-null.md)
-- [Python](docs/parsergen-backend-python.md)
-- [Rust](docs/parsergen-backend-rust.md)
-- [TypeScript](docs/parsergen-backend-typescript.md)
-- [YAML](docs/parsergen-backend-yaml.md)
-
-Are you missing a backend for your use case? Use the JSON backend of GoLR to output the parser as JSON and implement
-your own backend by loading the JSON and output it in whatever format you need. You do not even need to do that
-in Go. Any programming language which is able to load JSON can be used for such a custom backend. And with outputting
-JSON to stdout, the output of GoLR can be piped into your own backend application for maximum flexibility.
+See [parser generator backends](docs/parsergen-backend.md) for the backends which are currently supported, for what the
+generated parsers have in common, and for how to write a backend of your own.
 
 ## Scanner Generator
 
@@ -302,26 +284,8 @@ These cores are currently supported:
 
 ### Scanner Generator Backends
 
-These backends are currently supported:
-
-- [C](docs/scannergen-backend-c.md)
-- [C#](docs/scannergen-backend-csharp.md)
-- [C++](docs/scannergen-backend-cpp.md)
-- [DOT](docs/scannergen-backend-dot.md)
-- [Go](docs/scannergen-backend-golang.md)
-- [Java](docs/scannergen-backend-java.md)
-- [JavaScript](docs/scannergen-backend-javascript.md)
-- [JSON](docs/scannergen-backend-json.md)
-- [Null](docs/scannergen-backend-null.md)
-- [Python](docs/scannergen-backend-python.md)
-- [Rust](docs/scannergen-backend-rust.md)
-- [TypeScript](docs/scannergen-backend-typescript.md)
-- [YAML](docs/scannergen-backend-yaml.md)
-
-Are you missing a backend for your use case? Use the JSON backend of GoLR to output the scanner as JSON and implement
-your own backend by loading the JSON and output it in whatever format you need. You do not even need to do that
-in Go. Any programming language which is able to load JSON can be used for such a custom backend. And with outputting
-JSON to stdout, the output of GoLR can be piped into your own backend application for maximum flexibility.
+See [scanner generator backends](docs/scannergen-backend.md) for the backends which are currently supported, for what
+the generated scanners have in common, and for how to write a backend of your own.
 
 ## Correctness
 

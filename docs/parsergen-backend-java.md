@@ -1,8 +1,26 @@
 # Parser Generator Backend: Java
 
-This backend outputs a parser as Java source code. The generated Java code is a table driven parser which holds the
-parsing decisions in lookup tables.
+This backend outputs a parser as Java source code. See [parser generator backends](parsergen-backend.md) for what every
+generated parser does and [scanner generator backend: Java](scannergen-backend-java.md) for the scanner side.
 
-The parser uses the token constants and the scanner interface of the generated scanner. Use
-`--backend-java-package-name` to set the package, which defaults to `parser` and has to be the one the scanner was
-generated into.
+It targets Java 17.
+
+`--backend-java-package-name` sets the package the file declares, which defaults to `parser` and has to be the one the
+scanner was generated into.
+
+`Parser.parse` takes a `TokenSource` and returns a `ParseResult` record holding the tree and the errors, and can be
+called again with another scanner. The tree is null when the parse could not be finished. Nodes, errors and symbols are
+records too, and lexemes are a `ByteBuffer` over the source rather than a copy of it.
+
+## Example
+
+[examples/calculator/java/](../examples/calculator/java/) is a calculator built on this backend. Its parser was
+generated with:
+
+```sh
+golr parser \
+  --frontend golr \
+  --frontend-file-path calculator.golr \
+  --backend java \
+  --backend-file-path parser/Parser.java
+```

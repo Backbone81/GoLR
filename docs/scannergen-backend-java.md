@@ -1,9 +1,25 @@
 # Scanner Generator Backend: Java
 
-This backend outputs a scanner as Java source code. The generated Java code is a table driven scanner which holds the
-automaton in lookup tables.
+This backend outputs a scanner as Java source code. See [scanner generator backends](scannergen-backend.md) for what
+every generated scanner does and [parser generator backend: Java](parsergen-backend-java.md) for the parser side.
 
-The generated scanner is fully Unicode capable and processes UTF-8 encoded input. In case of conflicts between rules,
-the rule which was specified earlier has priority over those rules specified later.
+It targets Java 17.
 
-The generated code targets Java 17. Use `--backend-java-package-name` to set the package, which defaults to `parser`.
+`--backend-java-package-name` sets the package the file declares, which defaults to `parser`.
+
+The scanner is the `Scanner` class, its tokens are the nested `Scanner.Token` enum, and the nested
+`Scanner.TokenSkipper` wraps a scanner to drop the tokens marked for skipping. Both implement `TokenSource`, which is
+what a parser reads its tokens through. Lexemes are a `ByteBuffer` over the source rather than a copy of it.
+
+## Example
+
+[examples/calculator/java/](../examples/calculator/java/) is a calculator built on this backend. Its scanner was
+generated with:
+
+```sh
+golr scanner \
+  --frontend golr \
+  --frontend-file-path calculator.golr \
+  --backend java \
+  --backend-file-path parser/Scanner.java
+```

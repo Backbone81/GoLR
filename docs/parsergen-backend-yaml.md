@@ -1,7 +1,14 @@
 # Parser Generator Backend: YAML
 
-This backend outputs a parser as a YAML document. See the data types in `internal/parsergen/backend` for details about
-the YAML structure.
+This backend outputs a parser as a YAML document. See [parser generator backends](parsergen-backend.md) for the other
+backends and for how to build one of your own on this output.
+
+The document holds the grammar and the automaton as the core produced it: a state lists its kernel items, the
+transitions it takes on a symbol, and the productions it reduces by together with the lookaheads which call for them.
+The parse table is therefore uncompressed, unlike the packed lookup tables the language backends emit, which leaves a
+consumer free to compress it whichever way suits its own target. The `grammar` member is what the
+[YAML frontend](parsergen-frontend-yaml.md) reads, so a grammar taken out of this output can be fed back in. See the
+data types in `internal/parsergen/backend` for details about the YAML structure.
 
 ## Example
 
