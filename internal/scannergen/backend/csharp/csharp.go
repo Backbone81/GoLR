@@ -24,6 +24,9 @@ var parsedTemplate = template.Must(template.New("scanner.cs.template").Funcs(tem
 	"tokenValue": tokenValue,
 }).Parse(scannerTemplate))
 
+// DefaultNamespace is the C# namespace the generated scanner is declared in when the caller names none.
+const DefaultNamespace = "Parser"
+
 type Config struct {
 	// Namespace is the C# namespace the generated scanner is declared in.
 	//
@@ -46,6 +49,10 @@ func FromDFA(writer io.Writer, dfa backend.DFA, config Config) error {
 
 	if len(dfa.States) == 0 {
 		return errors.New("the DFA does not have any state")
+	}
+
+	if config.Namespace == "" {
+		config.Namespace = DefaultNamespace
 	}
 
 	var buffer bytes.Buffer

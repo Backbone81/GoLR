@@ -1,2 +1,2 @@
-// Package c provides a parser generator backend which takes a parser as input and outputs C source code.
+// Package c contains the backend which writes the parser as C source code holding the parse table in lookup tables.
 package c

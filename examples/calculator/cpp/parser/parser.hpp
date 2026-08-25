@@ -43,7 +43,7 @@ enum class Nonterminal : std::uint8_t {
 /// std::get_if or std::get, and handled for both alternatives at once with std::visit.
 using ParseSymbol = std::variant<Token, Nonterminal>;
 
-/// Returns what the symbol is and the name it goes by.
+/// Returns what the symbol is and the name the grammar spells it with.
 [[nodiscard]] inline std::string to_string(const ParseSymbol& symbol) {
     if (const Token* terminal = std::get_if<Token>(&symbol)) {
         return std::string("terminal ").append(to_string(*terminal));
@@ -73,8 +73,8 @@ enum class ErrorKind {
     Internal,
 };
 
-/// A single parse error. Parse errors are returned by Parser::parse rather than thrown, so reporting many of them
-/// costs nothing. Wrap message() in an exception of your own to throw one.
+/// A single parse error. Parse errors are returned by Parser::parse rather than raised, so reporting many of them
+/// costs nothing. This is no exception, so wrap message() in one of your own to throw it.
 struct ParseError {
     /// Creates an error which stands at the position the given scanner is at.
     template <typename ScannerT>
@@ -162,7 +162,7 @@ public:
                 return ParseResult{std::move(tree), std::move(errors_)};
             }
 
-            // The step neither went on nor accepted, so it is the alternative which carries the error.
+            // The step neither went on nor accepted, so it failed and carries the error.
             ParseError failure = std::move(std::get<ParseError>(result));
             if (failure.kind != ErrorKind::Syntax) {
                 // Only an error in the input can be recovered from.
@@ -293,55 +293,6 @@ private:
         0, 1, 1, 1, 1, 1, 1, 1,
     };
 
-    /// Returns the column of the action table which holds the decisions for the given token. A token the grammar does
-    /// not have gets NO_TERMINAL_COLUMN.
-    [[nodiscard]] static constexpr std::size_t terminal_column(Token token) noexcept {
-        switch (token) {
-        case Token::EndToken:
-            return 1;
-        case Token::TokenWhitespace:
-            return 2;
-        case Token::TokenInteger:
-            return 3;
-        case Token::TokenPlus:
-            return 4;
-        case Token::TokenMinus:
-            return 5;
-        case Token::TokenMultiply:
-            return 6;
-        case Token::TokenDivide:
-            return 7;
-        case Token::TokenLparen:
-            return 8;
-        case Token::TokenRparen:
-            return 9;
-        case Token::TokenUminus:
-            return 10;
-        default:
-            return NO_TERMINAL_COLUMN;
-        }
-    }
-
-    /// Returns the state to continue in when the error symbol is shifted in the given state, or no value when the
-    /// state cannot shift it. The states which can are the places the grammar marked to resume at after a syntax
-    /// error.
-    ///
-    /// The default action of the state is deliberately not consulted, because only an entry the state has of its own
-    /// is a place to resume at.
-    [[nodiscard]] static constexpr std::optional<std::size_t> error_shift_state(std::size_t state) noexcept {
-        const std::size_t cell_idx = ACTION_BASE[state] + ERROR_TERMINAL_COLUMN;
-        const std::size_t cell_column = ACTION_CHECK[cell_idx];
-        if (cell_column != ERROR_TERMINAL_COLUMN) {
-            return std::nullopt;
-        }
-
-        const std::size_t action = ACTION_NEXT[cell_idx];
-        if ((action & ACTION_KIND_MASK) != ACTION_KIND_SHIFT) {
-            return std::nullopt;
-        }
-        return action >> ACTION_KIND_BITS;
-    }
-
     /// Performs the one action the state on top of the stack takes for the current token.
     template <typename ScannerT>
     StepResult step(ScannerT& scanner) {
@@ -423,10 +374,17 @@ private:
     /// Puts the parser back where it can carry on with the remaining input after a syntax error. Once it reports
     /// false, the parse is given up.
     ///
-    /// This is panic mode recovery as described in section 7 "Error Handling" of the yacc report: the stack is popped
-    /// until a state is reached which can shift the error symbol, and the symbol is shifted there. Everything the
-    /// popped states had parsed is discarded with them. The token which caused the error is kept for the resumed state
-    /// to look at, and only discarded when the parse fails on it a second time.
+    /// This is the panic mode recovery of section 9 "Error Recovery" of "LR Parsing" by Aho and Johnson, in the shape
+    /// which section 7 "Error Handling" of the yacc report describes: the parser pops its stack until it reaches a
+    /// state which can shift the error symbol - a place the grammar marked as one to resume at - and shifts the symbol
+    /// there. Everything the popped states had parsed is discarded with them.
+    ///
+    /// The token which caused the error is kept for the resumed state to look at, because that state is usually
+    /// waiting for exactly it: in a production like "{" @error "}" it is the closing brace which ends the recovery.
+    /// Only when the parse fails on that very same token again is the token discarded, which is what an untouched
+    /// countdown of tokens to shift tells us. Popping and discarding in the same handler is what guarantees progress:
+    /// every round of recovery either gets the parse going again or consumes one token of the input, so a parse cannot
+    /// get stuck between the two.
     template <typename ScannerT>
     bool recover_from_error(ScannerT& scanner) {
         if (error_recovery_shifts_remaining_ == ERROR_RECOVERY_SHIFTS) {
@@ -460,6 +418,55 @@ private:
 
     /// Returns the state on top of the stack, which is the one the parse is in.
     [[nodiscard]] std::size_t current_state() const noexcept { return state_stack_.back(); }
+
+    /// Returns the column of the action table which holds the decisions for the given token. A token the grammar does
+    /// not have gets NO_TERMINAL_COLUMN.
+    [[nodiscard]] static constexpr std::size_t terminal_column(Token token) noexcept {
+        switch (token) {
+        case Token::EndToken:
+            return 1;
+        case Token::TokenWhitespace:
+            return 2;
+        case Token::TokenInteger:
+            return 3;
+        case Token::TokenPlus:
+            return 4;
+        case Token::TokenMinus:
+            return 5;
+        case Token::TokenMultiply:
+            return 6;
+        case Token::TokenDivide:
+            return 7;
+        case Token::TokenLparen:
+            return 8;
+        case Token::TokenRparen:
+            return 9;
+        case Token::TokenUminus:
+            return 10;
+        default:
+            return NO_TERMINAL_COLUMN;
+        }
+    }
+
+    /// Returns the state to continue in when the error symbol is shifted in the given state, or no value when the
+    /// state cannot shift it. The states which can are the places the grammar marked to resume at after a syntax
+    /// error.
+    ///
+    /// The default action of the state is deliberately not consulted, because only an entry the state has of its own
+    /// is a place to resume at.
+    [[nodiscard]] static constexpr std::optional<std::size_t> error_shift_state(std::size_t state) noexcept {
+        const std::size_t cell_idx = ACTION_BASE[state] + ERROR_TERMINAL_COLUMN;
+        const std::size_t cell_column = ACTION_CHECK[cell_idx];
+        if (cell_column != ERROR_TERMINAL_COLUMN) {
+            return std::nullopt;
+        }
+
+        const std::size_t action = ACTION_NEXT[cell_idx];
+        if ((action & ACTION_KIND_MASK) != ACTION_KIND_SHIFT) {
+            return std::nullopt;
+        }
+        return action >> ACTION_KIND_BITS;
+    }
 
     /// The states of the running parse, the current one on top.
     std::vector<std::size_t> state_stack_;

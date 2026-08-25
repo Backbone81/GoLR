@@ -1,3 +1,3 @@
-// Package typescript provides a scanner generator backend which takes a DFA as input and outputs TypeScript source
-// code.
+// Package typescript contains the backend which writes the scanner as TypeScript source code holding the automaton in
+// lookup tables.
 package typescript

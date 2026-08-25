@@ -183,7 +183,7 @@ func (s Symbol) Nonterminal() (Nonterminal, bool) {
 // Symbol implements fmt.Stringer.
 var _ fmt.Stringer = (*Symbol)(nil)
 
-// String returns a string representation.
+// String returns what the symbol is and the name the grammar spells it with.
 func (s Symbol) String() string {
 	nonterminal, ok := s.Nonterminal()
 	if ok {
@@ -195,13 +195,20 @@ func (s Symbol) String() string {
 
 // Node is a single node of the parse tree.
 type Node struct {
-	Symbol   Symbol
-	Lexeme   []byte
+	// Symbol is the terminal or nonterminal this node stands for.
+	Symbol Symbol
+
+	// Lexeme are the bytes of the terminal, as a view into the source rather than a copy of it. Empty for a
+	// nonterminal and for the error symbol, which no input produced.
+	Lexeme []byte
+
+	// Children are the nodes of the right hand side of the production which was reduced to this node. Empty for a
+	// terminal.
 	Children []Node
 }
 
 var (
-	// This error is used in cases where the mechanic of the parser is wrong.
+	// ErrInternal marks a defect of the parser itself, which ends the parse.
 	ErrInternal = errors.New("internal parser error")
 
 	// ErrSyntax marks an error in the input: a token which the grammar does not allow at the position it was found at.
@@ -210,15 +217,29 @@ var (
 	ErrSyntax = errors.New("syntax error")
 )
 
-// Error represents a single parse error.
+// Error is a single parse error. Parse errors are returned by Parse rather than raised, so reporting many of them
+// costs nothing.
 type Error struct {
-	Token      Token
+	// Token is the token the parse stopped on.
+	Token Token
+
+	// ByteOffset is the start of that token in bytes from the start of the source.
 	ByteOffset int
-	Line       int
-	Column     int
-	Lexeme     []byte
-	FilePath   string
-	Cause      error
+
+	// Line is the line that token starts on, counted from one.
+	Line int
+
+	// Column is the column that token starts on, counted from one.
+	Column int
+
+	// Lexeme are the bytes of that token.
+	Lexeme []byte
+
+	// FilePath is the file path the scanner was given.
+	FilePath string
+
+	// Cause is what is wrong, without the position in front of it.
+	Cause error
 }
 
 // Error implements error
@@ -242,6 +263,9 @@ const errorRecoveryShifts = 3
 // arenaChunkSize is the number of nodes the arena allocator hands out from a single chunk. A parse which needs more
 // nodes than one chunk holds takes further chunks of the same size and keeps them for the parses after it.
 const arenaChunkSize = 16 * 1024
+
+// initialStackCapacity is how many entries the stacks start with room for. They grow as a deeper parse needs them to.
+const initialStackCapacity = 64
 
 // The parse table is held in lookup tables. A token is translated into the column of the action table which holds the
 // decisions for it, and the rows of that table are displaced into a single array so that the entries of one row fall
@@ -486,10 +510,11 @@ var (
 
 // Parser provides the parser implementation.
 type Parser struct {
-	scanner TokenSource
-
+	// stateStack holds the states of the running parse, the current one on top.
 	stateStack []int
-	nodeStack  []Node
+
+	// nodeStack holds one node per symbol shifted or reduced so far.
+	nodeStack []Node
 
 	// arenaChunks holds every chunk of nodes the parser has allocated so far, in the order they are handed out. A
 	// parse starts over at the first chunk instead of allocating new ones, so only a parse which needs more nodes
@@ -515,8 +540,8 @@ type Parser struct {
 // NewParser creates a new parser.
 func NewParser() *Parser {
 	parser := Parser{
-		stateStack:  make([]int, 0, 1024),
-		nodeStack:   make([]Node, 0, 1024),
+		stateStack:  make([]int, 0, initialStackCapacity),
+		nodeStack:   make([]Node, 0, initialStackCapacity),
 		arenaChunks: [][]Node{make([]Node, arenaChunkSize)},
 	}
 	parser.resetArena()
@@ -531,20 +556,15 @@ var errAccept = errors.New("accept")
 // called multiple times with different scanners to re-use the memory already allocated by the parser.
 //
 // When the grammar marks places to resume at with the error symbol, the parser recovers from a syntax error and carries
-// on parsing, see recoverFromError. Parse then returns both a tree and an error: the tree of the input as far as the
-// parser could make sense of it, with a node for the error symbol at every place it resumed at, and all syntax errors
-// it found joined into one error. A tree is only returned if the parse reached its end, otherwise the recovery gave up
-// somewhere in the middle and there is no tree to speak of.
+// on parsing. Parse then returns both a tree and an error: the tree of the input as far as the parser could make sense
+// of it, with a node for the error symbol at every place it resumed at, and all syntax errors it found joined into one
+// error. A tree is only returned if the parse reached its end, otherwise the recovery gave up somewhere in the middle
+// and there is no tree to speak of.
 //
 // The errors are joined even when there is only one of them, so the shape of the returned error does not depend on how
 // many errors the parse found. Use errors.Is and errors.As to get at them, both of which look into a join.
 func (p *Parser) Parse(scanner TokenSource) (Node, error) {
-	p.scanner = scanner
 	p.resetArena()
-
-	// A source with no tokens at all reports false right away. That is not an error: the token is the end of input
-	// either way, and whether a parse of nothing but that is legal is for the table to decide.
-	p.scanner.Next()
 
 	p.stateStack = p.stateStack[:0]
 	p.stateStack = append(p.stateStack, 0)
@@ -552,27 +572,30 @@ func (p *Parser) Parse(scanner TokenSource) (Node, error) {
 	p.errors = p.errors[:0]
 	p.errorRecoveryShiftsRemaining = 0
 
+	// A source with no tokens at all reports false right away. That is not an error: the token is the end of input
+	// either way, and whether a parse of nothing but that is legal is for the table to decide.
+	scanner.Next()
+
 	for {
-		err := p.step()
+		err := p.step(scanner)
 		if err == nil {
 			continue
 		}
 		if errors.Is(err, errAccept) {
-			// The parse is finished. It still reports the errors it recovered from along the way.
+			// What is left on the node stack is the start symbol, which is the root of the tree.
 			return p.nodeStack[0], errors.Join(p.errors...)
 		}
 		if !errors.Is(err, ErrSyntax) {
-			// Only an error in the input can be recovered from. Anything else is a defect of the parser itself.
+			// Only an error in the input can be recovered from.
 			p.errors = append(p.errors, err)
 			return Node{}, errors.Join(p.errors...)
 		}
 		if p.errorRecoveryShiftsRemaining == 0 {
-			// While recovering, the parser is not in sync with the input, so the errors it runs into there are most
-			// likely consequences of the error which is already reported. Reporting those as well is the avalanche of
-			// messages the countdown exists to prevent.
+			// While recovering, the parser is not in sync with the input, so the errors it runs into there follow
+			// from the one already reported.
 			p.errors = append(p.errors, err)
 		}
-		if !p.recoverFromError() {
+		if !p.recoverFromError(scanner) {
 			return Node{}, errors.Join(p.errors...)
 		}
 	}
@@ -580,8 +603,8 @@ func (p *Parser) Parse(scanner TokenSource) (Node, error) {
 
 // step performs the single action which the state on top of the stack takes for the token the scanner currently
 // delivers. This is the whole automaton: everything which distinguishes one state from another is in the tables.
-func (p *Parser) step() error {
-	terminal := p.scanner.Token()
+func (p *Parser) step(scanner TokenSource) error {
+	terminal := scanner.Token()
 
 	// A token which is no terminal of this grammar takes the default action of the state.
 	column := p.terminalColumn(terminal)
@@ -590,8 +613,8 @@ func (p *Parser) step() error {
 	cellIdx := uint32(actionBase[state]) + column
 	action := uint32(defaultActionByState[state])
 	if uint32(actionCheck[cellIdx]) == column {
-		// The state has an entry of its own for this token, which beats its default action. That order is what keeps
-		// a token the grammar rejects on purpose an error even in a state which reduces on everything else.
+		// An entry the state has of its own beats its default action, which is what keeps a token the grammar
+		// rejects on purpose an error even in a state which reduces on everything else.
 		action = uint32(actionNext[cellIdx])
 	}
 
@@ -600,11 +623,11 @@ func (p *Parser) step() error {
 		p.stateStack = append(p.stateStack, int(action>>actionKindBits))
 		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
-			Lexeme: p.scanner.Lexeme(),
+			Lexeme: scanner.Lexeme(),
 		})
-		p.scanner.Next()
+		scanner.Next()
 		if p.errorRecoveryShiftsRemaining > 0 {
-			// Getting tokens of the input shifted again is what makes the parser trust its position again.
+			// Getting tokens of the input shifted again is what makes the parser trust its position.
 			p.errorRecoveryShiftsRemaining--
 		}
 		return nil
@@ -615,9 +638,9 @@ func (p *Parser) step() error {
 		// The parse is successfully finished.
 		return errAccept
 	case actionKindError:
-		return p.raiseError(fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
+		return p.raiseError(scanner, fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
 	default:
-		return p.raiseError(fmt.Errorf("%w: unexpected action %d in state %d", ErrInternal, action, state))
+		return p.raiseError(scanner, fmt.Errorf("%w: unexpected action %d in state %d", ErrInternal, action, state))
 	}
 }
 
@@ -630,9 +653,8 @@ func (p *Parser) reduce(productionIdx uint32) {
 	p.stateStack = p.stateStack[:len(p.stateStack)-popCount]
 
 	state := p.currentState()
-	// A state which does not have a goto of its own on the nonterminal goes where most states go with it. The LR
-	// construction creates the goto together with the production, so a state which a reduction uncovers always has
-	// one, which is why the lookup needs no case for a nonterminal missing from both.
+	// A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
+	// reduction uncovers always has one, so there is no case for a nonterminal missing from both.
 	gotoState := uint32(defaultGotoByNonterminal[nonterminal])
 	cellIdx := uint32(gotoBase[state]) + nonterminal
 	if uint32(gotoCheck[cellIdx]) == nonterminal {
@@ -651,8 +673,8 @@ func (p *Parser) reduce(productionIdx uint32) {
 	p.nodeStack = append(p.nodeStack, newNode)
 }
 
-// recoverFromError puts the parser back into a state where it can continue on the remaining input after a syntax error.
-// It reports if that succeeded. Once it did not, the parse is given up.
+// recoverFromError puts the parser back where it can carry on with the remaining input after a syntax error. Once it
+// reports false, the parse is given up.
 //
 // This is the panic mode recovery of section 9 "Error Recovery" of "LR Parsing" by Aho and Johnson, in the shape which
 // section 7 "Error Handling" of the yacc report describes: the parser pops its stack until it reaches a state which can
@@ -664,21 +686,20 @@ func (p *Parser) reduce(productionIdx uint32) {
 // fails on that very same token again is the token discarded, which is what an untouched countdown of tokens to shift
 // tells us. Popping and discarding in the same handler is what guarantees progress: every round of recovery either gets
 // the parse going again or consumes one token of the input, so a parse cannot get stuck between the two.
-func (p *Parser) recoverFromError() bool {
+func (p *Parser) recoverFromError(scanner TokenSource) bool {
 	if p.errorRecoveryShiftsRemaining == errorRecoveryShifts {
-		// Nothing was shifted since the last error, so the parser is failing on the token it already failed on and
-		// keeping it would only lead here again.
-		if p.scanner.Token() == EndToken {
-			// The end of input is the one token which cannot be discarded, so there is nothing left to try.
+		// Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
+		if scanner.Token() == EndToken {
+			// The end of input is the one token which cannot be discarded.
 			return false
 		}
-		p.scanner.Next()
+		scanner.Next()
 	}
 	p.errorRecoveryShiftsRemaining = errorRecoveryShifts
 
 	for {
 		if nextState, ok := p.errorShiftState(p.currentState()); ok {
-			// Shift the error symbol. Its node stands for the part of the input which was dropped and has no lexeme.
+			// Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
 			p.stateStack = append(p.stateStack, nextState)
 			p.nodeStack = append(p.nodeStack, Node{
 				Symbol: NewTerminal(ErrorToken),
@@ -686,13 +707,11 @@ func (p *Parser) recoverFromError() bool {
 			return true
 		}
 		if len(p.stateStack) == 1 {
-			// Only the state the parse started in is left and it cannot shift the error symbol either, so no place the
-			// grammar marked to resume at covers the position of the error.
+			// Only the state the parse started in is left and it cannot shift the error symbol either.
 			return false
 		}
-		// The state cannot resume here, so it is dropped together with what it had parsed and the state below it gets
-		// to try. The two stacks hold one node per symbol which was shifted or reduced and one state on top of that,
-		// so dropping one state drops one node.
+		// The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
+		// node, so dropping one drops one.
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 	}
@@ -713,14 +732,11 @@ func (p *Parser) terminalColumn(terminal Token) uint32 {
 }
 
 // errorShiftState returns the state to continue in when the error symbol is shifted in the given state, and reports if
-// the state can shift the error symbol at all. The states which can are the places the grammar marked to resume at
-// after a syntax error, which is what the error recovery pops the stack down to. For a grammar which marks no such
-// place there is no such state and no parse can be recovered.
+// the state can shift it at all. The states which can are the places the grammar marked to resume at after a syntax
+// error.
 //
-// The error symbol is a terminal like any other, so its shift needs no table of its own: it is the entry of the action
-// table in the column of the error symbol. Nothing else can read that column, because no scanner ever delivers the
-// symbol. The default action of the state is deliberately not consulted, because only an entry the state has of its own
-// is a place to resume at.
+// The default action of the state is deliberately not consulted, because only an entry the state has of its own is a
+// place to resume at.
 func (p *Parser) errorShiftState(state int) (int, bool) {
 	cellIdx := uint32(actionBase[state]) + errorTerminalColumn
 	if uint32(actionCheck[cellIdx]) != errorTerminalColumn {
@@ -733,15 +749,15 @@ func (p *Parser) errorShiftState(state int) (int, bool) {
 	return int(action >> actionKindBits), true
 }
 
-// raiseError is a helper function which collects the current location of the parse and wraps the given cause.
-func (p *Parser) raiseError(cause error) error {
+// raiseError returns an error with the given cause at the position the scanner is at.
+func (p *Parser) raiseError(scanner TokenSource, cause error) error {
 	return &Error{
-		Token:      p.scanner.Token(),
-		ByteOffset: p.scanner.ByteOffset(),
-		Line:       p.scanner.Line(),
-		Column:     p.scanner.Column(),
-		Lexeme:     p.scanner.Lexeme(),
-		FilePath:   p.scanner.FilePath(),
+		Token:      scanner.Token(),
+		ByteOffset: scanner.ByteOffset(),
+		Line:       scanner.Line(),
+		Column:     scanner.Column(),
+		Lexeme:     scanner.Lexeme(),
+		FilePath:   scanner.FilePath(),
 		Cause:      cause,
 	}
 }

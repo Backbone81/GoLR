@@ -2,6 +2,9 @@ package cpp
 
 import intcpp "github.com/backbone81/golr/internal/parsergen/backend/cpp"
 
+// DefaultNamespace is the C++ namespace the generated parser is declared in when the caller names none.
+const DefaultNamespace = intcpp.DefaultNamespace
+
 // DefaultScannerInclude is the header the generated parser includes the token type from when the caller names none.
 const DefaultScannerInclude = intcpp.DefaultScannerInclude
 

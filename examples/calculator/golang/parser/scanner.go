@@ -341,19 +341,19 @@ func (s *Scanner) Next() bool {
 	}
 
 	if s.lexemeStartIdx < s.lexemeEndIdx {
-		// We found a token.
+		// A token was found.
 		return true
 	}
 
 	if len(s.source) <= s.lexemeStartIdx {
-		// We have reached the end of the source.
+		// The end of the source was reached.
 		s.token = EndToken
 		return false
 	}
 
-	// We found some characters which do not form a token. The invalid token ends where the automaton stopped, because
-	// the byte it could not consume is where the next attempt starts. Only when the automaton consumed nothing does it
-	// cover that byte, which is what keeps the scan moving forward.
+	// The bytes here form no token. The invalid token ends where the automaton stopped, because the byte it could not
+	// consume is where the next attempt starts. Only when the automaton consumed nothing does it cover that byte,
+	// which is what keeps the scan moving forward.
 	s.token = InvalidToken
 	s.lexemeEndIdx = max(s.lexemeStartIdx+1, lexemePeekIdx)
 	return true

@@ -26,7 +26,14 @@ var parsedTemplate = template.Must(template.New("parser.go.template").Funcs(temp
 	"isAcceptNonterminal": isAcceptNonterminal,
 }).Parse(parserTemplate))
 
+// DefaultPackageName is the Go package the generated parser is declared in when the caller names none.
+const DefaultPackageName = "parser"
+
 type Config struct {
+	// PackageName is the Go package the generated parser is declared in.
+	//
+	// It has to be the one the scanner was generated into. The parser needs the token constants the scanner declares
+	// and the scanner interface it reads them through, and Go resolves both by package rather than by file.
 	PackageName string
 }
 
@@ -43,6 +50,10 @@ func FromParser(writer io.Writer, parser backend.Parser, config Config) error {
 
 	if len(parser.States) == 0 {
 		return errors.New("the parser does not have any state")
+	}
+
+	if config.PackageName == "" {
+		config.PackageName = DefaultPackageName
 	}
 
 	var buffer bytes.Buffer

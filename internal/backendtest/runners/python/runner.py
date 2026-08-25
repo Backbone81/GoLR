@@ -52,7 +52,9 @@ def append_scanner_trace(lines, source, input_path):
     # around it are only checkable when it is in the trace.
     scanner = Scanner(source, input_path)
 
-    for token in scanner:
+    while scanner.next():
+        token = scanner.token
+
         # For a failed match this is the start of the attempt, not the byte which could not be consumed.
         start = scanner.byte_offset
 

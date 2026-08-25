@@ -23,6 +23,9 @@ var parsedTemplate = template.Must(template.New("scanner.java.template").Funcs(t
 	"tokenName": tokenName,
 }).Parse(scannerTemplate))
 
+// DefaultPackageName is the Java package the generated scanner is declared in when the caller names none.
+const DefaultPackageName = "parser"
+
 type Config struct {
 	// PackageName is the Java package the generated scanner is declared in.
 	//
@@ -44,6 +47,10 @@ func FromDFA(writer io.Writer, dfa backend.DFA, config Config) error {
 
 	if len(dfa.States) == 0 {
 		return errors.New("the DFA does not have any state")
+	}
+
+	if config.PackageName == "" {
+		config.PackageName = DefaultPackageName
 	}
 
 	var buffer bytes.Buffer

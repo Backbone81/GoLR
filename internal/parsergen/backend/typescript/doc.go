@@ -1,3 +1,3 @@
-// Package typescript provides a parser generator backend which takes a parser as input and outputs TypeScript source
-// code.
+// Package typescript contains the backend which writes the parser as TypeScript source code holding the parse table in
+// lookup tables.
 package typescript

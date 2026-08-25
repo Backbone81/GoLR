@@ -2,6 +2,9 @@ package java
 
 import "github.com/backbone81/golr/internal/scannergen/backend/java"
 
+// DefaultPackageName is the Java package the generated scanner is declared in when the caller names none.
+const DefaultPackageName = java.DefaultPackageName
+
 type (
 	Config = java.Config
 )

@@ -30,6 +30,9 @@ var parsedTemplate = template.Must(template.New("parser.hpp.template").Funcs(tem
 // test harness.
 const DefaultScannerInclude = "scanner.hpp"
 
+// DefaultNamespace is the C++ namespace the generated parser is declared in when the caller names none.
+const DefaultNamespace = "parser"
+
 type Config struct {
 	// Namespace is the C++ namespace the generated parser is declared in. It has to be the one the generated scanner
 	// was given, because the parser declares the token type and the scanner interface to be members of its own
@@ -57,6 +60,9 @@ func FromParser(writer io.Writer, parser backend.Parser, config Config) error {
 
 	if len(parser.States) == 0 {
 		return errors.New("the parser does not have any state")
+	}
+	if config.Namespace == "" {
+		config.Namespace = DefaultNamespace
 	}
 	if config.ScannerInclude == "" {
 		config.ScannerInclude = DefaultScannerInclude

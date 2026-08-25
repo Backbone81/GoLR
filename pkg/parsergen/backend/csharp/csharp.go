@@ -2,6 +2,9 @@ package csharp
 
 import intcsharp "github.com/backbone81/golr/internal/parsergen/backend/csharp"
 
+// DefaultNamespace is the C# namespace the generated parser is declared in when the caller names none.
+const DefaultNamespace = intcsharp.DefaultNamespace
+
 type (
 	Config = intcsharp.Config
 )

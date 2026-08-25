@@ -234,25 +234,25 @@ func init() {
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerBackendGoPackageName,
 		"backend-go-package-name",
-		"parser",
+		golangbackend.DefaultPackageName,
 		"The Go package name to use for the generated Go code.",
 	)
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerBackendJavaPackageName,
 		"backend-java-package-name",
-		"parser",
+		javabackend.DefaultPackageName,
 		"The Java package name to use for the generated Java code.",
 	)
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerBackendCSharpNamespace,
 		"backend-csharp-namespace",
-		"Parser",
+		csharpbackend.DefaultNamespace,
 		"The C# namespace to use for the generated C# code.",
 	)
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerBackendCppNamespace,
 		"backend-cpp-namespace",
-		"parser",
+		cppbackend.DefaultNamespace,
 		"The C++ namespace to use for the generated C++ code.",
 	)
 	scannerCmd.PersistentFlags().StringVar(

@@ -2,6 +2,9 @@ package cpp
 
 import "github.com/backbone81/golr/internal/scannergen/backend/cpp"
 
+// DefaultNamespace is the C++ namespace the generated scanner is declared in when the caller names none.
+const DefaultNamespace = cpp.DefaultNamespace
+
 type (
 	Config = cpp.Config
 )

@@ -105,7 +105,7 @@ public readonly struct ParseSymbol : IEquatable<ParseSymbol>
     /// <param name="right">The symbol on the right of the operator.</param>
     public static bool operator !=(ParseSymbol left, ParseSymbol right) => !left.Equals(right);
 
-    /// <summary>Returns the name of the symbol, as the grammar spells it.</summary>
+    /// <summary>Returns what the symbol is and the name the grammar spells it with.</summary>
     public override string ToString()
     {
         if (TryGetTerminal(out Token terminal))
@@ -161,8 +161,8 @@ public enum ErrorKind
 }
 
 /// <summary>
-/// A single parse error. Parse errors are returned by <see cref="Parser.Parse"/> rather than thrown, and this is no
-/// Exception, so reporting many of them costs no stack traces. Throw one with
+/// A single parse error. Parse errors are returned by <see cref="Parser.Parse"/> rather than raised, so reporting many
+/// of them costs nothing. This is no Exception, so it carries no stack trace. Throw one with
 /// <c>new InvalidOperationException(parseError.Message)</c>.
 /// </summary>
 public sealed class ParseError
@@ -240,7 +240,7 @@ public sealed class ParseResult
 public sealed class Parser
 {
     /// <summary>What one step of a parse ended with.</summary>
-    private enum StepOutcome
+    private enum StepResult
     {
         /// <summary>The parse goes on.</summary>
         Continue,
@@ -370,9 +370,6 @@ public sealed class Parser
     private static readonly {{ .Tables.NonterminalByProduction.Type }}[] NonterminalByProduction =
     { {{- .Tables.NonterminalByProduction.Literal "        " }}    };
 
-    /// <summary>The scanner of the running parse.</summary>
-    private ITokenSource _scanner = null!;
-
     /// <summary>The states of the running parse, the current one on top.</summary>
     private readonly List<int> _stateStack = new();
 
@@ -398,8 +395,6 @@ public sealed class Parser
     /// <param name="scanner">The scanner to take the tokens from.</param>
     public ParseResult Parse(ITokenSource scanner)
     {
-        _scanner = scanner;
-
         // The stacks are emptied rather than replaced, so a parser hands out the room it already has to the parse
         // after it instead of allocating anew.
         _stateStack.Clear();
@@ -410,23 +405,23 @@ public sealed class Parser
 
         // A source with no tokens at all reports false right away. That is not an error: the token is the end of input
         // either way, and whether a parse of nothing but that is legal is for the table to decide.
-        _scanner.Next();
+        scanner.Next();
 
         while (true)
         {
-            StepOutcome outcome = Step(out ParseError? error);
-            if (outcome == StepOutcome.Accept)
+            StepResult result = Step(scanner, out ParseError? error);
+            if (result == StepResult.Continue)
+            {
+                continue;
+            }
+            if (result == StepResult.Accept)
             {
                 // The errors are copied out, because the list they were collected in is handed to the parse after
                 // this one.
                 return new ParseResult(_nodeStack[0], _errors.ToArray());
             }
-            if (outcome == StepOutcome.Continue)
-            {
-                continue;
-            }
 
-            // Only a failed step carries an error.
+            // The step neither went on nor accepted, so it failed and carries the error.
             ParseError failure = error!;
             if (failure.Kind != ErrorKind.Syntax)
             {
@@ -440,7 +435,7 @@ public sealed class Parser
                 // from the one already reported.
                 _errors.Add(failure);
             }
-            if (!RecoverFromError())
+            if (!RecoverFromError(scanner))
             {
                 return new ParseResult(null, _errors.ToArray());
             }
@@ -451,11 +446,12 @@ public sealed class Parser
     /// Performs the one action the state on top of the stack takes for the current token. The error is set only when
     /// the parse cannot go on.
     /// </summary>
+    /// <param name="scanner">The scanner to take the tokens from.</param>
     /// <param name="error">Why the parse cannot go on, null while it goes on.</param>
-    private StepOutcome Step(out ParseError? error)
+    private StepResult Step(ITokenSource scanner, out ParseError? error)
     {
         error = null;
-        Token terminal = _scanner.Token;
+        Token terminal = scanner.Token;
 
         // A token which is no terminal of this grammar takes the default action of the state.
         int column = TerminalColumn(terminal);
@@ -475,25 +471,25 @@ public sealed class Parser
             case ActionKindShift:
                 _stateStack.Add(action >> ActionKindBits);
                 _nodeStack.Add(new ParseNode(
-                    ParseSymbol.NewTerminal(terminal), _scanner.Lexeme, Array.Empty<ParseNode>()));
-                _scanner.Next();
+                    ParseSymbol.NewTerminal(terminal), scanner.Lexeme, Array.Empty<ParseNode>()));
+                scanner.Next();
                 if (_errorRecoveryShiftsRemaining > 0)
                 {
                     // Getting tokens of the input shifted again is what makes the parser trust its position.
                     _errorRecoveryShiftsRemaining--;
                 }
-                return StepOutcome.Continue;
+                return StepResult.Continue;
             case ActionKindReduce:
                 Reduce(action >> ActionKindBits);
-                return StepOutcome.Continue;
+                return StepResult.Continue;
             case ActionKindAccept:
-                return StepOutcome.Accept;
+                return StepResult.Accept;
             case ActionKindError:
-                error = new ParseError($"unexpected token {terminal.ToDisplayString()}", ErrorKind.Syntax, _scanner);
-                return StepOutcome.Failed;
+                error = new ParseError($"unexpected token {terminal.ToDisplayString()}", ErrorKind.Syntax, scanner);
+                return StepResult.Failed;
             default:
-                error = new ParseError($"unexpected action {action} in state {state}", ErrorKind.Internal, _scanner);
-                return StepOutcome.Failed;
+                error = new ParseError($"unexpected action {action} in state {state}", ErrorKind.Internal, scanner);
+                return StepResult.Failed;
         }
     }
 
@@ -533,22 +529,29 @@ public sealed class Parser
     /// Puts the parser back where it can carry on with the remaining input after a syntax error. Once it reports
     /// false, the parse is given up.
     ///
-    /// This is panic mode recovery as described in section 7 "Error Handling" of the yacc report: the stack is popped
-    /// until a state is reached which can shift the error symbol, and the symbol is shifted there. Everything the
-    /// popped states had parsed is discarded with them. The token which caused the error is kept for the resumed state
-    /// to look at, and only discarded when the parse fails on it a second time.
+    /// This is the panic mode recovery of section 9 "Error Recovery" of "LR Parsing" by Aho and Johnson, in the shape
+    /// which section 7 "Error Handling" of the yacc report describes: the parser pops its stack until it reaches a
+    /// state which can shift the error symbol - a place the grammar marked as one to resume at - and shifts the symbol
+    /// there. Everything the popped states had parsed is discarded with them.
+    ///
+    /// The token which caused the error is kept for the resumed state to look at, because that state is usually
+    /// waiting for exactly it: in a production like "{" @error "}" it is the closing brace which ends the recovery.
+    /// Only when the parse fails on that very same token again is the token discarded, which is what an untouched
+    /// countdown of tokens to shift tells us. Popping and discarding in the same handler is what guarantees progress:
+    /// every round of recovery either gets the parse going again or consumes one token of the input, so a parse cannot
+    /// get stuck between the two.
     /// </summary>
-    private bool RecoverFromError()
+    private bool RecoverFromError(ITokenSource scanner)
     {
         if (_errorRecoveryShiftsRemaining == ErrorRecoveryShifts)
         {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
-            if (_scanner.Token == Token.EndToken)
+            if (scanner.Token == Token.EndToken)
             {
                 // The end of input is the one token which cannot be discarded.
                 return false;
             }
-            _scanner.Next();
+            scanner.Next();
         }
         _errorRecoveryShiftsRemaining = ErrorRecoveryShifts;
 

@@ -1,2 +1,2 @@
-// Package cpp provides a parser generator backend which takes a parse table as input and outputs C++ source code.
+// Package cpp contains the backend which writes the parser as C++ source code holding the parse table in lookup tables.
 package cpp

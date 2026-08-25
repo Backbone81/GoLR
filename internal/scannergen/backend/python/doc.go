@@ -1,2 +1,3 @@
-// Package python provides a scanner generator backend which takes a DFA as input and outputs Python source code.
+// Package python contains the backend which writes the scanner as Python source code holding the automaton in lookup
+// tables.
 package python

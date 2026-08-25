@@ -40,12 +40,6 @@ type Tables struct {
 	// The names are written into the generated source instead of the numbers they stand for, which is what makes the
 	// table a [Token] a reader of the generated scanner can follow.
 	AcceptTokenByState []string
-
-	// SkippedTokens holds the name of the token variant of every rule the grammar marked for skipping.
-	//
-	// It is a table rather than a match arm per rule, so that the code which reads it is the same for every grammar.
-	// A grammar which skips nothing leaves it empty, which is a table of length zero and needs no case of its own.
-	SkippedTokens []string
 }
 
 // NewTables compresses the given DFA into the lookup tables the generated scanner reads at runtime.
@@ -84,13 +78,6 @@ func NewTables(dfa backend.DFA) Tables {
 		acceptTokenByState[stateIdx] = tokenName(ruleIdx, dfa.Rules[ruleIdx])
 	}
 
-	var skippedTokens []string
-	for ruleIdx, rule := range dfa.Rules {
-		if rule.Skip {
-			skippedTokens = append(skippedTokens, tokenName(ruleIdx, rule))
-		}
-	}
-
 	return Tables{
 		ByteClassByByte: utils.NewTypedIntArray(classType, byteClassByByte),
 		TransitionBase:  utils.NewRustIntArray(compressed.Transitions.Base),
@@ -99,6 +86,5 @@ func NewTables(dfa backend.DFA) Tables {
 
 		NoByteClass:        classCount,
 		AcceptTokenByState: acceptTokenByState,
-		SkippedTokens:      skippedTokens,
 	}
 }

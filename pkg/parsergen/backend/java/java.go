@@ -2,6 +2,9 @@ package java
 
 import intjava "github.com/backbone81/golr/internal/parsergen/backend/java"
 
+// DefaultPackageName is the Java package the generated parser is declared in when the caller names none.
+const DefaultPackageName = intjava.DefaultPackageName
+
 type (
 	Config = intjava.Config
 )

@@ -25,6 +25,9 @@ var parsedTemplate = template.Must(template.New("parser.java.template").Funcs(te
 	"isAcceptNonterminal": isAcceptNonterminal,
 }).Parse(parserTemplate))
 
+// DefaultPackageName is the Java package the generated parser is declared in when the caller names none.
+const DefaultPackageName = "parser"
+
 type Config struct {
 	// PackageName is the Java package the generated parser is declared in.
 	//
@@ -47,6 +50,10 @@ func FromParser(writer io.Writer, parser backend.Parser, config Config) error {
 
 	if len(parser.States) == 0 {
 		return errors.New("the parser does not have any state")
+	}
+
+	if config.PackageName == "" {
+		config.PackageName = DefaultPackageName
 	}
 
 	var buffer bytes.Buffer

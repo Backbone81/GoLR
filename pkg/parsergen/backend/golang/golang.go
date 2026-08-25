@@ -2,6 +2,9 @@ package golang
 
 import intgolang "github.com/backbone81/golr/internal/parsergen/backend/golang"
 
+// DefaultPackageName is the Go package the generated parser is declared in when the caller names none.
+const DefaultPackageName = intgolang.DefaultPackageName
+
 type (
 	Config = intgolang.Config
 )

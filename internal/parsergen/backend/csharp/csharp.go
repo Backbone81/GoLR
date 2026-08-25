@@ -25,6 +25,9 @@ var parsedTemplate = template.Must(template.New("parser.cs.template").Funcs(temp
 	"isAcceptNonterminal": isAcceptNonterminal,
 }).Parse(parserTemplate))
 
+// DefaultNamespace is the C# namespace the generated parser is declared in when the caller names none.
+const DefaultNamespace = "Parser"
+
 type Config struct {
 	// Namespace is the C# namespace the generated parser is declared in.
 	//
@@ -46,6 +49,10 @@ func FromParser(writer io.Writer, parser backend.Parser, config Config) error {
 
 	if len(parser.States) == 0 {
 		return errors.New("the parser does not have any state")
+	}
+
+	if config.Namespace == "" {
+		config.Namespace = DefaultNamespace
 	}
 
 	var buffer bytes.Buffer

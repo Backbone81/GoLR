@@ -2,6 +2,9 @@ package golang
 
 import "github.com/backbone81/golr/internal/scannergen/backend/golang"
 
+// DefaultPackageName is the Go package the generated scanner is declared in when the caller names none.
+const DefaultPackageName = golang.DefaultPackageName
+
 type (
 	Config = golang.Config
 )

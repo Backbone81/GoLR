@@ -46,6 +46,7 @@ public final class Parser {
 
     /** @param token the terminal this symbol stands for */
     public record TerminalSymbol(Scanner.Token token) implements ParseSymbol {
+        /** Returns what the symbol is and the name the grammar spells it with. */
         @Override
         public String toString() {
             return "terminal " + token;
@@ -54,6 +55,7 @@ public final class Parser {
 
     /** @param nonterminal the nonterminal this symbol stands for */
     public record NonterminalSymbol(Nonterminal nonterminal) implements ParseSymbol {
+        /** Returns what the symbol is and the name the grammar spells it with. */
         @Override
         public String toString() {
             return "nonterminal " + nonterminal;
@@ -90,8 +92,8 @@ public final class Parser {
     }
 
     /**
-     * A single parse error. Parse errors are returned by {@link Parser#parse} rather than thrown, and this is no
-     * exception, so reporting many of them costs no stack traces. Throw one with
+     * A single parse error. Parse errors are returned by {@link Parser#parse} rather than raised, so reporting many of
+     * them costs nothing. This is no exception, so it carries no stack trace. Throw one with
      * {@code new IllegalStateException(parseError.message())}.
      *
      * @param reason what is wrong, without the position in front of it
@@ -145,6 +147,12 @@ public final class Parser {
         public String message() {
             return filePath + ":" + line + ":" + column + ": " + reason;
         }
+
+        /** Returns the message with the name of this type in front of it. */
+        @Override
+        public String toString() {
+            return "ParseError: " + message();
+        }
     }
 
     /**
@@ -157,13 +165,13 @@ public final class Parser {
     }
 
     /** What one step of a parse ended with. */
-    private sealed interface StepOutcome {
+    private sealed interface StepResult {
         /** The parse goes on. */
-        record Continue() implements StepOutcome {
+        record Continue() implements StepResult {
         }
 
         /** The input was reduced to the start symbol. */
-        record Accept() implements StepOutcome {
+        record Accept() implements StepResult {
         }
 
         /**
@@ -171,7 +179,7 @@ public final class Parser {
          *
          * @param error why it cannot go on
          */
-        record Failed(ParseError error) implements StepOutcome {
+        record Failed(ParseError error) implements StepResult {
         }
     }
 
@@ -194,10 +202,10 @@ public final class Parser {
     private static final Nonterminal[] NONTERMINALS = Nonterminal.values();
 
     /** The outcome of a step which goes on, held here because it carries nothing one step differs from another in. */
-    private static final StepOutcome CONTINUE = new StepOutcome.Continue();
+    private static final StepResult CONTINUE = new StepResult.Continue();
 
     /** The outcome of a step which accepts, held here because it carries nothing one step differs from another in. */
-    private static final StepOutcome ACCEPT = new StepOutcome.Accept();
+    private static final StepResult ACCEPT = new StepResult.Accept();
 
     // The parse table is held in lookup tables. A token is translated into the column of the action table which holds
     // the decisions for it, and the rows of that table are displaced into a single array so that the entries of one
@@ -291,9 +299,6 @@ public final class Parser {
     /** Holds the nonterminal on the left hand side of a production. */
 {{- template "tableField" .Tables.NonterminalByProduction }}
 
-    /** The scanner of the running parse. */
-    private TokenSource scanner;
-
     /** The states of the running parse, the current one on top. */
     private int[] stateStack = new int[INITIAL_STACK_CAPACITY];
 
@@ -320,8 +325,6 @@ public final class Parser {
      * every error found. The tree is null when the parse could not be carried to its end.
      */
     public ParseResult parse(TokenSource scanner) {
-        this.scanner = scanner;
-
         // The stacks are emptied rather than replaced, so a parser hands out the room it already has to the parse
         // after it instead of allocating anew.
         stateStackSize = 0;
@@ -336,16 +339,18 @@ public final class Parser {
         scanner.next();
 
         while (true) {
-            StepOutcome outcome = step();
-            if (outcome instanceof StepOutcome.Accept) {
-                return new ParseResult(nodeStack.get(0), List.copyOf(errors));
-            }
-            if (!(outcome instanceof StepOutcome.Failed failed)) {
-                // The parse goes on.
+            StepResult result = step(scanner);
+            if (result instanceof StepResult.Continue) {
                 continue;
             }
-            ParseError failure = failed.error();
+            if (result instanceof StepResult.Accept) {
+                // The errors are copied out, because the list they were collected in is handed to the parse after
+                // this one.
+                return new ParseResult(nodeStack.get(0), List.copyOf(errors));
+            }
 
+            // The step neither went on nor accepted, so it failed and carries the error.
+            ParseError failure = ((StepResult.Failed) result).error();
             if (failure.kind() != ErrorKind.SYNTAX) {
                 // Only an error in the input can be recovered from.
                 errors.add(failure);
@@ -356,7 +361,7 @@ public final class Parser {
                 // from the one already reported.
                 errors.add(failure);
             }
-            if (!recoverFromError()) {
+            if (!recoverFromError(scanner)) {
                 return new ParseResult(null, List.copyOf(errors));
             }
         }
@@ -366,7 +371,7 @@ public final class Parser {
      * Performs the one action the state on top of the stack takes for the current token. The outcome carries the error
      * only when the parse cannot go on.
      */
-    private StepOutcome step() {
+    private StepResult step(TokenSource scanner) {
         Scanner.Token terminal = scanner.token();
 
         // A token which is no terminal of this grammar takes the default action of the state.
@@ -398,9 +403,9 @@ public final class Parser {
             }
             case ACTION_KIND_ACCEPT -> ACCEPT;
             case ACTION_KIND_ERROR ->
-                new StepOutcome.Failed(new ParseError("unexpected token " + terminal, ErrorKind.SYNTAX, scanner));
+                new StepResult.Failed(new ParseError("unexpected token " + terminal, ErrorKind.SYNTAX, scanner));
             default ->
-                new StepOutcome.Failed(
+                new StepResult.Failed(
                         new ParseError(
                                 "unexpected action " + action + " in state " + state, ErrorKind.INTERNAL, scanner));
         };
@@ -437,12 +442,19 @@ public final class Parser {
      * Puts the parser back where it can carry on with the remaining input after a syntax error. Once it reports false,
      * the parse is given up.
      *
-     * <p>This is panic mode recovery as described in section 7 "Error Handling" of the yacc report: the stack is
-     * popped until a state is reached which can shift the error symbol, and the symbol is shifted there. Everything
-     * the popped states had parsed is discarded with them. The token which caused the error is kept for the resumed
-     * state to look at, and only discarded when the parse fails on it a second time.
+     * <p>This is the panic mode recovery of section 9 "Error Recovery" of "LR Parsing" by Aho and Johnson, in the
+     * shape which section 7 "Error Handling" of the yacc report describes: the parser pops its stack until it reaches
+     * a state which can shift the error symbol - a place the grammar marked as one to resume at - and shifts the
+     * symbol there. Everything the popped states had parsed is discarded with them.
+     *
+     * <p>The token which caused the error is kept for the resumed state to look at, because that state is usually
+     * waiting for exactly it: in a production like "{" @error "}" it is the closing brace which ends the recovery.
+     * Only when the parse fails on that very same token again is the token discarded, which is what an untouched
+     * countdown of tokens to shift tells us. Popping and discarding in the same handler is what guarantees progress:
+     * every round of recovery either gets the parse going again or consumes one token of the input, so a parse cannot
+     * get stuck between the two.
      */
-    private boolean recoverFromError() {
+    private boolean recoverFromError(TokenSource scanner) {
         if (errorRecoveryShiftsRemaining == ERROR_RECOVERY_SHIFTS) {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if (scanner.token() == Scanner.Token.END_TOKEN) {

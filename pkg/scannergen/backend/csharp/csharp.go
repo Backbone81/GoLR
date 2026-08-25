@@ -2,6 +2,9 @@ package csharp
 
 import "github.com/backbone81/golr/internal/scannergen/backend/csharp"
 
+// DefaultNamespace is the C# namespace the generated scanner is declared in when the caller names none.
+const DefaultNamespace = csharp.DefaultNamespace
+
 type (
 	Config = csharp.Config
 )

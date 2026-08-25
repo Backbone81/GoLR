@@ -188,6 +188,9 @@ export class TokenSkipper {
 // The automaton is held in lookup tables. An input byte is mapped to its byte class, which is the column of the
 // transition table, and the rows of that table are displaced into a single array so that the entries of one row fall
 // into the holes of another. This is the row displacement method of "Storing a Sparse Table" by Tarjan and Yao.
+//
+// The displaced arrays are padded so that every state and byte class lands inside them, which is why a lookup needs no
+// range check of its own.
 
 /** Maps an input byte to its byte class. Bytes which every state treats alike share a class. */
 const byteClassByByte = new Uint8Array([
@@ -384,8 +387,8 @@ export class Scanner {
     }
 
     /**
-     * Advances to the next token. Bytes which form no token become an InvalidToken. Returns false once the end of the
-     * source is reached, which sets the token to EndToken.
+     * Advances to the next token. Bytes which form no token become an invalid token. Returns false once the end of the
+     * source is reached, which sets the token to the end token.
      *
      * @returns {boolean}
      */

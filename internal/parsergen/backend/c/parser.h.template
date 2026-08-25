@@ -69,9 +69,10 @@ bool {{ .Func "ParseSymbolTerminal" }}(const {{ .Type "ParseSymbol" }} *symbol, 
 /// Reads the symbol as a nonterminal. Returns false and writes nothing when it is a terminal.
 bool {{ .Func "ParseSymbolNonterminal" }}(const {{ .Type "ParseSymbol" }} *symbol, {{ .Type "Nonterminal" }} *nonterminal);
 
-/// Returns the name of the symbol, as the grammar spells it. The kind of the symbol is what says whether that name is
-/// a terminal or a nonterminal.
-const char *{{ .Func "ParseSymbolToString" }}(const {{ .Type "ParseSymbol" }} *symbol);
+/// Writes what the symbol is and the name the grammar spells it with into the given buffer and terminates it with a
+/// zero. Returns the number of bytes the whole text needs, not counting that zero, so a return of at least the buffer
+/// size means it was cut short. Writes nothing when the buffer size is zero.
+size_t {{ .Func "ParseSymbolToString" }}(const {{ .Type "ParseSymbol" }} *symbol, char *buffer, size_t buffer_size);
 
 /// A single node of the parse tree. It borrows the source it was parsed from, and it is owned by the result it came
 /// with rather than by itself.
@@ -91,6 +92,10 @@ struct {{ .Type "ParseNode" }} {
     size_t child_count;
 };
 
+/// How many bytes a parse error keeps its reason in, the terminating zero included. A reason which does not fit is cut
+/// short rather than allocated for.
+#define {{ .Const "ParseErrorReasonSize" }} 256
+
 /// What a parse error is about.
 typedef enum {{ .Type "ErrorKind" }} {
     /// An error in the input.
@@ -104,8 +109,13 @@ typedef enum {{ .Type "ErrorKind" }} {
     {{ .Const "ErrorKindOutOfMemory" }}
 } {{ .Type "ErrorKind" }};
 
-/// A single parse error. Parse errors are returned rather than raised, so reporting many of them costs nothing.
+/// A single parse error. Parse errors are returned by the parse rather than raised, so reporting many of them costs
+/// nothing.
 typedef struct {{ .Type "ParseError" }} {
+    /// What is wrong, without the position in front of it. Cut short when it does not fit, which is what the fixed
+    /// size buys: an error costs no allocation of its own.
+    char reason[{{ .Const "ParseErrorReasonSize" }}];
+
     /// What the error is about.
     {{ .Type "ErrorKind" }} kind;
 
@@ -126,18 +136,11 @@ typedef struct {{ .Type "ParseError" }} {
 
     /// The file path the scanner was given.
     const char *file_path;
-
-    /// The state the parser was in, which tells apart two errors on the same token.
-    size_t state;
 } {{ .Type "ParseError" }};
 
-/// Writes what is wrong, without the position in front of it, into the given buffer and terminates it with a zero.
-/// Returns the number of bytes the whole text needs, not counting that zero, so a return of at least the buffer size
-/// means it was cut short. Writes nothing when the buffer size is zero.
-size_t {{ .Func "ParseErrorReason" }}(const {{ .Type "ParseError" }} *error, char *buffer, size_t buffer_size);
-
-/// Writes the error in the file:line:column: reason form editors and build tools recognize into the given buffer, the
-/// same way the reason above is written.
+/// Writes the error in the file:line:column: reason form editors and build tools recognize into the given buffer and
+/// terminates it with a zero. Returns the number of bytes the whole text needs, not counting that zero, so a return of
+/// at least the buffer size means it was cut short. Writes nothing when the buffer size is zero.
 size_t {{ .Func "ParseErrorMessage" }}(const {{ .Type "ParseError" }} *error, char *buffer, size_t buffer_size);
 
 /// Holds the nodes of a parse tree. Internal to the parser; a result releases it.
@@ -219,6 +222,12 @@ void {{ .Func "ParserFree" }}({{ .Type "Parser" }} *parser);
 /// serves many of them.
 #define {{ .Const "ArenaBlockNodes" }} 256
 
+/// How many entries the stacks start with room for. They grow as a deeper parse needs them to.
+#define {{ .Const "InitialStackCapacity" }} 64
+
+/// How many errors the error list starts with room for. It grows as a parse finds more of them.
+#define {{ .Const "InitialErrorCapacity" }} 8
+
 // The parse table is held in lookup tables. A token is translated into the column of the action table which holds the
 // decisions for it, and the rows of that table are displaced into a single array so that the entries of one row fall
 // into the holes of another. This is the row displacement method of "Storing a Sparse Table" by Tarjan and Yao. The
@@ -255,17 +264,17 @@ void {{ .Func "ParserFree" }}({{ .Type "Parser" }} *parser);
 /// The column holding the shifts of the error symbol, where the recovery reads the state to resume in.
 #define {{ .Const "ErrorTerminalColumn" }} {{ .Tables.ErrorTerminalColumn }}
 
-/// Maps a state to the displacement of its row within the action table.
+/// Maps a state to the displacement of its row within {{ .Const "ActionNext" }}.
 static const {{ .Tables.ActionBase.Type }} {{ .Const "ActionBase" }}[] = {
 {{- .Tables.ActionBase.Literal "    " }}};
 
-/// Holds the action of every entry. The action a state has for a column lives at the displacement of the state plus
-/// the column, but only if the check table confirms the cell belongs to that column.
+/// Holds the action of every entry. The action a state has for a column lives at {{ .Const "ActionBase" }}[state] +
+/// column, but only if {{ .Const "ActionCheck" }} confirms the cell belongs to that column.
 static const {{ .Tables.ActionNext.Type }} {{ .Const "ActionNext" }}[] = {
 {{- .Tables.ActionNext.Literal "    " }}};
 
-/// Holds the column every cell of the action table belongs to. A cell no state occupies holds {{ .Tables.NoColumn }}, which is one past
-/// the highest column in use and can never be asked for.
+/// Holds the column every cell of {{ .Const "ActionNext" }} belongs to. A cell no state occupies holds
+/// {{ .Tables.NoColumn }}, which is one past the highest column in use and can never be asked for.
 static const {{ .Tables.ActionCheck.Type }} {{ .Const "ActionCheck" }}[] = {
 {{- .Tables.ActionCheck.Literal "    " }}};
 
@@ -274,21 +283,21 @@ static const {{ .Tables.ActionCheck.Type }} {{ .Const "ActionCheck" }}[] = {
 static const {{ .Tables.DefaultActionByState.Type }} {{ .Const "DefaultActionByState" }}[] = {
 {{- .Tables.DefaultActionByState.Literal "    " }}};
 
-/// Maps a state to the displacement of its row within the goto table.
+/// Maps a state to the displacement of its row within {{ .Const "GotoNext" }}.
 static const {{ .Tables.GotoBase.Type }} {{ .Const "GotoBase" }}[] = {
 {{- .Tables.GotoBase.Literal "    " }}};
 
-/// Holds the state a goto leads to. The goto a state has for a nonterminal lives at the displacement of the state plus
-/// the nonterminal, but only if the check table confirms the cell belongs to that nonterminal.
+/// Holds the state a goto leads to. The goto a state has for a nonterminal lives at {{ .Const "GotoBase" }}[state] +
+/// nonterminal, but only if {{ .Const "GotoCheck" }} confirms the cell belongs to that nonterminal.
 static const {{ .Tables.GotoNext.Type }} {{ .Const "GotoNext" }}[] = {
 {{- .Tables.GotoNext.Literal "    " }}};
 
-/// Holds the nonterminal every cell of the goto table belongs to. A cell no state occupies holds {{ .Tables.NoNonterminal }}, which is one
-/// past the highest nonterminal and can never be asked for.
+/// Holds the nonterminal every cell of {{ .Const "GotoNext" }} belongs to. A cell no state occupies holds
+/// {{ .Tables.NoNonterminal }}, which is one past the highest nonterminal and can never be asked for.
 static const {{ .Tables.GotoCheck.Type }} {{ .Const "GotoCheck" }}[] = {
 {{- .Tables.GotoCheck.Literal "    " }}};
 
-/// Holds the state a goto on a nonterminal leads to for every state the goto table has no entry for.
+/// Holds the state a goto on a nonterminal leads to for every state {{ .Const "GotoNext" }} has no entry for.
 static const {{ .Tables.DefaultGotoByNonterminal.Type }} {{ .Const "DefaultGotoByNonterminal" }}[] = {
 {{- .Tables.DefaultGotoByNonterminal.Literal "    " }}};
 
@@ -326,34 +335,20 @@ bool {{ .Func "ParseSymbolNonterminal" }}(const {{ .Type "ParseSymbol" }} *symbo
     return true;
 }
 
-const char *{{ .Func "ParseSymbolToString" }}(const {{ .Type "ParseSymbol" }} *symbol) {
-    if (symbol->kind == {{ .Const "SymbolKindTerminal" }}) {
-        return {{ .Func "TokenToString" }}(symbol->value.terminal);
-    }
-    return {{ .Func "NonterminalToString" }}(symbol->value.nonterminal);
-}
-
-size_t {{ .Func "ParseErrorReason" }}(const {{ .Type "ParseError" }} *error, char *buffer, size_t buffer_size) {
+size_t {{ .Func "ParseSymbolToString" }}(const {{ .Type "ParseSymbol" }} *symbol, char *buffer, size_t buffer_size) {
     int written;
-    switch (error->kind) {
-    case {{ .Const "ErrorKindSyntax" }}:
-        written = snprintf(buffer, buffer_size, "unexpected token %s", {{ .Func "TokenToString" }}(error->token));
-        break;
-    case {{ .Const "ErrorKindOutOfMemory" }}:
-        written = snprintf(buffer, buffer_size, "out of memory");
-        break;
-    default:
-        written = snprintf(buffer, buffer_size, "unexpected action in state %zu", error->state);
-        break;
+    if (symbol->kind == {{ .Const "SymbolKindTerminal" }}) {
+        written = snprintf(buffer, buffer_size, "terminal %s", {{ .Func "TokenToString" }}(symbol->value.terminal));
+    } else {
+        written = snprintf(
+            buffer, buffer_size, "nonterminal %s", {{ .Func "NonterminalToString" }}(symbol->value.nonterminal));
     }
     return written < 0 ? 0 : (size_t)written;
 }
 
 size_t {{ .Func "ParseErrorMessage" }}(const {{ .Type "ParseError" }} *error, char *buffer, size_t buffer_size) {
-    char reason[1024];
-    int written;
-    {{ .Func "ParseErrorReason" }}(error, reason, sizeof(reason));
-    written = snprintf(buffer, buffer_size, "%s:%zu:%zu: %s", error->file_path, error->line, error->column, reason);
+    int written = snprintf(
+        buffer, buffer_size, "%s:%zu:%zu: %s", error->file_path, error->line, error->column, error->reason);
     return written < 0 ? 0 : (size_t)written;
 }
 
@@ -414,7 +409,7 @@ static bool {{ .Func "ParserReserveStates" }}({{ .Type "Parser" }} *parser, size
     if (count <= parser->state_capacity) {
         return true;
     }
-    capacity = parser->state_capacity == 0 ? 64 : parser->state_capacity * 2;
+    capacity = parser->state_capacity == 0 ? {{ .Const "InitialStackCapacity" }} : parser->state_capacity * 2;
     while (capacity < count) {
         capacity *= 2;
     }
@@ -436,7 +431,7 @@ static bool {{ .Func "ParserReserveNodes" }}({{ .Type "Parser" }} *parser, size_
     if (count <= parser->node_capacity) {
         return true;
     }
-    capacity = parser->node_capacity == 0 ? 64 : parser->node_capacity * 2;
+    capacity = parser->node_capacity == 0 ? {{ .Const "InitialStackCapacity" }} : parser->node_capacity * 2;
     while (capacity < count) {
         capacity *= 2;
     }
@@ -458,7 +453,7 @@ static bool {{ .Func "ParserReserveErrors" }}({{ .Type "Parser" }} *parser, size
     if (count <= parser->error_capacity) {
         return true;
     }
-    capacity = parser->error_capacity == 0 ? 8 : parser->error_capacity * 2;
+    capacity = parser->error_capacity == 0 ? {{ .Const "InitialErrorCapacity" }} : parser->error_capacity * 2;
     while (capacity < count) {
         capacity *= 2;
     }
@@ -472,9 +467,18 @@ static bool {{ .Func "ParserReserveErrors" }}({{ .Type "Parser" }} *parser, size
     return true;
 }
 
-/// Returns an error which stands at the position the given scanner is at.
-static {{ .Type "ParseError" }} {{ .Func "ParseErrorAt" }}({{ .Type "ErrorKind" }} kind, const {{ .Type "TokenSource" }} *scanner, size_t state) {
+/// Returns an error with the given reason at the position the given scanner is at. A reason longer than the field is
+/// cut short.
+static {{ .Type "ParseError" }} {{ .Func "ParseErrorAt" }}(const char *reason, {{ .Type "ErrorKind" }} kind, const {{ .Type "TokenSource" }} *scanner) {
     {{ .Type "ParseError" }} error;
+    size_t length = strlen(reason);
+
+    if (length >= sizeof(error.reason)) {
+        length = sizeof(error.reason) - 1;
+    }
+    memcpy(error.reason, reason, length);
+    error.reason[length] = '\0';
+
     error.kind = kind;
     error.token = scanner->token(scanner->context);
     error.byte_offset = scanner->byte_offset(scanner->context);
@@ -482,7 +486,6 @@ static {{ .Type "ParseError" }} {{ .Func "ParseErrorAt" }}({{ .Type "ErrorKind" 
     error.column = scanner->column(scanner->context);
     error.lexeme = scanner->lexeme(scanner->context);
     error.file_path = scanner->file_path(scanner->context);
-    error.state = state;
     return error;
 }
 
@@ -497,9 +500,9 @@ static bool {{ .Func "ParserAppendError" }}({{ .Type "Parser" }} *parser, const 
 }
 
 /// Records that an allocation failed, using the slot the appending above keeps in reserve.
-static void {{ .Func "ParserReportOutOfMemory" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner, size_t state) {
+static void {{ .Func "ParserReportOutOfMemory" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner) {
     if (parser->error_count < parser->error_capacity) {
-        parser->errors[parser->error_count] = {{ .Func "ParseErrorAt" }}({{ .Const "ErrorKindOutOfMemory" }}, scanner, state);
+        parser->errors[parser->error_count] = {{ .Func "ParseErrorAt" }}("out of memory", {{ .Const "ErrorKindOutOfMemory" }}, scanner);
         parser->error_count++;
     }
 }
@@ -612,7 +615,7 @@ static bool {{ .Func "ParserReduce" }}({{ .Type "Parser" }} *parser, size_t prod
 }
 
 /// What one step of a parse ended with.
-typedef enum {{ .Type "StepKind" }} {
+typedef enum {{ .Type "StepResult" }} {
     /// The step performed an action and the parse goes on.
     {{ .Const "StepContinue" }},
 
@@ -621,10 +624,10 @@ typedef enum {{ .Type "StepKind" }} {
 
     /// The step could not go on, and the error says why.
     {{ .Const "StepFailed" }}
-} {{ .Type "StepKind" }};
+} {{ .Type "StepResult" }};
 
 /// Performs the one action the state on top of the stack takes for the current token.
-static {{ .Type "StepKind" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner, {{ .Type "ParseError" }} *error) {
+static {{ .Type "StepResult" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner, {{ .Type "ParseError" }} *error) {
     {{ .Type "Token" }} terminal = scanner->token(scanner->context);
 
     /* A token which is no terminal of this grammar takes the default action of the state. */
@@ -635,6 +638,7 @@ static {{ .Type "StepKind" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *par
     size_t cell_column = {{ .Const "ActionCheck" }}[cell_idx];
     size_t action = {{ .Const "DefaultActionByState" }}[state];
     {{ .Type "ParseNode" }} node;
+    char reason[{{ .Const "ParseErrorReasonSize" }}];
 
     if (cell_column == column) {
         /* An entry the state has of its own beats its default action, which is what keeps a token the grammar rejects
@@ -669,12 +673,14 @@ static {{ .Type "StepKind" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *par
     case {{ .Const "ActionKindAccept" }}:
         return {{ .Const "StepAccept" }};
     case {{ .Const "ActionKindError" }}:
-        *error = {{ .Func "ParseErrorAt" }}({{ .Const "ErrorKindSyntax" }}, scanner, state);
+        snprintf(reason, sizeof(reason), "unexpected token %s", {{ .Func "TokenToString" }}(terminal));
+        *error = {{ .Func "ParseErrorAt" }}(reason, {{ .Const "ErrorKindSyntax" }}, scanner);
         return {{ .Const "StepFailed" }};
     default:
         /* Every value the mask selects has a case of its own, so this is never reached. It is here to make the switch
            complete. */
-        *error = {{ .Func "ParseErrorAt" }}({{ .Const "ErrorKindInternal" }}, scanner, state);
+        snprintf(reason, sizeof(reason), "unexpected action %zu in state %zu", action, state);
+        *error = {{ .Func "ParseErrorAt" }}(reason, {{ .Const "ErrorKindInternal" }}, scanner);
         return {{ .Const "StepFailed" }};
     }
 }
@@ -682,10 +688,16 @@ static {{ .Type "StepKind" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *par
 /// Puts the parser back where it can carry on with the remaining input after a syntax error. Once it reports false,
 /// the parse is given up.
 ///
-/// This is panic mode recovery as described in section 7 "Error Handling" of the yacc report: the stack is popped
-/// until a state is reached which can shift the error symbol, and the symbol is shifted there. Everything the popped
-/// states had parsed is discarded with them. The token which caused the error is kept for the resumed state to look
-/// at, and only discarded when the parse fails on it a second time.
+/// This is the panic mode recovery of section 9 "Error Recovery" of "LR Parsing" by Aho and Johnson, in the shape
+/// which section 7 "Error Handling" of the yacc report describes: the parser pops its stack until it reaches a state
+/// which can shift the error symbol - a place the grammar marked as one to resume at - and shifts the symbol there.
+/// Everything the popped states had parsed is discarded with them.
+///
+/// The token which caused the error is kept for the resumed state to look at, because that state is usually waiting
+/// for exactly it: in a production like "{" @error "}" it is the closing brace which ends the recovery. Only when the
+/// parse fails on that very same token again is the token discarded, which is what an untouched countdown of tokens to
+/// shift tells us. Popping and discarding in the same handler is what guarantees progress: every round of recovery
+/// either gets the parse going again or consumes one token of the input, so a parse cannot get stuck between the two.
 static bool {{ .Func "ParserRecoverFromError" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner) {
     {{ .Type "ParseNode" }} node;
     size_t next_state;
@@ -758,7 +770,7 @@ void {{ .Func "ParseResultFree" }}({{ .Type "ParseResult" }} *result) {
 {{ .Type "ParseResult" }} {{ .Func "ParserParse" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner) {
     {{ .Type "ParseResult" }} result;
     {{ .Type "ParseError" }} failure;
-    {{ .Type "StepKind" }} kind;
+    {{ .Type "StepResult" }} step_result;
 
     result.tree = NULL;
     result.errors = NULL;
@@ -787,22 +799,22 @@ void {{ .Func "ParseResultFree" }}({{ .Type "ParseResult" }} *result) {
     scanner->next(scanner->context);
 
     for (;;) {
-        kind = {{ .Func "ParserStep" }}(parser, scanner, &failure);
+        step_result = {{ .Func "ParserStep" }}(parser, scanner, &failure);
 
         if (parser->out_of_memory) {
-            {{ .Func "ParserReportOutOfMemory" }}(parser, scanner, {{ .Func "ParserCurrentState" }}(parser));
+            {{ .Func "ParserReportOutOfMemory" }}(parser, scanner);
             break;
         }
-        if (kind == {{ .Const "StepContinue" }}) {
+        if (step_result == {{ .Const "StepContinue" }}) {
             continue;
         }
-        if (kind == {{ .Const "StepAccept" }}) {
+        if (step_result == {{ .Const "StepAccept" }}) {
             /* What is left on the node stack is the start symbol, which is the root of the tree. */
             if (parser->node_count > 0) {
                 {{ .Type "ParseNode" }} *root = {{ .Func "ArenaAllocate" }}(&parser->arena, 1);
                 if (root == NULL) {
                     parser->out_of_memory = true;
-                    {{ .Func "ParserReportOutOfMemory" }}(parser, scanner, {{ .Func "ParserCurrentState" }}(parser));
+                    {{ .Func "ParserReportOutOfMemory" }}(parser, scanner);
                     break;
                 }
                 *root = parser->node_stack[0];
@@ -811,11 +823,11 @@ void {{ .Func "ParseResultFree" }}({{ .Type "ParseResult" }} *result) {
             break;
         }
 
-        /* The step neither went on nor accepted, so it failed and the error says why. */
+        /* The step neither went on nor accepted, so it failed and carries the error. */
         if (failure.kind != {{ .Const "ErrorKindSyntax" }}) {
             /* Only an error in the input can be recovered from. */
             if (!{{ .Func "ParserAppendError" }}(parser, &failure)) {
-                {{ .Func "ParserReportOutOfMemory" }}(parser, scanner, {{ .Func "ParserCurrentState" }}(parser));
+                {{ .Func "ParserReportOutOfMemory" }}(parser, scanner);
             }
             break;
         }
@@ -823,13 +835,13 @@ void {{ .Func "ParseResultFree" }}({{ .Type "ParseResult" }} *result) {
             /* While recovering, the parser is not in sync with the input, so the errors it runs into there follow from
                the one already reported. */
             if (!{{ .Func "ParserAppendError" }}(parser, &failure)) {
-                {{ .Func "ParserReportOutOfMemory" }}(parser, scanner, {{ .Func "ParserCurrentState" }}(parser));
+                {{ .Func "ParserReportOutOfMemory" }}(parser, scanner);
                 break;
             }
         }
         if (!{{ .Func "ParserRecoverFromError" }}(parser, scanner)) {
             if (parser->out_of_memory) {
-                {{ .Func "ParserReportOutOfMemory" }}(parser, scanner, {{ .Func "ParserCurrentState" }}(parser));
+                {{ .Func "ParserReportOutOfMemory" }}(parser, scanner);
             }
             break;
         }

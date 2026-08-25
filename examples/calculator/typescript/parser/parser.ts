@@ -71,7 +71,7 @@ export const ParseSymbol = Object.freeze({
     },
 });
 
-/** Returns the name of the symbol, as the grammar spells it. */
+/** Returns what the symbol is and the name the grammar spells it with. */
 export function symbolToString(symbol: ParseSymbol): string {
     const nonterminal = ParseSymbol.nonterminal(symbol);
     if (nonterminal !== null) {
@@ -119,8 +119,9 @@ export const ErrorKind = Object.freeze({
 export type ErrorKind = (typeof ErrorKind)[keyof typeof ErrorKind];
 
 /**
- * A single parse error. Parse errors are returned by parse rather than thrown, and this is not an Error, so reporting
- * many of them costs no stack traces. Wrap one to throw it: `new Error(parseError.message, { cause: parseError })`.
+ * A single parse error. Parse errors are returned by parse rather than raised, so reporting many of them costs
+ * nothing. This is not an Error, so it carries no stack trace. Wrap one to throw it:
+ * `new Error(parseError.message, { cause: parseError })`.
  */
 export class ParseError {
     /** What is wrong, without the position in front of it. */
@@ -338,9 +339,6 @@ const nonterminalByProduction = new Uint8Array([
 
 /** Parses the tokens of a scanner into a parse tree. */
 export class Parser {
-    /** The scanner of the running parse. */
-    #scanner!: TokenSource;
-
     /** The states of the running parse, the current one on top. */
     readonly #stateStack: number[] = [];
 
@@ -364,8 +362,6 @@ export class Parser {
      * every error found. The tree is null when the parse could not be carried to its end.
      */
     parse(scanner: TokenSource): ParseResult {
-        this.#scanner = scanner;
-
         // The stacks are emptied rather than replaced, so a parser hands out the room it already has to the parse
         // after it instead of allocating anew.
         this.#stateStack.length = 0;
@@ -376,10 +372,10 @@ export class Parser {
 
         // A source with no tokens at all reports false right away. That is not an error: the token is the end of input
         // either way, and whether a parse of nothing but that is legal is for the table to decide.
-        this.#scanner.next();
+        scanner.next();
 
         for (;;) {
-            const result = this.#step();
+            const result = this.#step(scanner);
             if (result === null) {
                 continue;
             }
@@ -398,7 +394,7 @@ export class Parser {
                 // from the one already reported.
                 this.#errors.push(result);
             }
-            if (!this.#recoverFromError()) {
+            if (!this.#recoverFromError(scanner)) {
                 return { tree: null, errors: [...this.#errors] };
             }
         }
@@ -409,8 +405,8 @@ export class Parser {
      *
      * Returns null while the parse goes on, the accept sentinel when it is finished, and a ParseError when it is not.
      */
-    #step(): null | typeof accept | ParseError {
-        const terminal = this.#scanner.token();
+    #step(scanner: TokenSource): null | typeof accept | ParseError {
+        const terminal = scanner.token();
 
         // A token which is no terminal of this grammar takes the default action of the state.
         const column = Parser.#terminalColumn(terminal);
@@ -427,8 +423,8 @@ export class Parser {
         switch (action & actionKindMask) {
             case actionKindShift:
                 this.#stateStack.push(action >>> actionKindBits);
-                this.#nodeStack.push(new ParseNode(ParseSymbol.newTerminal(terminal), this.#scanner.lexeme(), []));
-                this.#scanner.next();
+                this.#nodeStack.push(new ParseNode(ParseSymbol.newTerminal(terminal), scanner.lexeme(), []));
+                scanner.next();
                 if (this.#errorRecoveryShiftsRemaining > 0) {
                     // Getting tokens of the input shifted again is what makes the parser trust its position.
                     this.#errorRecoveryShiftsRemaining--;
@@ -440,12 +436,12 @@ export class Parser {
             case actionKindAccept:
                 return accept;
             case actionKindError:
-                return new ParseError(`unexpected token ${tokenToString(terminal)}`, ErrorKind.Syntax, this.#scanner);
+                return new ParseError(`unexpected token ${tokenToString(terminal)}`, ErrorKind.Syntax, scanner);
             default:
                 return new ParseError(
                     `unexpected action ${action} in state ${state}`,
                     ErrorKind.Internal,
-                    this.#scanner,
+                    scanner,
                 );
         }
     }
@@ -480,19 +476,26 @@ export class Parser {
      * Puts the parser back where it can carry on with the remaining input after a syntax error. Once it reports false,
      * the parse is given up.
      *
-     * This is panic mode recovery as described in section 7 "Error Handling" of the yacc report: the stack is popped
-     * until a state is reached which can shift the error symbol, and the symbol is shifted there. Everything the popped
-     * states had parsed is discarded with them. The token which caused the error is kept for the resumed state to look
-     * at, and only discarded when the parse fails on it a second time.
+     * This is the panic mode recovery of section 9 "Error Recovery" of "LR Parsing" by Aho and Johnson, in the shape
+     * which section 7 "Error Handling" of the yacc report describes: the parser pops its stack until it reaches a state
+     * which can shift the error symbol - a place the grammar marked as one to resume at - and shifts the symbol there.
+     * Everything the popped states had parsed is discarded with them.
+     *
+     * The token which caused the error is kept for the resumed state to look at, because that state is usually waiting
+     * for exactly it: in a production like "{" @error "}" it is the closing brace which ends the recovery. Only when the
+     * parse fails on that very same token again is the token discarded, which is what an untouched countdown of tokens
+     * to shift tells us. Popping and discarding in the same handler is what guarantees progress: every round of
+     * recovery either gets the parse going again or consumes one token of the input, so a parse cannot get stuck
+     * between the two.
      */
-    #recoverFromError(): boolean {
+    #recoverFromError(scanner: TokenSource): boolean {
         if (this.#errorRecoveryShiftsRemaining === errorRecoveryShifts) {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
-            if (this.#scanner.token() === Token.EndToken) {
+            if (scanner.token() === Token.EndToken) {
                 // The end of input is the one token which cannot be discarded.
                 return false;
             }
-            this.#scanner.next();
+            scanner.next();
         }
         this.#errorRecoveryShiftsRemaining = errorRecoveryShifts;
 

@@ -52,7 +52,7 @@ class TerminalSymbol:
     """The token this symbol stands for."""
 
     def __str__(self) -> str:
-        """Returns what the symbol is and the name it goes by."""
+        """Returns what the symbol is and the name the grammar spells it with."""
         return f"terminal {self.token}"
 
 
@@ -64,7 +64,7 @@ class NonterminalSymbol:
     """The nonterminal this symbol stands for."""
 
     def __str__(self) -> str:
-        """Returns what the symbol is and the name it goes by."""
+        """Returns what the symbol is and the name the grammar spells it with."""
         return f"nonterminal {self.nonterminal}"
 
 
@@ -99,7 +99,7 @@ class ErrorKind(Enum):
 class ParseError(Exception):
     """A single parse error.
 
-    A parse returns its errors instead of raising them, so reporting many of them is cheap. Raise one with
+    Parse errors are returned by `parse` rather than raised, so reporting many of them costs nothing. Raise one with
     `raise error`.
     """
 
@@ -203,7 +203,7 @@ class ParseResult:
     """Every error the parse reported, in the order they were found."""
 
 
-class _StepOutcome(Enum):
+class _StepResult(Enum):
     """What one step of a parse ended with, when the step did not fail."""
 
     CONTINUE = auto()
@@ -229,7 +229,7 @@ follow from it.
 # The rows are sparse because what most entries of a row agree on is taken out of it and kept as a default: the action
 # table defaults per state and the goto table per nonterminal. Only the entries which deviate are in the tables.
 #
-# The displaced tables are padded so that every state and column lands inside them, which is why a lookup needs no
+# The displaced arrays are padded so that every state and column lands inside them, which is why a lookup needs no
 # range check of its own.
 
 _ACTION_KIND_BITS: Final = 2
@@ -399,21 +399,21 @@ class Parser:
         scanner.next()
 
         while True:
-            outcome = self._step(scanner)
-            if outcome is _StepOutcome.CONTINUE:
+            result = self._step(scanner)
+            if result is _StepResult.CONTINUE:
                 continue
-            if outcome is _StepOutcome.ACCEPT:
+            if result is _StepResult.ACCEPT:
                 # What is left on the node stack is the start symbol, which is the root of the tree.
                 return ParseResult(self._node_stack[0], tuple(self._errors))
 
-            if outcome.kind is not ErrorKind.SYNTAX:
+            if result.kind is not ErrorKind.SYNTAX:
                 # Only an error in the input can be recovered from.
-                self._errors.append(outcome)
+                self._errors.append(result)
                 return ParseResult(None, tuple(self._errors))
             if self._error_recovery_shifts_remaining == 0:
                 # While recovering, the parser is not in sync with the input, so the errors it runs into there follow
                 # from the one already reported.
-                self._errors.append(outcome)
+                self._errors.append(result)
             if not self._recover_from_error(scanner):
                 return ParseResult(None, tuple(self._errors))
 
@@ -429,7 +429,7 @@ class Parser:
         self._errors.clear()
         self._error_recovery_shifts_remaining = 0
 
-    def _step(self, scanner: TokenSource) -> _StepOutcome | ParseError:
+    def _step(self, scanner: TokenSource) -> _StepResult | ParseError:
         """Performs the one action the state on top of the stack takes for the current token.
 
         Returns an error only when the parse cannot go on.
@@ -456,12 +456,12 @@ class Parser:
             if self._error_recovery_shifts_remaining > 0:
                 # Getting tokens of the input shifted again is what makes the parser trust its position.
                 self._error_recovery_shifts_remaining -= 1
-            return _StepOutcome.CONTINUE
+            return _StepResult.CONTINUE
         if action_kind == _ACTION_KIND_REDUCE:
             self._reduce(action >> _ACTION_KIND_BITS)
-            return _StepOutcome.CONTINUE
+            return _StepResult.CONTINUE
         if action_kind == _ACTION_KIND_ACCEPT:
-            return _StepOutcome.ACCEPT
+            return _StepResult.ACCEPT
         if action_kind == _ACTION_KIND_ERROR:
             return ParseError.from_scanner(f"unexpected token {terminal}", ErrorKind.SYNTAX, scanner)
         return ParseError.from_scanner(f"unexpected action {action} in state {state}", ErrorKind.INTERNAL, scanner)
@@ -497,10 +497,17 @@ class Parser:
 
         Once it reports false, the parse is given up.
 
-        This is panic mode recovery as described in section 7 "Error Handling" of the yacc report: the stack is popped
-        until a state is reached which can shift the error symbol, and the symbol is shifted there. Everything the
-        popped states had parsed is discarded with them. The token which caused the error is kept for the resumed state
-        to look at, and only discarded when the parse fails on it a second time.
+        This is the panic mode recovery of section 9 "Error Recovery" of "LR Parsing" by Aho and Johnson, in the shape
+        which section 7 "Error Handling" of the yacc report describes: the parser pops its stack until it reaches a
+        state which can shift the error symbol - a place the grammar marked as one to resume at - and shifts the symbol
+        there. Everything the popped states had parsed is discarded with them.
+
+        The token which caused the error is kept for the resumed state to look at, because that state is usually
+        waiting for exactly it: in a production like "{" @error "}" it is the closing brace which ends the recovery.
+        Only when the parse fails on that very same token again is the token discarded, which is what an untouched
+        countdown of tokens to shift tells us. Popping and discarding in the same handler is what guarantees progress:
+        every round of recovery either gets the parse going again or consumes one token of the input, so a parse cannot
+        get stuck between the two.
         """
         if self._error_recovery_shifts_remaining == _ERROR_RECOVERY_SHIFTS:
             # Nothing was shifted since the last error, so the parser is failing on the token it already failed on.

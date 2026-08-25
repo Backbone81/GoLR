@@ -306,8 +306,8 @@ export class Scanner implements TokenSource {
     }
 
     /**
-     * Advances to the next token. Bytes which form no token become an InvalidToken. Returns false once the end of the
-     * source is reached, which sets the token to EndToken.
+     * Advances to the next token. Bytes which form no token become an invalid token. Returns false once the end of the
+     * source is reached, which sets the token to the end token.
      */
     next(): boolean {
         this.#updateLineAndColumn(this.#lexemeStartIdx, this.#lexemeEndIdx);

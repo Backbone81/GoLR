@@ -176,8 +176,8 @@ public:
         token_ = Token::InvalidToken;
     }
 
-    /// Advances to the next token. Bytes which form no token become an InvalidToken. Returns false once the end of the
-    /// source is reached, which sets the token to EndToken.
+    /// Advances to the next token. Bytes which form no token become an invalid token. Returns false once the end of the
+    /// source is reached, which sets the token to the end token.
     bool next() {
         update_line_and_column(lexeme_start_idx_, lexeme_end_idx_);
         lexeme_start_idx_ = lexeme_end_idx_;

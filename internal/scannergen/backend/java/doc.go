@@ -1,2 +1,3 @@
-// Package java provides a scanner generator backend which takes a DFA as input and outputs Java source code.
+// Package java contains the backend which writes the scanner as Java source code holding the automaton in lookup
+// tables.
 package java

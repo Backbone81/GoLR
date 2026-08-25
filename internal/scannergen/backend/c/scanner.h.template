@@ -89,7 +89,7 @@ const char *{{ .Func "ScannerFilePath" }}(const {{ .Type "Scanner" }} *scanner);
 /// Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which changed.
 void {{ .Func "ScannerReset" }}({{ .Type "Scanner" }} *scanner, const char *source, size_t source_length, size_t offset);
 
-/// Advances to the next token. Bytes which form no token become the invalid token. Returns false once the end of the
+/// Advances to the next token. Bytes which form no token become an invalid token. Returns false once the end of the
 /// source is reached, which sets the token to the end token.
 bool {{ .Func "ScannerNext" }}({{ .Type "Scanner" }} *scanner);
 
@@ -186,17 +186,18 @@ bool {{ .Func "TokenSkipperNext" }}({{ .Type "TokenSkipper" }} *skipper);
 static const {{ .Tables.ByteClassByByte.Type }} {{ .Const "ByteClassByByte" }}[] = {
 {{- .Tables.ByteClassByByte.Literal "    " }}};
 
-/// Maps a state to the displacement of its row within the transition table.
+/// Maps a state to the displacement of its row within {{ .Const "TransitionNext" }}.
 static const {{ .Tables.TransitionBase.Type }} {{ .Const "TransitionBase" }}[] = {
 {{- .Tables.TransitionBase.Literal "    " }}};
 
-/// Holds the target state of every transition. The transition a state has on a byte class lives at the displacement of
-/// the state plus the class, but only if the check table confirms the cell belongs to that class.
+/// Holds the target state of every transition. The transition a state has on a byte class lives at
+/// {{ .Const "TransitionBase" }}[state] + class, but only if {{ .Const "TransitionCheck" }} confirms the cell belongs
+/// to that class.
 static const {{ .Tables.TransitionNext.Type }} {{ .Const "TransitionNext" }}[] = {
 {{- .Tables.TransitionNext.Literal "    " }}};
 
-/// Holds the byte class every cell of the transition table belongs to. A cell no state occupies holds {{ .Tables.NoByteClass }}, which is
-/// one past the highest byte class in use and can never be asked for.
+/// Holds the byte class every cell of {{ .Const "TransitionNext" }} belongs to. A cell no state occupies holds
+/// {{ .Tables.NoByteClass }}, which is one past the highest byte class in use and can never be asked for.
 static const {{ .Tables.TransitionCheck.Type }} {{ .Const "TransitionCheck" }}[] = {
 {{- .Tables.TransitionCheck.Literal "    " }}};
 
@@ -235,14 +236,8 @@ bool {{ .Func "TokenIsSkipped" }}({{ .Type "Token" }} token) {
 }
 
 void {{ .Func "ScannerInit" }}({{ .Type "Scanner" }} *scanner, const char *source, size_t source_length, const char *file_path) {
-    scanner->source = source;
-    scanner->source_length = source_length;
     scanner->file_path = file_path;
-    scanner->token = {{ .Const "TokenInvalidToken" }};
-    scanner->lexeme_start_idx = 0;
-    scanner->lexeme_end_idx = 0;
-    scanner->line = 1;
-    scanner->column = 1;
+    {{ .Func "ScannerReset" }}(scanner, source, source_length, 0);
 }
 
 {{ .Type "Token" }} {{ .Func "ScannerToken" }}(const {{ .Type "Scanner" }} *scanner) {

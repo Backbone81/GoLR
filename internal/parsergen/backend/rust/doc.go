@@ -1,2 +1,3 @@
-// Package rust provides a parser generator backend which takes a parse table as input and outputs Rust source code.
+// Package rust contains the backend which writes the parser as Rust source code holding the parse table in lookup
+// tables.
 package rust

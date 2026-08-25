@@ -96,7 +96,7 @@ const char *calculator_scanner_file_path(const CalculatorScanner *scanner);
 /// Scans the given source from the given byte offset on. Useful for re-tokenizing the part of a source which changed.
 void calculator_scanner_reset(CalculatorScanner *scanner, const char *source, size_t source_length, size_t offset);
 
-/// Advances to the next token. Bytes which form no token become the invalid token. Returns false once the end of the
+/// Advances to the next token. Bytes which form no token become an invalid token. Returns false once the end of the
 /// source is reached, which sets the token to the end token.
 bool calculator_scanner_next(CalculatorScanner *scanner);
 
@@ -209,20 +209,21 @@ static const uint8_t CALCULATOR_BYTE_CLASS_BY_BYTE[] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
-/// Maps a state to the displacement of its row within the transition table.
+/// Maps a state to the displacement of its row within CALCULATOR_TRANSITION_NEXT.
 static const uint8_t CALCULATOR_TRANSITION_BASE[] = {
     0, 8, 2, 1, 1, 1, 1, 1, 1,
 };
 
-/// Holds the target state of every transition. The transition a state has on a byte class lives at the displacement of
-/// the state plus the class, but only if the check table confirms the cell belongs to that class.
+/// Holds the target state of every transition. The transition a state has on a byte class lives at
+/// CALCULATOR_TRANSITION_BASE[state] + class, but only if CALCULATOR_TRANSITION_CHECK confirms the cell belongs
+/// to that class.
 static const uint8_t CALCULATOR_TRANSITION_NEXT[] = {
     0, 1, 7, 8, 5, 3, 4, 6, 2, 1, 2, 0, 0, 0, 0, 0,
     0,
 };
 
-/// Holds the byte class every cell of the transition table belongs to. A cell no state occupies holds 9, which is
-/// one past the highest byte class in use and can never be asked for.
+/// Holds the byte class every cell of CALCULATOR_TRANSITION_NEXT belongs to. A cell no state occupies holds
+/// 9, which is one past the highest byte class in use and can never be asked for.
 static const uint8_t CALCULATOR_TRANSITION_CHECK[] = {
     9, 1, 2, 3, 4, 5, 6, 7, 8, 1, 8, 9, 9, 9, 9, 9,
     9,
@@ -281,14 +282,8 @@ bool calculator_token_is_skipped(CalculatorToken token) {
 }
 
 void calculator_scanner_init(CalculatorScanner *scanner, const char *source, size_t source_length, const char *file_path) {
-    scanner->source = source;
-    scanner->source_length = source_length;
     scanner->file_path = file_path;
-    scanner->token = CALCULATOR_TOKEN_INVALID_TOKEN;
-    scanner->lexeme_start_idx = 0;
-    scanner->lexeme_end_idx = 0;
-    scanner->line = 1;
-    scanner->column = 1;
+    calculator_scanner_reset(scanner, source, source_length, 0);
 }
 
 CalculatorToken calculator_scanner_token(const CalculatorScanner *scanner) {

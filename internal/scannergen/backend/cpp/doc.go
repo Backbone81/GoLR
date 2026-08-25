@@ -1,2 +1,2 @@
-// Package cpp provides a scanner generator backend which takes a DFA as input and outputs C++ source code.
+// Package cpp contains the backend which writes the scanner as C++ source code holding the automaton in lookup tables.
 package cpp

@@ -54,15 +54,12 @@ impl fmt::Display for Token {
     }
 }
 
-/// Holds the tokens the grammar marked for skipping.
-#[rustfmt::skip]
-static SKIPPED_TOKENS: [Token; 1] = [
-    Token::TokenWhitespace,
-];
-
 /// Reports whether the grammar marked the token for skipping, which is what the token skipper drops.
 pub fn is_skipped(token: Token) -> bool {
-    SKIPPED_TOKENS.contains(&token)
+    match token {
+        Token::TokenWhitespace => true,
+        _ => false,
+    }
 }
 
 /// What a scanner offers. Both [`Scanner`] and [`TokenSkipper`] implement it. The lifetime is the one of the source.

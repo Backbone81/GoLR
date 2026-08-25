@@ -28,7 +28,14 @@ var parsedTemplate = template.Must(template.New("scanner.go.template").Funcs(tem
 	"tokenName": tokenName,
 }).Parse(scannerTemplate))
 
+// DefaultPackageName is the Go package the generated scanner is declared in when the caller names none.
+const DefaultPackageName = "parser"
+
 type Config struct {
+	// PackageName is the Go package the generated scanner is declared in.
+	//
+	// The generated parser has to be given the same one. Go resolves a type by its package and the parser needs both
+	// the token constants and the scanner interface declared here.
 	PackageName string
 }
 
@@ -45,6 +52,10 @@ func FromDFA(writer io.Writer, dfa backend.DFA, config Config) error {
 
 	if len(dfa.States) == 0 {
 		return errors.New("the DFA does not have any state")
+	}
+
+	if config.PackageName == "" {
+		config.PackageName = DefaultPackageName
 	}
 
 	var buffer bytes.Buffer

@@ -42,7 +42,7 @@ pub enum ParseSymbol {
 }
 
 impl fmt::Display for ParseSymbol {
-    /// Writes what the symbol is and the name it goes by.
+    /// Writes what the symbol is and the name the grammar spells it with.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ParseSymbol::Terminal(token) => write!(f, "terminal {token}"),
@@ -75,8 +75,8 @@ pub enum ErrorKind {
     Internal,
 }
 
-/// A single parse error. Parse errors are returned by [`Parser::parse`] rather than raised as a panic, so reporting
-/// many of them costs nothing.
+/// A single parse error. Parse errors are returned by [`Parser::parse`] rather than raised, so reporting many of them
+/// costs nothing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError<'a> {
     /// What is wrong, without the position in front of it.
@@ -148,7 +148,7 @@ pub struct ParseResult<'a> {
 }
 
 /// What one step of a parse ended with.
-enum StepOutcome<'a> {
+enum StepResult<'a> {
     /// The parse goes on.
     Continue,
 
@@ -327,8 +327,8 @@ impl<'a> ParseState<'a> {
 
         loop {
             let failure = match self.step(scanner) {
-                StepOutcome::Continue => continue,
-                StepOutcome::Accept => {
+                StepResult::Continue => continue,
+                StepResult::Accept => {
                     // What is left on the node stack is the start symbol, which is the root of the tree.
                     let tree = self.node_stack.drain(..).next();
                     return ParseResult {
@@ -336,7 +336,7 @@ impl<'a> ParseState<'a> {
                         errors: self.errors,
                     };
                 }
-                StepOutcome::Failed(failure) => failure,
+                StepResult::Failed(failure) => failure,
             };
 
             if failure.kind != ErrorKind::Syntax {
@@ -363,7 +363,7 @@ impl<'a> ParseState<'a> {
 
     /// Performs the one action the state on top of the stack takes for the current token. The outcome carries the
     /// error only when the parse cannot go on.
-    fn step<S: TokenSource<'a> + ?Sized>(&mut self, scanner: &mut S) -> StepOutcome<'a> {
+    fn step<S: TokenSource<'a> + ?Sized>(&mut self, scanner: &mut S) -> StepResult<'a> {
         let terminal = scanner.token();
 
         // A token which is no terminal of this grammar takes the default action of the state.
@@ -392,19 +392,19 @@ impl<'a> ParseState<'a> {
                     // Getting tokens of the input shifted again is what makes the parser trust its position.
                     self.error_recovery_shifts_remaining -= 1;
                 }
-                StepOutcome::Continue
+                StepResult::Continue
             }
             ACTION_KIND_REDUCE => {
                 self.reduce(action >> ACTION_KIND_BITS);
-                StepOutcome::Continue
+                StepResult::Continue
             }
-            ACTION_KIND_ACCEPT => StepOutcome::Accept,
-            ACTION_KIND_ERROR => StepOutcome::Failed(ParseError::new(
+            ACTION_KIND_ACCEPT => StepResult::Accept,
+            ACTION_KIND_ERROR => StepResult::Failed(ParseError::new(
                 format!("unexpected token {terminal}"),
                 ErrorKind::Syntax,
                 scanner,
             )),
-            _ => StepOutcome::Failed(ParseError::new(
+            _ => StepResult::Failed(ParseError::new(
                 format!("unexpected action {action} in state {state}"),
                 ErrorKind::Internal,
                 scanner,
@@ -444,10 +444,17 @@ impl<'a> ParseState<'a> {
     /// Puts the parser back where it can carry on with the remaining input after a syntax error. Once it reports
     /// false, the parse is given up.
     ///
-    /// This is panic mode recovery as described in section 7 "Error Handling" of the yacc report: the stack is popped
-    /// until a state is reached which can shift the error symbol, and the symbol is shifted there. Everything the
-    /// popped states had parsed is discarded with them. The token which caused the error is kept for the resumed state
-    /// to look at, and only discarded when the parse fails on it a second time.
+    /// This is the panic mode recovery of section 9 "Error Recovery" of "LR Parsing" by Aho and Johnson, in the shape
+    /// which section 7 "Error Handling" of the yacc report describes: the parser pops its stack until it reaches a
+    /// state which can shift the error symbol - a place the grammar marked as one to resume at - and shifts the symbol
+    /// there. Everything the popped states had parsed is discarded with them.
+    ///
+    /// The token which caused the error is kept for the resumed state to look at, because that state is usually
+    /// waiting for exactly it: in a production like "{" @error "}" it is the closing brace which ends the recovery.
+    /// Only when the parse fails on that very same token again is the token discarded, which is what an untouched
+    /// countdown of tokens to shift tells us. Popping and discarding in the same handler is what guarantees progress:
+    /// every round of recovery either gets the parse going again or consumes one token of the input, so a parse cannot
+    /// get stuck between the two.
     fn recover_from_error<S: TokenSource<'a> + ?Sized>(&mut self, scanner: &mut S) -> bool {
         if self.error_recovery_shifts_remaining == ERROR_RECOVERY_SHIFTS {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.

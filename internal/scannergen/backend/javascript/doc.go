@@ -1,3 +1,3 @@
-// Package javascript provides a scanner generator backend which takes a DFA as input and outputs JavaScript source
-// code.
+// Package javascript contains the backend which writes the scanner as JavaScript source code holding the automaton in
+// lookup tables.
 package javascript

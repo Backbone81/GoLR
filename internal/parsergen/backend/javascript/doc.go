@@ -1,3 +1,3 @@
-// Package javascript provides a parser generator backend which takes a parse table as input and outputs JavaScript
-// source code.
+// Package javascript contains the backend which writes the parser as JavaScript source code holding the parse table in
+// lookup tables.
 package javascript
