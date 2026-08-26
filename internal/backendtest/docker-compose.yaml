@@ -57,6 +57,8 @@ x-common: &common
   network_mode: none
   user: "${GOLR_UID}:${GOLR_GID}"
   working_dir: /work
+  environment:
+    HOME: /work
   volumes:
     # The shared entrypoint and the runner of every language, read only because a container has no business changing
     # what it was handed.
@@ -83,13 +85,6 @@ services:
   go:
     <<: *common
     image: golang:1.26
-    # The only service which needs an environment at all, and the reason is the image and not the language: it has no
-    # user at the uid the container runs as, so HOME is / and nothing can write below it. The Go build cache is what
-    # notices first - every build fails with "failed to initialize build cache at /.cache/go-build" - but a home a
-    # toolchain cannot write to is the general problem, so the home is what is fixed rather than the one path which
-    # tripped over it. The writable mount is where it can go, and the Makefile empties that before every run.
-    environment:
-      HOME: /work
     command: ["go"]
 
   java:
