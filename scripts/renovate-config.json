@@ -1,0 +1,60 @@
+{
+  "username": "renovate-release",
+  "gitAuthor": "Renovate Bot <bot@renovateapp.com>",
+  "repositories": [
+    "backbone81/golr"
+  ],
+  "onboarding": false,
+  "requireConfig": "optional",
+  "extends": [
+    ":semanticPrefixFixDepsChoreOthers",
+    ":ignoreModulesAndTests",
+    "replacements:all",
+    "workarounds:all",
+    ":prHourlyLimitNone"
+  ],
+  "postUpdateOptions": [
+    "gomodTidy",
+    "gomodUpdateImportPaths"
+  ],
+  "fetchChangeLogs": "off",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^internal/backendtest/kotlin/Dockerfile$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-z-]+?) depName=(?<depName>.+?)\\s+ARG KOTLIN_VERSION=(?<currentValue>.+?)\\s"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "matchFileNames": [".github/workflows/**"],
+      "enabled": false
+    },
+    {
+      "groupName": "Major Versions",
+      "matchUpdateTypes": ["major"]
+    },
+    {
+      "groupName": "Minor Versions",
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "matchDatasources": ["golang-version"],
+      "allowedVersions": "< 1.27.0",
+      "rangeStrategy": "bump"
+    },
+    {
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["golang"],
+      "allowedVersions": "< 1.27.0",
+      "rangeStrategy": "bump"
+    },
+    {
+      "matchDatasources": ["github-releases"],
+      "matchPackageNames": ["JetBrains/kotlin"],
+      "extractVersion": "^v(?<version>.+)$"
+    }
+  ]
+}

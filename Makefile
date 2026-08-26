@@ -31,6 +31,7 @@ generate:
 
 .PHONY: prepare
 prepare: generate
+	mkdir -p ~/.cache/golangci-lint
 	go mod tidy
 	go fmt $(PACKAGE)
 	go vet $(PACKAGE)
@@ -118,7 +119,7 @@ test-backends: build
 		GOLR_UID=$$(id -u) GOLR_GID=$$(id -g) docker compose \
 			--file internal/backendtest/docker-compose.yaml \
 			--project-directory . \
-			run --rm --no-deps --no-TTY "$$language" || exit 1; \
+			run --rm --no-deps --no-TTY --build "$$language" || exit 1; \
 	done
 	go test ./internal/backendtest/... -args --ginkgo.label-filter='$(BACKEND_LABEL_FILTER)'
 

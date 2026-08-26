@@ -1,0 +1,72 @@
+name: Pipeline
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run Tests
+        run: |
+          set -ex
+          make test-race
+
+      - name: Check for Modified Files
+        run: |
+          set -ex
+          git diff --exit-code
+
+  test-backends:
+    name: Run Backend Tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run Tests
+        run: |
+          set -ex
+          make test-backends
+
+      - name: Check for Modified Files
+        run: |
+          set -ex
+          git diff --exit-code
+
+  test-examples:
+    name: Run Example Tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run Tests
+        run: |
+          set -ex
+          make test-examples
+
+      - name: Check for Modified Files
+        run: |
+          set -ex
+          git diff --exit-code

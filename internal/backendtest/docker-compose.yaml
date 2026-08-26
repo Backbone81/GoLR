@@ -97,6 +97,13 @@ services:
     image: eclipse-temurin:26-jdk
     command: ["java"]
 
+  # Kotlin has no official image. We therefore need to built one on our own.
+  kotlin:
+    <<: *common
+    build:
+      context: ./internal/backendtest/kotlin
+    command: ["kotlin"]
+
   rust:
     <<: *common
     image: rust:1.97

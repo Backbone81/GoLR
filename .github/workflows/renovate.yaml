@@ -1,0 +1,20 @@
+name: Renovate
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * SAT'
+
+jobs:
+  renovate:
+    runs-on: ubuntu-24.04
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Renovate
+        uses: renovatebot/github-action@v46.2.4
+        with:
+          configurationFile: scripts/renovate-config.json
+          token: ${{ secrets.RENOVATE_TOKEN }}
