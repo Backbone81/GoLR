@@ -11,6 +11,7 @@ build:
 	$(MAKE) -C python build
 	$(MAKE) -C rust build
 	$(MAKE) -C typescript build
+	mkdir -p $(CURDIR)/../../tmp/backendtest
 	GOLR_UID=$$(id -u) GOLR_GID=$$(id -g) docker compose \
 		--file $(CURDIR)/../../internal/backendtest/docker-compose.yaml \
 		--project-directory $(CURDIR)/../.. \
