@@ -18,6 +18,7 @@ import (
 	javabackend "github.com/backbone81/golr/pkg/parsergen/backend/java"
 	javascriptbackend "github.com/backbone81/golr/pkg/parsergen/backend/javascript"
 	jsonbackend "github.com/backbone81/golr/pkg/parsergen/backend/json"
+	kotlinbackend "github.com/backbone81/golr/pkg/parsergen/backend/kotlin"
 	pythonbackend "github.com/backbone81/golr/pkg/parsergen/backend/python"
 	rustbackend "github.com/backbone81/golr/pkg/parsergen/backend/rust"
 	typescriptbackend "github.com/backbone81/golr/pkg/parsergen/backend/typescript"
@@ -50,6 +51,7 @@ var (
 	parserBackendGoPackageName           string
 	parserBackendJavaPackageName         string
 	parserBackendJavaScriptScannerModule string
+	parserBackendKotlinPackageName       string
 	parserBackendPythonScannerModule     string
 	parserBackendRustScannerModule       string
 	parserBackendTypeScriptScannerModule string
@@ -203,6 +205,15 @@ func executeParserBackend(parser backend.Parser) error {
 			return jsonbackend.FromParser(os.Stdout, parser)
 		}
 		return jsonbackend.ParserToFile(parserBackendFilePath, parser)
+	case "kotlin":
+		if parserBackendFilePath == "-" {
+			return kotlinbackend.FromParser(os.Stdout, parser, kotlinbackend.Config{
+				PackageName: parserBackendKotlinPackageName,
+			})
+		}
+		return kotlinbackend.ParserToFile(parserBackendFilePath, parser, kotlinbackend.Config{
+			PackageName: parserBackendKotlinPackageName,
+		})
 	case "null":
 		// Nothing to do.
 		return nil
@@ -274,7 +285,7 @@ func init() {
 		"backend",
 		"go",
 		"The backend to use for writing the parser. One of: c, cpp, csharp, dot, go, java,"+
-			" javascript, json, null, python, rust, typescript, yaml.",
+			" javascript, json, kotlin, null, python, rust, typescript, yaml.",
 	)
 	parserCmd.PersistentFlags().StringVar(
 		&parserBackendFilePath,
@@ -339,6 +350,14 @@ func init() {
 		"backend-javascript-scanner-module",
 		javascriptbackend.DefaultScannerModule,
 		"The module specifier the generated JavaScript parser imports the token constants from.",
+	)
+
+	parserCmd.PersistentFlags().StringVar(
+		&parserBackendKotlinPackageName,
+		"backend-kotlin-package-name",
+		kotlinbackend.DefaultPackageName,
+		"The Kotlin package name to use for the generated Kotlin code. Has to be the one the scanner was generated"+
+			" into.",
 	)
 
 	parserCmd.PersistentFlags().StringVar(

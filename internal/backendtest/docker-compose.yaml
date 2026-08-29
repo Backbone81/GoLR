@@ -6,9 +6,12 @@
 # The rules the services follow are constraints on the product and not merely on the harness. A generated scanner or
 # parser is meant to run on the bare language with nothing else installed, so an official language image with no
 # network is exactly the environment the emitted code claims to need. When one of them cannot compile the emitted code,
-# the fix belongs in the backend and never in a custom image - which is why this repository contains no Dockerfile.
+# the fix belongs in the backend and never in a custom image - a Dockerfile here lays out a toolchain its publisher
+# ships no image for and does nothing else.
 #
-#   - Official language images only, pinned to a major and a minor version where the publisher offers one.
+#   - Official language images only, pinned to a major and a minor version where the publisher offers one. A language
+#     whose publisher offers none at all builds one from the official image of the platform it runs on, which is the
+#     exception the kotlin service argues for below.
 #   - network_mode none, unless a language cannot be brought up offline at all, see below. That isolates the run, not
 #     the image pull, which docker still performs over the host network the first time an image is used. A toolchain
 #     reaching out mid-run is the failure this catches.
@@ -92,7 +95,8 @@ services:
     image: eclipse-temurin:26-jdk
     command: ["java"]
 
-  # Kotlin has no official image. We therefore need to built one on our own.
+  # JetBrains publishes no image of the Kotlin compiler, so this builds one from the image of the platform Kotlin runs
+  # on and adds nothing but the compiler to it.
   kotlin:
     <<: *common
     build:

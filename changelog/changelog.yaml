@@ -4,6 +4,8 @@ unreleased:
     as it already was in the C and C++ backends.
 - description: 'BREAKING: Aligned the generated scanners and parsers across all language
     backends.'
+- description: Added a Kotlin backend for the scanner and parser generator, selected
+    with --backend kotlin and configured with --backend-kotlin-package-name.
 releases:
 - version: |
     v0.3.0

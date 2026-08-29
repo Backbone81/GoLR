@@ -10,6 +10,7 @@ A backend turns the DFA the core constructed into its output. These backends are
 - [Java](scannergen-backend-java.md)
 - [JavaScript](scannergen-backend-javascript.md)
 - [JSON](scannergen-backend-json.md)
+- [Kotlin](scannergen-backend-kotlin.md)
 - [Null](scannergen-backend-null.md)
 - [Python](scannergen-backend-python.md)
 - [Rust](scannergen-backend-rust.md)

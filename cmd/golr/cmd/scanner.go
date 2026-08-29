@@ -15,6 +15,7 @@ import (
 	javabackend "github.com/backbone81/golr/pkg/scannergen/backend/java"
 	javascriptbackend "github.com/backbone81/golr/pkg/scannergen/backend/javascript"
 	jsonbackend "github.com/backbone81/golr/pkg/scannergen/backend/json"
+	kotlinbackend "github.com/backbone81/golr/pkg/scannergen/backend/kotlin"
 	pythonbackend "github.com/backbone81/golr/pkg/scannergen/backend/python"
 	rustbackend "github.com/backbone81/golr/pkg/scannergen/backend/rust"
 	typescriptbackend "github.com/backbone81/golr/pkg/scannergen/backend/typescript"
@@ -35,11 +36,12 @@ var (
 	scannerBackend         string
 	scannerBackendFilePath string
 
-	scannerBackendCPrefix         string
-	scannerBackendCSharpNamespace string
-	scannerBackendCppNamespace    string
-	scannerBackendGoPackageName   string
-	scannerBackendJavaPackageName string
+	scannerBackendCPrefix           string
+	scannerBackendCSharpNamespace   string
+	scannerBackendCppNamespace      string
+	scannerBackendGoPackageName     string
+	scannerBackendJavaPackageName   string
+	scannerBackendKotlinPackageName string
 )
 
 var scannerCmd = &cobra.Command{
@@ -160,6 +162,15 @@ func executeScannerBackend(dfa backend.DFA) error {
 			return jsonbackend.FromDFA(os.Stdout, dfa)
 		}
 		return jsonbackend.DFAToFile(scannerBackendFilePath, dfa)
+	case "kotlin":
+		if scannerBackendFilePath == "-" {
+			return kotlinbackend.FromDFA(os.Stdout, dfa, kotlinbackend.Config{
+				PackageName: scannerBackendKotlinPackageName,
+			})
+		}
+		return kotlinbackend.DFAToFile(scannerBackendFilePath, dfa, kotlinbackend.Config{
+			PackageName: scannerBackendKotlinPackageName,
+		})
 	case "null":
 		// Nothing to do.
 		return nil
@@ -219,7 +230,7 @@ func init() {
 		"backend",
 		"go",
 		"The backend to use for writing the scanner. One of: c, cpp, csharp, dot, go, java,"+
-			" javascript, json, null, python, rust, typescript, yaml.",
+			" javascript, json, kotlin, null, python, rust, typescript, yaml.",
 	)
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerBackendFilePath,
@@ -242,6 +253,12 @@ func init() {
 		"backend-java-package-name",
 		javabackend.DefaultPackageName,
 		"The Java package name to use for the generated Java code.",
+	)
+	scannerCmd.PersistentFlags().StringVar(
+		&scannerBackendKotlinPackageName,
+		"backend-kotlin-package-name",
+		kotlinbackend.DefaultPackageName,
+		"The Kotlin package name to use for the generated Kotlin code.",
 	)
 	scannerCmd.PersistentFlags().StringVar(
 		&scannerBackendCSharpNamespace,

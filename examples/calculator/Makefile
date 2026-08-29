@@ -20,6 +20,14 @@ build:
 		--workdir /example \
 		--entrypoint dotnet \
 		csharp build --nologo --verbosity quiet
+	GOLR_UID=$$(id -u) GOLR_GID=$$(id -g) docker compose \
+		--file $(CURDIR)/../../internal/backendtest/docker-compose.yaml \
+		--project-directory $(CURDIR)/../.. \
+		run --rm --no-deps --no-TTY \
+		--volume $(CURDIR)/kotlin:/example \
+		--workdir /example \
+		--entrypoint kotlinc \
+		kotlin -jvm-target 17 -Xjdk-release=17 -d classes parser/Scanner.kt parser/Parser.kt Main.kt
 
 .PHONY: test
 test:
@@ -33,6 +41,7 @@ clean:
 	$(MAKE) -C golang clean
 	$(MAKE) -C java clean
 	$(MAKE) -C javascript clean
+	$(MAKE) -C kotlin clean
 	$(MAKE) -C python clean
 	$(MAKE) -C rust clean
 	$(MAKE) -C typescript clean

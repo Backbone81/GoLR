@@ -10,6 +10,7 @@ A backend turns the parse table the core computed into its output. These backend
 - [Java](parsergen-backend-java.md)
 - [JavaScript](parsergen-backend-javascript.md)
 - [JSON](parsergen-backend-json.md)
+- [Kotlin](parsergen-backend-kotlin.md)
 - [Null](parsergen-backend-null.md)
 - [Python](parsergen-backend-python.md)
 - [Rust](parsergen-backend-rust.md)

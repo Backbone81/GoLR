@@ -1,0 +1,2 @@
+description: Added a Kotlin backend for the scanner and parser generator, selected
+  with --backend kotlin and configured with --backend-kotlin-package-name.

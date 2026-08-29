@@ -6,6 +6,7 @@
 
 - Fixed the scanner walking its line and column counters past the end of the source when Reset was given an offset beyond it. The offset is now clamped, as it already was in the C and C++ backends.
 - BREAKING: Aligned the generated scanners and parsers across all language backends.
+- Added a Kotlin backend for the scanner and parser generator, selected with --backend kotlin and configured with --backend-kotlin-package-name.
 
 ## v0.3.0 (2026-08-23)
 

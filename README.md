@@ -103,7 +103,7 @@ Usage:
   golr parser [flags]
 
 Flags:
-      --backend string                             The backend to use for writing the parser. One of: c, cpp, csharp, dot, go, java, javascript, json, null, python, rust, typescript, yaml. (default "go")
+      --backend string                             The backend to use for writing the parser. One of: c, cpp, csharp, dot, go, java, javascript, json, kotlin, null, python, rust, typescript, yaml. (default "go")
       --backend-c-prefix string                    The prefix to put in front of every name the generated C code declares. Has to be the one the scanner was generated with. (default "parser")
       --backend-c-scanner-include string           The header the generated C parser includes the token type from. (default "scanner.h")
       --backend-cpp-namespace string               The C++ namespace to use for the generated C++ code. Has to be the one the scanner was generated into. (default "parser")
@@ -113,6 +113,7 @@ Flags:
       --backend-go-package-name string             The Go package name to use for the generated Go code. (default "parser")
       --backend-java-package-name string           The Java package name to use for the generated Java code. Has to be the one the scanner was generated into. (default "parser")
       --backend-javascript-scanner-module string   The module specifier the generated JavaScript parser imports the token constants from. (default "./scanner.js")
+      --backend-kotlin-package-name string         The Kotlin package name to use for the generated Kotlin code. Has to be the one the scanner was generated into. (default "parser")
       --backend-python-scanner-module string       The module the generated Python parser imports the token constants from. (default "scanner")
       --backend-rust-scanner-module string         The module path the generated Rust parser takes the token type from. (default "super::scanner")
       --backend-typescript-scanner-module string   The module specifier the generated TypeScript parser imports the token constants from. (default "./scanner.js")
@@ -132,17 +133,18 @@ Usage:
   golr scanner [flags]
 
 Flags:
-      --backend string                     The backend to use for writing the scanner. One of: c, cpp, csharp, dot, go, java, javascript, json, null, python, rust, typescript, yaml. (default "go")
-      --backend-c-prefix string            The prefix to put in front of every name the generated C code declares. (default "parser")
-      --backend-cpp-namespace string       The C++ namespace to use for the generated C++ code. (default "parser")
-      --backend-csharp-namespace string    The C# namespace to use for the generated C# code. (default "Parser")
-      --backend-file-path string           The file path to write the scanner to. Can be '-' to write to stdout.
-      --backend-go-package-name string     The Go package name to use for the generated Go code. (default "parser")
-      --backend-java-package-name string   The Java package name to use for the generated Java code. (default "parser")
-      --core string                        The core to use for generating the scanner from the regular expressions. One of: subset. (default "subset")
-      --frontend string                    The frontend to use for reading the regular expressions. One of: golr, json, yaml. (default "golr")
-      --frontend-file-path string          The file path to read the regular expressions from. Can be '-' to read from stdin.
-  -h, --help                               help for scanner
+      --backend string                       The backend to use for writing the scanner. One of: c, cpp, csharp, dot, go, java, javascript, json, kotlin, null, python, rust, typescript, yaml. (default "go")
+      --backend-c-prefix string              The prefix to put in front of every name the generated C code declares. (default "parser")
+      --backend-cpp-namespace string         The C++ namespace to use for the generated C++ code. (default "parser")
+      --backend-csharp-namespace string      The C# namespace to use for the generated C# code. (default "Parser")
+      --backend-file-path string             The file path to write the scanner to. Can be '-' to write to stdout.
+      --backend-go-package-name string       The Go package name to use for the generated Go code. (default "parser")
+      --backend-java-package-name string     The Java package name to use for the generated Java code. (default "parser")
+      --backend-kotlin-package-name string   The Kotlin package name to use for the generated Kotlin code. (default "parser")
+      --core string                          The core to use for generating the scanner from the regular expressions. One of: subset. (default "subset")
+      --frontend string                      The frontend to use for reading the regular expressions. One of: golr, json, yaml. (default "golr")
+      --frontend-file-path string            The file path to read the regular expressions from. Can be '-' to read from stdin.
+  -h, --help                                 help for scanner
 ```
 
 The `fmt` sub-command allows to pretty print GoLR grammar files:
