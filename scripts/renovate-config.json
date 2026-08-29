@@ -42,7 +42,18 @@
     },
     {
       "matchDatasources": ["golang-version"],
-      "allowedVersions": "< 1.27.0",
+      "allowedVersions": "< 1.27.0"
+    },
+    {
+      "description": "Keep the go directive in go.mod pinned for backwards compatibility. Bump it manually once a Go release cycle.",
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["golang"],
+      "enabled": false
+    },
+    {
+      "description": "Keep the toolchain directive in go.mod on the latest Go release.",
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["toolchain"],
       "rangeStrategy": "bump"
     },
     {
