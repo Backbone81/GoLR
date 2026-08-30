@@ -19,6 +19,10 @@
     "noUnusedParameters": true,
     "sourceMap": true,
     "skipLibCheck": true,
+    // The ambient type packages we depend on. TypeScript 5 pulled in everything under
+    // node_modules/@types on its own, TypeScript 6 no longer does, so without this the Mocha
+    // globals (suite, test) and the Node built-in modules are not in scope for the tests.
+    "types": ["node", "mocha", "vscode"],
     // We only type-check here; esbuild produces the shipped bundle.
     "noEmit": true
   },
