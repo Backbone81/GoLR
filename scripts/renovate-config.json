@@ -66,6 +66,12 @@
       "matchDatasources": ["github-releases"],
       "matchPackageNames": ["JetBrains/kotlin"],
       "extractVersion": "^v(?<version>.+)$"
+    },
+    {
+      "description": "typescript-eslint peer-depends on typescript < 6.1.0. Keep every TypeScript project in this repository below that bound until typescript-eslint supports newer releases.",
+      "matchDatasources": ["npm"],
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "< 6.1.0"
     }
   ]
 }
