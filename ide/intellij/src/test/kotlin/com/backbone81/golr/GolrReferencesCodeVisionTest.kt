@@ -1,14 +1,30 @@
 package com.backbone81.golr
 
+import com.intellij.codeInsight.codeVision.CodeVisionAnchorKind
 import com.intellij.codeInsight.codeVision.CodeVisionHost
-import com.intellij.codeInsight.codeVision.ui.model.CodeVisionListData
-import com.intellij.codeInsight.codeVision.ui.renderers.CodeVisionInlayRenderer
+import com.intellij.codeInsight.codeVision.settings.CodeVisionSettings
 import com.intellij.testFramework.utils.codeVision.CodeVisionTestCase
 
 // Verifies that GolrReferencesCodeVisionProvider renders the "N usages" Code Vision inlay
 // above every symbol definition, driven through the real daemon (not by calling the provider
 // directly).
 class GolrReferencesCodeVisionTest : CodeVisionTestCase() {
+
+    // testUsageCountsAreShownAboveDefinitions asserts "block" markers, which is how the Top anchor
+    // renders. The anchor is a global setting the provider inherits, and the bundled Java plugin
+    // defaults it to Right, so pin it here.
+    override fun setUp() {
+        super.setUp()
+        CodeVisionSettings.getInstance().defaultPosition = CodeVisionAnchorKind.Top
+    }
+
+    override fun tearDown() {
+        try {
+            CodeVisionSettings.getInstance().resetDefaultPosition()
+        } finally {
+            super.tearDown()
+        }
+    }
 
     // CodeVisionTestCase strips the /*<# block ... #>*/ markers from the input, runs the code
     // vision pass for the enabled groups, re-inserts the markers from the actual inlays, and
@@ -34,7 +50,7 @@ class GolrReferencesCodeVisionTest : CodeVisionTestCase() {
         )
     }
 
-    // Guards that the inlay appears with NO settings changes — i.e. GoLR's group is enabled by
+    // Guards that the inlay appears without enabling any group — i.e. GoLR's group is enabled by
     // default and does not depend on the shared platform "Usages" toggle. Uses golang.golr's
     // layout (name on its own line, ":" on the next, multi-line body).
     fun testUsageCountsAreShownWithDefaultSettings() {
@@ -56,10 +72,8 @@ class GolrReferencesCodeVisionTest : CodeVisionTestCase() {
         project.putUserData(CodeVisionHost.isCodeVisionTestKey, true)
         host.calculateCodeVisionSync(myFixture.editor, testRootDisposable)
 
-        val lenses = myFixture.editor.inlayModel.getBlockElementsInRange(0, src.length)
-            .filter { it.renderer is CodeVisionInlayRenderer }
-            .mapNotNull { it.getUserData(CodeVisionListData.KEY) }
-            .flatMap { it.visibleLens }
+        // SourceFiles and PackageClause are the two definitions in the grammar above.
+        val lenses = myFixture.editor.awaitCodeVisionLenses(src.length, expected = 2)
             .map { it.longPresentation }
 
         // SourceFiles is never referenced; PackageClause is referenced once.

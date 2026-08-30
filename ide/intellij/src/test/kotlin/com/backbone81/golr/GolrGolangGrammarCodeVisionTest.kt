@@ -1,8 +1,6 @@
 package com.backbone81.golr
 
 import com.intellij.codeInsight.codeVision.CodeVisionHost
-import com.intellij.codeInsight.codeVision.ui.model.CodeVisionListData
-import com.intellij.codeInsight.codeVision.ui.renderers.CodeVisionInlayRenderer
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.utils.codeVision.CodeVisionTestCase
 import java.io.File
@@ -30,11 +28,7 @@ class GolrGolangGrammarCodeVisionTest : CodeVisionTestCase() {
         host.calculateCodeVisionSync(myFixture.editor, testRootDisposable)
 
         val definitionCount = PsiTreeUtil.findChildrenOfType(myFixture.file, GolrSymbolDefinition::class.java).size
-        val lensCount = myFixture.editor.inlayModel.getBlockElementsInRange(0, src.length)
-            .filter { it.renderer is CodeVisionInlayRenderer }
-            .mapNotNull { it.getUserData(CodeVisionListData.KEY) }
-            .flatMap { it.visibleLens }
-            .size
+        val lensCount = myFixture.editor.awaitCodeVisionLenses(src.length, definitionCount).size
 
         assertTrue("expected many rule definitions in golang.golr", definitionCount > 200)
         assertEquals("every definition should get a usage-count lens", definitionCount, lensCount)

@@ -73,6 +73,24 @@ jobs:
           set -ex
           git diff --exit-code
 
+  test-ide-intellij:
+    name: Run IntelliJ IDE Tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Tests
+        run: |
+          set -ex
+          make -C ide/intellij test
+          make -C ide/intellij package
+
+      - name: Check for Modified Files
+        run: |
+          set -ex
+          git diff --exit-code
+
   test-ide-vscode:
     name: Run vscode IDE Tests
     runs-on: ubuntu-24.04
