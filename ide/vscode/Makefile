@@ -6,7 +6,7 @@ all: build
 # testing, or packaging.
 .PHONY: prepare
 prepare:
-	npm install
+	npm ci
 	npm run lint
 
 # Type-checks and produces the bundled extension in dist/.

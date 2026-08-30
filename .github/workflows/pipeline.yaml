@@ -70,3 +70,21 @@ jobs:
         run: |
           set -ex
           git diff --exit-code
+
+  test-ide-vscode:
+    name: Run vscode IDE Tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Tests
+        run: |
+          set -ex
+          xvfb-run -a make -C ide/vscode test
+          make -C ide/vscode package
+
+      - name: Check for Modified Files
+        run: |
+          set -ex
+          git diff --exit-code
