@@ -45,6 +45,8 @@
 
     scanner_section
         : "@scanner" "{" scanner_decl_list "}"
+        // a broken tail or a missing ";" resyncs at the closing brace
+        | "@scanner" "{" scanner_decl_list @error "}"
         ;
 
     scanner_decl_list
@@ -54,6 +56,10 @@
 
     scanner_decl
         : NAME ":" scanner_decl_rhs ";"
+        // keep the terminal name, skip a broken right hand side up to the ";"
+        | NAME ":" @error ";"
+        // the "NAME :" itself is broken, skip the whole declaration
+        | @error ";"
         ;
 
     scanner_decl_rhs
@@ -82,16 +88,22 @@
 
     parser_section
         : "@parser" "{" start_decl precedence_section rule_decl_list "}"
+        // a broken tail or a missing ";" resyncs at the closing brace
+        | "@parser" "{" start_decl precedence_section rule_decl_list @error "}"
         ;
 
     start_decl
         : @empty
         | "@start" ":" NAME ";"
+        // a half typed @start must not take the whole parser section with it
+        | "@start" @error ";"
         ;
 
     precedence_section
         : @empty
         | "@precedence" "{" precedence_decl_list "}"
+        // a broken tail or a missing ";" resyncs at the closing brace
+        | "@precedence" "{" precedence_decl_list @error "}"
         ;
 
     precedence_decl_list
@@ -101,6 +113,10 @@
 
     precedence_decl
         : associativity ":" symbol_list ";"
+        // keep the associativity, skip a broken symbol list up to the ";"
+        | associativity ":" @error ";"
+        // the "associativity :" itself is broken, skip the whole declaration
+        | @error ";"
         ;
 
     associativity
@@ -117,6 +133,10 @@
 
     production_decl
         : NAME ":" alternative_list ";"
+        // keep the nonterminal name while its body is being typed, skip up to the ";"
+        | NAME ":" @error ";"
+        // the "NAME :" itself is broken, skip the whole declaration
+        | @error ";"
         ;
 
     alternative_list
