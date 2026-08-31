@@ -4,6 +4,7 @@ import com.intellij.codeInsight.codeVision.CodeVisionRelativeOrdering
 import com.intellij.codeInsight.hints.codeVision.ReferencesCodeVisionProvider
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 
 // Renders the "N usages" Code Vision indicator above every GoLR symbol definition and
@@ -33,7 +34,15 @@ import com.intellij.psi.search.searches.ReferencesSearch
 //                        above the line where the definition starts (its name).
 //   - getHint()        → compute the count via ReferencesSearch.search(), which is routed
 //                        through GolrReferencesSearcher and therefore returns all confirmed
-//                        reference sites.
+//                        reference sites. The search is restricted to a LocalSearchScope over
+//                        the containing file: GoLR grammars are self-contained single-file
+//                        documents (the same assumption GolrReferencesSearcher and
+//                        GolrRenamePsiElementProcessor already make), and an unscoped
+//                        ReferencesSearch.search(element) would run project-wide. The platform's
+//                        default word-index searchers run alongside ours for the same call, so
+//                        an unscoped search makes the daemon scan every file in the project that
+//                        contains the symbol name — for each definition, on every edit — which
+//                        pegs all cores and thrashes the heap on a real (multi-file) project.
 //
 // --- Why a dedicated group instead of the platform "Usages" group ---
 //
@@ -69,7 +78,7 @@ class GolrReferencesCodeVisionProvider : ReferencesCodeVisionProvider() {
 
     override fun getHint(element: PsiElement, file: PsiFile): String? {
         if (element !is GolrSymbolDefinition) return null
-        val count = ReferencesSearch.search(element).findAll().size
+        val count = ReferencesSearch.search(element, LocalSearchScope(file)).findAll().size
         return when (count) {
             0 -> "no usages"
             1 -> "1 usage"
