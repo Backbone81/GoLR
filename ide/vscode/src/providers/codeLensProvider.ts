@@ -1,13 +1,10 @@
 // "N references" CodeLens above every GoLR symbol definition.
 //
-// This is the VSCode counterpart of the IntelliJ plugin's GolrReferencesCodeVisionProvider,
-// which draws a clickable "N usages" indicator above each rule. VSCode's equivalent mechanism
-// is CodeLens: a small actionable annotation rendered on the line above a range.
-//
-// For each symbol definition we render a lens labelled with how many references the symbol has
-// in the file. Clicking it invokes the built-in `editor.action.showReferences` command, which
-// opens VSCode's reference peek — reusing exactly the reference set the Find All References
-// feature already computes from the same symbol model.
+// CodeLens is a small actionable annotation rendered on the line above a range. For each
+// symbol definition we render a lens labelled with how many references the symbol has in the
+// file. Clicking it invokes the built-in `editor.action.showReferences` command, which opens
+// VSCode's reference peek — reusing exactly the reference set the Find All References feature
+// already computes from the same symbol model.
 
 import * as vscode from "vscode";
 import { ModelCache } from "../language/modelCache";

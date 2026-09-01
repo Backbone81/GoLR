@@ -1,6 +1,5 @@
-// Unit tests for the canonical formatter. Mirrors the IntelliJ plugin's GolrFormatterTest,
-// including the key end-to-end check that the real golang.golr grammar is already in canonical
-// form (i.e. formatting it is a no-op).
+// Unit tests for the canonical formatter, including the key end-to-end check that the real
+// golang.golr grammar is already in canonical form (i.e. formatting it is a no-op).
 
 import * as assert from "assert";
 import * as fs from "fs";

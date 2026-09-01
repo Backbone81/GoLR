@@ -1,8 +1,6 @@
 // Canonical reformatter for GoLR files.
 //
-// This is a TypeScript port of the IntelliJ plugin's formatter
-// (ide/intellij/src/main/kotlin/com/backbone81/golr/GolrFormatter.kt). It rewrites arbitrary
-// (possibly messy) GoLR source into the canonical layout demonstrated by
+// Rewrites arbitrary (possibly messy) GoLR source into the canonical layout demonstrated by
 // examples/golang/spec/golang.golr:
 //
 //   @scanner {
@@ -19,8 +17,8 @@
 //           ;
 //   }
 //
-// Like the IntelliJ version, the logic is a pure function over text so it can be unit-tested
-// directly and stays independent of the editor. The formatting provider
+// The logic is a pure function over text so it can be unit-tested directly and stays
+// independent of the editor. The formatting provider
 // (src/providers/formattingProvider.ts) wires it into VSCode's "Format Document" action.
 
 import { TokenType, tokenize } from "./tokenizer";

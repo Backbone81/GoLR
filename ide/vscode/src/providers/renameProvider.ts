@@ -8,9 +8,8 @@
 //      "You cannot rename this element".
 //
 //   2. provideRenameEdits — called when the user confirms a new name. We validate the new name
-//      (using the same identifier rule as the lexer, mirroring the IntelliJ plugin's
-//      GolrNamesValidator) and return a WorkspaceEdit that rewrites the definition together
-//      with every reference, so the whole file stays consistent.
+//      (using the same identifier rule as the lexer) and return a WorkspaceEdit that rewrites
+//      the definition together with every reference, so the whole file stays consistent.
 
 import * as vscode from "vscode";
 import { ModelCache } from "../language/modelCache";
@@ -63,7 +62,7 @@ export class GolrRenameProvider implements vscode.RenameProvider {
     };
 
     // Rewrite every definition and every reference that shares the old name. Renaming from a
-    // reference therefore updates the definition too, exactly like the IntelliJ plugin.
+    // reference therefore updates the definition too.
     for (const def of model.definitionsNamed(occurrence.name)) rename(def.start, def.end);
     for (const ref of model.referencesNamed(occurrence.name)) rename(ref.start, ref.end);
 

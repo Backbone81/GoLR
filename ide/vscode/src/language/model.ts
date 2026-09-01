@@ -1,9 +1,7 @@
 // Symbol model for a GoLR document.
 //
-// This is the TypeScript counterpart of the IntelliJ plugin's PSI parser
-// (ide/intellij/src/main/kotlin/com/backbone81/golr/GolrPsiParser.kt). Where the IntelliJ
-// plugin builds a tree of PSI nodes, we build two flat lists — symbol *definitions* and
-// symbol *references* — which is all the language features need:
+// Instead of a full syntax tree, we build two flat lists — symbol *definitions* and symbol
+// *references* — which is all the language features need:
 //
 //   - Go to Definition: from a reference, find the definitions with the same name.
 //   - Find Usages:      from a definition, find the references with the same name.
@@ -47,9 +45,9 @@ export interface SymbolOccurrence {
 /**
  * The parsed symbol model of a single document. Construct it with {@link buildModel}.
  *
- * Resolution is deliberately file-local and name-based, exactly like the IntelliJ plugin: a
- * reference resolves to every definition in the same file that shares its name (which also
- * tolerates a symbol that is accidentally defined twice).
+ * Resolution is deliberately file-local and name-based: a reference resolves to every
+ * definition in the same file that shares its name (which also tolerates a symbol that is
+ * accidentally defined twice).
  */
 export class GolrModel {
   constructor(
@@ -89,7 +87,7 @@ export class GolrModel {
 /** Tokenizes `text` and parses it into a {@link GolrModel}. */
 export function buildModel(text: string): GolrModel {
   // Drop whitespace and comments: the structural parser below only cares about meaningful
-  // tokens, mirroring how the IntelliJ PsiBuilder hides those token kinds from the parser.
+  // tokens.
   const tokens = tokenize(text).filter(
     (t) =>
       t.type !== TokenType.Whitespace &&
@@ -100,8 +98,7 @@ export function buildModel(text: string): GolrModel {
 }
 
 // A small recursive-descent walk over the significant token stream. Each `parseX` method
-// advances `this.pos` past the construct it consumes. The structure intentionally follows
-// GolrPsiParser.kt method-for-method so the two stay easy to compare.
+// advances `this.pos` past the construct it consumes.
 class Parser {
   private pos = 0;
   private readonly definitions: SymbolDefinition[] = [];
@@ -253,7 +250,7 @@ class Parser {
   }
 
   // Consume the current token if it matches `type`; otherwise leave the cursor in place
-  // (lenient, matching the IntelliJ parser which does not emit error markers).
+  // (lenient: no error markers are emitted).
   private expectIf(type: TokenType): void {
     if (!this.eof() && this.current().type === type) this.advance();
   }

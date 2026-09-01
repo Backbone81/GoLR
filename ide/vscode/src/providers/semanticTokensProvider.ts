@@ -8,8 +8,7 @@
 // A semantic tokens provider fills that gap. VSCode asks us to classify the meaningful tokens
 // in the document; we walk the symbol model and tag each definition/reference with a token
 // type (terminal vs nonterminal) and, for definitions, a "declaration" modifier. The theme
-// then colours them, giving the same def-vs-use distinction the IntelliJ plugin's PSI-based
-// highlighter provides.
+// then colours them, giving a def-vs-use distinction plain pattern matching cannot.
 //
 // The mapping from these token types to actual colours is declared in package.json under
 // contributes.semanticTokenScopes.

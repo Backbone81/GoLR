@@ -2,10 +2,10 @@
 //
 // VSCode calls provideDocumentFormattingEdits and expects a list of text edits that transform
 // the document into its formatted form. Because our formatter rewrites the entire file into a
-// canonical layout (see src/language/formatter.ts, a port of the IntelliJ GolrFormatter), the
-// simplest and most robust approach is to return a single edit that replaces the whole
-// document with the formatted text. VSCode diffs the old and new text internally, so the
-// editor's undo history and cursor position stay sensible.
+// canonical layout (see src/language/formatter.ts), the simplest and most robust approach is
+// to return a single edit that replaces the whole document with the formatted text. VSCode
+// diffs the old and new text internally, so the editor's undo history and cursor position
+// stay sensible.
 
 import * as vscode from "vscode";
 import { format } from "../language/formatter";

@@ -4,9 +4,6 @@
 // whether the symbol's own declaration should be included in the results. We resolve the
 // symbol under the caret by name and return every reference site, plus (optionally) every
 // definition site.
-//
-// This mirrors the IntelliJ plugin's Find Usages, where a search from a definition lists all
-// references that resolve back to it.
 
 import * as vscode from "vscode";
 import { ModelCache } from "../language/modelCache";

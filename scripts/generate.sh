@@ -28,6 +28,20 @@ go run ./cmd/golr parser \
   --backend go \
   --backend-file-path internal/parsergen/frontend/golr/parser/parser.go
 
+# Generate the scanners the IDE integrations wrap, so the editors tokenize GoLR files exactly
+# the way GoLR itself does. Both are driven from the same spec as the GoLR frontend above.
+go run ./cmd/golr scanner \
+  --frontend golr \
+  --frontend-file-path internal/parsergen/frontend/golr/spec/golr.golr \
+  --backend kotlin \
+  --backend-kotlin-package-name com.backbone81.golr.generated \
+  --backend-file-path ide/intellij/src/main/kotlin/com/backbone81/golr/generated/Scanner.kt
+go run ./cmd/golr scanner \
+  --frontend golr \
+  --frontend-file-path internal/parsergen/frontend/golr/spec/golr.golr \
+  --backend typescript \
+  --backend-file-path ide/vscode/src/language/generated/scanner.ts
+
 # Copy files from the internal parsergen GNU Bison frontend to the examples folder.
 cp internal/parsergen/frontend/bison/spec/*.go examples/bison/spec
 cp internal/parsergen/frontend/bison/spec/*.golr examples/bison/spec

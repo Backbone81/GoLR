@@ -17,7 +17,8 @@ import com.intellij.openapi.project.Project
 class GolrNamesValidator : NamesValidator {
 
     // A GoLR identifier must start with a letter or underscore, followed by any number
-    // of letters, digits, or underscores — matching the rule in GolrLexer.readIdentifier().
+    // of letters, digits, or underscores — matching the NAME rule in the GoLR grammar spec
+    // (internal/parsergen/frontend/golr/spec/golr.golr).
     override fun isIdentifier(name: String, project: Project?): Boolean =
         name.isNotEmpty()
             && (name[0].isLetter() || name[0] == '_')

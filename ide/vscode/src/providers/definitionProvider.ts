@@ -3,8 +3,8 @@
 // VSCode calls provideDefinition when the user invokes "Go to Definition" with the caret on a
 // word. We look at the symbol under the caret — whether it is a reference (e.g. `term` in a
 // rule body) or a definition itself — and return the location(s) of every matching definition
-// in the same file. Returning several locations makes VSCode show a peek list, which mirrors
-// the IntelliJ plugin's poly-resolve behaviour for accidentally-duplicated symbols.
+// in the same file. Returning several locations makes VSCode show a peek list, which is how
+// accidentally-duplicated symbols surface.
 
 import * as vscode from "vscode";
 import { ModelCache } from "../language/modelCache";

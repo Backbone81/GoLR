@@ -1,7 +1,6 @@
 // Integration tests: these run inside a real VSCode instance (launched by @vscode/test-cli)
 // and drive the language features through VSCode's own command API — the same path the editor
-// uses when a user clicks "Go to Definition", "Rename", etc. This is the VSCode equivalent of
-// the IntelliJ plugin's BasePlatformTestCase tests.
+// uses when a user clicks "Go to Definition", "Rename", etc.
 
 import * as assert from "assert";
 import * as path from "path";

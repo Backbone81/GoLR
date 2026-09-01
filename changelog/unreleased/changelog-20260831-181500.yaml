@@ -1,0 +1,2 @@
+description: The GoLR grammar frontend now rejects regex and string literals which span
+  multiple lines, so a missing closing delimiter no longer consumes the rest of the file.

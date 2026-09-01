@@ -2,10 +2,9 @@
 //
 // When the user is typing an identifier, we offer every symbol defined anywhere in the same
 // file — terminals from @scanner and nonterminals from @parser — so rule bodies, precedence
-// lines, and the @start declaration can be filled in without retyping names. This mirrors the
-// IntelliJ plugin's GolrCompletionContributor, and it draws its suggestions from the same
-// symbol model that backs Go to Definition / Find Usages / Rename, so completion never drifts
-// out of sync with resolution.
+// lines, and the @start declaration can be filled in without retyping names. It draws its
+// suggestions from the same symbol model that backs Go to Definition / Find Usages / Rename,
+// so completion never drifts out of sync with resolution.
 
 import * as vscode from "vscode";
 import { ModelCache } from "../language/modelCache";

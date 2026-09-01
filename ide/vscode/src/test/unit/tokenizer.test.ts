@@ -1,5 +1,4 @@
-// Unit tests for the tokenizer. These run in plain Node via Mocha (no VSCode host), mirroring
-// the lexer coverage in the IntelliJ plugin's GolrSyntaxHighlighterTest.
+// Unit tests for the tokenizer. These run in plain Node via Mocha (no VSCode host).
 
 import * as assert from "assert";
 import { TokenType, tokenize, Token } from "../../language/tokenizer";
@@ -35,12 +34,14 @@ suite("tokenizer", () => {
     ]);
   });
 
-  test("distinguishes section and control keywords; unknown @word is a bad character", () => {
+  test("distinguishes section and control keywords; an unknown @word does not form a token", () => {
     assert.deepStrictEqual(pairs("@scanner @parser @left @bogus"), [
       [TokenType.KeywordSection, "@scanner"],
       [TokenType.KeywordSection, "@parser"],
       [TokenType.KeywordControl, "@left"],
-      [TokenType.BadCharacter, "@bogus"],
+      // "@bogus" matches no keyword: "@" is a stray byte, "bogus" a plain name.
+      [TokenType.BadCharacter, "@"],
+      [TokenType.Identifier, "bogus"],
     ]);
   });
 
@@ -67,10 +68,13 @@ suite("tokenizer", () => {
     assert.strictEqual(tokens[1].type, TokenType.Identifier);
   });
 
-  test("unterminated block comment extends to end of file", () => {
+  test("unterminated block comment does not become a comment token", () => {
+    // No closing "*/": matches no comment rule, so the whole run is one BadCharacter token.
     const tokens = significant("/* never closed");
-    assert.strictEqual(tokens.length, 1);
-    assert.strictEqual(tokens[0].type, TokenType.CommentBlock);
+    assert.deepStrictEqual(
+      tokens.map((t) => [t.type, t.text]),
+      [[TokenType.BadCharacter, "/* never closed"]],
+    );
   });
 
   test("regex literal honours escaped slashes and ends at the closing slash", () => {
@@ -87,9 +91,25 @@ suite("tokenizer", () => {
     assert.strictEqual(tokens[1].type, TokenType.Identifier);
   });
 
-  test("a bare slash before a newline is a regex token, not a comment", () => {
-    const tokens = significant("/\n");
-    assert.strictEqual(tokens[0].type, TokenType.Regex);
+  test("an unterminated regex does not run past the end of the line", () => {
+    // REGEX/STRING are single-line, so a lone "/" before a newline is a stray byte.
+    const tokens = significant("/\nNAME : /x/ ;");
+    assert.strictEqual(tokens[0].type, TokenType.BadCharacter);
+    assert.strictEqual(tokens[0].text, "/");
+    assert.strictEqual(tokens[1].type, TokenType.Identifier);
+    assert.strictEqual(tokens[1].text, "NAME");
+  });
+
+  test("an unterminated string does not run past the end of the line", () => {
+    // '"oops' matches no string rule; the run stops at the newline and the next line is fine.
+    const tokens = significant('BAR : "oops\nBAZ : "x" ;');
+    assert.strictEqual(tokens[0].text, "BAR");
+    assert.strictEqual(tokens[2].type, TokenType.BadCharacter);
+    assert.strictEqual(tokens[2].text, '"oops');
+    assert.strictEqual(tokens[3].text, "BAZ");
+    assert.strictEqual(tokens[4].text, ":");
+    assert.strictEqual(tokens[5].type, TokenType.String);
+    assert.strictEqual(tokens[5].text, '"x"');
   });
 
   test("token offsets map back to the source substring", () => {

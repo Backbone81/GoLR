@@ -1,6 +1,4 @@
-// Unit tests for the symbol model (definitions vs references, terminal vs nonterminal).
-// Mirrors the resolution coverage of the IntelliJ plugin's GoToDefinition/FindUsages tests,
-// but at the level of the pure model.
+// Unit tests for the symbol model: definitions vs references, terminal vs nonterminal.
 
 import * as assert from "assert";
 import { buildModel } from "../../language/model";
