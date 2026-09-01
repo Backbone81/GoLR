@@ -18,6 +18,9 @@ type Production struct {
 	// PrecedenceTerminalIdx provides the terminal index to use for deriving the precedence for this production.
 	// If this is nil, the default behavior is used which is the precedence of the rightmost terminal.
 	PrecedenceTerminalIdx *int `json:"precedenceTerminalIdx,omitempty" yaml:"precedenceTerminalIdx,omitempty"`
+
+	// Name is the explicit name of this production. Can be nil to not have a name.
+	Name *string `json:"name,omitempty" yaml:"name,omitempty"`
 }
 
 // Production implements fmt.Stringer.

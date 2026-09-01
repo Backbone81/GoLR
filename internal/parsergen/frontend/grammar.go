@@ -53,7 +53,48 @@ func (g Grammar) Validate() error {
 			}
 		}
 	}
+
+	// Explicit names on productions are not allowed to collide.
+	productionIdxByName := make(map[string]int)
+	for i, production := range g.Productions {
+		if production.Name == nil {
+			continue
+		}
+		if previousIdx, exists := productionIdxByName[*production.Name]; exists {
+			return fmt.Errorf(
+				"duplicate production name %q on production #%d (%s) and production #%d (%s)",
+				*production.Name,
+				previousIdx, formatProduction(g, previousIdx),
+				i, formatProduction(g, i),
+			)
+		}
+		productionIdxByName[*production.Name] = i
+	}
 	return nil
+}
+
+// formatProduction renders the production at the given index in the readable "LHS -> a B c" form, resolving every
+// symbol index to its name. Production.String is index only because it has no grammar to resolve against, so this is
+// the variant to use in messages meant for a grammar author.
+func formatProduction(g Grammar, productionIdx int) string {
+	production := g.Productions[productionIdx]
+
+	var builder strings.Builder
+	builder.WriteString(g.Nonterminals[production.NonterminalIdx].Name)
+	builder.WriteString(" ->")
+	if len(production.SymbolRefs) == 0 {
+		builder.WriteString(" <empty>")
+		return builder.String()
+	}
+	for _, symbolRef := range production.SymbolRefs {
+		builder.WriteString(" ")
+		if symbolRef.IsTerminal() {
+			builder.WriteString(g.Terminals[symbolRef.Idx()].String())
+		} else {
+			builder.WriteString(g.Nonterminals[symbolRef.Idx()].String())
+		}
+	}
+	return builder.String()
 }
 
 // RenumberNonterminalsInDeclarationOrder rewrites all nonterminal indices of the grammar so they follow declaration
