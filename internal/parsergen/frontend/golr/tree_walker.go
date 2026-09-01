@@ -49,16 +49,21 @@ type TreeWalker struct {
 
 	// lexemeByName holds all lexemes of token declarations. This is needed to make fragments work.
 	lexemeByName map[string][]byte
+
+	// explicitProductionNames holds every name set with an @name annotation so far, so a second production asking for
+	// the same name can be rejected.
+	explicitProductionNames map[string]struct{}
 }
 
 // NewTreeWalker creates a new TreeWalker.
 func NewTreeWalker() *TreeWalker {
 	return &TreeWalker{
-		terminalIdxByName:    make(map[string]int),
-		terminalIdxByAlias:   make(map[string]int),
-		nonterminalIdxByName: make(map[string]int),
-		currentPrecedence:    math.MaxInt,
-		lexemeByName:         make(map[string][]byte),
+		terminalIdxByName:       make(map[string]int),
+		terminalIdxByAlias:      make(map[string]int),
+		nonterminalIdxByName:    make(map[string]int),
+		currentPrecedence:       math.MaxInt,
+		lexemeByName:            make(map[string][]byte),
+		explicitProductionNames: make(map[string]struct{}),
 	}
 }
 
@@ -104,7 +109,7 @@ func (w *TreeWalker) BuildGrammar(node parser.Node) ([]scannergenfrontend.Rule, 
 
 // internErrorTerminal adds the error symbol to the grammar the first time a production references it and returns its
 // name, so that the symbol lookups which follow resolve it through the same terminal lookup as any other symbol. The
-// name carries a leading dollar sign, which the NAME pattern of the GoLR grammar does not allow, so no terminal a
+// name carries a leading dollar sign, which the IDENTIFIER pattern of the GoLR grammar does not allow, so no terminal a
 // scanner section declares can collide with it.
 //
 // The symbol is added on first use rather than seeded up front, so that a grammar which does not ask for error recovery
@@ -404,13 +409,13 @@ func (w *TreeWalker) visitStartDecl(node *parser.Node) {
 		panic("unexpected nonterminal")
 	}
 
-	// start_decl : %empty | "@start" ":" NAME ";"
+	// start_decl : %empty | "@start" ":" IDENTIFIER ";"
 	for _, child := range node.Children {
 		terminal, ok := child.Symbol.Terminal()
 		if !ok {
 			continue
 		}
-		if terminal == parser.TokenName && w.startNonterminalName == "" {
+		if terminal == parser.TokenIdentifier && w.startNonterminalName == "" {
 			w.startNonterminalName = string(child.Lexeme)
 		}
 	}
@@ -663,6 +668,11 @@ func (w *TreeWalker) visitAlternativeAnnotation(node *parser.Node) error {
 	}
 
 	// alternative_annotation : "@precedence" "(" symbol ")"
+	//                        | "@name" "(" IDENTIFIER ")"
+	if w.isNameAnnotation(node) {
+		return w.visitNameAnnotation(node)
+	}
+
 	inAlternativeAnnotationBackup := w.inAlternativeAnnotation
 	w.inAlternativeAnnotation = true
 
@@ -681,6 +691,37 @@ func (w *TreeWalker) visitAlternativeAnnotation(node *parser.Node) error {
 
 	w.inAlternativeAnnotation = inAlternativeAnnotationBackup
 	return nil
+}
+
+// isNameAnnotation reports whether the alternative_annotation node is an @name annotation rather than an @precedence
+// one, by looking for the "@name" keyword among its children.
+func (w *TreeWalker) isNameAnnotation(node *parser.Node) bool {
+	for _, child := range node.Children {
+		if terminal, ok := child.Symbol.Terminal(); ok && terminal == parser.TokenName {
+			return true
+		}
+	}
+	return false
+}
+
+// visitNameAnnotation sets the explicit name of the current production from an "@name" "(" IDENTIFIER ")" annotation.
+// Two productions must not ask for the same name.
+func (w *TreeWalker) visitNameAnnotation(node *parser.Node) error {
+	for _, child := range node.Children {
+		terminal, ok := child.Symbol.Terminal()
+		if !ok || terminal != parser.TokenIdentifier {
+			continue
+		}
+
+		name := string(child.Lexeme)
+		if _, exists := w.explicitProductionNames[name]; exists {
+			return fmt.Errorf("duplicate production name %q", name)
+		}
+		w.explicitProductionNames[name] = struct{}{}
+		w.grammar.Productions[len(w.grammar.Productions)-1].Name = &name
+		return nil
+	}
+	return errors.New("no IDENTIFIER token found in @name annotation")
 }
 
 func (w *TreeWalker) visitSymbolList(node *parser.Node) error {
@@ -794,7 +835,7 @@ func (w *TreeWalker) getNameLexeme(node *parser.Node) (string, error) {
 		if !ok {
 			continue
 		}
-		if terminal == parser.TokenName {
+		if terminal == parser.TokenIdentifier {
 			return string(child.Lexeme), nil
 		}
 	}
@@ -811,7 +852,7 @@ func (w *TreeWalker) getSymbolName(node *parser.Node) (string, error) {
 		return "", errors.New("expected terminal in symbol node")
 	}
 	switch terminal {
-	case parser.TokenName:
+	case parser.TokenIdentifier:
 		return string(child.Lexeme), nil
 	case parser.TokenError:
 		return w.internErrorTerminal(), nil

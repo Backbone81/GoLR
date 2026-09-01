@@ -255,7 +255,7 @@ const (
 
 	// errorTerminalColumn is the column holding the shifts of the error symbol, where the recovery reads the state to
 	// resume in.
-	errorTerminalColumn = 26
+	errorTerminalColumn = 27
 )
 
 var (
@@ -272,86 +272,87 @@ var (
 		TokenScanner:    4,
 		TokenParser:     5,
 		TokenPrecedence: 6,
-		TokenStart:      7,
-		TokenLeft:       8,
-		TokenRight:      9,
-		TokenNone:       10,
-		TokenSkip:       11,
-		TokenEmpty:      12,
-		TokenError:      13,
-		TokenFragment:   14,
-		TokenLbrace:     15,
-		TokenRbrace:     16,
-		TokenLparen:     17,
-		TokenRparen:     18,
-		TokenColon:      19,
-		TokenSemi:       20,
-		TokenPipe:       21,
-		TokenComma:      22,
-		TokenName:       23,
-		TokenRegex:      24,
-		TokenString:     25,
-		ErrorToken:      26,
+		TokenName:       7,
+		TokenStart:      8,
+		TokenLeft:       9,
+		TokenRight:      10,
+		TokenNone:       11,
+		TokenSkip:       12,
+		TokenEmpty:      13,
+		TokenError:      14,
+		TokenFragment:   15,
+		TokenLbrace:     16,
+		TokenRbrace:     17,
+		TokenLparen:     18,
+		TokenRparen:     19,
+		TokenColon:      20,
+		TokenSemi:       21,
+		TokenPipe:       22,
+		TokenComma:      23,
+		TokenIdentifier: 24,
+		TokenRegex:      25,
+		TokenString:     26,
+		ErrorToken:      27,
 	}
 
 	// actionBase maps a state to the displacement of its row within actionNext.
-	actionBase = [85]uint8{
-		1, 43, 6, 8, 10, 10, 45, 10, 25, 37, 10, 42, 3, 10, 31, 56,
-		5, 10, 10, 40, 44, 50, 10, 10, 10, 10, 46, 47, 10, 48, 10, 10,
-		30, 7, 10, 10, 7, 10, 0, 10, 51, 4, 10, 10, 10, 10, 10, 10,
-		10, 10, 10, 39, 10, 52, 2, 10, 10, 10, 10, 9, 10, 10, 10, 10,
-		49, 18, 10, 29, 10, 53, 20, 66, 10, 10, 24, 66, 10, 10, 10, 57,
-		10, 10, 29, 58, 10,
+	actionBase = [89]uint8{
+		8, 43, 12, 40, 10, 10, 45, 10, 25, 6, 10, 42, 3, 10, 31, 57,
+		5, 10, 10, 41, 46, 48, 10, 10, 10, 10, 47, 49, 10, 50, 10, 10,
+		30, 7, 10, 10, 7, 10, 0, 10, 52, 4, 10, 10, 10, 10, 10, 10,
+		10, 10, 10, 39, 10, 53, 2, 10, 10, 10, 10, 9, 10, 10, 10, 10,
+		54, 18, 10, 29, 10, 55, 20, 1, 10, 10, 24, 1, 10, 10, 10, 51,
+		56, 10, 10, 29, 58, 59, 60, 10, 10,
 	}
 
 	// actionNext holds the action of every entry. The action a state has for a column lives at
 	// actionBase[state] + column, but only if actionCheck confirms the cell belongs to that column.
-	actionNext = [93]uint16{
-		0, 0, 0, 0, 0, 4, 184, 20, 188, 192, 196, 0, 0, 24, 240, 244,
-		200, 92, 172, 68, 220, 176, 244, 72, 224, 248, 204, 252, 256, 96, 100, 104,
-		248, 244, 252, 276, 240, 244, 292, 296, 312, 40, 244, 248, 56, 252, 156, 248,
-		44, 252, 76, 48, 248, 160, 252, 228, 164, 80, 16, 232, 36, 64, 84, 116,
-		120, 124, 136, 140, 148, 288, 216, 236, 316, 308, 328, 0, 336, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	actionNext = [88]uint16{
+		0, 0, 0, 0, 0, 0, 184, 316, 320, 188, 192, 196, 4, 20, 56, 240,
+		244, 200, 92, 172, 68, 220, 176, 244, 72, 224, 248, 204, 252, 256, 96, 100,
+		104, 248, 244, 252, 276, 240, 244, 292, 296, 312, 40, 244, 248, 24, 252, 156,
+		248, 44, 252, 76, 48, 248, 160, 252, 228, 164, 80, 16, 232, 36, 64, 84,
+		124, 116, 0, 120, 136, 332, 140, 148, 216, 236, 336, 288, 308, 0, 348, 352,
+		0, 0, 344, 0, 0, 0, 0, 0,
 	}
 
 	// actionCheck holds the column every cell of actionNext belongs to. A cell no state occupies holds
-	// 27, which is one past the highest column in use and can never be asked for.
-	actionCheck = [93]uint8{
-		27, 27, 27, 27, 27, 4, 6, 1, 8, 9, 10, 27, 27, 5, 12, 13,
-		16, 12, 11, 16, 16, 14, 13, 20, 20, 23, 26, 25, 26, 24, 25, 26,
-		23, 13, 25, 26, 12, 13, 20, 21, 20, 16, 13, 23, 7, 25, 16, 23,
-		23, 25, 19, 26, 23, 23, 25, 16, 26, 26, 15, 20, 15, 19, 6, 23,
-		20, 15, 20, 20, 20, 20, 19, 19, 6, 20, 17, 27, 18, 27, 27, 27,
-		27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27,
+	// 28, which is one past the highest column in use and can never be asked for.
+	actionCheck = [88]uint8{
+		28, 28, 28, 28, 28, 28, 6, 6, 7, 9, 10, 11, 4, 1, 8, 13,
+		14, 17, 13, 12, 17, 17, 15, 14, 21, 21, 24, 27, 26, 27, 25, 26,
+		27, 24, 14, 26, 27, 13, 14, 21, 22, 21, 17, 14, 24, 5, 26, 17,
+		24, 24, 26, 20, 27, 24, 24, 26, 17, 27, 27, 16, 21, 16, 20, 6,
+		16, 24, 28, 21, 21, 18, 21, 21, 20, 20, 18, 21, 21, 28, 19, 19,
+		28, 28, 24, 28, 28, 28, 28, 28,
 	}
 
 	// defaultActionByState holds the action a state takes for every column it has no entry of its own for. A state
 	// which has none carries the error action.
-	defaultActionByState = [85]uint8{
+	defaultActionByState = [89]uint8{
 		3, 3, 3, 3, 17, 2, 3, 5, 3, 77, 9, 3, 3, 21, 3, 89,
 		3, 13, 33, 3, 3, 3, 137, 53, 45, 49, 3, 3, 53, 3, 85, 101,
 		3, 41, 29, 25, 37, 81, 3, 69, 3, 3, 141, 61, 65, 57, 133, 121,
-		125, 129, 93, 3, 105, 3, 3, 73, 153, 97, 117, 3, 173, 201, 193, 197,
-		3, 3, 157, 173, 185, 3, 3, 169, 149, 145, 3, 165, 189, 113, 109, 3,
-		177, 161, 3, 3, 181,
+		125, 129, 93, 3, 105, 3, 3, 73, 153, 97, 117, 3, 173, 205, 197, 201,
+		3, 3, 157, 173, 189, 3, 3, 169, 149, 145, 3, 165, 193, 113, 109, 3,
+		3, 177, 161, 3, 3, 3, 3, 181, 185,
 	}
 
 	// gotoBase maps a state to the displacement of its row within gotoNext.
-	gotoBase = [85]uint8{
+	gotoBase = [89]uint8{
 		5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
 		5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 1, 5, 5, 5,
 		5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
 		5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 5, 5, 5, 5,
 		5, 5, 5, 0, 5, 5, 3, 5, 5, 5, 6, 5, 5, 5, 5, 5,
-		5, 5, 4, 5, 5,
+		5, 5, 5, 4, 5, 5, 5, 5, 5,
 	}
 
 	// gotoNext holds the state a goto leads to. The goto a state has for a nonterminal lives at
 	// gotoBase[state] + nonterminal, but only if gotoCheck confirms the cell belongs to that nonterminal.
 	gotoNext = [29]uint8{
 		0, 0, 0, 0, 0, 0, 0, 0, 36, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 75, 0, 0, 76, 70, 81, 76, 83, 0, 0,
+		0, 0, 0, 75, 0, 0, 76, 70, 82, 76, 85, 0, 0,
 	}
 
 	// gotoCheck holds the nonterminal every cell of gotoNext belongs to. A cell no state occupies holds
@@ -365,24 +366,24 @@ var (
 	// for.
 	defaultGotoByNonterminal = [23]uint8{
 		0, 2, 3, 8, 13, 27, 28, 33, 45, 7, 15, 22, 38, 52, 53, 32,
-		42, 65, 66, 71, 80, 67, 68,
+		42, 65, 66, 71, 81, 67, 68,
 	}
 
 	// popCountByProduction holds how many symbols a reduction takes off the stacks, which is the length of the right
 	// hand side.
-	popCountByProduction = [51]uint8{
+	popCountByProduction = [52]uint8{
 		2, 2, 4, 5, 0, 2, 4, 4, 2, 2, 2, 1, 1, 0, 2, 1,
 		1, 6, 7, 0, 4, 3, 0, 4, 5, 0, 2, 4, 4, 2, 1, 1,
-		1, 1, 0, 2, 4, 4, 2, 1, 3, 2, 2, 0, 2, 4, 1, 2,
-		1, 1, 1,
+		1, 1, 0, 2, 4, 4, 2, 1, 3, 2, 2, 0, 2, 4, 4, 1,
+		2, 1, 1, 1,
 	}
 
 	// nonterminalByProduction holds the nonterminal on the left hand side of a production.
-	nonterminalByProduction = [51]uint8{
+	nonterminalByProduction = [52]uint8{
 		0, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 6, 6, 7, 7, 8,
 		8, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 13, 13, 13, 14, 14,
-		14, 14, 15, 15, 16, 16, 16, 17, 17, 18, 18, 19, 19, 20, 21, 21,
-		22, 22, 22,
+		14, 14, 15, 15, 16, 16, 16, 17, 17, 18, 18, 19, 19, 20, 20, 21,
+		21, 22, 22, 22,
 	}
 )
 

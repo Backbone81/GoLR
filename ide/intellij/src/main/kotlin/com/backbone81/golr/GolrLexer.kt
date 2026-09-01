@@ -78,9 +78,9 @@ class GolrLexer : LexerBase() {
 
         Token.TOKEN_SCANNER, Token.TOKEN_PARSER -> GolrTokenTypes.KEYWORD_SECTION
 
-        Token.TOKEN_PRECEDENCE, Token.TOKEN_START, Token.TOKEN_LEFT, Token.TOKEN_RIGHT,
-        Token.TOKEN_NONE, Token.TOKEN_SKIP, Token.TOKEN_EMPTY, Token.TOKEN_ERROR,
-        Token.TOKEN_FRAGMENT -> GolrTokenTypes.KEYWORD_CONTROL
+        Token.TOKEN_PRECEDENCE, Token.TOKEN_NAME, Token.TOKEN_START, Token.TOKEN_LEFT,
+        Token.TOKEN_RIGHT, Token.TOKEN_NONE, Token.TOKEN_SKIP, Token.TOKEN_EMPTY,
+        Token.TOKEN_ERROR, Token.TOKEN_FRAGMENT -> GolrTokenTypes.KEYWORD_CONTROL
 
         Token.TOKEN_LBRACE -> GolrTokenTypes.LBRACE
         Token.TOKEN_RBRACE -> GolrTokenTypes.RBRACE
@@ -90,7 +90,7 @@ class GolrLexer : LexerBase() {
         Token.TOKEN_SEMI -> GolrTokenTypes.SEMICOLON
         Token.TOKEN_PIPE -> GolrTokenTypes.PIPE
 
-        Token.TOKEN_NAME -> GolrTokenTypes.IDENTIFIER
+        Token.TOKEN_IDENTIFIER -> GolrTokenTypes.IDENTIFIER
         Token.TOKEN_REGEX -> GolrTokenTypes.REGEX
         Token.TOKEN_STRING -> GolrTokenTypes.STRING
 

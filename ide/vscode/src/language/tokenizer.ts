@@ -84,6 +84,7 @@ function mapToken(token: ScannerToken, bytes: Uint8Array, startByte: number): To
     case ScannerToken.TokenParser:
       return TokenType.KeywordSection;
     case ScannerToken.TokenPrecedence:
+    case ScannerToken.TokenName:
     case ScannerToken.TokenStart:
     case ScannerToken.TokenLeft:
     case ScannerToken.TokenRight:
@@ -107,7 +108,7 @@ function mapToken(token: ScannerToken, bytes: Uint8Array, startByte: number): To
       return TokenType.Semicolon;
     case ScannerToken.TokenPipe:
       return TokenType.Pipe;
-    case ScannerToken.TokenName:
+    case ScannerToken.TokenIdentifier:
       return TokenType.Identifier;
     case ScannerToken.TokenRegex:
       return TokenType.Regex;

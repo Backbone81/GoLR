@@ -4,7 +4,7 @@ import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.lang.ASTNode
 
 // Wraps the single IDENTIFIER token that sits at the definition site of a rule, i.e. the
-// "NAME" in NAME : body ;
+// "IDENTIFIER" in IDENTIFIER : body ;
 //
 // ASTWrapperPsiElement is IntelliJ's convenience base class for composite PSI nodes: it
 // holds the underlying ASTNode and delegates all standard PsiElement operations to it.

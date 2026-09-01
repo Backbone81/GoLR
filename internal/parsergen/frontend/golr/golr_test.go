@@ -579,7 +579,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should not let a scanner section declare a terminal which collides with the error symbol", func() {
-			// The reserved name carries a leading dollar sign, which the NAME pattern does not allow, so a collision
+			// The reserved name carries a leading dollar sign, which the IDENTIFIER pattern does not allow, so a collision
 			// can only be attempted and never succeed.
 			source := `
 				@scanner {
@@ -1022,6 +1022,110 @@ var _ = Describe("GoLR Grammar Files", func() {
 			`
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("Names of Productions", func() {
+		It("should set the explicit name of a production from an @name annotation", func() {
+			source := `
+				@scanner {
+					FOO: "foo";
+				}
+				@parser {
+					file: FOO @name(my_rule);
+				}
+			`
+			_, grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar.Productions[0].Name).To(HaveValue(Equal("my_rule")))
+		})
+
+		It("should name each alternative independently", func() {
+			source := `
+				@scanner {
+					FOO: "foo";
+					BAR: "bar";
+				}
+				@parser {
+					file
+						: FOO @name(from_foo)
+						| BAR @name(from_bar)
+						;
+				}
+			`
+			_, grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar.Productions[0].Name).To(HaveValue(Equal("from_foo")))
+			Expect(grammar.Productions[1].Name).To(HaveValue(Equal("from_bar")))
+		})
+
+		It("should leave a production without an @name annotation unnamed", func() {
+			source := `
+				@scanner {
+					FOO: "foo";
+				}
+				@parser {
+					file: FOO;
+				}
+			`
+			_, grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar.Productions[0].Name).To(BeNil())
+		})
+
+		It("should accept @name next to @precedence on the same alternative", func() {
+			source := `
+				@scanner {
+					FOO: "foo";
+				}
+				@parser {
+					@precedence {
+						@left: FOO;
+					}
+					file: FOO @name(my_rule) @precedence(FOO);
+				}
+			`
+			_, grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar.Productions[0].Name).To(HaveValue(Equal("my_rule")))
+			Expect(grammar.Productions[0].PrecedenceTerminalIdx).ToNot(BeNil())
+		})
+
+		It("should reject two productions asking for the same name", func() {
+			source := `
+				@scanner {
+					FOO: "foo";
+					BAR: "bar";
+				}
+				@parser {
+					file: FOO @name(dup);
+					other: BAR @name(dup);
+				}
+			`
+			_, _, err := golr.GrammarFromString(source)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring(`"dup"`))
+		})
+
+		It("should round trip an @name annotation through the GoLR writer", func() {
+			source := `
+				@scanner {
+					FOO: "foo";
+				}
+				@parser {
+					file: FOO @name(my_rule);
+				}
+			`
+			rules, grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+
+			formatted, err := golr.GrammarToString(rules, grammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(formatted).To(ContainSubstring("@name(my_rule)"))
+
+			_, reparsed, err := golr.GrammarFromString(formatted)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(reparsed.Productions[0].Name).To(HaveValue(Equal("my_rule")))
 		})
 	})
 

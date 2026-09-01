@@ -311,6 +311,9 @@ func writeGoLRRules(writer io.Writer, grammar frontend.Grammar) error {
 				sep = "|"
 			}
 			rhs := golrProductionRHS(production, grammar)
+			if production.Name != nil {
+				rhs += " @name(" + *production.Name + ")"
+			}
 			if production.PrecedenceTerminalIdx != nil {
 				rhs += " @precedence(" + grammar.Terminals[*production.PrecedenceTerminalIdx].String() + ")"
 			}

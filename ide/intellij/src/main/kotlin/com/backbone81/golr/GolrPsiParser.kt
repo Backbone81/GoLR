@@ -234,6 +234,15 @@ class GolrPsiParser : PsiParser {
                     advanceIf(builder, GolrTokenTypes.RPAREN)
                 }
 
+                // @name(NAME) — NAME is the production's own name, not a symbol reference, so it
+                // is left as a plain leaf with nothing to resolve it to.
+                builder.tokenType == GolrTokenTypes.KEYWORD_CONTROL && builder.tokenText == "@name" -> {
+                    advance(builder)                        // consume @name
+                    advanceIf(builder, GolrTokenTypes.LPAREN)
+                    advanceIf(builder, GolrTokenTypes.IDENTIFIER)
+                    advanceIf(builder, GolrTokenTypes.RPAREN)
+                }
+
                 // @empty, @error, "|", string literals, and anything else — consume without
                 // wrapping. @error is a symbol in the body, but it is built in rather than
                 // declared anywhere, so there is nothing to resolve it to.

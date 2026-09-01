@@ -189,7 +189,7 @@ var _ = Describe("Scanner", func() {
 				`TOKEN WHITESPACE 7 8 " "`,
 				`TOKEN LBRACE 8 9 "{"`,
 				`TOKEN WHITESPACE 9 10 " "`,
-				`TOKEN NAME 10 11 "a"`,
+				`TOKEN IDENTIFIER 10 11 "a"`,
 				`TOKEN COLON 11 12 ":"`,
 				`TOKEN WHITESPACE 12 13 " "`,
 				`TOKEN STRING 13 16 "\"b\""`,

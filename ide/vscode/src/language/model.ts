@@ -182,6 +182,15 @@ class Parser {
           this.advance();
         }
         this.expectIf(TokenType.RParen);
+      } else if (t.type === TokenType.KeywordControl && t.text === "@name") {
+        // Inline @name(NAME): the NAME is the production's own name, not a symbol
+        // reference, so there is nothing to resolve it to.
+        this.advance(); // consume @name
+        this.expectIf(TokenType.LParen);
+        if (!this.eof() && this.current().type === TokenType.Identifier) {
+          this.advance();
+        }
+        this.expectIf(TokenType.RParen);
       } else {
         // Strings, "|", @empty, @error, etc. @error is a symbol in the body, but it is
         // built in rather than declared anywhere, so there is nothing to resolve it to.
