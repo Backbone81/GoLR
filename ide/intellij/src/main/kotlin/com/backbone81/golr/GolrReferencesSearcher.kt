@@ -61,8 +61,7 @@ class GolrReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.
 
         for (ref in PsiTreeUtil.findChildrenOfType(file, GolrSymbolReference::class.java)) {
             if (ref.text == name) {
-                val reference = ref.reference ?: continue
-                if (!consumer.process(reference)) return
+                if (!consumer.process(ref.reference)) return
             }
         }
     }

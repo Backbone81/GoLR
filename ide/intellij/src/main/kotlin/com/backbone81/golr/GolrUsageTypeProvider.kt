@@ -21,8 +21,8 @@ class GolrUsageTypeProvider : UsageTypeProvider {
         if (element is GolrSymbolReference) SYMBOL_REFERENCE else null
 
     companion object {
-        // The string passed to UsageType becomes the group header text shown in the
-        // Find Usages panel (e.g. "Symbol reference  2 usages").
-        val SYMBOL_REFERENCE = UsageType("Symbol reference")
+        // The name becomes the group header text in the Find Usages panel
+        // (e.g. "Symbol reference  2 usages").
+        val SYMBOL_REFERENCE = UsageType { "Symbol reference" }
     }
 }
