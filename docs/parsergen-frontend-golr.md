@@ -301,6 +301,41 @@ expr: MINUS expr @precedence(UMINUS);
 The `@precedence(symbol)` annotation overrides the precedence of the production with the precedence of the
 given terminal. The terminal must have been assigned a precedence level in the `@precedence` section.
 
+### Production Name
+
+Every production gets a name, which the code backends expose as a `Production` constant and set on the tree
+node each reduction produces (see the per-language backend docs). By default the name is auto-generated as
+`<lhs>_<n>`, where `n` is the 1-based position of the alternative among every alternative of that left-hand
+side:
+
+```
+expr
+    : expr "+" expr   // expr_1
+    | expr "-" expr   // expr_2
+    | NUMBER           // expr_3
+    ;
+```
+
+`@name(NAME)` overrides the auto-generated name with an explicit one:
+
+```
+expr
+    : expr "+" expr @name(add)
+    | expr "-" expr @name(subtract)
+    | NUMBER
+    ;
+```
+
+An explicit name fully replaces the auto-generated one; it does not have to look like `<lhs>_<n>` and may
+duplicate a terminal or nonterminal name, since productions have a namespace of their own. Every `@name` in
+the grammar must be unique among themselves. Reordering, adding, or removing alternatives renumbers the
+auto-generated names of the alternatives after the change, so a production a tree walker switches on by name
+should be given an explicit `@name` to keep that name stable across grammar edits. `@name` and `@precedence`
+can both be given on the same alternative.
+
+The production the generator adds around the grammar's own start symbol has no name and is not part of the
+`Production` enumeration.
+
 ## Constraints
 
 - Every token used in a production rule must be declared in the `@scanner` section.
@@ -314,3 +349,4 @@ given terminal. The terminal must have been assigned a precedence level in the `
 - Fragment references inside a regular expression (`{NAME}`) must refer to a declared `@fragment` token.
 - Cyclic fragment references (where a fragment directly or indirectly references itself) are not allowed.
 - The grammar must contain at least one production rule.
+- `@name` values must be unique across all production rules.

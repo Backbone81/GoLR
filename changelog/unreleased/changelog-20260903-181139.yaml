@@ -1,0 +1,3 @@
+description: Generated parsers now expose every production as a named Production constant
+  and set it on the ParseNode/Node each reduction produces, so a tree walk can switch
+  on production identity instead of counting children.

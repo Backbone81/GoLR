@@ -6,6 +6,16 @@ unreleased:
     backends.'
 - description: Added a Kotlin backend for the scanner and parser generator, selected
     with --backend kotlin and configured with --backend-kotlin-package-name.
+- description: Improved error recovery for malformed GoLR grammar files.
+- description: The GoLR grammar frontend now rejects regex and string literals which
+    span multiple lines, so a missing closing delimiter no longer consumes the rest
+    of the file.
+- description: Added the @name annotation to the GoLR grammar frontend, letting a
+    production alternative be given an explicit name instead of the auto-generated
+    <rule>_<n>.
+- description: Generated parsers now expose every production as a named Production
+    constant and set it on the ParseNode/Node each reduction produces, so a tree walk
+    can switch on production identity instead of counting children.
 releases:
 - version: |
     v0.3.0

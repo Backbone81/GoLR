@@ -7,6 +7,10 @@
 - Fixed the scanner walking its line and column counters past the end of the source when Reset was given an offset beyond it. The offset is now clamped, as it already was in the C and C++ backends.
 - BREAKING: Aligned the generated scanners and parsers across all language backends.
 - Added a Kotlin backend for the scanner and parser generator, selected with --backend kotlin and configured with --backend-kotlin-package-name.
+- Improved error recovery for malformed GoLR grammar files.
+- The GoLR grammar frontend now rejects regex and string literals which span multiple lines, so a missing closing delimiter no longer consumes the rest of the file.
+- Added the @name annotation to the GoLR grammar frontend, letting a production alternative be given an explicit name instead of the auto-generated <rule>_<n>.
+- Generated parsers now expose every production as a named Production constant and set it on the ParseNode/Node each reduction produces, so a tree walk can switch on production identity instead of counting children.
 
 ## v0.3.0 (2026-08-23)
 

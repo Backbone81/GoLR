@@ -1,0 +1,2 @@
+description: Added the @name annotation to the GoLR grammar frontend, letting a production
+  alternative be given an explicit name instead of the auto-generated <rule>_<n>.
