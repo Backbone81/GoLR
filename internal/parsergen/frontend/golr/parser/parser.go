@@ -106,58 +106,58 @@ type Production int
 
 const (
 	// NoProduction is the Production a terminal node carries, since no production reduces to it.
-	NoProduction                         Production = 0
-	ProductionFile1                      Production = 1
-	ProductionScannerSection1            Production = 2
-	ProductionScannerSection2            Production = 3
-	ProductionScannerDeclList1           Production = 4
-	ProductionScannerDeclList2           Production = 5
-	ProductionScannerDecl1               Production = 6
-	ProductionScannerDecl2               Production = 7
-	ProductionScannerDecl3               Production = 8
-	ProductionScannerDeclRhs1            Production = 9
-	ProductionScannerDeclRhs2            Production = 10
-	ProductionScannerPattern1            Production = 11
-	ProductionScannerPattern2            Production = 12
-	ProductionScannerAnnotationList1     Production = 13
-	ProductionScannerAnnotationList2     Production = 14
-	ProductionScannerAnnotation1         Production = 15
-	ProductionScannerAnnotation2         Production = 16
-	ProductionParserSection1             Production = 17
-	ProductionParserSection2             Production = 18
-	ProductionStartDecl1                 Production = 19
-	ProductionStartDecl2                 Production = 20
-	ProductionStartDecl3                 Production = 21
-	ProductionPrecedenceSection1         Production = 22
-	ProductionPrecedenceSection2         Production = 23
-	ProductionPrecedenceSection3         Production = 24
-	ProductionPrecedenceDeclList1        Production = 25
-	ProductionPrecedenceDeclList2        Production = 26
-	ProductionPrecedenceDecl1            Production = 27
-	ProductionPrecedenceDecl2            Production = 28
-	ProductionPrecedenceDecl3            Production = 29
-	ProductionAssociativity1             Production = 30
-	ProductionAssociativity2             Production = 31
-	ProductionAssociativity3             Production = 32
-	ProductionAssociativity4             Production = 33
-	ProductionRuleDeclList1              Production = 34
-	ProductionRuleDeclList2              Production = 35
-	ProductionProductionDecl1            Production = 36
-	ProductionProductionDecl2            Production = 37
-	ProductionProductionDecl3            Production = 38
-	ProductionAlternativeList1           Production = 39
-	ProductionAlternativeList2           Production = 40
-	ProductionAlternative1               Production = 41
-	ProductionAlternative2               Production = 42
-	ProductionAlternativeAnnotationList1 Production = 43
-	ProductionAlternativeAnnotationList2 Production = 44
-	ProductionAlternativeAnnotation1     Production = 45
-	ProductionAlternativeAnnotation2     Production = 46
-	ProductionSymbolList1                Production = 47
-	ProductionSymbolList2                Production = 48
-	ProductionSymbol1                    Production = 49
-	ProductionSymbol2                    Production = 50
-	ProductionSymbol3                    Production = 51
+	NoProduction                              Production = 0
+	ProductionFile                            Production = 1
+	ProductionScannerSection                  Production = 2
+	ProductionScannerSectionBroken            Production = 3
+	ProductionScannerDeclListEmpty            Production = 4
+	ProductionScannerDeclListMore             Production = 5
+	ProductionScannerDecl                     Production = 6
+	ProductionScannerDeclBrokenRhs            Production = 7
+	ProductionScannerDeclBroken               Production = 8
+	ProductionScannerDeclRhsPattern           Production = 9
+	ProductionScannerDeclRhsEmpty             Production = 10
+	ProductionScannerPatternRegex             Production = 11
+	ProductionScannerPatternLiteral           Production = 12
+	ProductionScannerAnnotationListEmpty      Production = 13
+	ProductionScannerAnnotationListMore       Production = 14
+	ProductionScannerAnnotationSkip           Production = 15
+	ProductionScannerAnnotationFragment       Production = 16
+	ProductionParserSection                   Production = 17
+	ProductionParserSectionBroken             Production = 18
+	ProductionStartDeclAbsent                 Production = 19
+	ProductionStartDecl                       Production = 20
+	ProductionStartDeclBroken                 Production = 21
+	ProductionPrecedenceSectionAbsent         Production = 22
+	ProductionPrecedenceSection               Production = 23
+	ProductionPrecedenceSectionBroken         Production = 24
+	ProductionPrecedenceDeclListEmpty         Production = 25
+	ProductionPrecedenceDeclListMore          Production = 26
+	ProductionPrecedenceDecl                  Production = 27
+	ProductionPrecedenceDeclBrokenRhs         Production = 28
+	ProductionPrecedenceDeclBroken            Production = 29
+	ProductionAssociativityLeft               Production = 30
+	ProductionAssociativityRight              Production = 31
+	ProductionAssociativityNone               Production = 32
+	ProductionAssociativityPrecedence         Production = 33
+	ProductionRuleDeclListEmpty               Production = 34
+	ProductionRuleDeclListMore                Production = 35
+	ProductionProductionDecl                  Production = 36
+	ProductionProductionDeclBrokenRhs         Production = 37
+	ProductionProductionDeclBroken            Production = 38
+	ProductionAlternativeListOne              Production = 39
+	ProductionAlternativeListMore             Production = 40
+	ProductionAlternative                     Production = 41
+	ProductionAlternativeEmpty                Production = 42
+	ProductionAlternativeAnnotationListEmpty  Production = 43
+	ProductionAlternativeAnnotationListMore   Production = 44
+	ProductionAlternativeAnnotationPrecedence Production = 45
+	ProductionAlternativeAnnotationName       Production = 46
+	ProductionSymbolListOne                   Production = 47
+	ProductionSymbolListMore                  Production = 48
+	ProductionSymbolIdentifier                Production = 49
+	ProductionSymbolLiteral                   Production = 50
+	ProductionSymbolError                     Production = 51
 )
 
 // Production implements fmt.Stringer.
@@ -168,108 +168,108 @@ func (p Production) String() string {
 	switch p {
 	case NoProduction:
 		return "none"
-	case ProductionFile1:
-		return `file_1`
-	case ProductionScannerSection1:
-		return `scanner_section_1`
-	case ProductionScannerSection2:
-		return `scanner_section_2`
-	case ProductionScannerDeclList1:
-		return `scanner_decl_list_1`
-	case ProductionScannerDeclList2:
-		return `scanner_decl_list_2`
-	case ProductionScannerDecl1:
-		return `scanner_decl_1`
-	case ProductionScannerDecl2:
-		return `scanner_decl_2`
-	case ProductionScannerDecl3:
-		return `scanner_decl_3`
-	case ProductionScannerDeclRhs1:
-		return `scanner_decl_rhs_1`
-	case ProductionScannerDeclRhs2:
-		return `scanner_decl_rhs_2`
-	case ProductionScannerPattern1:
-		return `scanner_pattern_1`
-	case ProductionScannerPattern2:
-		return `scanner_pattern_2`
-	case ProductionScannerAnnotationList1:
-		return `scanner_annotation_list_1`
-	case ProductionScannerAnnotationList2:
-		return `scanner_annotation_list_2`
-	case ProductionScannerAnnotation1:
-		return `scanner_annotation_1`
-	case ProductionScannerAnnotation2:
-		return `scanner_annotation_2`
-	case ProductionParserSection1:
-		return `parser_section_1`
-	case ProductionParserSection2:
-		return `parser_section_2`
-	case ProductionStartDecl1:
-		return `start_decl_1`
-	case ProductionStartDecl2:
-		return `start_decl_2`
-	case ProductionStartDecl3:
-		return `start_decl_3`
-	case ProductionPrecedenceSection1:
-		return `precedence_section_1`
-	case ProductionPrecedenceSection2:
-		return `precedence_section_2`
-	case ProductionPrecedenceSection3:
-		return `precedence_section_3`
-	case ProductionPrecedenceDeclList1:
-		return `precedence_decl_list_1`
-	case ProductionPrecedenceDeclList2:
-		return `precedence_decl_list_2`
-	case ProductionPrecedenceDecl1:
-		return `precedence_decl_1`
-	case ProductionPrecedenceDecl2:
-		return `precedence_decl_2`
-	case ProductionPrecedenceDecl3:
-		return `precedence_decl_3`
-	case ProductionAssociativity1:
-		return `associativity_1`
-	case ProductionAssociativity2:
-		return `associativity_2`
-	case ProductionAssociativity3:
-		return `associativity_3`
-	case ProductionAssociativity4:
-		return `associativity_4`
-	case ProductionRuleDeclList1:
-		return `rule_decl_list_1`
-	case ProductionRuleDeclList2:
-		return `rule_decl_list_2`
-	case ProductionProductionDecl1:
-		return `production_decl_1`
-	case ProductionProductionDecl2:
-		return `production_decl_2`
-	case ProductionProductionDecl3:
-		return `production_decl_3`
-	case ProductionAlternativeList1:
-		return `alternative_list_1`
-	case ProductionAlternativeList2:
-		return `alternative_list_2`
-	case ProductionAlternative1:
-		return `alternative_1`
-	case ProductionAlternative2:
-		return `alternative_2`
-	case ProductionAlternativeAnnotationList1:
-		return `alternative_annotation_list_1`
-	case ProductionAlternativeAnnotationList2:
-		return `alternative_annotation_list_2`
-	case ProductionAlternativeAnnotation1:
-		return `alternative_annotation_1`
-	case ProductionAlternativeAnnotation2:
-		return `alternative_annotation_2`
-	case ProductionSymbolList1:
-		return `symbol_list_1`
-	case ProductionSymbolList2:
-		return `symbol_list_2`
-	case ProductionSymbol1:
-		return `symbol_1`
-	case ProductionSymbol2:
-		return `symbol_2`
-	case ProductionSymbol3:
-		return `symbol_3`
+	case ProductionFile:
+		return `file`
+	case ProductionScannerSection:
+		return `scanner_section`
+	case ProductionScannerSectionBroken:
+		return `scanner_section_broken`
+	case ProductionScannerDeclListEmpty:
+		return `scanner_decl_list_empty`
+	case ProductionScannerDeclListMore:
+		return `scanner_decl_list_more`
+	case ProductionScannerDecl:
+		return `scanner_decl`
+	case ProductionScannerDeclBrokenRhs:
+		return `scanner_decl_broken_rhs`
+	case ProductionScannerDeclBroken:
+		return `scanner_decl_broken`
+	case ProductionScannerDeclRhsPattern:
+		return `scanner_decl_rhs_pattern`
+	case ProductionScannerDeclRhsEmpty:
+		return `scanner_decl_rhs_empty`
+	case ProductionScannerPatternRegex:
+		return `scanner_pattern_regex`
+	case ProductionScannerPatternLiteral:
+		return `scanner_pattern_literal`
+	case ProductionScannerAnnotationListEmpty:
+		return `scanner_annotation_list_empty`
+	case ProductionScannerAnnotationListMore:
+		return `scanner_annotation_list_more`
+	case ProductionScannerAnnotationSkip:
+		return `scanner_annotation_skip`
+	case ProductionScannerAnnotationFragment:
+		return `scanner_annotation_fragment`
+	case ProductionParserSection:
+		return `parser_section`
+	case ProductionParserSectionBroken:
+		return `parser_section_broken`
+	case ProductionStartDeclAbsent:
+		return `start_decl_absent`
+	case ProductionStartDecl:
+		return `start_decl`
+	case ProductionStartDeclBroken:
+		return `start_decl_broken`
+	case ProductionPrecedenceSectionAbsent:
+		return `precedence_section_absent`
+	case ProductionPrecedenceSection:
+		return `precedence_section`
+	case ProductionPrecedenceSectionBroken:
+		return `precedence_section_broken`
+	case ProductionPrecedenceDeclListEmpty:
+		return `precedence_decl_list_empty`
+	case ProductionPrecedenceDeclListMore:
+		return `precedence_decl_list_more`
+	case ProductionPrecedenceDecl:
+		return `precedence_decl`
+	case ProductionPrecedenceDeclBrokenRhs:
+		return `precedence_decl_broken_rhs`
+	case ProductionPrecedenceDeclBroken:
+		return `precedence_decl_broken`
+	case ProductionAssociativityLeft:
+		return `associativity_left`
+	case ProductionAssociativityRight:
+		return `associativity_right`
+	case ProductionAssociativityNone:
+		return `associativity_none`
+	case ProductionAssociativityPrecedence:
+		return `associativity_precedence`
+	case ProductionRuleDeclListEmpty:
+		return `rule_decl_list_empty`
+	case ProductionRuleDeclListMore:
+		return `rule_decl_list_more`
+	case ProductionProductionDecl:
+		return `production_decl`
+	case ProductionProductionDeclBrokenRhs:
+		return `production_decl_broken_rhs`
+	case ProductionProductionDeclBroken:
+		return `production_decl_broken`
+	case ProductionAlternativeListOne:
+		return `alternative_list_one`
+	case ProductionAlternativeListMore:
+		return `alternative_list_more`
+	case ProductionAlternative:
+		return `alternative`
+	case ProductionAlternativeEmpty:
+		return `alternative_empty`
+	case ProductionAlternativeAnnotationListEmpty:
+		return `alternative_annotation_list_empty`
+	case ProductionAlternativeAnnotationListMore:
+		return `alternative_annotation_list_more`
+	case ProductionAlternativeAnnotationPrecedence:
+		return `alternative_annotation_precedence`
+	case ProductionAlternativeAnnotationName:
+		return `alternative_annotation_name`
+	case ProductionSymbolListOne:
+		return `symbol_list_one`
+	case ProductionSymbolListMore:
+		return `symbol_list_more`
+	case ProductionSymbolIdentifier:
+		return `symbol_identifier`
+	case ProductionSymbolLiteral:
+		return `symbol_literal`
+	case ProductionSymbolError:
+		return `symbol_error`
 	default:
 		return "unknown"
 	}

@@ -39,7 +39,7 @@
 
 @parser {
     file
-        : scanner_section parser_section
+        : scanner_section parser_section @name(file)
         ;
 
     // ================================================================================
@@ -47,42 +47,42 @@
     // ================================================================================
 
     scanner_section
-        : "@scanner" "{" scanner_decl_list "}"
+        : "@scanner" "{" scanner_decl_list "}" @name(scanner_section)
         // a broken tail or a missing ";" resyncs at the closing brace
-        | "@scanner" "{" scanner_decl_list @error "}"
+        | "@scanner" "{" scanner_decl_list @error "}" @name(scanner_section_broken)
         ;
 
     scanner_decl_list
-        : @empty
-        | scanner_decl_list scanner_decl
+        : @empty @name(scanner_decl_list_empty)
+        | scanner_decl_list scanner_decl @name(scanner_decl_list_more)
         ;
 
     scanner_decl
-        : IDENTIFIER ":" scanner_decl_rhs ";"
+        : IDENTIFIER ":" scanner_decl_rhs ";" @name(scanner_decl)
         // keep the terminal name, skip a broken right hand side up to the ";"
-        | IDENTIFIER ":" @error ";"
+        | IDENTIFIER ":" @error ";" @name(scanner_decl_broken_rhs)
         // the "IDENTIFIER :" itself is broken, skip the whole declaration
-        | @error ";"
+        | @error ";" @name(scanner_decl_broken)
         ;
 
     scanner_decl_rhs
-        : scanner_pattern scanner_annotation_list
-        | "@empty" scanner_annotation_list
+        : scanner_pattern scanner_annotation_list @name(scanner_decl_rhs_pattern)
+        | "@empty" scanner_annotation_list @name(scanner_decl_rhs_empty)
         ;
 
     scanner_pattern
-        : REGEX
-        | STRING
+        : REGEX @name(scanner_pattern_regex)
+        | STRING @name(scanner_pattern_literal)
         ;
 
     scanner_annotation_list
-        : @empty
-        | scanner_annotation_list scanner_annotation
+        : @empty @name(scanner_annotation_list_empty)
+        | scanner_annotation_list scanner_annotation @name(scanner_annotation_list_more)
         ;
 
     scanner_annotation
-        : "@skip"
-        | "@fragment"
+        : "@skip" @name(scanner_annotation_skip)
+        | "@fragment" @name(scanner_annotation_fragment)
         ;
 
     // ================================================================================
@@ -90,86 +90,86 @@
     // ================================================================================
 
     parser_section
-        : "@parser" "{" start_decl precedence_section rule_decl_list "}"
+        : "@parser" "{" start_decl precedence_section rule_decl_list "}" @name(parser_section)
         // a broken tail or a missing ";" resyncs at the closing brace
-        | "@parser" "{" start_decl precedence_section rule_decl_list @error "}"
+        | "@parser" "{" start_decl precedence_section rule_decl_list @error "}" @name(parser_section_broken)
         ;
 
     start_decl
-        : @empty
-        | "@start" ":" IDENTIFIER ";"
+        : @empty @name(start_decl_absent)
+        | "@start" ":" IDENTIFIER ";" @name(start_decl)
         // a half typed @start must not take the whole parser section with it
-        | "@start" @error ";"
+        | "@start" @error ";" @name(start_decl_broken)
         ;
 
     precedence_section
-        : @empty
-        | "@precedence" "{" precedence_decl_list "}"
+        : @empty @name(precedence_section_absent)
+        | "@precedence" "{" precedence_decl_list "}" @name(precedence_section)
         // a broken tail or a missing ";" resyncs at the closing brace
-        | "@precedence" "{" precedence_decl_list @error "}"
+        | "@precedence" "{" precedence_decl_list @error "}" @name(precedence_section_broken)
         ;
 
     precedence_decl_list
-        : @empty
-        | precedence_decl_list precedence_decl
+        : @empty @name(precedence_decl_list_empty)
+        | precedence_decl_list precedence_decl @name(precedence_decl_list_more)
         ;
 
     precedence_decl
-        : associativity ":" symbol_list ";"
+        : associativity ":" symbol_list ";" @name(precedence_decl)
         // keep the associativity, skip a broken symbol list up to the ";"
-        | associativity ":" @error ";"
+        | associativity ":" @error ";" @name(precedence_decl_broken_rhs)
         // the "associativity :" itself is broken, skip the whole declaration
-        | @error ";"
+        | @error ";" @name(precedence_decl_broken)
         ;
 
     associativity
-        : "@left"
-        | "@right"
-        | "@none"
-        | "@precedence"
+        : "@left" @name(associativity_left)
+        | "@right" @name(associativity_right)
+        | "@none" @name(associativity_none)
+        | "@precedence" @name(associativity_precedence)
         ;
 
     rule_decl_list
-        : @empty
-        | rule_decl_list production_decl
+        : @empty @name(rule_decl_list_empty)
+        | rule_decl_list production_decl @name(rule_decl_list_more)
         ;
 
     production_decl
-        : IDENTIFIER ":" alternative_list ";"
+        : IDENTIFIER ":" alternative_list ";" @name(production_decl)
         // keep the nonterminal name while its body is being typed, skip up to the ";"
-        | IDENTIFIER ":" @error ";"
+        | IDENTIFIER ":" @error ";" @name(production_decl_broken_rhs)
         // the "IDENTIFIER :" itself is broken, skip the whole declaration
-        | @error ";"
+        | @error ";" @name(production_decl_broken)
         ;
 
     alternative_list
-        : alternative
-        | alternative_list "|" alternative
+        : alternative @name(alternative_list_one)
+        | alternative_list "|" alternative @name(alternative_list_more)
         ;
 
     alternative
-        : symbol_list alternative_annotation_list
-        | "@empty" alternative_annotation_list
+        : symbol_list alternative_annotation_list @name(alternative)
+        | "@empty" alternative_annotation_list @name(alternative_empty)
         ;
 
     alternative_annotation_list
-        : @empty
-        | alternative_annotation_list alternative_annotation
+        : @empty @name(alternative_annotation_list_empty)
+        | alternative_annotation_list alternative_annotation @name(alternative_annotation_list_more)
         ;
 
     alternative_annotation
-        : "@precedence" "(" symbol ")"
-        | "@name" "(" IDENTIFIER ")"
+        : "@precedence" "(" symbol ")" @name(alternative_annotation_precedence)
+        | "@name" "(" IDENTIFIER ")" @name(alternative_annotation_name)
         ;
 
     symbol_list
-        : symbol
-        | symbol_list symbol
+        : symbol @name(symbol_list_one)
+        | symbol_list symbol @name(symbol_list_more)
         ;
 
     symbol
-        : IDENTIFIER
-        | STRING
-        | "@error"
+        : IDENTIFIER @name(symbol_identifier)
+        | STRING @name(symbol_literal)
+        | "@error" @name(symbol_error)
         ;
 }
