@@ -37,6 +37,49 @@ func (n Nonterminal) String() string {
 	}
 }
 
+// Production is the data type representing all productions of the grammar. It has no entry for production 0
+// ($accept), which is never reduced.
+type Production int
+
+const (
+	// NoProduction is the Production a terminal node carries, since no production reduces to it.
+	NoProduction          Production = 0
+	ProductionExpression1 Production = 1
+	ProductionExpression2 Production = 2
+	ProductionExpression3 Production = 3
+	ProductionExpression4 Production = 4
+	ProductionExpression5 Production = 5
+	ProductionExpression6 Production = 6
+	ProductionExpression7 Production = 7
+)
+
+// Production implements fmt.Stringer.
+var _ fmt.Stringer = (*Production)(nil)
+
+// String returns the name of the production.
+func (p Production) String() string {
+	switch p {
+	case NoProduction:
+		return "none"
+	case ProductionExpression1:
+		return `expression_1`
+	case ProductionExpression2:
+		return `expression_2`
+	case ProductionExpression3:
+		return `expression_3`
+	case ProductionExpression4:
+		return `expression_4`
+	case ProductionExpression5:
+		return `expression_5`
+	case ProductionExpression6:
+		return `expression_6`
+	case ProductionExpression7:
+		return `expression_7`
+	default:
+		return "unknown"
+	}
+}
+
 // Symbol is either a terminal or a nonterminal. The most significant bit is used to signal a
 // nonterminal. The maximum terminal or nonterminal index which can be stored is 32767.
 type Symbol uint16
@@ -94,6 +137,10 @@ type Node struct {
 	// Children are the nodes of the right hand side of the production which was reduced to this node. Empty for a
 	// terminal.
 	Children []Node
+
+	// Production is the production which was reduced to this node. NoProduction for a terminal, which no
+	// production reduces to.
+	Production Production
 }
 
 var (
@@ -433,7 +480,8 @@ func (p *Parser) reduce(productionIdx uint32) {
 	p.stateStack = append(p.stateStack, int(gotoState))
 
 	newNode := Node{
-		Symbol: NewNonterminal(Nonterminal(nonterminal)),
+		Symbol:     NewNonterminal(Nonterminal(nonterminal)),
+		Production: Production(productionIdx),
 	}
 	if popCount != 0 {
 		newNode.Children = p.allocateNodes(popCount)

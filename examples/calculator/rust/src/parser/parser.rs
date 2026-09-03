@@ -31,6 +31,34 @@ impl fmt::Display for Nonterminal {
     }
 }
 
+/// Every production of the grammar. Has no variant for production 0 ($accept), which is never reduced.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Production {
+    ProductionExpression1,
+    ProductionExpression2,
+    ProductionExpression3,
+    ProductionExpression4,
+    ProductionExpression5,
+    ProductionExpression6,
+    ProductionExpression7,
+}
+
+impl fmt::Display for Production {
+    /// Writes the name of the production.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            Production::ProductionExpression1 => "expression_1",
+            Production::ProductionExpression2 => "expression_2",
+            Production::ProductionExpression3 => "expression_3",
+            Production::ProductionExpression4 => "expression_4",
+            Production::ProductionExpression5 => "expression_5",
+            Production::ProductionExpression6 => "expression_6",
+            Production::ProductionExpression7 => "expression_7",
+        };
+        f.write_str(name)
+    }
+}
+
 /// A terminal or a nonterminal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ParseSymbol {
@@ -63,6 +91,9 @@ pub struct ParseNode<'a> {
 
     /// The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal.
     pub children: Vec<ParseNode<'a>>,
+
+    /// The production which was reduced to this node. `None` for a terminal, which no production reduces to.
+    pub production: Option<Production>,
 }
 
 /// What a parse error is about.
@@ -204,6 +235,18 @@ const ERROR_TERMINAL_COLUMN: usize = 0;
 static NONTERMINALS: [Nonterminal; 2] = [
     Nonterminal::AcceptNonterminal,
     Nonterminal::NonterminalExpression,
+];
+
+/// The productions by their index minus one, minus one because production 0 ($accept) has no variant.
+#[rustfmt::skip]
+static PRODUCTIONS: [Production; 7] = [
+    Production::ProductionExpression1,
+    Production::ProductionExpression2,
+    Production::ProductionExpression3,
+    Production::ProductionExpression4,
+    Production::ProductionExpression5,
+    Production::ProductionExpression6,
+    Production::ProductionExpression7,
 ];
 
 /// Maps a state to the displacement of its row within [`ACTION_NEXT`].
@@ -386,6 +429,7 @@ impl<'a> ParseState<'a> {
                     symbol: ParseSymbol::Terminal(terminal),
                     lexeme: scanner.lexeme(),
                     children: Vec::new(),
+                    production: None,
                 });
                 scanner.next();
                 if self.error_recovery_shifts_remaining > 0 {
@@ -438,6 +482,7 @@ impl<'a> ParseState<'a> {
             symbol: ParseSymbol::Nonterminal(NONTERMINALS[nonterminal]),
             lexeme: &[],
             children,
+            production: Some(PRODUCTIONS[production_idx - 1]),
         });
     }
 
@@ -474,6 +519,7 @@ impl<'a> ParseState<'a> {
                     symbol: ParseSymbol::Terminal(Token::ErrorToken),
                     lexeme: &[],
                     children: Vec::new(),
+                    production: None,
                 });
                 return true;
             }

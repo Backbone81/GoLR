@@ -18,6 +18,10 @@ released with `<prefix>_parser_free`, and serves one source after another. Relea
 produced. An allocation which fails ends the parse and is reported as an error of kind
 `<PREFIX>_ERROR_KIND_OUT_OF_MEMORY`.
 
+Every nonterminal node's `production` field names the alternative it was reduced by, as one of the generated
+`<Prefix>Production` enumerators (`<PREFIX>_PRODUCTION_EXPRESSION1`, ... - `@name` in the grammar overrides the
+auto-generated name). It is `<PREFIX>_NO_PRODUCTION` on a terminal node, which no production reduces to.
+
 ## Example
 
 [examples/calculator/c/](../examples/calculator/c/) is a calculator built on this backend. Its parser was generated

@@ -93,20 +93,24 @@ func transitionLabel(grammar frontend.Grammar, action backend.TransitionAction) 
 }
 
 // stateLabel returns the DOT label attribute value for a state node, including the enclosing quotes.
-// The label shows the state index and all kernel items with a dot marker indicating the parse position.
+// The label shows the state index and all kernel items with a dot marker indicating the parse position. Each item is
+// prefixed with the name of its production, see backend.ProductionNames.
 func stateLabel(grammar frontend.Grammar, stateIdx int, state backend.State) string {
+	productionNames := backend.ProductionNames(grammar)
+
 	var builder strings.Builder
 	fmt.Fprintf(&builder, `State %d\n\l`, stateIdx)
 	lastLhsSymbol := -1
 	for _, kernelItem := range state.KernelItems.All() {
 		production := grammar.Productions[kernelItem.ProductionIdx()]
 		nonterminal := grammar.Nonterminals[production.NonterminalIdx]
+		productionName := productionNames[kernelItem.ProductionIdx()]
 
 		if lastLhsSymbol != production.NonterminalIdx {
-			fmt.Fprintf(&builder, "%d %s:", kernelItem.ProductionIdx(), nonterminal)
+			fmt.Fprintf(&builder, "%s %s:", productionName, nonterminal)
 			lastLhsSymbol = production.NonterminalIdx
 		} else {
-			fmt.Fprintf(&builder, "%d ", kernelItem.ProductionIdx())
+			fmt.Fprintf(&builder, "%s ", productionName)
 			for range len(nonterminal.String()) {
 				builder.WriteString(" ")
 			}

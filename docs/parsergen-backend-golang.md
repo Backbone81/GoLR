@@ -21,6 +21,10 @@ The nodes of the tree are handed out from an arena which the parser reuses, whic
 once per node. A tree therefore stays valid only until the next call to `Parse` on the same parser, which hands the
 same memory out again. Where the trees of two parses have to be alive at the same time, parse them with a parser each.
 
+Every nonterminal node's `Production` field names the alternative it was reduced by, as one of the generated
+`Production` constants (`ProductionExpression1`, ... - `@name` in the grammar overrides the auto-generated name). It
+is `NoProduction` on a terminal node, which no production reduces to.
+
 ## Example
 
 [examples/calculator/golang/](../examples/calculator/golang/) is a calculator built on this backend. Its parser was

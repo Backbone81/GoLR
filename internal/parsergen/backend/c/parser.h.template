@@ -39,6 +39,21 @@ typedef enum {{ .Type "Nonterminal" }} {
 /// Returns the name of the nonterminal, as the grammar spells it.
 const char *{{ .Func "NonterminalToString" }}({{ .Type "Nonterminal" }} nonterminal);
 
+/// Every production of the grammar. Has no enumerator for production 0 ($accept), which is never reduced.
+typedef enum {{ .Type "Production" }} {
+    /// The production a terminal node carries, since no production reduces to it.
+    {{ .Const "NoProduction" }} = 0,
+
+{{- range $i, $name := .Tables.ProductionNames }}
+{{- if ne $i 0 }}
+    {{ $.ProductionName $name }} = {{ $i }},
+{{- end }}
+{{- end }}
+} {{ .Type "Production" }};
+
+/// Returns the name of the production.
+const char *{{ .Func "ProductionToString" }}({{ .Type "Production" }} production);
+
 /// Whether a symbol of the parse tree is a terminal or a nonterminal.
 typedef enum {{ .Type "SymbolKind" }} {
     /// The symbol is a token the scanner delivered.
@@ -90,6 +105,10 @@ struct {{ .Type "ParseNode" }} {
 
     /// The number of children. Zero for a terminal.
     size_t child_count;
+
+    /// The production which was reduced to this node. {{ .Const "NoProduction" }} for a terminal, which no
+    /// production reduces to.
+    {{ .Type "Production" }} production;
 };
 
 /// How many bytes a parse error keeps its reason in, the terminating zero included. A reason which does not fit is cut
@@ -314,6 +333,20 @@ const char *{{ .Func "NonterminalToString" }}({{ .Type "Nonterminal" }} nontermi
 {{- range $nonterminal := .Parser.Grammar.Nonterminals }}
     case {{ $.NonterminalName $nonterminal }}:
         return "{{ $nonterminal.Name }}";
+{{- end }}
+    }
+    return "unknown";
+}
+
+const char *{{ .Func "ProductionToString" }}({{ .Type "Production" }} production) {
+    switch (production) {
+    case {{ .Const "NoProduction" }}:
+        return "none";
+{{- range $i, $name := .Tables.ProductionNames }}
+{{- if ne $i 0 }}
+    case {{ $.ProductionName $name }}:
+        return "{{ $name }}";
+{{- end }}
 {{- end }}
     }
     return "unknown";
@@ -611,6 +644,7 @@ static bool {{ .Func "ParserReduce" }}({{ .Type "Parser" }} *parser, size_t prod
     node.lexeme.length = 0;
     node.children = children;
     node.child_count = pop_count;
+    node.production = ({{ .Type "Production" }})production_idx;
     return {{ .Func "ParserPushNode" }}(parser, &node);
 }
 
@@ -656,6 +690,7 @@ static {{ .Type "StepResult" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *p
         node.lexeme = scanner->lexeme(scanner->context);
         node.children = NULL;
         node.child_count = 0;
+        node.production = {{ .Const "NoProduction" }};
         if (!{{ .Func "ParserPushNode" }}(parser, &node)) {
             return {{ .Const "StepFailed" }};
         }
@@ -724,6 +759,7 @@ static bool {{ .Func "ParserRecoverFromError" }}({{ .Type "Parser" }} *parser, c
             node.lexeme.length = 0;
             node.children = NULL;
             node.child_count = 0;
+            node.production = {{ .Const "NoProduction" }};
             return {{ .Func "ParserPushNode" }}(parser, &node);
         }
         if (parser->state_count == 1) {

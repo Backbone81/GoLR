@@ -23,6 +23,7 @@ var parserTemplate string
 var parsedTemplate = template.Must(template.New("parser.py.template").Funcs(template.FuncMap{
 	"nonterminalName":     nonterminalName,
 	"isAcceptNonterminal": isAcceptNonterminal,
+	"productionName":      productionName,
 }).Parse(parserTemplate))
 
 // DefaultScannerModule is the module the generated parser imports the token constants from when the caller names none.
@@ -132,4 +133,9 @@ func nonterminalName(symbol frontend.Symbol) string {
 // rather than the grammar. It is the one nonterminal the generated parser documents.
 func isAcceptNonterminal(symbol frontend.Symbol) bool {
 	return symbol.Name == "$accept"
+}
+
+// productionName returns the name of the member which stands for the production of the given name.
+func productionName(name string) string {
+	return utils.PythonConstantName("Production" + utils.GoIdentifier(name))
 }

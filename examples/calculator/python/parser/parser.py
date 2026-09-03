@@ -20,6 +20,7 @@ __all__ = [
     "ParseResult",
     "ParseSymbol",
     "Parser",
+    "Production",
     "TerminalSymbol",
 ]
 
@@ -42,6 +43,34 @@ _NONTERMINAL_NAMES: Final[dict[Nonterminal, str]] = {
     Nonterminal.NONTERMINAL_EXPRESSION: "expression",
 }
 """The name of every nonterminal, as the grammar spells it."""
+
+
+class Production(IntEnum):
+    """Every production of the grammar. Has no member for production 0 ($accept), which is never reduced."""
+
+    PRODUCTION_EXPRESSION1 = 1
+    PRODUCTION_EXPRESSION2 = 2
+    PRODUCTION_EXPRESSION3 = 3
+    PRODUCTION_EXPRESSION4 = 4
+    PRODUCTION_EXPRESSION5 = 5
+    PRODUCTION_EXPRESSION6 = 6
+    PRODUCTION_EXPRESSION7 = 7
+
+    def __str__(self) -> str:
+        """Returns the name of the production."""
+        return _PRODUCTION_NAMES[self]
+
+
+_PRODUCTION_NAMES: Final[dict[Production, str]] = {
+    Production.PRODUCTION_EXPRESSION1: "expression_1",
+    Production.PRODUCTION_EXPRESSION2: "expression_2",
+    Production.PRODUCTION_EXPRESSION3: "expression_3",
+    Production.PRODUCTION_EXPRESSION4: "expression_4",
+    Production.PRODUCTION_EXPRESSION5: "expression_5",
+    Production.PRODUCTION_EXPRESSION6: "expression_6",
+    Production.PRODUCTION_EXPRESSION7: "expression_7",
+}
+"""The name of every production."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,6 +113,9 @@ class ParseNode:
 
     children: list["ParseNode"] = field(default_factory=list)
     """The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal."""
+
+    production: Production | None = None
+    """The production which was reduced to this node. None for a terminal, which no production reduces to."""
 
 
 class ErrorKind(Enum):
@@ -490,7 +522,9 @@ class Parser:
         split_idx = len(self._node_stack) - pop_count
         children = self._node_stack[split_idx:]
         del self._node_stack[split_idx:]
-        self._node_stack.append(ParseNode(NonterminalSymbol(Nonterminal(nonterminal)), children=children))
+        self._node_stack.append(
+            ParseNode(NonterminalSymbol(Nonterminal(nonterminal)), children=children, production=Production(production_idx))
+        )
 
     def _recover_from_error(self, scanner: TokenSource) -> bool:
         """Puts the parser back where it can carry on with the remaining input after a syntax error.

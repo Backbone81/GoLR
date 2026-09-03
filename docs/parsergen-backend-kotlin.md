@@ -13,6 +13,10 @@ again with another scanner. The tree is null when the parse could not be finishe
 rather than the documentation. A `ParseSymbol` is a sealed interface over `TerminalSymbol` and `NonterminalSymbol`, so a
 `when` over a node symbol needs no else branch. Lexemes are a `ByteBuffer` over the source rather than a copy of it.
 
+Every nonterminal node's `production` property names the alternative it was reduced by, as one of the generated
+`Production` entries (`PRODUCTION_EXPRESSION1`, ... - `@name` in the grammar overrides the auto-generated name). It is
+null on a terminal node.
+
 ## Example
 
 [examples/calculator/kotlin/](../examples/calculator/kotlin/) is a calculator built on this backend. Its parser was

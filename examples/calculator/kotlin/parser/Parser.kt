@@ -20,6 +20,29 @@ enum class Nonterminal(private val displayName: String) {
     override fun toString(): String = displayName
 }
 
+/** Every production of the grammar. Has no entry for production 0 ($accept), which is never reduced. */
+enum class Production(private val displayName: String) {
+    PRODUCTION_EXPRESSION1("expression_1"),
+    PRODUCTION_EXPRESSION2("expression_2"),
+    PRODUCTION_EXPRESSION3("expression_3"),
+    PRODUCTION_EXPRESSION4("expression_4"),
+    PRODUCTION_EXPRESSION5("expression_5"),
+    PRODUCTION_EXPRESSION6("expression_6"),
+    PRODUCTION_EXPRESSION7("expression_7"),
+    ;
+
+    /** Returns the name of the production. */
+    override fun toString(): String = displayName
+
+    companion object {
+        /**
+         * Returns the production for the given production index, which is 1-based since production 0 ($accept) has
+         * no entry.
+         */
+        fun forIdx(productionIdx: Int): Production = entries[productionIdx - 1]
+    }
+}
+
 /** A terminal or a nonterminal. */
 sealed interface ParseSymbol
 
@@ -50,8 +73,15 @@ data class NonterminalSymbol(val nonterminal: Nonterminal) : ParseSymbol {
  * @param lexemeBytes the bytes [lexeme] hands out views of. Pass an empty buffer for a nonterminal
  * @property children the nodes of the right hand side of the production which was reduced to this node. Empty for a
  *     terminal
+ * @property production the production which was reduced to this node. Null for a terminal, which no production
+ *     reduces to
  */
-class ParseNode(val symbol: ParseSymbol, private val lexemeBytes: ByteBuffer, val children: List<ParseNode>) {
+class ParseNode(
+    val symbol: ParseSymbol,
+    private val lexemeBytes: ByteBuffer,
+    val children: List<ParseNode>,
+    val production: Production?,
+) {
     /**
      * The bytes of the terminal, as a view into the source rather than a copy of it. Empty for a nonterminal and for
      * the error symbol, which no input produced.
@@ -352,7 +382,7 @@ class Parser {
         return when (action and ACTION_KIND_MASK) {
             ACTION_KIND_SHIFT -> {
                 pushState(action shr ACTION_KIND_BITS)
-                nodeStack.add(ParseNode(TerminalSymbol(terminal), scanner.lexeme, emptyList()))
+                nodeStack.add(ParseNode(TerminalSymbol(terminal), scanner.lexeme, emptyList(), null))
                 scanner.next()
                 if (errorRecoveryShiftsRemaining > 0) {
                     // Getting tokens of the input shifted again is what makes the parser trust its position.
@@ -403,7 +433,9 @@ class Parser {
         val rightHandSide = nodeStack.subList(nodeStack.size - popCount, nodeStack.size)
         val children = rightHandSide.toList()
         rightHandSide.clear()
-        nodeStack.add(ParseNode(NonterminalSymbol(Nonterminal.entries[nonterminal]), EMPTY_LEXEME, children))
+        nodeStack.add(
+            ParseNode(NonterminalSymbol(Nonterminal.entries[nonterminal]), EMPTY_LEXEME, children, Production.forIdx(productionIdx)),
+        )
     }
 
     /**
@@ -438,7 +470,7 @@ class Parser {
             if (nextState != null) {
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 pushState(nextState)
-                nodeStack.add(ParseNode(TerminalSymbol(Token.ERROR_TOKEN), EMPTY_LEXEME, emptyList()))
+                nodeStack.add(ParseNode(TerminalSymbol(Token.ERROR_TOKEN), EMPTY_LEXEME, emptyList(), null))
                 return true
             }
             if (stateStackSize == 1) {

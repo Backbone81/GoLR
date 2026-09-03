@@ -10,6 +10,10 @@ generated into.
 again with another scanner. The tree is null when the parse could not be finished. Lexemes are a
 `ReadOnlyMemory<byte>` over the source rather than a copy of it.
 
+Every nonterminal node's `Production` property names the alternative it was reduced by, as one of the generated
+`Production` members (`ProductionExpression1`, ... - `@name` in the grammar overrides the auto-generated name). It is
+null on a terminal node.
+
 ## Example
 
 [examples/calculator/csharp/](../examples/calculator/csharp/) is a calculator built on this backend. Its parser was

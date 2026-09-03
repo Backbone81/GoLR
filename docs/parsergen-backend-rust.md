@@ -14,6 +14,10 @@ and can be called again with another scanner. The tree is `None` when the parse 
 `#[must_use]`, since dropping it unlooked at drops every error the parse reported. Lexemes borrow from the source, so
 the borrow checker enforces that the source outlives the tree.
 
+Every nonterminal node's `production` field names the alternative it was reduced by, as one of the generated
+`Production` variants (`ProductionExpression1`, ... - `@name` in the grammar overrides the auto-generated name). It is
+`None` on a terminal node.
+
 ## Example
 
 [examples/calculator/rust/](../examples/calculator/rust/) is a calculator built on this backend. Its parser was

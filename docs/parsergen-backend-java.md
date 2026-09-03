@@ -12,6 +12,10 @@ scanner was generated into.
 called again with another scanner. The tree is null when the parse could not be finished. Nodes, errors and symbols are
 records too, and lexemes are a `ByteBuffer` over the source rather than a copy of it.
 
+Every nonterminal node's `production` component names the alternative it was reduced by, as one of the generated
+`Production` values (`PRODUCTION_EXPRESSION1`, ... - `@name` in the grammar overrides the auto-generated name). It is
+null on a terminal node.
+
 ## Example
 
 [examples/calculator/java/](../examples/calculator/java/) is a calculator built on this backend. Its parser was

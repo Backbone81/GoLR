@@ -38,6 +38,36 @@ public static class NonterminalExtensions
     };
 }
 
+/// <summary>Every production of the grammar. Has no member for production 0 ($accept), which is never reduced.</summary>
+public enum Production
+{
+    ProductionExpression1 = 1,
+    ProductionExpression2 = 2,
+    ProductionExpression3 = 3,
+    ProductionExpression4 = 4,
+    ProductionExpression5 = 5,
+    ProductionExpression6 = 6,
+    ProductionExpression7 = 7,
+}
+
+/// <summary>Extends <see cref="Production"/> with the name it was declared with.</summary>
+public static class ProductionExtensions
+{
+    /// <summary>Returns the name of the production.</summary>
+    /// <param name="production">The production to name.</param>
+    public static string ToDisplayString(this Production production) => production switch
+    {
+        Production.ProductionExpression1 => "expression_1",
+        Production.ProductionExpression2 => "expression_2",
+        Production.ProductionExpression3 => "expression_3",
+        Production.ProductionExpression4 => "expression_4",
+        Production.ProductionExpression5 => "expression_5",
+        Production.ProductionExpression6 => "expression_6",
+        Production.ProductionExpression7 => "expression_7",
+        _ => "unknown",
+    };
+}
+
 /// <summary>
 /// A terminal or a nonterminal. The most significant bit of the low 16 is set when the symbol holds a nonterminal,
 /// which limits either index to 32767.
@@ -120,11 +150,13 @@ public sealed class ParseNode
     /// <param name="symbol">The terminal or nonterminal the node stands for.</param>
     /// <param name="lexeme">The bytes of the terminal, empty for a nonterminal.</param>
     /// <param name="children">The nodes of the right hand side of the production, empty for a terminal.</param>
-    public ParseNode(ParseSymbol symbol, ReadOnlyMemory<byte> lexeme, IReadOnlyList<ParseNode> children)
+    /// <param name="production">The production reduced to this node, null for a terminal.</param>
+    public ParseNode(ParseSymbol symbol, ReadOnlyMemory<byte> lexeme, IReadOnlyList<ParseNode> children, Production? production)
     {
         Symbol = symbol;
         Lexeme = lexeme;
         Children = children;
+        Production = production;
     }
 
     /// <summary>
@@ -143,6 +175,9 @@ public sealed class ParseNode
     /// The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal.
     /// </summary>
     public IReadOnlyList<ParseNode> Children { get; }
+
+    /// <summary>The production which was reduced to this node. Null for a terminal, which no production reduces to.</summary>
+    public Production? Production { get; }
 }
 
 /// <summary>What a parse error is about.</summary>
@@ -491,7 +526,7 @@ public sealed class Parser
             case ActionKindShift:
                 _stateStack.Add(action >> ActionKindBits);
                 _nodeStack.Add(new ParseNode(
-                    ParseSymbol.NewTerminal(terminal), scanner.Lexeme, Array.Empty<ParseNode>()));
+                    ParseSymbol.NewTerminal(terminal), scanner.Lexeme, Array.Empty<ParseNode>(), null));
                 scanner.Next();
                 if (_errorRecoveryShiftsRemaining > 0)
                 {
@@ -542,7 +577,7 @@ public sealed class Parser
         _nodeStack.CopyTo(_nodeStack.Count - popCount, children, 0, popCount);
         _nodeStack.RemoveRange(_nodeStack.Count - popCount, popCount);
         _nodeStack.Add(new ParseNode(
-            ParseSymbol.NewNonterminal((Nonterminal)nonterminal), default, children));
+            ParseSymbol.NewNonterminal((Nonterminal)nonterminal), default, children, (Production)productionIdx));
     }
 
     /// <summary>
@@ -583,7 +618,7 @@ public sealed class Parser
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 _stateStack.Add(nextState);
                 _nodeStack.Add(new ParseNode(
-                    ParseSymbol.NewTerminal(Token.ErrorToken), default, Array.Empty<ParseNode>()));
+                    ParseSymbol.NewTerminal(Token.ErrorToken), default, Array.Empty<ParseNode>(), null));
                 return true;
             }
             if (_stateStack.Count == 1)

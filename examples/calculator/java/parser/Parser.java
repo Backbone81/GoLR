@@ -36,6 +36,31 @@ public final class Parser {
         }
     }
 
+    /** Every production of the grammar. Has no entry for production 0 ($accept), which is never reduced. */
+    public enum Production {
+        PRODUCTION_EXPRESSION1("expression_1"),
+        PRODUCTION_EXPRESSION2("expression_2"),
+        PRODUCTION_EXPRESSION3("expression_3"),
+        PRODUCTION_EXPRESSION4("expression_4"),
+        PRODUCTION_EXPRESSION5("expression_5"),
+        PRODUCTION_EXPRESSION6("expression_6"),
+        PRODUCTION_EXPRESSION7("expression_7"),
+        ;
+
+        /** The name of the production. */
+        private final String displayName;
+
+        Production(String displayName) {
+            this.displayName = displayName;
+        }
+
+        /** Returns the name of the production. */
+        @Override
+        public String toString() {
+            return displayName;
+        }
+    }
+
     /** A terminal or a nonterminal. */
     public sealed interface ParseSymbol {
     }
@@ -66,8 +91,10 @@ public final class Parser {
      *     nonterminal and for the error symbol, which no input produced
      * @param children the nodes of the right hand side of the production which was reduced to this node. Empty for a
      *     terminal
+     * @param production the production which was reduced to this node. Null for a terminal, which no production
+     *     reduces to
      */
-    public record ParseNode(ParseSymbol symbol, ByteBuffer lexeme, List<ParseNode> children) {
+    public record ParseNode(ParseSymbol symbol, ByteBuffer lexeme, List<ParseNode> children, Production production) {
         /**
          * Returns the bytes of the terminal. A buffer carries the position it is read from, so every call hands out a
          * view of its own, which keeps one reader from consuming the bytes for the next.
@@ -196,6 +223,12 @@ public final class Parser {
 
     /** The nonterminals by their index, held here because values() hands out a copy on every call. */
     private static final Nonterminal[] NONTERMINALS = Nonterminal.values();
+
+    /**
+     * The productions by their index minus one, held here because values() hands out a copy on every call. Minus one
+     * because production 0 ($accept) has no entry.
+     */
+    private static final Production[] PRODUCTIONS = Production.values();
 
     /** The outcome of a step which goes on, held here because it carries nothing one step differs from another in. */
     private static final StepResult CONTINUE = new StepResult.Continue();
@@ -395,7 +428,7 @@ public final class Parser {
         return switch (action & ACTION_KIND_MASK) {
             case ACTION_KIND_SHIFT -> {
                 pushState(action >> ACTION_KIND_BITS);
-                nodeStack.add(new ParseNode(new TerminalSymbol(terminal), scanner.lexeme(), List.of()));
+                nodeStack.add(new ParseNode(new TerminalSymbol(terminal), scanner.lexeme(), List.of(), null));
                 scanner.next();
                 if (errorRecoveryShiftsRemaining > 0) {
                     // Getting tokens of the input shifted again is what makes the parser trust its position.
@@ -441,7 +474,12 @@ public final class Parser {
         List<ParseNode> rightHandSide = nodeStack.subList(nodeStack.size() - popCount, nodeStack.size());
         List<ParseNode> children = List.copyOf(rightHandSide);
         rightHandSide.clear();
-        nodeStack.add(new ParseNode(new NonterminalSymbol(NONTERMINALS[nonterminal]), EMPTY_LEXEME, children));
+        nodeStack.add(
+                new ParseNode(
+                        new NonterminalSymbol(NONTERMINALS[nonterminal]),
+                        EMPTY_LEXEME,
+                        children,
+                        PRODUCTIONS[productionIdx - 1]));
     }
 
     /**
@@ -477,7 +515,7 @@ public final class Parser {
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 pushState(nextState);
                 nodeStack.add(
-                        new ParseNode(new TerminalSymbol(Scanner.Token.ERROR_TOKEN), EMPTY_LEXEME, List.of()));
+                        new ParseNode(new TerminalSymbol(Scanner.Token.ERROR_TOKEN), EMPTY_LEXEME, List.of(), null));
                 return true;
             }
             if (stateStackSize == 1) {

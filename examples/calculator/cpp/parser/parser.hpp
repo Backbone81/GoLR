@@ -39,6 +39,38 @@ enum class Nonterminal : std::uint8_t {
     return "unknown";
 }
 
+/// Every production of the grammar. Has no enumerator for production 0 ($accept), which is never reduced.
+enum class Production : std::uint8_t {
+    ProductionExpression1 = 1,
+    ProductionExpression2 = 2,
+    ProductionExpression3 = 3,
+    ProductionExpression4 = 4,
+    ProductionExpression5 = 5,
+    ProductionExpression6 = 6,
+    ProductionExpression7 = 7,
+};
+
+/// Returns the name of the production.
+[[nodiscard]] constexpr std::string_view to_string(Production production) noexcept {
+    switch (production) {
+    case Production::ProductionExpression1:
+        return "expression_1";
+    case Production::ProductionExpression2:
+        return "expression_2";
+    case Production::ProductionExpression3:
+        return "expression_3";
+    case Production::ProductionExpression4:
+        return "expression_4";
+    case Production::ProductionExpression5:
+        return "expression_5";
+    case Production::ProductionExpression6:
+        return "expression_6";
+    case Production::ProductionExpression7:
+        return "expression_7";
+    }
+    return "unknown";
+}
+
 /// A terminal or a nonterminal. Which of the two a symbol holds is asked with std::holds_alternative, read with
 /// std::get_if or std::get, and handled for both alternatives at once with std::visit.
 using ParseSymbol = std::variant<Token, Nonterminal>;
@@ -62,6 +94,9 @@ struct ParseNode {
 
     /// The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal.
     std::vector<ParseNode> children;
+
+    /// The production which was reduced to this node. No value for a terminal, which no production reduces to.
+    std::optional<Production> production;
 };
 
 /// What a parse error is about.
@@ -314,7 +349,7 @@ private:
         switch (action & ACTION_KIND_MASK) {
         case ACTION_KIND_SHIFT:
             state_stack_.push_back(action >> ACTION_KIND_BITS);
-            node_stack_.push_back(ParseNode{terminal, scanner.lexeme(), {}});
+            node_stack_.push_back(ParseNode{terminal, scanner.lexeme(), {}, std::nullopt});
             scanner.next();
             if (error_recovery_shifts_remaining_ > 0) {
                 // Getting tokens of the input shifted again is what makes the parser trust its position.
@@ -368,6 +403,7 @@ private:
             static_cast<Nonterminal>(nonterminal),
             std::string_view(),
             std::move(children),
+            static_cast<Production>(production_idx),
         });
     }
 
@@ -402,7 +438,7 @@ private:
             if (next_state.has_value()) {
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 state_stack_.push_back(*next_state);
-                node_stack_.push_back(ParseNode{Token::ErrorToken, std::string_view(), {}});
+                node_stack_.push_back(ParseNode{Token::ErrorToken, std::string_view(), {}, std::nullopt});
                 return true;
             }
             if (state_stack_.size() == 1) {

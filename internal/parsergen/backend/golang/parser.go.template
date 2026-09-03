@@ -40,6 +40,39 @@ func (n Nonterminal) String() string {
     }
 }
 
+// Production is the data type representing all productions of the grammar. It has no entry for production 0
+// ($accept), which is never reduced.
+type Production int
+
+const (
+	// NoProduction is the Production a terminal node carries, since no production reduces to it.
+	NoProduction Production = 0
+
+    {{- range $i, $name := .Tables.ProductionNames }}
+    {{- if ne $i 0 }}
+	{{ productionName $name }} Production = {{ $i }}
+    {{- end }}
+    {{- end }}
+)
+
+// Production implements fmt.Stringer.
+var _ fmt.Stringer = (*Production)(nil)
+
+// String returns the name of the production.
+func (p Production) String() string {
+    switch p {
+    case NoProduction:
+        return "none"
+    {{- range $i, $name := .Tables.ProductionNames }}
+    {{- if ne $i 0 }}
+        case {{ productionName $name }}: return `{{ $name }}`
+    {{- end }}
+    {{- end }}
+    default:
+        return "unknown"
+    }
+}
+
 // Symbol is either a terminal or a nonterminal. The most significant bit is used to signal a
 // nonterminal. The maximum terminal or nonterminal index which can be stored is 32767.
 type Symbol uint16
@@ -97,6 +130,10 @@ type Node struct {
     // Children are the nodes of the right hand side of the production which was reduced to this node. Empty for a
     // terminal.
     Children []Node
+
+    // Production is the production which was reduced to this node. NoProduction for a terminal, which no
+    // production reduces to.
+    Production Production
 }
 
 var (
@@ -404,7 +441,8 @@ func (p *Parser) reduce(productionIdx uint32) {
     p.stateStack = append(p.stateStack, int(gotoState))
 
     newNode := Node{
-        Symbol: NewNonterminal(Nonterminal(nonterminal)),
+        Symbol:     NewNonterminal(Nonterminal(nonterminal)),
+        Production: Production(productionIdx),
     }
     if popCount != 0 {
         newNode.Children = p.allocateNodes(popCount)

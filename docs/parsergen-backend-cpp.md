@@ -14,6 +14,10 @@ scanner. It is a template over the scanner type rather than a function taking an
 members the generated scanner has will do. The tree holds `std::string_view` lexemes into the source, which therefore
 has to outlive it.
 
+Every nonterminal node's `production` field names the alternative it was reduced by, as one of the generated
+`Production` enumerators (`ProductionExpression1`, ... - `@name` in the grammar overrides the auto-generated name). It
+is `std::nullopt` on a terminal node.
+
 ## Example
 
 [examples/calculator/cpp/](../examples/calculator/cpp/) is a calculator built on this backend. Its parser was generated

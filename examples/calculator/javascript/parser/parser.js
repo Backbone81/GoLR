@@ -36,6 +36,42 @@ export function nonterminalToString(nonterminal) {
     }
 }
 
+/**
+ * Every production of the grammar. Has no entry for production 0 ($accept), which is never reduced.
+ *
+ * @readonly
+ * @enum {number}
+ */
+export const Production = Object.freeze({
+    ProductionExpression1: 1,
+    ProductionExpression2: 2,
+    ProductionExpression3: 3,
+    ProductionExpression4: 4,
+    ProductionExpression5: 5,
+    ProductionExpression6: 6,
+    ProductionExpression7: 7,
+});
+
+/**
+ * Returns the name of the production.
+ *
+ * @param {number} production
+ * @returns {string}
+ */
+export function productionToString(production) {
+    switch (production) {
+        case Production.ProductionExpression1: return "expression_1";
+        case Production.ProductionExpression2: return "expression_2";
+        case Production.ProductionExpression3: return "expression_3";
+        case Production.ProductionExpression4: return "expression_4";
+        case Production.ProductionExpression5: return "expression_5";
+        case Production.ProductionExpression6: return "expression_6";
+        case Production.ProductionExpression7: return "expression_7";
+        default:
+            return "unknown";
+    }
+}
+
 // A symbol is a terminal or a nonterminal packed into a single number. The most significant bit of the low 16 is set
 // when the symbol holds a nonterminal, which limits either index to 32767.
 
@@ -126,15 +162,20 @@ export class ParseNode {
     /** The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal. */
     children;
 
+    /** The production which was reduced to this node. Null for a terminal, which no production reduces to. */
+    production;
+
     /**
      * @param {number} symbol
      * @param {Uint8Array|null} lexeme
      * @param {ParseNode[]} children
+     * @param {number|null} production
      */
-    constructor(symbol, lexeme, children) {
+    constructor(symbol, lexeme, children, production) {
         this.symbol = symbol;
         this.lexeme = lexeme;
         this.children = children;
+        this.production = production;
     }
 }
 
@@ -487,7 +528,7 @@ export class Parser {
         switch (action & actionKindMask) {
             case actionKindShift:
                 this.#stateStack.push(action >>> actionKindBits);
-                this.#nodeStack.push(new ParseNode(ParseSymbol.newTerminal(terminal), scanner.lexeme(), []));
+                this.#nodeStack.push(new ParseNode(ParseSymbol.newTerminal(terminal), scanner.lexeme(), [], null));
                 scanner.next();
                 if (this.#errorRecoveryShiftsRemaining > 0) {
                     // Getting tokens of the input shifted again is what makes the parser trust its position.
@@ -535,7 +576,7 @@ export class Parser {
         // splice takes the right hand side off the node stack and hands it over as the children in one step. An empty
         // right hand side takes nothing and returns an empty array.
         const children = this.#nodeStack.splice(this.#nodeStack.length - popCount, popCount);
-        this.#nodeStack.push(new ParseNode(ParseSymbol.newNonterminal(nonterminal), null, children));
+        this.#nodeStack.push(new ParseNode(ParseSymbol.newNonterminal(nonterminal), null, children, productionIdx));
     }
 
     /**
@@ -573,7 +614,7 @@ export class Parser {
             if (nextState !== noErrorShiftState) {
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 this.#stateStack.push(nextState);
-                this.#nodeStack.push(new ParseNode(ParseSymbol.newTerminal(Token.ErrorToken), null, []));
+                this.#nodeStack.push(new ParseNode(ParseSymbol.newTerminal(Token.ErrorToken), null, [], null));
                 return true;
             }
             if (this.#stateStack.length === 1) {

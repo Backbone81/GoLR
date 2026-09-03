@@ -148,6 +148,385 @@ func (n Nonterminal) String() string {
 	}
 }
 
+// Production is the data type representing all productions of the grammar. It has no entry for production 0
+// ($accept), which is never reduced.
+type Production int
+
+const (
+	// NoProduction is the Production a terminal node carries, since no production reduces to it.
+	NoProduction                         Production = 0
+	ProductionInput1                     Production = 1
+	ProductionPrologueDeclarations1      Production = 2
+	ProductionPrologueDeclarations2      Production = 3
+	ProductionPrologueDeclaration1       Production = 4
+	ProductionPrologueDeclaration2       Production = 5
+	ProductionPrologueDeclaration3       Production = 6
+	ProductionPrologueDeclaration4       Production = 7
+	ProductionPrologueDeclaration5       Production = 8
+	ProductionPrologueDeclaration6       Production = 9
+	ProductionPrologueDeclaration7       Production = 10
+	ProductionPrologueDeclaration8       Production = 11
+	ProductionPrologueDeclaration9       Production = 12
+	ProductionPrologueDeclaration10      Production = 13
+	ProductionPrologueDeclaration11      Production = 14
+	ProductionPrologueDeclaration12      Production = 15
+	ProductionPrologueDeclaration13      Production = 16
+	ProductionPrologueDeclaration14      Production = 17
+	ProductionPrologueDeclaration15      Production = 18
+	ProductionPrologueDeclaration16      Production = 19
+	ProductionPrologueDeclaration17      Production = 20
+	ProductionPrologueDeclaration18      Production = 21
+	ProductionPrologueDeclaration19      Production = 22
+	ProductionPrologueDeclaration20      Production = 23
+	ProductionPrologueDeclaration21      Production = 24
+	ProductionPrologueDeclaration22      Production = 25
+	ProductionPrologueDeclaration23      Production = 26
+	ProductionPrologueDeclaration24      Production = 27
+	ProductionPrologueDeclaration25      Production = 28
+	ProductionParams1                    Production = 29
+	ProductionParams2                    Production = 30
+	ProductionGrammarDeclaration1        Production = 31
+	ProductionGrammarDeclaration2        Production = 32
+	ProductionGrammarDeclaration3        Production = 33
+	ProductionGrammarDeclaration4        Production = 34
+	ProductionGrammarDeclaration5        Production = 35
+	ProductionGrammarDeclaration6        Production = 36
+	ProductionGrammarDeclaration7        Production = 37
+	ProductionCodePropsType1             Production = 38
+	ProductionCodePropsType2             Production = 39
+	ProductionUnionName1                 Production = 40
+	ProductionUnionName2                 Production = 41
+	ProductionGrammarDeclaration8        Production = 42
+	ProductionSymbolDeclaration1         Production = 43
+	ProductionSymbolDeclaration2         Production = 44
+	ProductionSymbolDeclaration3         Production = 45
+	ProductionSymbolDeclaration4         Production = 46
+	ProductionPrecedenceDeclarator1      Production = 47
+	ProductionPrecedenceDeclarator2      Production = 48
+	ProductionPrecedenceDeclarator3      Production = 49
+	ProductionPrecedenceDeclarator4      Production = 50
+	ProductionString_opt1                Production = 51
+	ProductionString_opt2                Production = 52
+	ProductionTag_opt1                   Production = 53
+	ProductionTag_opt2                   Production = 54
+	ProductionGenericSymlist1            Production = 55
+	ProductionGenericSymlist2            Production = 56
+	ProductionGenericSymlistItem1        Production = 57
+	ProductionGenericSymlistItem2        Production = 58
+	ProductionTag1                       Production = 59
+	ProductionTag2                       Production = 60
+	ProductionTag3                       Production = 61
+	ProductionNtermDecls1                Production = 62
+	ProductionTokenDecls1                Production = 63
+	ProductionTokenDecls2                Production = 64
+	ProductionTokenDecls3                Production = 65
+	ProductionTokenDecl_11               Production = 66
+	ProductionTokenDecl_12               Production = 67
+	ProductionTokenDecl1                 Production = 68
+	ProductionInt_opt1                   Production = 69
+	ProductionInt_opt2                   Production = 70
+	ProductionAlias1                     Production = 71
+	ProductionAlias2                     Production = 72
+	ProductionAlias3                     Production = 73
+	ProductionTokenDeclsForPrec1         Production = 74
+	ProductionTokenDeclsForPrec2         Production = 75
+	ProductionTokenDeclsForPrec3         Production = 76
+	ProductionTokenDeclForPrec_11        Production = 77
+	ProductionTokenDeclForPrec_12        Production = 78
+	ProductionTokenDeclForPrec1          Production = 79
+	ProductionTokenDeclForPrec2          Production = 80
+	ProductionSymbolDecls1               Production = 81
+	ProductionSymbolDecls2               Production = 82
+	ProductionSymbolDecls3               Production = 83
+	ProductionSymbols_11                 Production = 84
+	ProductionSymbols_12                 Production = 85
+	ProductionGrammar1                   Production = 86
+	ProductionGrammar2                   Production = 87
+	ProductionRulesOrGrammarDeclaration1 Production = 88
+	ProductionRulesOrGrammarDeclaration2 Production = 89
+	ProductionRulesOrGrammarDeclaration3 Production = 90
+	ProductionRules1                     Production = 91
+	ProductionRhses_11                   Production = 92
+	ProductionRhses_12                   Production = 93
+	ProductionRhses_13                   Production = 94
+	ProductionRhs1                       Production = 95
+	ProductionRhs2                       Production = 96
+	ProductionRhs3                       Production = 97
+	ProductionRhs4                       Production = 98
+	ProductionRhs5                       Production = 99
+	ProductionRhs6                       Production = 100
+	ProductionRhs7                       Production = 101
+	ProductionRhs8                       Production = 102
+	ProductionRhs9                       Production = 103
+	ProductionRhs10                      Production = 104
+	ProductionNamedRef_opt1              Production = 105
+	ProductionNamedRef_opt2              Production = 106
+	ProductionVariable1                  Production = 107
+	ProductionValue1                     Production = 108
+	ProductionValue2                     Production = 109
+	ProductionValue3                     Production = 110
+	ProductionValue4                     Production = 111
+	ProductionId1                        Production = 112
+	ProductionId2                        Production = 113
+	ProductionIdColon1                   Production = 114
+	ProductionSymbol1                    Production = 115
+	ProductionSymbol2                    Production = 116
+	ProductionStringAsId1                Production = 117
+	ProductionEpilogue_opt1              Production = 118
+	ProductionEpilogue_opt2              Production = 119
+)
+
+// Production implements fmt.Stringer.
+var _ fmt.Stringer = (*Production)(nil)
+
+// String returns the name of the production.
+func (p Production) String() string {
+	switch p {
+	case NoProduction:
+		return "none"
+	case ProductionInput1:
+		return `input_1`
+	case ProductionPrologueDeclarations1:
+		return `prologue_declarations_1`
+	case ProductionPrologueDeclarations2:
+		return `prologue_declarations_2`
+	case ProductionPrologueDeclaration1:
+		return `prologue_declaration_1`
+	case ProductionPrologueDeclaration2:
+		return `prologue_declaration_2`
+	case ProductionPrologueDeclaration3:
+		return `prologue_declaration_3`
+	case ProductionPrologueDeclaration4:
+		return `prologue_declaration_4`
+	case ProductionPrologueDeclaration5:
+		return `prologue_declaration_5`
+	case ProductionPrologueDeclaration6:
+		return `prologue_declaration_6`
+	case ProductionPrologueDeclaration7:
+		return `prologue_declaration_7`
+	case ProductionPrologueDeclaration8:
+		return `prologue_declaration_8`
+	case ProductionPrologueDeclaration9:
+		return `prologue_declaration_9`
+	case ProductionPrologueDeclaration10:
+		return `prologue_declaration_10`
+	case ProductionPrologueDeclaration11:
+		return `prologue_declaration_11`
+	case ProductionPrologueDeclaration12:
+		return `prologue_declaration_12`
+	case ProductionPrologueDeclaration13:
+		return `prologue_declaration_13`
+	case ProductionPrologueDeclaration14:
+		return `prologue_declaration_14`
+	case ProductionPrologueDeclaration15:
+		return `prologue_declaration_15`
+	case ProductionPrologueDeclaration16:
+		return `prologue_declaration_16`
+	case ProductionPrologueDeclaration17:
+		return `prologue_declaration_17`
+	case ProductionPrologueDeclaration18:
+		return `prologue_declaration_18`
+	case ProductionPrologueDeclaration19:
+		return `prologue_declaration_19`
+	case ProductionPrologueDeclaration20:
+		return `prologue_declaration_20`
+	case ProductionPrologueDeclaration21:
+		return `prologue_declaration_21`
+	case ProductionPrologueDeclaration22:
+		return `prologue_declaration_22`
+	case ProductionPrologueDeclaration23:
+		return `prologue_declaration_23`
+	case ProductionPrologueDeclaration24:
+		return `prologue_declaration_24`
+	case ProductionPrologueDeclaration25:
+		return `prologue_declaration_25`
+	case ProductionParams1:
+		return `params_1`
+	case ProductionParams2:
+		return `params_2`
+	case ProductionGrammarDeclaration1:
+		return `grammar_declaration_1`
+	case ProductionGrammarDeclaration2:
+		return `grammar_declaration_2`
+	case ProductionGrammarDeclaration3:
+		return `grammar_declaration_3`
+	case ProductionGrammarDeclaration4:
+		return `grammar_declaration_4`
+	case ProductionGrammarDeclaration5:
+		return `grammar_declaration_5`
+	case ProductionGrammarDeclaration6:
+		return `grammar_declaration_6`
+	case ProductionGrammarDeclaration7:
+		return `grammar_declaration_7`
+	case ProductionCodePropsType1:
+		return `code_props_type_1`
+	case ProductionCodePropsType2:
+		return `code_props_type_2`
+	case ProductionUnionName1:
+		return `union_name_1`
+	case ProductionUnionName2:
+		return `union_name_2`
+	case ProductionGrammarDeclaration8:
+		return `grammar_declaration_8`
+	case ProductionSymbolDeclaration1:
+		return `symbol_declaration_1`
+	case ProductionSymbolDeclaration2:
+		return `symbol_declaration_2`
+	case ProductionSymbolDeclaration3:
+		return `symbol_declaration_3`
+	case ProductionSymbolDeclaration4:
+		return `symbol_declaration_4`
+	case ProductionPrecedenceDeclarator1:
+		return `precedence_declarator_1`
+	case ProductionPrecedenceDeclarator2:
+		return `precedence_declarator_2`
+	case ProductionPrecedenceDeclarator3:
+		return `precedence_declarator_3`
+	case ProductionPrecedenceDeclarator4:
+		return `precedence_declarator_4`
+	case ProductionString_opt1:
+		return `string.opt_1`
+	case ProductionString_opt2:
+		return `string.opt_2`
+	case ProductionTag_opt1:
+		return `tag.opt_1`
+	case ProductionTag_opt2:
+		return `tag.opt_2`
+	case ProductionGenericSymlist1:
+		return `generic_symlist_1`
+	case ProductionGenericSymlist2:
+		return `generic_symlist_2`
+	case ProductionGenericSymlistItem1:
+		return `generic_symlist_item_1`
+	case ProductionGenericSymlistItem2:
+		return `generic_symlist_item_2`
+	case ProductionTag1:
+		return `tag_1`
+	case ProductionTag2:
+		return `tag_2`
+	case ProductionTag3:
+		return `tag_3`
+	case ProductionNtermDecls1:
+		return `nterm_decls_1`
+	case ProductionTokenDecls1:
+		return `token_decls_1`
+	case ProductionTokenDecls2:
+		return `token_decls_2`
+	case ProductionTokenDecls3:
+		return `token_decls_3`
+	case ProductionTokenDecl_11:
+		return `token_decl.1_1`
+	case ProductionTokenDecl_12:
+		return `token_decl.1_2`
+	case ProductionTokenDecl1:
+		return `token_decl_1`
+	case ProductionInt_opt1:
+		return `int.opt_1`
+	case ProductionInt_opt2:
+		return `int.opt_2`
+	case ProductionAlias1:
+		return `alias_1`
+	case ProductionAlias2:
+		return `alias_2`
+	case ProductionAlias3:
+		return `alias_3`
+	case ProductionTokenDeclsForPrec1:
+		return `token_decls_for_prec_1`
+	case ProductionTokenDeclsForPrec2:
+		return `token_decls_for_prec_2`
+	case ProductionTokenDeclsForPrec3:
+		return `token_decls_for_prec_3`
+	case ProductionTokenDeclForPrec_11:
+		return `token_decl_for_prec.1_1`
+	case ProductionTokenDeclForPrec_12:
+		return `token_decl_for_prec.1_2`
+	case ProductionTokenDeclForPrec1:
+		return `token_decl_for_prec_1`
+	case ProductionTokenDeclForPrec2:
+		return `token_decl_for_prec_2`
+	case ProductionSymbolDecls1:
+		return `symbol_decls_1`
+	case ProductionSymbolDecls2:
+		return `symbol_decls_2`
+	case ProductionSymbolDecls3:
+		return `symbol_decls_3`
+	case ProductionSymbols_11:
+		return `symbols.1_1`
+	case ProductionSymbols_12:
+		return `symbols.1_2`
+	case ProductionGrammar1:
+		return `grammar_1`
+	case ProductionGrammar2:
+		return `grammar_2`
+	case ProductionRulesOrGrammarDeclaration1:
+		return `rules_or_grammar_declaration_1`
+	case ProductionRulesOrGrammarDeclaration2:
+		return `rules_or_grammar_declaration_2`
+	case ProductionRulesOrGrammarDeclaration3:
+		return `rules_or_grammar_declaration_3`
+	case ProductionRules1:
+		return `rules_1`
+	case ProductionRhses_11:
+		return `rhses.1_1`
+	case ProductionRhses_12:
+		return `rhses.1_2`
+	case ProductionRhses_13:
+		return `rhses.1_3`
+	case ProductionRhs1:
+		return `rhs_1`
+	case ProductionRhs2:
+		return `rhs_2`
+	case ProductionRhs3:
+		return `rhs_3`
+	case ProductionRhs4:
+		return `rhs_4`
+	case ProductionRhs5:
+		return `rhs_5`
+	case ProductionRhs6:
+		return `rhs_6`
+	case ProductionRhs7:
+		return `rhs_7`
+	case ProductionRhs8:
+		return `rhs_8`
+	case ProductionRhs9:
+		return `rhs_9`
+	case ProductionRhs10:
+		return `rhs_10`
+	case ProductionNamedRef_opt1:
+		return `named_ref.opt_1`
+	case ProductionNamedRef_opt2:
+		return `named_ref.opt_2`
+	case ProductionVariable1:
+		return `variable_1`
+	case ProductionValue1:
+		return `value_1`
+	case ProductionValue2:
+		return `value_2`
+	case ProductionValue3:
+		return `value_3`
+	case ProductionValue4:
+		return `value_4`
+	case ProductionId1:
+		return `id_1`
+	case ProductionId2:
+		return `id_2`
+	case ProductionIdColon1:
+		return `id_colon_1`
+	case ProductionSymbol1:
+		return `symbol_1`
+	case ProductionSymbol2:
+		return `symbol_2`
+	case ProductionStringAsId1:
+		return `string_as_id_1`
+	case ProductionEpilogue_opt1:
+		return `epilogue.opt_1`
+	case ProductionEpilogue_opt2:
+		return `epilogue.opt_2`
+	default:
+		return "unknown"
+	}
+}
+
 // Symbol is either a terminal or a nonterminal. The most significant bit is used to signal a
 // nonterminal. The maximum terminal or nonterminal index which can be stored is 32767.
 type Symbol uint16
@@ -205,6 +584,10 @@ type Node struct {
 	// Children are the nodes of the right hand side of the production which was reduced to this node. Empty for a
 	// terminal.
 	Children []Node
+
+	// Production is the production which was reduced to this node. NoProduction for a terminal, which no
+	// production reduces to.
+	Production Production
 }
 
 var (
@@ -663,7 +1046,8 @@ func (p *Parser) reduce(productionIdx uint32) {
 	p.stateStack = append(p.stateStack, int(gotoState))
 
 	newNode := Node{
-		Symbol: NewNonterminal(Nonterminal(nonterminal)),
+		Symbol:     NewNonterminal(Nonterminal(nonterminal)),
+		Production: Production(productionIdx),
 	}
 	if popCount != 0 {
 		newNode.Children = p.allocateNodes(popCount)

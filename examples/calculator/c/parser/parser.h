@@ -35,6 +35,22 @@ typedef enum CalculatorNonterminal {
 /// Returns the name of the nonterminal, as the grammar spells it.
 const char *calculator_nonterminal_to_string(CalculatorNonterminal nonterminal);
 
+/// Every production of the grammar. Has no enumerator for production 0 ($accept), which is never reduced.
+typedef enum CalculatorProduction {
+    /// The production a terminal node carries, since no production reduces to it.
+    CALCULATOR_NO_PRODUCTION = 0,
+    CALCULATOR_PRODUCTION_EXPRESSION1 = 1,
+    CALCULATOR_PRODUCTION_EXPRESSION2 = 2,
+    CALCULATOR_PRODUCTION_EXPRESSION3 = 3,
+    CALCULATOR_PRODUCTION_EXPRESSION4 = 4,
+    CALCULATOR_PRODUCTION_EXPRESSION5 = 5,
+    CALCULATOR_PRODUCTION_EXPRESSION6 = 6,
+    CALCULATOR_PRODUCTION_EXPRESSION7 = 7,
+} CalculatorProduction;
+
+/// Returns the name of the production.
+const char *calculator_production_to_string(CalculatorProduction production);
+
 /// Whether a symbol of the parse tree is a terminal or a nonterminal.
 typedef enum CalculatorSymbolKind {
     /// The symbol is a token the scanner delivered.
@@ -86,6 +102,10 @@ struct CalculatorParseNode {
 
     /// The number of children. Zero for a terminal.
     size_t child_count;
+
+    /// The production which was reduced to this node. CALCULATOR_NO_PRODUCTION for a terminal, which no
+    /// production reduces to.
+    CalculatorProduction production;
 };
 
 /// How many bytes a parse error keeps its reason in, the terminating zero included. A reason which does not fit is cut
@@ -326,6 +346,28 @@ const char *calculator_nonterminal_to_string(CalculatorNonterminal nonterminal) 
         return "$accept";
     case CALCULATOR_NONTERMINAL_EXPRESSION:
         return "expression";
+    }
+    return "unknown";
+}
+
+const char *calculator_production_to_string(CalculatorProduction production) {
+    switch (production) {
+    case CALCULATOR_NO_PRODUCTION:
+        return "none";
+    case CALCULATOR_PRODUCTION_EXPRESSION1:
+        return "expression_1";
+    case CALCULATOR_PRODUCTION_EXPRESSION2:
+        return "expression_2";
+    case CALCULATOR_PRODUCTION_EXPRESSION3:
+        return "expression_3";
+    case CALCULATOR_PRODUCTION_EXPRESSION4:
+        return "expression_4";
+    case CALCULATOR_PRODUCTION_EXPRESSION5:
+        return "expression_5";
+    case CALCULATOR_PRODUCTION_EXPRESSION6:
+        return "expression_6";
+    case CALCULATOR_PRODUCTION_EXPRESSION7:
+        return "expression_7";
     }
     return "unknown";
 }
@@ -638,6 +680,7 @@ static bool calculator_parser_reduce(CalculatorParser *parser, size_t production
     node.lexeme.length = 0;
     node.children = children;
     node.child_count = pop_count;
+    node.production = (CalculatorProduction)production_idx;
     return calculator_parser_push_node(parser, &node);
 }
 
@@ -683,6 +726,7 @@ static CalculatorStepResult calculator_parser_step(CalculatorParser *parser, con
         node.lexeme = scanner->lexeme(scanner->context);
         node.children = NULL;
         node.child_count = 0;
+        node.production = CALCULATOR_NO_PRODUCTION;
         if (!calculator_parser_push_node(parser, &node)) {
             return CALCULATOR_STEP_FAILED;
         }
@@ -751,6 +795,7 @@ static bool calculator_parser_recover_from_error(CalculatorParser *parser, const
             node.lexeme.length = 0;
             node.children = NULL;
             node.child_count = 0;
+            node.production = CALCULATOR_NO_PRODUCTION;
             return calculator_parser_push_node(parser, &node);
         }
         if (parser->state_count == 1) {

@@ -23,6 +23,7 @@ var parserTemplate string
 var parsedTemplate = template.Must(template.New("parser.hpp.template").Funcs(template.FuncMap{
 	"nonterminalName":     nonterminalName,
 	"isAcceptNonterminal": isAcceptNonterminal,
+	"productionName":      productionName,
 }).Parse(parserTemplate))
 
 // DefaultScannerInclude is the header the generated parser includes the token type from when the caller names none. It
@@ -142,4 +143,9 @@ func nonterminalName(symbol frontend.Symbol) string {
 // rather than the grammar. It is the one nonterminal the generated parser documents.
 func isAcceptNonterminal(symbol frontend.Symbol) bool {
 	return symbol.Name == "$accept"
+}
+
+// productionName returns the name of the enumerator which stands for the production of the given name.
+func productionName(name string) string {
+	return "Production" + utils.GoIdentifier(name)
 }

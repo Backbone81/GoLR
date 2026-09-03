@@ -457,6 +457,1444 @@ func (n Nonterminal) String() string {
 	}
 }
 
+// Production is the data type representing all productions of the grammar. It has no entry for production 0
+// ($accept), which is never reduced.
+type Production int
+
+const (
+	// NoProduction is the Production a terminal node carries, since no production reduces to it.
+	NoProduction                              Production = 0
+	ProductionSourcefile1                     Production = 1
+	ProductionSourcefile2                     Production = 2
+	ProductionSourcefile3                     Production = 3
+	ProductionSourcefile4                     Production = 4
+	ProductionSourcefile5                     Production = 5
+	ProductionSourcefile6                     Production = 6
+	ProductionSourcefile7                     Production = 7
+	ProductionSourcefile8                     Production = 8
+	ProductionZeroormoreimportdeclsemicolon1  Production = 9
+	ProductionZeroormoreimportdeclsemicolon2  Production = 10
+	ProductionOneormoretopleveldeclsemicolon1 Production = 11
+	ProductionOneormoretopleveldeclsemicolon2 Production = 12
+	ProductionPackageclause1                  Production = 13
+	ProductionImportdecl1                     Production = 14
+	ProductionImportdecl2                     Production = 15
+	ProductionImportspec1                     Production = 16
+	ProductionImportspec2                     Production = 17
+	ProductionImportspec3                     Production = 18
+	ProductionZeroormoreimportspecsemicolon1  Production = 19
+	ProductionZeroormoreimportspecsemicolon2  Production = 20
+	ProductionIdentifierlist1                 Production = 21
+	ProductionIdentifierlist2                 Production = 22
+	ProductionOperand1                        Production = 23
+	ProductionOperand2                        Production = 24
+	ProductionOperand3                        Production = 25
+	ProductionLiteral1                        Production = 26
+	ProductionLiteral2                        Production = 27
+	ProductionLiteral3                        Production = 28
+	ProductionBasiclit1                       Production = 29
+	ProductionBasiclit2                       Production = 30
+	ProductionBasiclit3                       Production = 31
+	ProductionBasiclit4                       Production = 32
+	ProductionBasiclit5                       Production = 33
+	ProductionOperandname1                    Production = 34
+	ProductionQualifiedident1                 Production = 35
+	ProductionCompositelit1                   Production = 36
+	ProductionCompositelit2                   Production = 37
+	ProductionLiteraltype1                    Production = 38
+	ProductionLiteraltype2                    Production = 39
+	ProductionLiteraltype3                    Production = 40
+	ProductionLiteraltype4                    Production = 41
+	ProductionLiteraltype5                    Production = 42
+	ProductionLiteralvalue1                   Production = 43
+	ProductionLiteralvalue2                   Production = 44
+	ProductionLiteralvalue3                   Production = 45
+	ProductionElementlist1                    Production = 46
+	ProductionElementlist2                    Production = 47
+	ProductionKeyedelement1                   Production = 48
+	ProductionKeyedelement2                   Production = 49
+	ProductionKey1                            Production = 50
+	ProductionKey2                            Production = 51
+	ProductionElement1                        Production = 52
+	ProductionElement2                        Production = 53
+	ProductionFunctionlit1                    Production = 54
+	ProductionPrimaryexpr1                    Production = 55
+	ProductionPrimaryexpr2                    Production = 56
+	ProductionPrimaryexpr3                    Production = 57
+	ProductionPrimaryexpr4                    Production = 58
+	ProductionPrimaryexpr5                    Production = 59
+	ProductionPrimaryexpr6                    Production = 60
+	ProductionPrimaryexpr7                    Production = 61
+	ProductionSelector1                       Production = 62
+	ProductionIndex1                          Production = 63
+	ProductionIndex2                          Production = 64
+	ProductionIndexelemlist1                  Production = 65
+	ProductionIndexelemlist2                  Production = 66
+	ProductionIndexelem1                      Production = 67
+	ProductionIndexelem2                      Production = 68
+	ProductionSlice1                          Production = 69
+	ProductionSlice2                          Production = 70
+	ProductionSlice3                          Production = 71
+	ProductionSlice4                          Production = 72
+	ProductionSlice5                          Production = 73
+	ProductionSlice6                          Production = 74
+	ProductionTypeassertion1                  Production = 75
+	ProductionArguments1                      Production = 76
+	ProductionArguments2                      Production = 77
+	ProductionArguments3                      Production = 78
+	ProductionArguments4                      Production = 79
+	ProductionArguments5                      Production = 80
+	ProductionArguments6                      Production = 81
+	ProductionArguments7                      Production = 82
+	ProductionArguments8                      Production = 83
+	ProductionArguments9                      Production = 84
+	ProductionArguments10                     Production = 85
+	ProductionArguments11                     Production = 86
+	ProductionArguments12                     Production = 87
+	ProductionArguments13                     Production = 88
+	ProductionArgumenttype1                   Production = 89
+	ProductionArgumenttype2                   Production = 90
+	ProductionArgumenttype3                   Production = 91
+	ProductionArgumenttype4                   Production = 92
+	ProductionArgumenttype5                   Production = 93
+	ProductionArgumenttype6                   Production = 94
+	ProductionArgumenttype7                   Production = 95
+	ProductionArgumenttype8                   Production = 96
+	ProductionExpressionlist1                 Production = 97
+	ProductionExpressionlist2                 Production = 98
+	ProductionExpression1                     Production = 99
+	ProductionExpression2                     Production = 100
+	ProductionExpression3                     Production = 101
+	ProductionExpression4                     Production = 102
+	ProductionExpression5                     Production = 103
+	ProductionExpression6                     Production = 104
+	ProductionExpression7                     Production = 105
+	ProductionExpression8                     Production = 106
+	ProductionExpression9                     Production = 107
+	ProductionExpression10                    Production = 108
+	ProductionExpression11                    Production = 109
+	ProductionExpression12                    Production = 110
+	ProductionExpression13                    Production = 111
+	ProductionExpression14                    Production = 112
+	ProductionExpression15                    Production = 113
+	ProductionExpression16                    Production = 114
+	ProductionExpression17                    Production = 115
+	ProductionExpression18                    Production = 116
+	ProductionExpression19                    Production = 117
+	ProductionExpression20                    Production = 118
+	ProductionUnaryexpr1                      Production = 119
+	ProductionUnaryexpr2                      Production = 120
+	ProductionUnaryexpr3                      Production = 121
+	ProductionUnaryexpr4                      Production = 122
+	ProductionUnaryexpr5                      Production = 123
+	ProductionUnaryexpr6                      Production = 124
+	ProductionUnaryexpr7                      Production = 125
+	ProductionUnaryexpr8                      Production = 126
+	ProductionConversion1                     Production = 127
+	ProductionConversion2                     Production = 128
+	ProductionConversion3                     Production = 129
+	ProductionConversion4                     Production = 130
+	ProductionConversion5                     Production = 131
+	ProductionConversion6                     Production = 132
+	ProductionConversion7                     Production = 133
+	ProductionConversion8                     Production = 134
+	ProductionConversion9                     Production = 135
+	ProductionConversion10                    Production = 136
+	ProductionConversion11                    Production = 137
+	ProductionConversion12                    Production = 138
+	ProductionConversion13                    Production = 139
+	ProductionConversion14                    Production = 140
+	ProductionConversion15                    Production = 141
+	ProductionConversion16                    Production = 142
+	ProductionConversiontype1                 Production = 143
+	ProductionConversiontype2                 Production = 144
+	ProductionConversiontype3                 Production = 145
+	ProductionConversiontype4                 Production = 146
+	ProductionConversiontype5                 Production = 147
+	ProductionConversiontype6                 Production = 148
+	ProductionConversiontype7                 Production = 149
+	ProductionConversiontype8                 Production = 150
+	ProductionConversiontype9                 Production = 151
+	ProductionType1                           Production = 152
+	ProductionType2                           Production = 153
+	ProductionType3                           Production = 154
+	ProductionType4                           Production = 155
+	ProductionTypenochanreceive1              Production = 156
+	ProductionTypenochanreceive2              Production = 157
+	ProductionTypenochanreceive3              Production = 158
+	ProductionTypenochanreceive4              Production = 159
+	ProductionTypename1                       Production = 160
+	ProductionTypename2                       Production = 161
+	ProductionTypeargs1                       Production = 162
+	ProductionTypelist1                       Production = 163
+	ProductionTypelist2                       Production = 164
+	ProductionTypelist3                       Production = 165
+	ProductionTypelit1                        Production = 166
+	ProductionTypelit2                        Production = 167
+	ProductionTypelit3                        Production = 168
+	ProductionTypelit4                        Production = 169
+	ProductionTypelit5                        Production = 170
+	ProductionTypelit6                        Production = 171
+	ProductionTypelit7                        Production = 172
+	ProductionTypelit8                        Production = 173
+	ProductionTypelitnochanreceive1           Production = 174
+	ProductionTypelitnochanreceive2           Production = 175
+	ProductionTypelitnochanreceive3           Production = 176
+	ProductionTypelitnochanreceive4           Production = 177
+	ProductionTypelitnochanreceive5           Production = 178
+	ProductionTypelitnochanreceive6           Production = 179
+	ProductionTypelitnochanreceive7           Production = 180
+	ProductionTypelitnochanreceive8           Production = 181
+	ProductionArraytype1                      Production = 182
+	ProductionSlicetype1                      Production = 183
+	ProductionStructtype1                     Production = 184
+	ProductionFielddecl1                      Production = 185
+	ProductionFielddecl2                      Production = 186
+	ProductionFielddecl3                      Production = 187
+	ProductionFielddecl4                      Production = 188
+	ProductionFielddecl5                      Production = 189
+	ProductionFielddecl6                      Production = 190
+	ProductionOpttag1                         Production = 191
+	ProductionOpttag2                         Production = 192
+	ProductionOpttypeargs1                    Production = 193
+	ProductionOpttypeargs2                    Production = 194
+	ProductionBracketfield1                   Production = 195
+	ProductionBracketfield2                   Production = 196
+	ProductionBracketfield3                   Production = 197
+	ProductionBracketlist1                    Production = 198
+	ProductionBracketlist2                    Production = 199
+	ProductionBracketelem1                    Production = 200
+	ProductionBracketelem2                    Production = 201
+	ProductionBracketelem3                    Production = 202
+	ProductionBracketelem4                    Production = 203
+	ProductionBracketelem5                    Production = 204
+	ProductionBracketelem6                    Production = 205
+	ProductionBracketelem7                    Production = 206
+	ProductionBracketelem8                    Production = 207
+	ProductionTypenoleadingbracket1           Production = 208
+	ProductionTypenoleadingbracket2           Production = 209
+	ProductionTypenoleadingbracket3           Production = 210
+	ProductionTypenoleadingbracket4           Production = 211
+	ProductionTypenoleadingbracket5           Production = 212
+	ProductionTypenoleadingbracket6           Production = 213
+	ProductionTypenoleadingbracket7           Production = 214
+	ProductionTypenoleadingbracket8           Production = 215
+	ProductionTypenoleadingbracket9           Production = 216
+	ProductionZeroormorefielddecl1            Production = 217
+	ProductionZeroormorefielddecl2            Production = 218
+	ProductionZeroormorefielddeclsemicolon1   Production = 219
+	ProductionZeroormorefielddeclsemicolon2   Production = 220
+	ProductionPointertype1                    Production = 221
+	ProductionFunctiontype1                   Production = 222
+	ProductionSignature1                      Production = 223
+	ProductionSignature2                      Production = 224
+	ProductionResult1                         Production = 225
+	ProductionResult2                         Production = 226
+	ProductionTypenoparen1                    Production = 227
+	ProductionTypenoparen2                    Production = 228
+	ProductionTypenoparen3                    Production = 229
+	ProductionParameters1                     Production = 230
+	ProductionParameters2                     Production = 231
+	ProductionParameters3                     Production = 232
+	ProductionParameterlist1                  Production = 233
+	ProductionParameterlist2                  Production = 234
+	ProductionParameterdecl1                  Production = 235
+	ProductionParameterdecl2                  Production = 236
+	ProductionParameterdecl3                  Production = 237
+	ProductionParameterdecl4                  Production = 238
+	ProductionParameterdecl5                  Production = 239
+	ProductionParameterdecl6                  Production = 240
+	ProductionParameterdecl7                  Production = 241
+	ProductionParameterdecl8                  Production = 242
+	ProductionInterfacetype1                  Production = 243
+	ProductionInterfacetype2                  Production = 244
+	ProductionInterfaceelem1                  Production = 245
+	ProductionInterfaceelem2                  Production = 246
+	ProductionMethodelem1                     Production = 247
+	ProductionTypeelem1                       Production = 248
+	ProductionTypeelem2                       Production = 249
+	ProductionTypeterm1                       Production = 250
+	ProductionTypeterm2                       Production = 251
+	ProductionUnderlyingtype1                 Production = 252
+	ProductionOneormoreinterfaceelem1         Production = 253
+	ProductionOneormoreinterfaceelem2         Production = 254
+	ProductionOneormoreinterfaceelem3         Production = 255
+	ProductionMaptype1                        Production = 256
+	ProductionChanneltype1                    Production = 257
+	ProductionChanneltype2                    Production = 258
+	ProductionChanneltype3                    Production = 259
+	ProductionChanneltypenochanreceive1       Production = 260
+	ProductionChanneltypenochanreceive2       Production = 261
+	ProductionBlock1                          Production = 262
+	ProductionStatementlist1                  Production = 263
+	ProductionStatementlist2                  Production = 264
+	ProductionStatement1                      Production = 265
+	ProductionStatement2                      Production = 266
+	ProductionStatement3                      Production = 267
+	ProductionStatement4                      Production = 268
+	ProductionStatement5                      Production = 269
+	ProductionStatement6                      Production = 270
+	ProductionStatement7                      Production = 271
+	ProductionStatement8                      Production = 272
+	ProductionStatement9                      Production = 273
+	ProductionStatement10                     Production = 274
+	ProductionStatement11                     Production = 275
+	ProductionStatement12                     Production = 276
+	ProductionStatement13                     Production = 277
+	ProductionStatement14                     Production = 278
+	ProductionStatement15                     Production = 279
+	ProductionSimplestmt1                     Production = 280
+	ProductionSimplestmt2                     Production = 281
+	ProductionSimplestmt3                     Production = 282
+	ProductionSimplestmt4                     Production = 283
+	ProductionSimplestmt5                     Production = 284
+	ProductionSimplestmt6                     Production = 285
+	ProductionLabeledstmt1                    Production = 286
+	ProductionSendstmt1                       Production = 287
+	ProductionIncdecstmt1                     Production = 288
+	ProductionIncdecstmt2                     Production = 289
+	ProductionAssignment1                     Production = 290
+	ProductionAssignment2                     Production = 291
+	ProductionAssignment3                     Production = 292
+	ProductionAssignment4                     Production = 293
+	ProductionAssignment5                     Production = 294
+	ProductionAssignment6                     Production = 295
+	ProductionAssignment7                     Production = 296
+	ProductionAssignment8                     Production = 297
+	ProductionAssignment9                     Production = 298
+	ProductionAssignment10                    Production = 299
+	ProductionAssignment11                    Production = 300
+	ProductionAssignment12                    Production = 301
+	ProductionExpressionnobrace1              Production = 302
+	ProductionExpressionnobrace2              Production = 303
+	ProductionExpressionnobrace3              Production = 304
+	ProductionExpressionnobrace4              Production = 305
+	ProductionExpressionnobrace5              Production = 306
+	ProductionExpressionnobrace6              Production = 307
+	ProductionExpressionnobrace7              Production = 308
+	ProductionExpressionnobrace8              Production = 309
+	ProductionExpressionnobrace9              Production = 310
+	ProductionExpressionnobrace10             Production = 311
+	ProductionExpressionnobrace11             Production = 312
+	ProductionExpressionnobrace12             Production = 313
+	ProductionExpressionnobrace13             Production = 314
+	ProductionExpressionnobrace14             Production = 315
+	ProductionExpressionnobrace15             Production = 316
+	ProductionExpressionnobrace16             Production = 317
+	ProductionExpressionnobrace17             Production = 318
+	ProductionExpressionnobrace18             Production = 319
+	ProductionExpressionnobrace19             Production = 320
+	ProductionExpressionnobrace20             Production = 321
+	ProductionUnaryexprnobrace1               Production = 322
+	ProductionUnaryexprnobrace2               Production = 323
+	ProductionUnaryexprnobrace3               Production = 324
+	ProductionUnaryexprnobrace4               Production = 325
+	ProductionUnaryexprnobrace5               Production = 326
+	ProductionUnaryexprnobrace6               Production = 327
+	ProductionUnaryexprnobrace7               Production = 328
+	ProductionUnaryexprnobrace8               Production = 329
+	ProductionPrimaryexprnobrace1             Production = 330
+	ProductionPrimaryexprnobrace2             Production = 331
+	ProductionPrimaryexprnobrace3             Production = 332
+	ProductionPrimaryexprnobrace4             Production = 333
+	ProductionPrimaryexprnobrace5             Production = 334
+	ProductionPrimaryexprnobrace6             Production = 335
+	ProductionPrimaryexprnobrace7             Production = 336
+	ProductionOperandnobrace1                 Production = 337
+	ProductionOperandnobrace2                 Production = 338
+	ProductionOperandnobrace3                 Production = 339
+	ProductionLiteralnobrace1                 Production = 340
+	ProductionLiteralnobrace2                 Production = 341
+	ProductionLiteralnobrace3                 Production = 342
+	ProductionCompositelitnobrace1            Production = 343
+	ProductionExpressionlistnobrace1          Production = 344
+	ProductionExpressionlistnobrace2          Production = 345
+	ProductionSimplestmtnobrace1              Production = 346
+	ProductionSimplestmtnobrace2              Production = 347
+	ProductionSimplestmtnobrace3              Production = 348
+	ProductionSimplestmtnobrace4              Production = 349
+	ProductionSimplestmtnobrace5              Production = 350
+	ProductionSimplestmtnobrace6              Production = 351
+	ProductionSendstmtnobrace1                Production = 352
+	ProductionIncdecstmtnobrace1              Production = 353
+	ProductionIncdecstmtnobrace2              Production = 354
+	ProductionAssignmentnobrace1              Production = 355
+	ProductionAssignmentnobrace2              Production = 356
+	ProductionAssignmentnobrace3              Production = 357
+	ProductionAssignmentnobrace4              Production = 358
+	ProductionAssignmentnobrace5              Production = 359
+	ProductionAssignmentnobrace6              Production = 360
+	ProductionAssignmentnobrace7              Production = 361
+	ProductionAssignmentnobrace8              Production = 362
+	ProductionAssignmentnobrace9              Production = 363
+	ProductionAssignmentnobrace10             Production = 364
+	ProductionAssignmentnobrace11             Production = 365
+	ProductionAssignmentnobrace12             Production = 366
+	ProductionShortvardeclnobrace1            Production = 367
+	ProductionIfstmt1                         Production = 368
+	ProductionIfstmt2                         Production = 369
+	ProductionIfstmt3                         Production = 370
+	ProductionIfstmt4                         Production = 371
+	ProductionIfstmtorblock1                  Production = 372
+	ProductionIfstmtorblock2                  Production = 373
+	ProductionSwitchstmt1                     Production = 374
+	ProductionSwitchstmt2                     Production = 375
+	ProductionExprswitchstmt1                 Production = 376
+	ProductionExprswitchstmt2                 Production = 377
+	ProductionExprswitchstmt3                 Production = 378
+	ProductionExprswitchstmt4                 Production = 379
+	ProductionExprcaseclause1                 Production = 380
+	ProductionExprswitchcase1                 Production = 381
+	ProductionExprswitchcase2                 Production = 382
+	ProductionZeroormoreexprcaseclause1       Production = 383
+	ProductionZeroormoreexprcaseclause2       Production = 384
+	ProductionTypeswitchstmt1                 Production = 385
+	ProductionTypeswitchstmt2                 Production = 386
+	ProductionTypeswitchguard1                Production = 387
+	ProductionTypeswitchguard2                Production = 388
+	ProductionTypecaseclause1                 Production = 389
+	ProductionTypeswitchcase1                 Production = 390
+	ProductionTypeswitchcase2                 Production = 391
+	ProductionZeroormoretypecaseclause1       Production = 392
+	ProductionZeroormoretypecaseclause2       Production = 393
+	ProductionForstmt1                        Production = 394
+	ProductionForstmt2                        Production = 395
+	ProductionForstmt3                        Production = 396
+	ProductionForstmt4                        Production = 397
+	ProductionForclause1                      Production = 398
+	ProductionForclause2                      Production = 399
+	ProductionRangeclause1                    Production = 400
+	ProductionRangeclause2                    Production = 401
+	ProductionRangeclause3                    Production = 402
+	ProductionGostmt1                         Production = 403
+	ProductionSelectstmt1                     Production = 404
+	ProductionCommclause1                     Production = 405
+	ProductionCommcase1                       Production = 406
+	ProductionCommcase2                       Production = 407
+	ProductionCommcase3                       Production = 408
+	ProductionRecvstmt1                       Production = 409
+	ProductionRecvstmt2                       Production = 410
+	ProductionRecvstmt3                       Production = 411
+	ProductionZeroormorecommclause1           Production = 412
+	ProductionZeroormorecommclause2           Production = 413
+	ProductionReturnstmt1                     Production = 414
+	ProductionReturnstmt2                     Production = 415
+	ProductionBreakstmt1                      Production = 416
+	ProductionBreakstmt2                      Production = 417
+	ProductionContinuestmt1                   Production = 418
+	ProductionContinuestmt2                   Production = 419
+	ProductionGotostmt1                       Production = 420
+	ProductionFallthroughstmt1                Production = 421
+	ProductionDeferstmt1                      Production = 422
+	ProductionDeclaration1                    Production = 423
+	ProductionDeclaration2                    Production = 424
+	ProductionDeclaration3                    Production = 425
+	ProductionTopleveldecl1                   Production = 426
+	ProductionTopleveldecl2                   Production = 427
+	ProductionTopleveldecl3                   Production = 428
+	ProductionConstdecl1                      Production = 429
+	ProductionConstdecl2                      Production = 430
+	ProductionConstspec1                      Production = 431
+	ProductionConstspec2                      Production = 432
+	ProductionConstspec3                      Production = 433
+	ProductionZeroormoreconstspec1            Production = 434
+	ProductionZeroormoreconstspec2            Production = 435
+	ProductionTypedecl1                       Production = 436
+	ProductionTypedecl2                       Production = 437
+	ProductionTypedecl3                       Production = 438
+	ProductionZeroormoretypespecsemicolon1    Production = 439
+	ProductionZeroormoretypespecsemicolon2    Production = 440
+	ProductionZeroormoretypespecsemicolon3    Production = 441
+	ProductionAliasdecl1                      Production = 442
+	ProductionAliasdecl2                      Production = 443
+	ProductionTypedef1                        Production = 444
+	ProductionTypedef2                        Production = 445
+	ProductionTypeparameters1                 Production = 446
+	ProductionTypeparamlist1                  Production = 447
+	ProductionTypeparamlist2                  Production = 448
+	ProductionTypeparamlist3                  Production = 449
+	ProductionTypeparamdecl1                  Production = 450
+	ProductionTypeparamdecl2                  Production = 451
+	ProductionZeroormoreuniontypeterm1        Production = 452
+	ProductionZeroormoreuniontypeterm2        Production = 453
+	ProductionFunctypeparameters1             Production = 454
+	ProductionFunctypeparamlist1              Production = 455
+	ProductionFunctypeparamlist2              Production = 456
+	ProductionFunctypeparamlist3              Production = 457
+	ProductionFunctypeparamdecl1              Production = 458
+	ProductionVardecl1                        Production = 459
+	ProductionVardecl2                        Production = 460
+	ProductionVarspec1                        Production = 461
+	ProductionVarspec2                        Production = 462
+	ProductionVarspec3                        Production = 463
+	ProductionZeroormorevarspecsemicolon1     Production = 464
+	ProductionZeroormorevarspecsemicolon2     Production = 465
+	ProductionShortvardecl1                   Production = 466
+	ProductionFunctiondecl1                   Production = 467
+	ProductionFunctiondecl2                   Production = 468
+	ProductionFunctiondecl3                   Production = 469
+	ProductionFunctiondecl4                   Production = 470
+	ProductionMethoddecl1                     Production = 471
+	ProductionMethoddecl2                     Production = 472
+)
+
+// Production implements fmt.Stringer.
+var _ fmt.Stringer = (*Production)(nil)
+
+// String returns the name of the production.
+func (p Production) String() string {
+	switch p {
+	case NoProduction:
+		return "none"
+	case ProductionSourcefile1:
+		return `SourceFile_1`
+	case ProductionSourcefile2:
+		return `SourceFile_2`
+	case ProductionSourcefile3:
+		return `SourceFile_3`
+	case ProductionSourcefile4:
+		return `SourceFile_4`
+	case ProductionSourcefile5:
+		return `SourceFile_5`
+	case ProductionSourcefile6:
+		return `SourceFile_6`
+	case ProductionSourcefile7:
+		return `SourceFile_7`
+	case ProductionSourcefile8:
+		return `SourceFile_8`
+	case ProductionZeroormoreimportdeclsemicolon1:
+		return `ZeroOrMoreImportDeclSemicolon_1`
+	case ProductionZeroormoreimportdeclsemicolon2:
+		return `ZeroOrMoreImportDeclSemicolon_2`
+	case ProductionOneormoretopleveldeclsemicolon1:
+		return `OneOrMoreTopLevelDeclSemicolon_1`
+	case ProductionOneormoretopleveldeclsemicolon2:
+		return `OneOrMoreTopLevelDeclSemicolon_2`
+	case ProductionPackageclause1:
+		return `PackageClause_1`
+	case ProductionImportdecl1:
+		return `ImportDecl_1`
+	case ProductionImportdecl2:
+		return `ImportDecl_2`
+	case ProductionImportspec1:
+		return `ImportSpec_1`
+	case ProductionImportspec2:
+		return `ImportSpec_2`
+	case ProductionImportspec3:
+		return `ImportSpec_3`
+	case ProductionZeroormoreimportspecsemicolon1:
+		return `ZeroOrMoreImportSpecSemicolon_1`
+	case ProductionZeroormoreimportspecsemicolon2:
+		return `ZeroOrMoreImportSpecSemicolon_2`
+	case ProductionIdentifierlist1:
+		return `IdentifierList_1`
+	case ProductionIdentifierlist2:
+		return `IdentifierList_2`
+	case ProductionOperand1:
+		return `Operand_1`
+	case ProductionOperand2:
+		return `Operand_2`
+	case ProductionOperand3:
+		return `Operand_3`
+	case ProductionLiteral1:
+		return `Literal_1`
+	case ProductionLiteral2:
+		return `Literal_2`
+	case ProductionLiteral3:
+		return `Literal_3`
+	case ProductionBasiclit1:
+		return `BasicLit_1`
+	case ProductionBasiclit2:
+		return `BasicLit_2`
+	case ProductionBasiclit3:
+		return `BasicLit_3`
+	case ProductionBasiclit4:
+		return `BasicLit_4`
+	case ProductionBasiclit5:
+		return `BasicLit_5`
+	case ProductionOperandname1:
+		return `OperandName_1`
+	case ProductionQualifiedident1:
+		return `QualifiedIdent_1`
+	case ProductionCompositelit1:
+		return `CompositeLit_1`
+	case ProductionCompositelit2:
+		return `CompositeLit_2`
+	case ProductionLiteraltype1:
+		return `LiteralType_1`
+	case ProductionLiteraltype2:
+		return `LiteralType_2`
+	case ProductionLiteraltype3:
+		return `LiteralType_3`
+	case ProductionLiteraltype4:
+		return `LiteralType_4`
+	case ProductionLiteraltype5:
+		return `LiteralType_5`
+	case ProductionLiteralvalue1:
+		return `LiteralValue_1`
+	case ProductionLiteralvalue2:
+		return `LiteralValue_2`
+	case ProductionLiteralvalue3:
+		return `LiteralValue_3`
+	case ProductionElementlist1:
+		return `ElementList_1`
+	case ProductionElementlist2:
+		return `ElementList_2`
+	case ProductionKeyedelement1:
+		return `KeyedElement_1`
+	case ProductionKeyedelement2:
+		return `KeyedElement_2`
+	case ProductionKey1:
+		return `Key_1`
+	case ProductionKey2:
+		return `Key_2`
+	case ProductionElement1:
+		return `Element_1`
+	case ProductionElement2:
+		return `Element_2`
+	case ProductionFunctionlit1:
+		return `FunctionLit_1`
+	case ProductionPrimaryexpr1:
+		return `PrimaryExpr_1`
+	case ProductionPrimaryexpr2:
+		return `PrimaryExpr_2`
+	case ProductionPrimaryexpr3:
+		return `PrimaryExpr_3`
+	case ProductionPrimaryexpr4:
+		return `PrimaryExpr_4`
+	case ProductionPrimaryexpr5:
+		return `PrimaryExpr_5`
+	case ProductionPrimaryexpr6:
+		return `PrimaryExpr_6`
+	case ProductionPrimaryexpr7:
+		return `PrimaryExpr_7`
+	case ProductionSelector1:
+		return `Selector_1`
+	case ProductionIndex1:
+		return `Index_1`
+	case ProductionIndex2:
+		return `Index_2`
+	case ProductionIndexelemlist1:
+		return `IndexElemList_1`
+	case ProductionIndexelemlist2:
+		return `IndexElemList_2`
+	case ProductionIndexelem1:
+		return `IndexElem_1`
+	case ProductionIndexelem2:
+		return `IndexElem_2`
+	case ProductionSlice1:
+		return `Slice_1`
+	case ProductionSlice2:
+		return `Slice_2`
+	case ProductionSlice3:
+		return `Slice_3`
+	case ProductionSlice4:
+		return `Slice_4`
+	case ProductionSlice5:
+		return `Slice_5`
+	case ProductionSlice6:
+		return `Slice_6`
+	case ProductionTypeassertion1:
+		return `TypeAssertion_1`
+	case ProductionArguments1:
+		return `Arguments_1`
+	case ProductionArguments2:
+		return `Arguments_2`
+	case ProductionArguments3:
+		return `Arguments_3`
+	case ProductionArguments4:
+		return `Arguments_4`
+	case ProductionArguments5:
+		return `Arguments_5`
+	case ProductionArguments6:
+		return `Arguments_6`
+	case ProductionArguments7:
+		return `Arguments_7`
+	case ProductionArguments8:
+		return `Arguments_8`
+	case ProductionArguments9:
+		return `Arguments_9`
+	case ProductionArguments10:
+		return `Arguments_10`
+	case ProductionArguments11:
+		return `Arguments_11`
+	case ProductionArguments12:
+		return `Arguments_12`
+	case ProductionArguments13:
+		return `Arguments_13`
+	case ProductionArgumenttype1:
+		return `ArgumentType_1`
+	case ProductionArgumenttype2:
+		return `ArgumentType_2`
+	case ProductionArgumenttype3:
+		return `ArgumentType_3`
+	case ProductionArgumenttype4:
+		return `ArgumentType_4`
+	case ProductionArgumenttype5:
+		return `ArgumentType_5`
+	case ProductionArgumenttype6:
+		return `ArgumentType_6`
+	case ProductionArgumenttype7:
+		return `ArgumentType_7`
+	case ProductionArgumenttype8:
+		return `ArgumentType_8`
+	case ProductionExpressionlist1:
+		return `ExpressionList_1`
+	case ProductionExpressionlist2:
+		return `ExpressionList_2`
+	case ProductionExpression1:
+		return `Expression_1`
+	case ProductionExpression2:
+		return `Expression_2`
+	case ProductionExpression3:
+		return `Expression_3`
+	case ProductionExpression4:
+		return `Expression_4`
+	case ProductionExpression5:
+		return `Expression_5`
+	case ProductionExpression6:
+		return `Expression_6`
+	case ProductionExpression7:
+		return `Expression_7`
+	case ProductionExpression8:
+		return `Expression_8`
+	case ProductionExpression9:
+		return `Expression_9`
+	case ProductionExpression10:
+		return `Expression_10`
+	case ProductionExpression11:
+		return `Expression_11`
+	case ProductionExpression12:
+		return `Expression_12`
+	case ProductionExpression13:
+		return `Expression_13`
+	case ProductionExpression14:
+		return `Expression_14`
+	case ProductionExpression15:
+		return `Expression_15`
+	case ProductionExpression16:
+		return `Expression_16`
+	case ProductionExpression17:
+		return `Expression_17`
+	case ProductionExpression18:
+		return `Expression_18`
+	case ProductionExpression19:
+		return `Expression_19`
+	case ProductionExpression20:
+		return `Expression_20`
+	case ProductionUnaryexpr1:
+		return `UnaryExpr_1`
+	case ProductionUnaryexpr2:
+		return `UnaryExpr_2`
+	case ProductionUnaryexpr3:
+		return `UnaryExpr_3`
+	case ProductionUnaryexpr4:
+		return `UnaryExpr_4`
+	case ProductionUnaryexpr5:
+		return `UnaryExpr_5`
+	case ProductionUnaryexpr6:
+		return `UnaryExpr_6`
+	case ProductionUnaryexpr7:
+		return `UnaryExpr_7`
+	case ProductionUnaryexpr8:
+		return `UnaryExpr_8`
+	case ProductionConversion1:
+		return `Conversion_1`
+	case ProductionConversion2:
+		return `Conversion_2`
+	case ProductionConversion3:
+		return `Conversion_3`
+	case ProductionConversion4:
+		return `Conversion_4`
+	case ProductionConversion5:
+		return `Conversion_5`
+	case ProductionConversion6:
+		return `Conversion_6`
+	case ProductionConversion7:
+		return `Conversion_7`
+	case ProductionConversion8:
+		return `Conversion_8`
+	case ProductionConversion9:
+		return `Conversion_9`
+	case ProductionConversion10:
+		return `Conversion_10`
+	case ProductionConversion11:
+		return `Conversion_11`
+	case ProductionConversion12:
+		return `Conversion_12`
+	case ProductionConversion13:
+		return `Conversion_13`
+	case ProductionConversion14:
+		return `Conversion_14`
+	case ProductionConversion15:
+		return `Conversion_15`
+	case ProductionConversion16:
+		return `Conversion_16`
+	case ProductionConversiontype1:
+		return `ConversionType_1`
+	case ProductionConversiontype2:
+		return `ConversionType_2`
+	case ProductionConversiontype3:
+		return `ConversionType_3`
+	case ProductionConversiontype4:
+		return `ConversionType_4`
+	case ProductionConversiontype5:
+		return `ConversionType_5`
+	case ProductionConversiontype6:
+		return `ConversionType_6`
+	case ProductionConversiontype7:
+		return `ConversionType_7`
+	case ProductionConversiontype8:
+		return `ConversionType_8`
+	case ProductionConversiontype9:
+		return `ConversionType_9`
+	case ProductionType1:
+		return `Type_1`
+	case ProductionType2:
+		return `Type_2`
+	case ProductionType3:
+		return `Type_3`
+	case ProductionType4:
+		return `Type_4`
+	case ProductionTypenochanreceive1:
+		return `TypeNoChanReceive_1`
+	case ProductionTypenochanreceive2:
+		return `TypeNoChanReceive_2`
+	case ProductionTypenochanreceive3:
+		return `TypeNoChanReceive_3`
+	case ProductionTypenochanreceive4:
+		return `TypeNoChanReceive_4`
+	case ProductionTypename1:
+		return `TypeName_1`
+	case ProductionTypename2:
+		return `TypeName_2`
+	case ProductionTypeargs1:
+		return `TypeArgs_1`
+	case ProductionTypelist1:
+		return `TypeList_1`
+	case ProductionTypelist2:
+		return `TypeList_2`
+	case ProductionTypelist3:
+		return `TypeList_3`
+	case ProductionTypelit1:
+		return `TypeLit_1`
+	case ProductionTypelit2:
+		return `TypeLit_2`
+	case ProductionTypelit3:
+		return `TypeLit_3`
+	case ProductionTypelit4:
+		return `TypeLit_4`
+	case ProductionTypelit5:
+		return `TypeLit_5`
+	case ProductionTypelit6:
+		return `TypeLit_6`
+	case ProductionTypelit7:
+		return `TypeLit_7`
+	case ProductionTypelit8:
+		return `TypeLit_8`
+	case ProductionTypelitnochanreceive1:
+		return `TypeLitNoChanReceive_1`
+	case ProductionTypelitnochanreceive2:
+		return `TypeLitNoChanReceive_2`
+	case ProductionTypelitnochanreceive3:
+		return `TypeLitNoChanReceive_3`
+	case ProductionTypelitnochanreceive4:
+		return `TypeLitNoChanReceive_4`
+	case ProductionTypelitnochanreceive5:
+		return `TypeLitNoChanReceive_5`
+	case ProductionTypelitnochanreceive6:
+		return `TypeLitNoChanReceive_6`
+	case ProductionTypelitnochanreceive7:
+		return `TypeLitNoChanReceive_7`
+	case ProductionTypelitnochanreceive8:
+		return `TypeLitNoChanReceive_8`
+	case ProductionArraytype1:
+		return `ArrayType_1`
+	case ProductionSlicetype1:
+		return `SliceType_1`
+	case ProductionStructtype1:
+		return `StructType_1`
+	case ProductionFielddecl1:
+		return `FieldDecl_1`
+	case ProductionFielddecl2:
+		return `FieldDecl_2`
+	case ProductionFielddecl3:
+		return `FieldDecl_3`
+	case ProductionFielddecl4:
+		return `FieldDecl_4`
+	case ProductionFielddecl5:
+		return `FieldDecl_5`
+	case ProductionFielddecl6:
+		return `FieldDecl_6`
+	case ProductionOpttag1:
+		return `OptTag_1`
+	case ProductionOpttag2:
+		return `OptTag_2`
+	case ProductionOpttypeargs1:
+		return `OptTypeArgs_1`
+	case ProductionOpttypeargs2:
+		return `OptTypeArgs_2`
+	case ProductionBracketfield1:
+		return `BracketField_1`
+	case ProductionBracketfield2:
+		return `BracketField_2`
+	case ProductionBracketfield3:
+		return `BracketField_3`
+	case ProductionBracketlist1:
+		return `BracketList_1`
+	case ProductionBracketlist2:
+		return `BracketList_2`
+	case ProductionBracketelem1:
+		return `BracketElem_1`
+	case ProductionBracketelem2:
+		return `BracketElem_2`
+	case ProductionBracketelem3:
+		return `BracketElem_3`
+	case ProductionBracketelem4:
+		return `BracketElem_4`
+	case ProductionBracketelem5:
+		return `BracketElem_5`
+	case ProductionBracketelem6:
+		return `BracketElem_6`
+	case ProductionBracketelem7:
+		return `BracketElem_7`
+	case ProductionBracketelem8:
+		return `BracketElem_8`
+	case ProductionTypenoleadingbracket1:
+		return `TypeNoLeadingBracket_1`
+	case ProductionTypenoleadingbracket2:
+		return `TypeNoLeadingBracket_2`
+	case ProductionTypenoleadingbracket3:
+		return `TypeNoLeadingBracket_3`
+	case ProductionTypenoleadingbracket4:
+		return `TypeNoLeadingBracket_4`
+	case ProductionTypenoleadingbracket5:
+		return `TypeNoLeadingBracket_5`
+	case ProductionTypenoleadingbracket6:
+		return `TypeNoLeadingBracket_6`
+	case ProductionTypenoleadingbracket7:
+		return `TypeNoLeadingBracket_7`
+	case ProductionTypenoleadingbracket8:
+		return `TypeNoLeadingBracket_8`
+	case ProductionTypenoleadingbracket9:
+		return `TypeNoLeadingBracket_9`
+	case ProductionZeroormorefielddecl1:
+		return `ZeroOrMoreFieldDecl_1`
+	case ProductionZeroormorefielddecl2:
+		return `ZeroOrMoreFieldDecl_2`
+	case ProductionZeroormorefielddeclsemicolon1:
+		return `ZeroOrMoreFieldDeclSemicolon_1`
+	case ProductionZeroormorefielddeclsemicolon2:
+		return `ZeroOrMoreFieldDeclSemicolon_2`
+	case ProductionPointertype1:
+		return `PointerType_1`
+	case ProductionFunctiontype1:
+		return `FunctionType_1`
+	case ProductionSignature1:
+		return `Signature_1`
+	case ProductionSignature2:
+		return `Signature_2`
+	case ProductionResult1:
+		return `Result_1`
+	case ProductionResult2:
+		return `Result_2`
+	case ProductionTypenoparen1:
+		return `TypeNoParen_1`
+	case ProductionTypenoparen2:
+		return `TypeNoParen_2`
+	case ProductionTypenoparen3:
+		return `TypeNoParen_3`
+	case ProductionParameters1:
+		return `Parameters_1`
+	case ProductionParameters2:
+		return `Parameters_2`
+	case ProductionParameters3:
+		return `Parameters_3`
+	case ProductionParameterlist1:
+		return `ParameterList_1`
+	case ProductionParameterlist2:
+		return `ParameterList_2`
+	case ProductionParameterdecl1:
+		return `ParameterDecl_1`
+	case ProductionParameterdecl2:
+		return `ParameterDecl_2`
+	case ProductionParameterdecl3:
+		return `ParameterDecl_3`
+	case ProductionParameterdecl4:
+		return `ParameterDecl_4`
+	case ProductionParameterdecl5:
+		return `ParameterDecl_5`
+	case ProductionParameterdecl6:
+		return `ParameterDecl_6`
+	case ProductionParameterdecl7:
+		return `ParameterDecl_7`
+	case ProductionParameterdecl8:
+		return `ParameterDecl_8`
+	case ProductionInterfacetype1:
+		return `InterfaceType_1`
+	case ProductionInterfacetype2:
+		return `InterfaceType_2`
+	case ProductionInterfaceelem1:
+		return `InterfaceElem_1`
+	case ProductionInterfaceelem2:
+		return `InterfaceElem_2`
+	case ProductionMethodelem1:
+		return `MethodElem_1`
+	case ProductionTypeelem1:
+		return `TypeElem_1`
+	case ProductionTypeelem2:
+		return `TypeElem_2`
+	case ProductionTypeterm1:
+		return `TypeTerm_1`
+	case ProductionTypeterm2:
+		return `TypeTerm_2`
+	case ProductionUnderlyingtype1:
+		return `UnderlyingType_1`
+	case ProductionOneormoreinterfaceelem1:
+		return `OneOrMoreInterfaceElem_1`
+	case ProductionOneormoreinterfaceelem2:
+		return `OneOrMoreInterfaceElem_2`
+	case ProductionOneormoreinterfaceelem3:
+		return `OneOrMoreInterfaceElem_3`
+	case ProductionMaptype1:
+		return `MapType_1`
+	case ProductionChanneltype1:
+		return `ChannelType_1`
+	case ProductionChanneltype2:
+		return `ChannelType_2`
+	case ProductionChanneltype3:
+		return `ChannelType_3`
+	case ProductionChanneltypenochanreceive1:
+		return `ChannelTypeNoChanReceive_1`
+	case ProductionChanneltypenochanreceive2:
+		return `ChannelTypeNoChanReceive_2`
+	case ProductionBlock1:
+		return `Block_1`
+	case ProductionStatementlist1:
+		return `StatementList_1`
+	case ProductionStatementlist2:
+		return `StatementList_2`
+	case ProductionStatement1:
+		return `Statement_1`
+	case ProductionStatement2:
+		return `Statement_2`
+	case ProductionStatement3:
+		return `Statement_3`
+	case ProductionStatement4:
+		return `Statement_4`
+	case ProductionStatement5:
+		return `Statement_5`
+	case ProductionStatement6:
+		return `Statement_6`
+	case ProductionStatement7:
+		return `Statement_7`
+	case ProductionStatement8:
+		return `Statement_8`
+	case ProductionStatement9:
+		return `Statement_9`
+	case ProductionStatement10:
+		return `Statement_10`
+	case ProductionStatement11:
+		return `Statement_11`
+	case ProductionStatement12:
+		return `Statement_12`
+	case ProductionStatement13:
+		return `Statement_13`
+	case ProductionStatement14:
+		return `Statement_14`
+	case ProductionStatement15:
+		return `Statement_15`
+	case ProductionSimplestmt1:
+		return `SimpleStmt_1`
+	case ProductionSimplestmt2:
+		return `SimpleStmt_2`
+	case ProductionSimplestmt3:
+		return `SimpleStmt_3`
+	case ProductionSimplestmt4:
+		return `SimpleStmt_4`
+	case ProductionSimplestmt5:
+		return `SimpleStmt_5`
+	case ProductionSimplestmt6:
+		return `SimpleStmt_6`
+	case ProductionLabeledstmt1:
+		return `LabeledStmt_1`
+	case ProductionSendstmt1:
+		return `SendStmt_1`
+	case ProductionIncdecstmt1:
+		return `IncDecStmt_1`
+	case ProductionIncdecstmt2:
+		return `IncDecStmt_2`
+	case ProductionAssignment1:
+		return `Assignment_1`
+	case ProductionAssignment2:
+		return `Assignment_2`
+	case ProductionAssignment3:
+		return `Assignment_3`
+	case ProductionAssignment4:
+		return `Assignment_4`
+	case ProductionAssignment5:
+		return `Assignment_5`
+	case ProductionAssignment6:
+		return `Assignment_6`
+	case ProductionAssignment7:
+		return `Assignment_7`
+	case ProductionAssignment8:
+		return `Assignment_8`
+	case ProductionAssignment9:
+		return `Assignment_9`
+	case ProductionAssignment10:
+		return `Assignment_10`
+	case ProductionAssignment11:
+		return `Assignment_11`
+	case ProductionAssignment12:
+		return `Assignment_12`
+	case ProductionExpressionnobrace1:
+		return `ExpressionNoBrace_1`
+	case ProductionExpressionnobrace2:
+		return `ExpressionNoBrace_2`
+	case ProductionExpressionnobrace3:
+		return `ExpressionNoBrace_3`
+	case ProductionExpressionnobrace4:
+		return `ExpressionNoBrace_4`
+	case ProductionExpressionnobrace5:
+		return `ExpressionNoBrace_5`
+	case ProductionExpressionnobrace6:
+		return `ExpressionNoBrace_6`
+	case ProductionExpressionnobrace7:
+		return `ExpressionNoBrace_7`
+	case ProductionExpressionnobrace8:
+		return `ExpressionNoBrace_8`
+	case ProductionExpressionnobrace9:
+		return `ExpressionNoBrace_9`
+	case ProductionExpressionnobrace10:
+		return `ExpressionNoBrace_10`
+	case ProductionExpressionnobrace11:
+		return `ExpressionNoBrace_11`
+	case ProductionExpressionnobrace12:
+		return `ExpressionNoBrace_12`
+	case ProductionExpressionnobrace13:
+		return `ExpressionNoBrace_13`
+	case ProductionExpressionnobrace14:
+		return `ExpressionNoBrace_14`
+	case ProductionExpressionnobrace15:
+		return `ExpressionNoBrace_15`
+	case ProductionExpressionnobrace16:
+		return `ExpressionNoBrace_16`
+	case ProductionExpressionnobrace17:
+		return `ExpressionNoBrace_17`
+	case ProductionExpressionnobrace18:
+		return `ExpressionNoBrace_18`
+	case ProductionExpressionnobrace19:
+		return `ExpressionNoBrace_19`
+	case ProductionExpressionnobrace20:
+		return `ExpressionNoBrace_20`
+	case ProductionUnaryexprnobrace1:
+		return `UnaryExprNoBrace_1`
+	case ProductionUnaryexprnobrace2:
+		return `UnaryExprNoBrace_2`
+	case ProductionUnaryexprnobrace3:
+		return `UnaryExprNoBrace_3`
+	case ProductionUnaryexprnobrace4:
+		return `UnaryExprNoBrace_4`
+	case ProductionUnaryexprnobrace5:
+		return `UnaryExprNoBrace_5`
+	case ProductionUnaryexprnobrace6:
+		return `UnaryExprNoBrace_6`
+	case ProductionUnaryexprnobrace7:
+		return `UnaryExprNoBrace_7`
+	case ProductionUnaryexprnobrace8:
+		return `UnaryExprNoBrace_8`
+	case ProductionPrimaryexprnobrace1:
+		return `PrimaryExprNoBrace_1`
+	case ProductionPrimaryexprnobrace2:
+		return `PrimaryExprNoBrace_2`
+	case ProductionPrimaryexprnobrace3:
+		return `PrimaryExprNoBrace_3`
+	case ProductionPrimaryexprnobrace4:
+		return `PrimaryExprNoBrace_4`
+	case ProductionPrimaryexprnobrace5:
+		return `PrimaryExprNoBrace_5`
+	case ProductionPrimaryexprnobrace6:
+		return `PrimaryExprNoBrace_6`
+	case ProductionPrimaryexprnobrace7:
+		return `PrimaryExprNoBrace_7`
+	case ProductionOperandnobrace1:
+		return `OperandNoBrace_1`
+	case ProductionOperandnobrace2:
+		return `OperandNoBrace_2`
+	case ProductionOperandnobrace3:
+		return `OperandNoBrace_3`
+	case ProductionLiteralnobrace1:
+		return `LiteralNoBrace_1`
+	case ProductionLiteralnobrace2:
+		return `LiteralNoBrace_2`
+	case ProductionLiteralnobrace3:
+		return `LiteralNoBrace_3`
+	case ProductionCompositelitnobrace1:
+		return `CompositeLitNoBrace_1`
+	case ProductionExpressionlistnobrace1:
+		return `ExpressionListNoBrace_1`
+	case ProductionExpressionlistnobrace2:
+		return `ExpressionListNoBrace_2`
+	case ProductionSimplestmtnobrace1:
+		return `SimpleStmtNoBrace_1`
+	case ProductionSimplestmtnobrace2:
+		return `SimpleStmtNoBrace_2`
+	case ProductionSimplestmtnobrace3:
+		return `SimpleStmtNoBrace_3`
+	case ProductionSimplestmtnobrace4:
+		return `SimpleStmtNoBrace_4`
+	case ProductionSimplestmtnobrace5:
+		return `SimpleStmtNoBrace_5`
+	case ProductionSimplestmtnobrace6:
+		return `SimpleStmtNoBrace_6`
+	case ProductionSendstmtnobrace1:
+		return `SendStmtNoBrace_1`
+	case ProductionIncdecstmtnobrace1:
+		return `IncDecStmtNoBrace_1`
+	case ProductionIncdecstmtnobrace2:
+		return `IncDecStmtNoBrace_2`
+	case ProductionAssignmentnobrace1:
+		return `AssignmentNoBrace_1`
+	case ProductionAssignmentnobrace2:
+		return `AssignmentNoBrace_2`
+	case ProductionAssignmentnobrace3:
+		return `AssignmentNoBrace_3`
+	case ProductionAssignmentnobrace4:
+		return `AssignmentNoBrace_4`
+	case ProductionAssignmentnobrace5:
+		return `AssignmentNoBrace_5`
+	case ProductionAssignmentnobrace6:
+		return `AssignmentNoBrace_6`
+	case ProductionAssignmentnobrace7:
+		return `AssignmentNoBrace_7`
+	case ProductionAssignmentnobrace8:
+		return `AssignmentNoBrace_8`
+	case ProductionAssignmentnobrace9:
+		return `AssignmentNoBrace_9`
+	case ProductionAssignmentnobrace10:
+		return `AssignmentNoBrace_10`
+	case ProductionAssignmentnobrace11:
+		return `AssignmentNoBrace_11`
+	case ProductionAssignmentnobrace12:
+		return `AssignmentNoBrace_12`
+	case ProductionShortvardeclnobrace1:
+		return `ShortVarDeclNoBrace_1`
+	case ProductionIfstmt1:
+		return `IfStmt_1`
+	case ProductionIfstmt2:
+		return `IfStmt_2`
+	case ProductionIfstmt3:
+		return `IfStmt_3`
+	case ProductionIfstmt4:
+		return `IfStmt_4`
+	case ProductionIfstmtorblock1:
+		return `IfStmtOrBlock_1`
+	case ProductionIfstmtorblock2:
+		return `IfStmtOrBlock_2`
+	case ProductionSwitchstmt1:
+		return `SwitchStmt_1`
+	case ProductionSwitchstmt2:
+		return `SwitchStmt_2`
+	case ProductionExprswitchstmt1:
+		return `ExprSwitchStmt_1`
+	case ProductionExprswitchstmt2:
+		return `ExprSwitchStmt_2`
+	case ProductionExprswitchstmt3:
+		return `ExprSwitchStmt_3`
+	case ProductionExprswitchstmt4:
+		return `ExprSwitchStmt_4`
+	case ProductionExprcaseclause1:
+		return `ExprCaseClause_1`
+	case ProductionExprswitchcase1:
+		return `ExprSwitchCase_1`
+	case ProductionExprswitchcase2:
+		return `ExprSwitchCase_2`
+	case ProductionZeroormoreexprcaseclause1:
+		return `ZeroOrMoreExprCaseClause_1`
+	case ProductionZeroormoreexprcaseclause2:
+		return `ZeroOrMoreExprCaseClause_2`
+	case ProductionTypeswitchstmt1:
+		return `TypeSwitchStmt_1`
+	case ProductionTypeswitchstmt2:
+		return `TypeSwitchStmt_2`
+	case ProductionTypeswitchguard1:
+		return `TypeSwitchGuard_1`
+	case ProductionTypeswitchguard2:
+		return `TypeSwitchGuard_2`
+	case ProductionTypecaseclause1:
+		return `TypeCaseClause_1`
+	case ProductionTypeswitchcase1:
+		return `TypeSwitchCase_1`
+	case ProductionTypeswitchcase2:
+		return `TypeSwitchCase_2`
+	case ProductionZeroormoretypecaseclause1:
+		return `ZeroOrMoreTypeCaseClause_1`
+	case ProductionZeroormoretypecaseclause2:
+		return `ZeroOrMoreTypeCaseClause_2`
+	case ProductionForstmt1:
+		return `ForStmt_1`
+	case ProductionForstmt2:
+		return `ForStmt_2`
+	case ProductionForstmt3:
+		return `ForStmt_3`
+	case ProductionForstmt4:
+		return `ForStmt_4`
+	case ProductionForclause1:
+		return `ForClause_1`
+	case ProductionForclause2:
+		return `ForClause_2`
+	case ProductionRangeclause1:
+		return `RangeClause_1`
+	case ProductionRangeclause2:
+		return `RangeClause_2`
+	case ProductionRangeclause3:
+		return `RangeClause_3`
+	case ProductionGostmt1:
+		return `GoStmt_1`
+	case ProductionSelectstmt1:
+		return `SelectStmt_1`
+	case ProductionCommclause1:
+		return `CommClause_1`
+	case ProductionCommcase1:
+		return `CommCase_1`
+	case ProductionCommcase2:
+		return `CommCase_2`
+	case ProductionCommcase3:
+		return `CommCase_3`
+	case ProductionRecvstmt1:
+		return `RecvStmt_1`
+	case ProductionRecvstmt2:
+		return `RecvStmt_2`
+	case ProductionRecvstmt3:
+		return `RecvStmt_3`
+	case ProductionZeroormorecommclause1:
+		return `ZeroOrMoreCommClause_1`
+	case ProductionZeroormorecommclause2:
+		return `ZeroOrMoreCommClause_2`
+	case ProductionReturnstmt1:
+		return `ReturnStmt_1`
+	case ProductionReturnstmt2:
+		return `ReturnStmt_2`
+	case ProductionBreakstmt1:
+		return `BreakStmt_1`
+	case ProductionBreakstmt2:
+		return `BreakStmt_2`
+	case ProductionContinuestmt1:
+		return `ContinueStmt_1`
+	case ProductionContinuestmt2:
+		return `ContinueStmt_2`
+	case ProductionGotostmt1:
+		return `GotoStmt_1`
+	case ProductionFallthroughstmt1:
+		return `FallthroughStmt_1`
+	case ProductionDeferstmt1:
+		return `DeferStmt_1`
+	case ProductionDeclaration1:
+		return `Declaration_1`
+	case ProductionDeclaration2:
+		return `Declaration_2`
+	case ProductionDeclaration3:
+		return `Declaration_3`
+	case ProductionTopleveldecl1:
+		return `TopLevelDecl_1`
+	case ProductionTopleveldecl2:
+		return `TopLevelDecl_2`
+	case ProductionTopleveldecl3:
+		return `TopLevelDecl_3`
+	case ProductionConstdecl1:
+		return `ConstDecl_1`
+	case ProductionConstdecl2:
+		return `ConstDecl_2`
+	case ProductionConstspec1:
+		return `ConstSpec_1`
+	case ProductionConstspec2:
+		return `ConstSpec_2`
+	case ProductionConstspec3:
+		return `ConstSpec_3`
+	case ProductionZeroormoreconstspec1:
+		return `ZeroOrMoreConstSpec_1`
+	case ProductionZeroormoreconstspec2:
+		return `ZeroOrMoreConstSpec_2`
+	case ProductionTypedecl1:
+		return `TypeDecl_1`
+	case ProductionTypedecl2:
+		return `TypeDecl_2`
+	case ProductionTypedecl3:
+		return `TypeDecl_3`
+	case ProductionZeroormoretypespecsemicolon1:
+		return `ZeroOrMoreTypeSpecSemicolon_1`
+	case ProductionZeroormoretypespecsemicolon2:
+		return `ZeroOrMoreTypeSpecSemicolon_2`
+	case ProductionZeroormoretypespecsemicolon3:
+		return `ZeroOrMoreTypeSpecSemicolon_3`
+	case ProductionAliasdecl1:
+		return `AliasDecl_1`
+	case ProductionAliasdecl2:
+		return `AliasDecl_2`
+	case ProductionTypedef1:
+		return `TypeDef_1`
+	case ProductionTypedef2:
+		return `TypeDef_2`
+	case ProductionTypeparameters1:
+		return `TypeParameters_1`
+	case ProductionTypeparamlist1:
+		return `TypeParamList_1`
+	case ProductionTypeparamlist2:
+		return `TypeParamList_2`
+	case ProductionTypeparamlist3:
+		return `TypeParamList_3`
+	case ProductionTypeparamdecl1:
+		return `TypeParamDecl_1`
+	case ProductionTypeparamdecl2:
+		return `TypeParamDecl_2`
+	case ProductionZeroormoreuniontypeterm1:
+		return `ZeroOrMoreUnionTypeTerm_1`
+	case ProductionZeroormoreuniontypeterm2:
+		return `ZeroOrMoreUnionTypeTerm_2`
+	case ProductionFunctypeparameters1:
+		return `FuncTypeParameters_1`
+	case ProductionFunctypeparamlist1:
+		return `FuncTypeParamList_1`
+	case ProductionFunctypeparamlist2:
+		return `FuncTypeParamList_2`
+	case ProductionFunctypeparamlist3:
+		return `FuncTypeParamList_3`
+	case ProductionFunctypeparamdecl1:
+		return `FuncTypeParamDecl_1`
+	case ProductionVardecl1:
+		return `VarDecl_1`
+	case ProductionVardecl2:
+		return `VarDecl_2`
+	case ProductionVarspec1:
+		return `VarSpec_1`
+	case ProductionVarspec2:
+		return `VarSpec_2`
+	case ProductionVarspec3:
+		return `VarSpec_3`
+	case ProductionZeroormorevarspecsemicolon1:
+		return `ZeroOrMoreVarSpecSemicolon_1`
+	case ProductionZeroormorevarspecsemicolon2:
+		return `ZeroOrMoreVarSpecSemicolon_2`
+	case ProductionShortvardecl1:
+		return `ShortVarDecl_1`
+	case ProductionFunctiondecl1:
+		return `FunctionDecl_1`
+	case ProductionFunctiondecl2:
+		return `FunctionDecl_2`
+	case ProductionFunctiondecl3:
+		return `FunctionDecl_3`
+	case ProductionFunctiondecl4:
+		return `FunctionDecl_4`
+	case ProductionMethoddecl1:
+		return `MethodDecl_1`
+	case ProductionMethoddecl2:
+		return `MethodDecl_2`
+	default:
+		return "unknown"
+	}
+}
+
 // Symbol is either a terminal or a nonterminal. The most significant bit is used to signal a
 // nonterminal. The maximum terminal or nonterminal index which can be stored is 32767.
 type Symbol uint16
@@ -514,6 +1952,10 @@ type Node struct {
 	// Children are the nodes of the right hand side of the production which was reduced to this node. Empty for a
 	// terminal.
 	Children []Node
+
+	// Production is the production which was reduced to this node. NoProduction for a terminal, which no
+	// production reduces to.
+	Production Production
 }
 
 var (
@@ -1761,7 +3203,8 @@ func (p *Parser) reduce(productionIdx uint32) {
 	p.stateStack = append(p.stateStack, int(gotoState))
 
 	newNode := Node{
-		Symbol: NewNonterminal(Nonterminal(nonterminal)),
+		Symbol:     NewNonterminal(Nonterminal(nonterminal)),
+		Production: Production(productionIdx),
 	}
 	if popCount != 0 {
 		newNode.Children = p.allocateNodes(popCount)

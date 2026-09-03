@@ -100,6 +100,181 @@ func (n Nonterminal) String() string {
 	}
 }
 
+// Production is the data type representing all productions of the grammar. It has no entry for production 0
+// ($accept), which is never reduced.
+type Production int
+
+const (
+	// NoProduction is the Production a terminal node carries, since no production reduces to it.
+	NoProduction                         Production = 0
+	ProductionFile1                      Production = 1
+	ProductionScannerSection1            Production = 2
+	ProductionScannerSection2            Production = 3
+	ProductionScannerDeclList1           Production = 4
+	ProductionScannerDeclList2           Production = 5
+	ProductionScannerDecl1               Production = 6
+	ProductionScannerDecl2               Production = 7
+	ProductionScannerDecl3               Production = 8
+	ProductionScannerDeclRhs1            Production = 9
+	ProductionScannerDeclRhs2            Production = 10
+	ProductionScannerPattern1            Production = 11
+	ProductionScannerPattern2            Production = 12
+	ProductionScannerAnnotationList1     Production = 13
+	ProductionScannerAnnotationList2     Production = 14
+	ProductionScannerAnnotation1         Production = 15
+	ProductionScannerAnnotation2         Production = 16
+	ProductionParserSection1             Production = 17
+	ProductionParserSection2             Production = 18
+	ProductionStartDecl1                 Production = 19
+	ProductionStartDecl2                 Production = 20
+	ProductionStartDecl3                 Production = 21
+	ProductionPrecedenceSection1         Production = 22
+	ProductionPrecedenceSection2         Production = 23
+	ProductionPrecedenceSection3         Production = 24
+	ProductionPrecedenceDeclList1        Production = 25
+	ProductionPrecedenceDeclList2        Production = 26
+	ProductionPrecedenceDecl1            Production = 27
+	ProductionPrecedenceDecl2            Production = 28
+	ProductionPrecedenceDecl3            Production = 29
+	ProductionAssociativity1             Production = 30
+	ProductionAssociativity2             Production = 31
+	ProductionAssociativity3             Production = 32
+	ProductionAssociativity4             Production = 33
+	ProductionRuleDeclList1              Production = 34
+	ProductionRuleDeclList2              Production = 35
+	ProductionProductionDecl1            Production = 36
+	ProductionProductionDecl2            Production = 37
+	ProductionProductionDecl3            Production = 38
+	ProductionAlternativeList1           Production = 39
+	ProductionAlternativeList2           Production = 40
+	ProductionAlternative1               Production = 41
+	ProductionAlternative2               Production = 42
+	ProductionAlternativeAnnotationList1 Production = 43
+	ProductionAlternativeAnnotationList2 Production = 44
+	ProductionAlternativeAnnotation1     Production = 45
+	ProductionAlternativeAnnotation2     Production = 46
+	ProductionSymbolList1                Production = 47
+	ProductionSymbolList2                Production = 48
+	ProductionSymbol1                    Production = 49
+	ProductionSymbol2                    Production = 50
+	ProductionSymbol3                    Production = 51
+)
+
+// Production implements fmt.Stringer.
+var _ fmt.Stringer = (*Production)(nil)
+
+// String returns the name of the production.
+func (p Production) String() string {
+	switch p {
+	case NoProduction:
+		return "none"
+	case ProductionFile1:
+		return `file_1`
+	case ProductionScannerSection1:
+		return `scanner_section_1`
+	case ProductionScannerSection2:
+		return `scanner_section_2`
+	case ProductionScannerDeclList1:
+		return `scanner_decl_list_1`
+	case ProductionScannerDeclList2:
+		return `scanner_decl_list_2`
+	case ProductionScannerDecl1:
+		return `scanner_decl_1`
+	case ProductionScannerDecl2:
+		return `scanner_decl_2`
+	case ProductionScannerDecl3:
+		return `scanner_decl_3`
+	case ProductionScannerDeclRhs1:
+		return `scanner_decl_rhs_1`
+	case ProductionScannerDeclRhs2:
+		return `scanner_decl_rhs_2`
+	case ProductionScannerPattern1:
+		return `scanner_pattern_1`
+	case ProductionScannerPattern2:
+		return `scanner_pattern_2`
+	case ProductionScannerAnnotationList1:
+		return `scanner_annotation_list_1`
+	case ProductionScannerAnnotationList2:
+		return `scanner_annotation_list_2`
+	case ProductionScannerAnnotation1:
+		return `scanner_annotation_1`
+	case ProductionScannerAnnotation2:
+		return `scanner_annotation_2`
+	case ProductionParserSection1:
+		return `parser_section_1`
+	case ProductionParserSection2:
+		return `parser_section_2`
+	case ProductionStartDecl1:
+		return `start_decl_1`
+	case ProductionStartDecl2:
+		return `start_decl_2`
+	case ProductionStartDecl3:
+		return `start_decl_3`
+	case ProductionPrecedenceSection1:
+		return `precedence_section_1`
+	case ProductionPrecedenceSection2:
+		return `precedence_section_2`
+	case ProductionPrecedenceSection3:
+		return `precedence_section_3`
+	case ProductionPrecedenceDeclList1:
+		return `precedence_decl_list_1`
+	case ProductionPrecedenceDeclList2:
+		return `precedence_decl_list_2`
+	case ProductionPrecedenceDecl1:
+		return `precedence_decl_1`
+	case ProductionPrecedenceDecl2:
+		return `precedence_decl_2`
+	case ProductionPrecedenceDecl3:
+		return `precedence_decl_3`
+	case ProductionAssociativity1:
+		return `associativity_1`
+	case ProductionAssociativity2:
+		return `associativity_2`
+	case ProductionAssociativity3:
+		return `associativity_3`
+	case ProductionAssociativity4:
+		return `associativity_4`
+	case ProductionRuleDeclList1:
+		return `rule_decl_list_1`
+	case ProductionRuleDeclList2:
+		return `rule_decl_list_2`
+	case ProductionProductionDecl1:
+		return `production_decl_1`
+	case ProductionProductionDecl2:
+		return `production_decl_2`
+	case ProductionProductionDecl3:
+		return `production_decl_3`
+	case ProductionAlternativeList1:
+		return `alternative_list_1`
+	case ProductionAlternativeList2:
+		return `alternative_list_2`
+	case ProductionAlternative1:
+		return `alternative_1`
+	case ProductionAlternative2:
+		return `alternative_2`
+	case ProductionAlternativeAnnotationList1:
+		return `alternative_annotation_list_1`
+	case ProductionAlternativeAnnotationList2:
+		return `alternative_annotation_list_2`
+	case ProductionAlternativeAnnotation1:
+		return `alternative_annotation_1`
+	case ProductionAlternativeAnnotation2:
+		return `alternative_annotation_2`
+	case ProductionSymbolList1:
+		return `symbol_list_1`
+	case ProductionSymbolList2:
+		return `symbol_list_2`
+	case ProductionSymbol1:
+		return `symbol_1`
+	case ProductionSymbol2:
+		return `symbol_2`
+	case ProductionSymbol3:
+		return `symbol_3`
+	default:
+		return "unknown"
+	}
+}
+
 // Symbol is either a terminal or a nonterminal. The most significant bit is used to signal a
 // nonterminal. The maximum terminal or nonterminal index which can be stored is 32767.
 type Symbol uint16
@@ -157,6 +332,10 @@ type Node struct {
 	// Children are the nodes of the right hand side of the production which was reduced to this node. Empty for a
 	// terminal.
 	Children []Node
+
+	// Production is the production which was reduced to this node. NoProduction for a terminal, which no
+	// production reduces to.
+	Production Production
 }
 
 var (
@@ -542,7 +721,8 @@ func (p *Parser) reduce(productionIdx uint32) {
 	p.stateStack = append(p.stateStack, int(gotoState))
 
 	newNode := Node{
-		Symbol: NewNonterminal(Nonterminal(nonterminal)),
+		Symbol:     NewNonterminal(Nonterminal(nonterminal)),
+		Production: Production(productionIdx),
 	}
 	if popCount != 0 {
 		newNode.Children = p.allocateNodes(popCount)

@@ -72,6 +72,10 @@ type Tables struct {
 	// up its goto with it and labels the node it pushes with it.
 	NonterminalByProduction utils.KotlinTable
 
+	// ProductionNames holds, for every production, its name. Index 0 ($accept) is empty, since that production is
+	// never reduced. See backend.ProductionNames.
+	ProductionNames []string
+
 	// ErrorTerminalColumn is the column of the action table which holds the shifts of the error symbol, which is
 	// where the error recovery reads the state to resume in.
 	ErrorTerminalColumn int
@@ -160,6 +164,7 @@ func NewTables(parser backend.Parser) Tables {
 			"nonterminalByProduction",
 			utils.NewKotlinIntArray(table.Nonterminals(parser)),
 		),
+		ProductionNames: backend.ProductionNames(parser.Grammar),
 
 		ErrorTerminalColumn: errorTerminalColumn,
 

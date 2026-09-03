@@ -23,6 +23,8 @@ var parserTemplate string
 var parsedTemplate = template.Must(template.New("parser.rs.template").Funcs(template.FuncMap{
 	"nonterminalName":     nonterminalName,
 	"isAcceptNonterminal": isAcceptNonterminal,
+	"productionName":      productionName,
+	"productionCount":     productionCount,
 }).Parse(parserTemplate))
 
 // DefaultScannerModule is the module path the generated parser takes the token type from when the caller names none.
@@ -131,4 +133,15 @@ func nonterminalName(symbol frontend.Symbol) string {
 // rather than the grammar. It is the one nonterminal the generated parser documents.
 func isAcceptNonterminal(symbol frontend.Symbol) bool {
 	return symbol.Name == "$accept"
+}
+
+// productionName returns the name of the variant which stands for the production of the given name.
+func productionName(name string) string {
+	return "Production" + utils.GoIdentifier(name)
+}
+
+// productionCount returns the size of the PRODUCTIONS array: one entry per production except production 0
+// ($accept), which has no variant.
+func productionCount(productionNames []string) int {
+	return len(productionNames) - 1
 }

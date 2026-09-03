@@ -92,6 +92,13 @@ type Tables struct {
 	// type is left open is as wide as an int, while a nonterminal is one alternative of a ParseSymbol and is held
 	// once per node of the parse tree, so the type is what it costs there.
 	NonterminalType string
+
+	// ProductionType is the underlying type of the Production enumeration, sized to the highest production index.
+	ProductionType string
+
+	// ProductionNames holds, for every production, its name. Index 0 ($accept) is empty, since that production is
+	// never reduced. See backend.ProductionNames.
+	ProductionNames []string
 }
 
 // NewTables compresses the given parser into the lookup tables the generated parser reads at runtime.
@@ -148,6 +155,11 @@ func NewTables(parser backend.Parser) Tables {
 		// The enumerators are one per nonterminal numbered from zero, so the last of them is the value the type has
 		// to hold.
 		NonterminalType: utils.CppUintType(nonterminalCount - 1),
+
+		// The enumerators are one per production numbered from one, production 0 ($accept) having none, so the
+		// number of productions other than $accept is the value the type has to hold.
+		ProductionType:  utils.CppUintType(len(parser.Grammar.Productions) - 1),
+		ProductionNames: backend.ProductionNames(parser.Grammar),
 	}
 }
 

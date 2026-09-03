@@ -24,6 +24,7 @@ var parsedTemplate = template.Must(template.New("parser.kt.template").Funcs(temp
 	"nonterminalName":     nonterminalName,
 	"isAcceptNonterminal": isAcceptNonterminal,
 	"kotlinString":        utils.KotlinString,
+	"productionName":      productionName,
 }).Parse(parserTemplate))
 
 // DefaultPackageName is the Kotlin package the generated parser is declared in when the caller names none.
@@ -131,4 +132,9 @@ func nonterminalName(symbol frontend.Symbol) string {
 // rather than the grammar. It is the one nonterminal the generated parser documents.
 func isAcceptNonterminal(symbol frontend.Symbol) bool {
 	return symbol.Name == "$accept"
+}
+
+// productionName returns the name of the constant which stands for the production of the given name.
+func productionName(name string) string {
+	return utils.KotlinConstantName("Production" + utils.GoIdentifier(name))
 }

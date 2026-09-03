@@ -24,6 +24,7 @@ var parserTemplate string
 var parsedTemplate = template.Must(template.New("parser.go.template").Funcs(template.FuncMap{
 	"nonterminalName":     nonterminalName,
 	"isAcceptNonterminal": isAcceptNonterminal,
+	"productionName":      productionName,
 }).Parse(parserTemplate))
 
 // DefaultPackageName is the Go package the generated parser is declared in when the caller names none.
@@ -141,4 +142,9 @@ func nonterminalName(symbol frontend.Symbol) string {
 // rather than the grammar. It is the one nonterminal the generated parser documents.
 func isAcceptNonterminal(symbol frontend.Symbol) bool {
 	return symbol.Name == "$accept"
+}
+
+// productionName returns the name of the constant which stands for the production of the given name.
+func productionName(name string) string {
+	return "Production" + utils.GoIdentifier(name)
 }

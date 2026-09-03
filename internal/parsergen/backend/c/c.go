@@ -74,6 +74,11 @@ func (c TemplateContext) IsAcceptNonterminal(symbol frontend.Symbol) bool {
 	return isAcceptNonterminal(symbol)
 }
 
+// ProductionName returns the name of the enumerator which stands for the production of the given name.
+func (c TemplateContext) ProductionName(name string) string {
+	return productionName(c.Config.Prefix, name)
+}
+
 // FromParser writes the parser as C source code to the given writer. Returns an error if the C source code can not be
 // encoded successfully.
 func FromParser(writer io.Writer, parser backend.Parser, config Config) error {
@@ -163,4 +168,9 @@ func nonterminalName(prefix string, symbol frontend.Symbol) string {
 // rather than the grammar. It is the one nonterminal the generated parser documents.
 func isAcceptNonterminal(symbol frontend.Symbol) bool {
 	return symbol.Name == "$accept"
+}
+
+// productionName returns the name of the enumerator which stands for the production of the given name.
+func productionName(prefix, name string) string {
+	return utils.CConstantName(prefix, "Production"+utils.GoIdentifier(name))
 }
