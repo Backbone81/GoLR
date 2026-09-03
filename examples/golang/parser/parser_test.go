@@ -710,15 +710,25 @@ var _ = Describe("Golang Parser", func() {
 })
 
 func buildBasicLitTree(token parser.Token, lexeme string) parser.Node {
+	basicLitProduction := map[parser.Token]parser.Production{
+		parser.TokenIntLit:       parser.ProductionBasiclit1,
+		parser.TokenFloatLit:     parser.ProductionBasiclit2,
+		parser.TokenImaginaryLit: parser.ProductionBasiclit3,
+		parser.TokenRuneLit:      parser.ProductionBasiclit4,
+		parser.TokenStringLit:    parser.ProductionBasiclit5,
+	}[token]
+
 	return parser.Node{
-		Symbol: parser.NewNonterminal(parser.NonterminalSourcefile),
+		Symbol:     parser.NewNonterminal(parser.NonterminalSourcefile),
+		Production: parser.ProductionSourcefile3,
 		Children: []parser.Node{
 			{
 				Symbol: parser.NewTerminal(parser.TokenTestBasicLit),
 				Lexeme: []byte("@TestBasicLit"),
 			},
 			{
-				Symbol: parser.NewNonterminal(parser.NonterminalBasiclit),
+				Symbol:     parser.NewNonterminal(parser.NonterminalBasiclit),
+				Production: basicLitProduction,
 				Children: []parser.Node{
 					{
 						Symbol: parser.NewTerminal(token),
