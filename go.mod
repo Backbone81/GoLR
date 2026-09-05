@@ -2,7 +2,7 @@ module github.com/backbone81/golr
 
 go 1.25.0
 
-toolchain go1.26.7
+toolchain go1.26.8
 
 require (
 	github.com/goccy/go-yaml v1.19.2
