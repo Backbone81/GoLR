@@ -1,39 +1,40 @@
-SHIFT ALPHA
-SHIFT NUMBER
-SHIFT SEMICOLON
-REDUCE statement 3
-REDUCE program 1
-SHIFT BRAVO
-SHIFT NAME
-SHIFT SEMICOLON
-REDUCE statement 3
-REDUCE program 2
-SHIFT CHARLIE
-SHIFT NUMBER
-SHIFT SEMICOLON
-REDUCE statement 3
-REDUCE program 2
-SHIFT DELTA
-SHIFT NAME
-SHIFT SEMICOLON
-REDUCE statement 3
-REDUCE program 2
-SHIFT ECHO
-SHIFT NUMBER
-REDUCE value 1
-SHIFT SEMICOLON
-REDUCE statement 3
-REDUCE program 2
-SHIFT FOXTROT
-SHIFT NAME
-REDUCE value 1
-SHIFT SEMICOLON
-REDUCE statement 3
-REDUCE program 2
-SHIFT GOLF
-SHIFT NUMBER
-REDUCE value 1
-SHIFT SEMICOLON
-REDUCE statement 3
-REDUCE program 2
-ACCEPT
+1:1     SHIFT   ALPHA "alpha"
+1:7     SHIFT   NUMBER "1"
+1:8     SHIFT   SEMICOLON ";"
+1:10    REDUCE  statement => ALPHA NUMBER SEMICOLON
+1:10    REDUCE  program => statement
+1:10    SHIFT   BRAVO "bravo"
+1:16    SHIFT   NAME "two"
+1:19    SHIFT   SEMICOLON ";"
+1:21    REDUCE  statement => BRAVO NAME SEMICOLON
+1:21    REDUCE  program => program statement
+1:21    SHIFT   CHARLIE "charlie"
+1:29    SHIFT   NUMBER "3"
+1:30    SHIFT   SEMICOLON ";"
+1:32    REDUCE  statement => CHARLIE NUMBER SEMICOLON
+1:32    REDUCE  program => program statement
+1:32    SHIFT   DELTA "delta"
+1:38    SHIFT   NAME "four"
+1:42    SHIFT   SEMICOLON ";"
+1:44    REDUCE  statement => DELTA NAME SEMICOLON
+1:44    REDUCE  program => program statement
+1:44    SHIFT   ECHO "echo"
+1:49    SHIFT   NUMBER "5"
+1:50    REDUCE  value => NUMBER
+1:50    SHIFT   SEMICOLON ";"
+1:52    REDUCE  statement => ECHO value SEMICOLON
+1:52    REDUCE  program => program statement
+1:52    SHIFT   FOXTROT "foxtrot"
+1:60    SHIFT   NAME "six"
+1:63    REDUCE  value => NAME
+1:63    SHIFT   SEMICOLON ";"
+1:65    REDUCE  statement => FOXTROT value SEMICOLON
+1:65    REDUCE  program => program statement
+1:65    SHIFT   GOLF "golf"
+1:70    SHIFT   NUMBER "7"
+1:71    REDUCE  value => NUMBER
+1:71    SHIFT   SEMICOLON ";"
+2:1     REDUCE  statement => GOLF value SEMICOLON
+2:1     REDUCE  program => program statement
+2:1     SHIFT   $end ""
+2:1     ACCEPT

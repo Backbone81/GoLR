@@ -1,11 +1,12 @@
-REDUCE items 0
-SHIFT ITEM
-SHIFT SEMICOLON
-REDUCE item 2
-REDUCE items 2
-SHIFT ITEM
-SHIFT SEMICOLON
-REDUCE item 2
-REDUCE items 2
-REDUCE list 1
-ACCEPT
+1:1     REDUCE  items => ε
+1:1     SHIFT   ITEM "i"
+1:2     SHIFT   SEMICOLON ";"
+1:4     REDUCE  item => ITEM SEMICOLON
+1:4     REDUCE  items => items item
+1:4     SHIFT   ITEM "i"
+1:5     SHIFT   SEMICOLON ";"
+2:1     REDUCE  item => ITEM SEMICOLON
+2:1     REDUCE  items => items item
+2:1     REDUCE  list => items
+2:1     SHIFT   $end ""
+2:1     ACCEPT

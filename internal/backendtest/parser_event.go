@@ -2,65 +2,126 @@ package backendtest
 
 import (
 	"fmt"
+	"strings"
 )
 
-// Shift reports a terminal being shifted onto the parse stack, which is one leaf of the parse tree.
-//
-// The event carries no byte offsets, deliberately. The scanner trace of the same case already states the extent of
-// every token, so offsets here would re-test the scanner rather than the parser. Leaving them out is also what keeps
-// the trace derivable from a finished parse tree, since a byte offset per tree node is something no generated parser
-// carries today and nothing but this trace would want.
+// traceLine formats one parser trace line: the source position, the keyword, and an optional payload. No trailing
+// whitespace.
+func traceLine(line int, column int, keyword string, payload string) string {
+	location := fmt.Sprintf("%d:%d", line, column)
+	if payload == "" {
+		return fmt.Sprintf("%-7s %s", location, keyword)
+	}
+	return fmt.Sprintf("%-7s %-7s %s", location, keyword, payload)
+}
+
+// Shift reports a terminal, including the end of input symbol, being shifted onto the parse stack.
 type Shift struct {
+	Line         int
+	Column       int
 	TerminalName string
+	Lexeme       string
 }
 
 // String returns the canonical trace line for the event, without the terminating newline.
 func (s Shift) String() string {
-	return "SHIFT " + s.TerminalName
+	return traceLine(s.Line, s.Column, "SHIFT", s.TerminalName+` "`+EscapeLexeme(s.Lexeme)+`"`)
 }
 
-// Reduce reports a production being reduced, identified by its left hand side and by the number of symbols taken off
-// the parse stack.
+// Reduce reports a production being reduced, as "lhs => rhs" or "lhs => ε" for an empty right hand side.
 type Reduce struct {
-	NonterminalName     string
-	RightHandSideLength int
+	Line          int
+	Column        int
+	LeftHandSide  string
+	RightHandSide []string
 }
 
 // String returns the canonical trace line for the event, without the terminating newline.
 func (r Reduce) String() string {
-	return fmt.Sprintf("REDUCE %s %d", r.NonterminalName, r.RightHandSideLength)
+	payload := r.LeftHandSide + " =>"
+	if len(r.RightHandSide) == 0 {
+		payload += " ε"
+	}
+	var payloadSb44 strings.Builder
+	for _, name := range r.RightHandSide {
+		payloadSb44.WriteString(" " + name)
+	}
+	payload += payloadSb44.String()
+	return traceLine(r.Line, r.Column, "REDUCE", payload)
 }
 
-// ParserError reports the byte offset of the terminal on which the parser detected an error. The offset is the finding,
-// not an incidental detail, because a default reduction delays the detection of an error and every language has to
-// delay it by exactly as much.
+// ParserError reports a syntax error at the current lookahead. Suppressed marks an error the parser hits while still
+// recovering and does not report to the caller.
 type ParserError struct {
-	Offset int
+	Line       int
+	Column     int
+	Detail     string
+	Suppressed bool
 }
 
 // String returns the canonical trace line for the event, without the terminating newline.
 func (p ParserError) String() string {
-	return fmt.Sprintf("ERROR %d", p.Offset)
+	detail := p.Detail
+	if p.Suppressed {
+		detail = "(suppressed) " + detail
+	}
+	return traceLine(p.Line, p.Column, "ERROR", detail)
 }
 
-// Resync reports that error recovery found a state which shifts the error symbol and that the parser resumed there. It
-// is the leaf that shift left in the parse tree, so it appears where that leaf appears in the walk and stands for the
-// part of the input which was dropped.
-//
-// There is no event for the states the recovery popped, nor for the tokens it discarded. Neither survives in the parse
-// tree, which is all a generated parser hands back, so neither can be observed without a trace hook on every generated
-// parser. What the recovery threw away is visible instead as the shifts and reductions which are missing from the walk.
-type Resync struct{}
+// Discard reports error recovery dropping the lookahead it keeps failing on.
+type Discard struct {
+	Line         int
+	Column       int
+	TerminalName string
+	Lexeme       string
+}
+
+// String returns the canonical trace line for the event, without the terminating newline.
+func (d Discard) String() string {
+	return traceLine(d.Line, d.Column, "DISCARD", d.TerminalName+` "`+EscapeLexeme(d.Lexeme)+`"`)
+}
+
+// Pop reports error recovery dropping one state and the symbol it had parsed.
+type Pop struct {
+	Line       int
+	Column     int
+	SymbolName string
+}
+
+// String returns the canonical trace line for the event, without the terminating newline.
+func (p Pop) String() string {
+	return traceLine(p.Line, p.Column, "POP", p.SymbolName)
+}
+
+// Resync reports error recovery shifting the error symbol and resuming.
+type Resync struct {
+	Line   int
+	Column int
+}
 
 // String returns the canonical trace line for the event, without the terminating newline.
 func (r Resync) String() string {
-	return "RESYNC"
+	return traceLine(r.Line, r.Column, "RESYNC", "")
+}
+
+// Fail reports the parse being given up. A parse ends on either Accept or Fail.
+type Fail struct {
+	Line   int
+	Column int
+}
+
+// String returns the canonical trace line for the event, without the terminating newline.
+func (f Fail) String() string {
+	return traceLine(f.Line, f.Column, "FAIL", "")
 }
 
 // Accept reports that the parser accepted the input.
-type Accept struct{}
+type Accept struct {
+	Line   int
+	Column int
+}
 
 // String returns the canonical trace line for the event, without the terminating newline.
 func (a Accept) String() string {
-	return "ACCEPT"
+	return traceLine(a.Line, a.Column, "ACCEPT", "")
 }

@@ -11,7 +11,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -97,73 +96,18 @@ func appendScannerTrace(lines []string, source []byte, inputPath string) []strin
 	return append(lines, fmt.Sprintf("EOF %d", scanner.ByteOffset()))
 }
 
-// appendNodeTrace appends the post-order walk of the subtree, which is the shift and reduce sequence of the parse.
-//
-// The symbol is taken apart rather than printed, because the trace names a symbol and Symbol.String does not: it is the
-// number the parser stores which comes out of it, and the name is what a golden holds.
-func appendNodeTrace(lines []string, node *parser.Node) []string {
-	for childIdx := range node.Children {
-		lines = appendNodeTrace(lines, &node.Children[childIdx])
-	}
-
-	if nonterminal, ok := node.Symbol.Nonterminal(); ok {
-		return append(lines, fmt.Sprintf("REDUCE %s %d", nonterminal, len(node.Children)))
-	}
-
-	token, _ := node.Symbol.Terminal()
-	if token == parser.ErrorToken {
-		// The leaf the recovery pushed where it resumed. It stands for the dropped input and names no token.
-		return append(lines, "RESYNC")
-	}
-	return append(lines, fmt.Sprintf("SHIFT %s", token))
-}
-
-// parseErrors takes apart the error Parse returns and hands back the syntax errors it carries.
-//
-// Parse joins its errors even when there is only one, so a join is what a parse with any error at all returns and nil
-// is what it returns without one. Anything else is a defect of the generated parser: every error a parse reports is
-// supposed to name the position it happened at, and the trace has no line to describe one which does not.
-func parseErrors(err error) []*parser.Error {
-	if err == nil {
-		return nil
-	}
-
-	joined, ok := err.(interface{ Unwrap() []error })
-	if !ok {
-		panic(fmt.Sprintf("the parser returned an error which is not a join: %v", err))
-	}
-
-	var result []*parser.Error
-	for _, single := range joined.Unwrap() {
-		var parseError *parser.Error
-		if !errors.As(single, &parseError) {
-			panic(fmt.Sprintf("the parser returned an error without a position: %v", single))
-		}
-		result = append(result, parseError)
-	}
-	return result
-}
-
-// appendParserTrace parses the whole input and appends its errors, the walk of the tree and the accept event.
-//
-// The errors come first because a shift carries no offset to interleave them by. A parse which was given up returns no
-// tree, so its trace is the errors alone and the missing accept event is what says the two outcomes apart.
+// appendParserTrace parses the whole input and appends the line the parser's trace hook emits for every action. The
+// hook reports the error recovery steps too, which the returned tree does not, so the tree and the error are ignored.
 func appendParserTrace(lines []string, source []byte, inputPath string) []string {
+	p := parser.NewParser()
+	p.Trace = func(line string) {
+		lines = append(lines, line)
+	}
+
 	// The TokenSkipper here, because a skipped rule never reaches the parser.
-	tree, err := parser.NewParser().Parse(parser.NewTokenSkipper(parser.NewScanner(source, inputPath)))
+	p.Parse(parser.NewTokenSkipper(parser.NewScanner(source, inputPath)))
 
-	for _, parseError := range parseErrors(err) {
-		lines = append(lines, fmt.Sprintf("ERROR %d", parseError.ByteOffset))
-	}
-
-	// The root of a tree is the start symbol and therefore a nonterminal. A parse which was given up returns the zero
-	// Node instead, whose symbol is a terminal, which is how the two are told apart without a second return value.
-	if _, ok := tree.Symbol.Nonterminal(); !ok {
-		return lines
-	}
-
-	lines = appendNodeTrace(lines, &tree)
-	return append(lines, "ACCEPT")
+	return lines
 }
 
 // writeTrace writes one trace to its file. Every line is terminated, and an empty trace is an empty file rather than a

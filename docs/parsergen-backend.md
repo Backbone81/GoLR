@@ -64,6 +64,27 @@ the terminal or the child nodes of the production which was reduced to it. Termi
 rather than a copy, so the source has to outlive the tree. Nodes for the error symbol carry neither, since no input
 produced them. Walking such a tree is what the [calculator example](../examples/calculator/) shows.
 
+## Tracing
+
+Every generated parser has an optional trace hook, a callback taking a string set on the parser instance. When set, it
+is called with one line for every action the parser takes, as a debugging aid for understanding an unexpected parse. It
+is off unless set, and the untraced path costs one branch per action.
+
+A line is the position of the current lookahead, a keyword, and a payload:
+
+```
+1:1     SHIFT   ID "a"
+1:3     REDUCE  term => ID
+1:3     REDUCE  expr => term
+1:3     ERROR   unexpected token PLUS
+1:3     POP     expr
+1:3     FAIL
+```
+
+The keywords are `SHIFT`, `REDUCE` (as `lhs => rhs...`, or `lhs => ε` for an empty right hand side), `ACCEPT`,
+`ERROR` (prefixed `(suppressed)` while error recovery is not reporting to the caller), and the `DISCARD`, `POP`,
+`RESYNC` and `FAIL` of error recovery. A parse ends on `ACCEPT` or `FAIL`.
+
 ## Reuse and concurrency
 
 The tables are constant data which every parser of the same grammar shares, so creating one is cheap.

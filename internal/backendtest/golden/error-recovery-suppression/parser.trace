@@ -1,23 +1,35 @@
-ERROR 4
-ERROR 19
-RESYNC
-SHIFT SEMICOLON
-REDUCE statement 2
-REDUCE statements 1
-RESYNC
-SHIFT SEMICOLON
-REDUCE statement 2
-REDUCE statements 2
-SHIFT NUMBER
-REDUCE expression 1
-SHIFT PLUS
-SHIFT NUMBER
-REDUCE expression 3
-SHIFT SEMICOLON
-REDUCE statement 2
-REDUCE statements 2
-RESYNC
-SHIFT SEMICOLON
-REDUCE statement 2
-REDUCE statements 2
-ACCEPT
+1:1     SHIFT   NUMBER "1"
+1:3     REDUCE  expression => NUMBER
+1:3     SHIFT   PLUS "+"
+1:5     ERROR   unexpected token SEMICOLON
+1:5     POP     PLUS
+1:5     POP     expression
+1:5     RESYNC
+1:5     SHIFT   SEMICOLON ";"
+1:7     REDUCE  statement => $error SEMICOLON
+1:7     REDUCE  statements => statement
+1:7     ERROR   (suppressed) unexpected token SEMICOLON
+1:7     RESYNC
+1:7     SHIFT   SEMICOLON ";"
+1:9     REDUCE  statement => $error SEMICOLON
+1:9     REDUCE  statements => statements statement
+1:9     SHIFT   NUMBER "1"
+1:11    REDUCE  expression => NUMBER
+1:11    SHIFT   PLUS "+"
+1:13    SHIFT   NUMBER "2"
+1:14    REDUCE  expression => expression PLUS NUMBER
+1:14    SHIFT   SEMICOLON ";"
+1:16    REDUCE  statement => expression SEMICOLON
+1:16    REDUCE  statements => statements statement
+1:16    SHIFT   NUMBER "3"
+1:18    REDUCE  expression => NUMBER
+1:18    SHIFT   PLUS "+"
+1:20    ERROR   unexpected token SEMICOLON
+1:20    POP     PLUS
+1:20    POP     expression
+1:20    RESYNC
+1:20    SHIFT   SEMICOLON ";"
+2:1     REDUCE  statement => $error SEMICOLON
+2:1     REDUCE  statements => statements statement
+2:1     SHIFT   $end ""
+2:1     ACCEPT

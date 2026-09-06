@@ -1,11 +1,12 @@
-SHIFT ITEM
-REDUCE list 1
-SHIFT ITEM
-REDUCE list 2
-SHIFT ITEM
-REDUCE list 2
-SHIFT ITEM
-REDUCE list 2
-SHIFT ITEM
-REDUCE list 2
-ACCEPT
+1:1     SHIFT   ITEM "i"
+1:3     REDUCE  list => ITEM
+1:3     SHIFT   ITEM "i"
+1:5     REDUCE  list => list ITEM
+1:5     SHIFT   ITEM "i"
+1:7     REDUCE  list => list ITEM
+1:7     SHIFT   ITEM "i"
+1:9     REDUCE  list => list ITEM
+1:9     SHIFT   ITEM "i"
+2:1     REDUCE  list => list ITEM
+2:1     SHIFT   $end ""
+2:1     ACCEPT

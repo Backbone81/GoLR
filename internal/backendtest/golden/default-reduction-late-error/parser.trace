@@ -1,1 +1,7 @@
-ERROR 6
+1:1     SHIFT   NAME "title"
+1:7     REDUCE  heading => NAME
+1:7     REDUCE  section => heading
+1:7     REDUCE  document => section
+1:7     ERROR   unexpected token NAME
+1:7     POP     document
+1:7     FAIL

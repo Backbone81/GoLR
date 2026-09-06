@@ -1,23 +1,24 @@
-SHIFT NUMBER
-REDUCE expression 1
-SHIFT MINUS
-SHIFT NUMBER
-REDUCE expression 1
-REDUCE expression 3
-SHIFT MINUS
-SHIFT NUMBER
-REDUCE expression 1
-SHIFT MULTIPLY
-SHIFT NUMBER
-REDUCE expression 1
-SHIFT POWER
-SHIFT NUMBER
-REDUCE expression 1
-SHIFT POWER
-SHIFT NUMBER
-REDUCE expression 1
-REDUCE expression 3
-REDUCE expression 3
-REDUCE expression 3
-REDUCE expression 3
-ACCEPT
+1:1     SHIFT   NUMBER "1"
+1:3     REDUCE  expression => NUMBER
+1:3     SHIFT   MINUS "-"
+1:5     SHIFT   NUMBER "2"
+1:7     REDUCE  expression => NUMBER
+1:7     REDUCE  expression => expression MINUS expression
+1:7     SHIFT   MINUS "-"
+1:9     SHIFT   NUMBER "3"
+1:11    REDUCE  expression => NUMBER
+1:11    SHIFT   MULTIPLY "*"
+1:13    SHIFT   NUMBER "4"
+1:15    REDUCE  expression => NUMBER
+1:15    SHIFT   POWER "^"
+1:17    SHIFT   NUMBER "5"
+1:19    REDUCE  expression => NUMBER
+1:19    SHIFT   POWER "^"
+1:21    SHIFT   NUMBER "6"
+2:1     REDUCE  expression => NUMBER
+2:1     REDUCE  expression => expression POWER expression
+2:1     REDUCE  expression => expression POWER expression
+2:1     REDUCE  expression => expression MULTIPLY expression
+2:1     REDUCE  expression => expression MINUS expression
+2:1     SHIFT   $end ""
+2:1     ACCEPT

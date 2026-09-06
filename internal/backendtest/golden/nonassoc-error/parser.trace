@@ -1,1 +1,10 @@
-ERROR 6
+1:1     SHIFT   NUMBER "1"
+1:3     REDUCE  comparison => NUMBER
+1:3     SHIFT   LESS "<"
+1:5     SHIFT   NUMBER "2"
+1:7     REDUCE  comparison => NUMBER
+1:7     ERROR   unexpected token LESS
+1:7     POP     comparison
+1:7     POP     LESS
+1:7     POP     comparison
+1:7     FAIL

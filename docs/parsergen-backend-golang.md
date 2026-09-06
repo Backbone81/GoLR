@@ -25,6 +25,11 @@ Every nonterminal node's `Production` field names the alternative it was reduced
 `Production` constants (`ProductionExpression1`, ... - `@name` in the grammar overrides the auto-generated name). It
 is `NoProduction` on a terminal node, which no production reduces to.
 
+## Tracing
+
+`Parser` has a `Trace` field of type `TraceFunc` (`func(line string)`). Set it after `NewParser` for a trace of every
+parser action, `nil` for none. See [parser generator backends](parsergen-backend.md) for the line format.
+
 ## Example
 
 [examples/calculator/golang/](../examples/calculator/golang/) is a calculator built on this backend. Its parser was

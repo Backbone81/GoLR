@@ -1,0 +1,3 @@
+description: Generated parsers can emit a text trace of every action they take - each
+  shift, reduce, accept and error recovery step - through an optional trace hook set
+  on the parser instance, as a debugging aid for understanding an unexpected parse.

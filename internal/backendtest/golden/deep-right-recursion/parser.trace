@@ -1,81 +1,82 @@
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-SHIFT ITEM
-REDUCE list 1
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-REDUCE list 2
-ACCEPT
+1:1     SHIFT   ITEM "i"
+1:2     SHIFT   ITEM "i"
+1:3     SHIFT   ITEM "i"
+1:4     SHIFT   ITEM "i"
+1:5     SHIFT   ITEM "i"
+1:6     SHIFT   ITEM "i"
+1:7     SHIFT   ITEM "i"
+1:8     SHIFT   ITEM "i"
+1:9     SHIFT   ITEM "i"
+1:10    SHIFT   ITEM "i"
+1:11    SHIFT   ITEM "i"
+1:12    SHIFT   ITEM "i"
+1:13    SHIFT   ITEM "i"
+1:14    SHIFT   ITEM "i"
+1:15    SHIFT   ITEM "i"
+1:16    SHIFT   ITEM "i"
+1:17    SHIFT   ITEM "i"
+1:18    SHIFT   ITEM "i"
+1:19    SHIFT   ITEM "i"
+1:20    SHIFT   ITEM "i"
+1:21    SHIFT   ITEM "i"
+1:22    SHIFT   ITEM "i"
+1:23    SHIFT   ITEM "i"
+1:24    SHIFT   ITEM "i"
+1:25    SHIFT   ITEM "i"
+1:26    SHIFT   ITEM "i"
+1:27    SHIFT   ITEM "i"
+1:28    SHIFT   ITEM "i"
+1:29    SHIFT   ITEM "i"
+1:30    SHIFT   ITEM "i"
+1:31    SHIFT   ITEM "i"
+1:32    SHIFT   ITEM "i"
+1:33    SHIFT   ITEM "i"
+1:34    SHIFT   ITEM "i"
+1:35    SHIFT   ITEM "i"
+1:36    SHIFT   ITEM "i"
+1:37    SHIFT   ITEM "i"
+1:38    SHIFT   ITEM "i"
+1:39    SHIFT   ITEM "i"
+1:40    SHIFT   ITEM "i"
+2:1     REDUCE  list => ITEM
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     REDUCE  list => ITEM list
+2:1     SHIFT   $end ""
+2:1     ACCEPT

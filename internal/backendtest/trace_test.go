@@ -53,41 +53,58 @@ var _ = Describe("Scanner events", func() {
 			func(event fmt.Stringer, expected string) {
 				Expect(event.String()).To(Equal(expected))
 			},
-			Entry("SHIFT",
-				backendtest.Shift{TerminalName: "NUMBER"},
-				"SHIFT NUMBER"),
-			Entry("REDUCE",
-				backendtest.Reduce{NonterminalName: "expr", RightHandSideLength: 3},
-				"REDUCE expr 3"),
-			Entry("REDUCE of an empty production",
-				backendtest.Reduce{NonterminalName: "opt", RightHandSideLength: 0},
-				"REDUCE opt 0"),
-			Entry("ERROR",
-				backendtest.ParserError{Offset: 5},
-				"ERROR 5"),
-			Entry("RESYNC carries no arguments",
-				backendtest.Resync{},
-				"RESYNC"),
-			Entry("ACCEPT carries no arguments",
-				backendtest.Accept{},
-				"ACCEPT"),
+			Entry("SHIFT carries the position, the terminal and the escaped lexeme",
+				backendtest.Shift{Line: 1, Column: 1, TerminalName: "NUMBER", Lexeme: "42"},
+				`1:1     SHIFT   NUMBER "42"`),
+			Entry("REDUCE spells out the right hand side",
+				backendtest.Reduce{Line: 1, Column: 3, LeftHandSide: "expr", RightHandSide: []string{"expr", "PLUS", "term"}},
+				"1:3     REDUCE  expr => expr PLUS term"),
+			Entry("REDUCE of an empty production uses an epsilon",
+				backendtest.Reduce{Line: 2, Column: 5, LeftHandSide: "opt"},
+				"2:5     REDUCE  opt => ε"),
+			Entry("a long position pushes the rest right instead of being truncated",
+				backendtest.Reduce{Line: 1234, Column: 56, LeftHandSide: "stmt", RightHandSide: []string{"expr"}},
+				"1234:56 REDUCE  stmt => expr"),
+			Entry("ERROR carries the position and a description",
+				backendtest.ParserError{Line: 3, Column: 8, Detail: "unexpected token RBRACE"},
+				"3:8     ERROR   unexpected token RBRACE"),
+			Entry("ERROR marks a suppressed error",
+				backendtest.ParserError{Line: 3, Column: 8, Detail: "unexpected token RBRACE", Suppressed: true},
+				"3:8     ERROR   (suppressed) unexpected token RBRACE"),
+			Entry("DISCARD carries the dropped terminal and its lexeme",
+				backendtest.Discard{Line: 3, Column: 8, TerminalName: "RBRACE", Lexeme: "}"},
+				`3:8     DISCARD RBRACE "}"`),
+			Entry("POP names the dropped symbol",
+				backendtest.Pop{Line: 3, Column: 8, SymbolName: "term"},
+				"3:8     POP     term"),
+			Entry("RESYNC carries only the position",
+				backendtest.Resync{Line: 3, Column: 8},
+				"3:8     RESYNC"),
+			Entry("FAIL carries only the position",
+				backendtest.Fail{Line: 3, Column: 8},
+				"3:8     FAIL"),
+			Entry("ACCEPT carries only the position",
+				backendtest.Accept{Line: 1, Column: 10},
+				"1:10    ACCEPT"),
 		)
 
 		It("writes a whole trace with one event per line and a trailing newline", func() {
 			trace := backendtest.Trace{
-				backendtest.ParserError{Offset: 2},
-				backendtest.Shift{TerminalName: "NUMBER"},
-				backendtest.Reduce{NonterminalName: "expr", RightHandSideLength: 1},
-				backendtest.Resync{},
-				backendtest.Accept{},
+				backendtest.Shift{Line: 1, Column: 1, TerminalName: "NUMBER", Lexeme: "1"},
+				backendtest.Reduce{Line: 1, Column: 3, LeftHandSide: "expr", RightHandSide: []string{"NUMBER"}},
+				backendtest.ParserError{Line: 1, Column: 3, Detail: "unexpected token PLUS"},
+				backendtest.Pop{Line: 1, Column: 3, SymbolName: "expr"},
+				backendtest.Resync{Line: 1, Column: 3},
+				backendtest.Accept{Line: 1, Column: 5},
 			}
 
 			Expect(trace.String()).To(Equal(
-				"ERROR 2\n" +
-					"SHIFT NUMBER\n" +
-					"REDUCE expr 1\n" +
-					"RESYNC\n" +
-					"ACCEPT\n",
+				`1:1     SHIFT   NUMBER "1"` + "\n" +
+					"1:3     REDUCE  expr => NUMBER\n" +
+					"1:3     ERROR   unexpected token PLUS\n" +
+					"1:3     POP     expr\n" +
+					"1:3     RESYNC\n" +
+					"1:5     ACCEPT\n",
 			))
 		})
 

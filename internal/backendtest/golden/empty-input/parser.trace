@@ -1,3 +1,4 @@
-REDUCE items 0
-REDUCE list 1
-ACCEPT
+1:1     REDUCE  items => ε
+1:1     REDUCE  list => items
+1:1     SHIFT   $end ""
+1:1     ACCEPT

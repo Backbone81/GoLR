@@ -325,8 +325,14 @@ var (
 	}
 )
 
+// TraceFunc receives one line per parser action. It is a debug aid; the line format carries no stability guarantee.
+type TraceFunc func(line string)
+
 // Parser provides the parser implementation.
 type Parser struct {
+	// Trace, when not nil, is called with one line for every action the parser takes. Set it after NewParser.
+	Trace TraceFunc
+
 	// stateStack holds the states of the running parse, the current one on top.
 	stateStack []int
 
@@ -437,6 +443,9 @@ func (p *Parser) step(scanner TokenSource) error {
 
 	switch action & actionKindMask {
 	case actionKindShift:
+		if p.Trace != nil {
+			p.emitTrace(scanner, "SHIFT", terminalTraceName(terminal)+` "`+escapeLexeme(scanner.Lexeme())+`"`)
+		}
 		p.stateStack = append(p.stateStack, int(action>>actionKindBits))
 		p.nodeStack = append(p.nodeStack, Node{
 			Symbol: NewTerminal(terminal),
@@ -449,23 +458,37 @@ func (p *Parser) step(scanner TokenSource) error {
 		}
 		return nil
 	case actionKindReduce:
-		p.reduce(action >> actionKindBits)
+		p.reduce(scanner, action>>actionKindBits)
 		return nil
 	case actionKindAccept:
+		if p.Trace != nil {
+			p.emitTrace(scanner, "ACCEPT", "")
+		}
 		// The parse is successfully finished.
 		return errAccept
 	case actionKindError:
+		if p.Trace != nil {
+			p.emitErrorTrace(scanner, "unexpected token "+terminalTraceName(terminal))
+		}
 		return p.raiseError(scanner, fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
 	default:
+		if p.Trace != nil {
+			p.emitErrorTrace(scanner, fmt.Sprintf("unexpected action %d in state %d", action, state))
+		}
 		return p.raiseError(scanner, fmt.Errorf("%w: unexpected action %d in state %d", ErrInternal, action, state))
 	}
 }
 
 // reduce replaces the right hand side of the given production on the stacks with the nonterminal on its left hand side,
 // and continues in the state the goto of the uncovered state leads to.
-func (p *Parser) reduce(productionIdx uint32) {
+func (p *Parser) reduce(scanner TokenSource, productionIdx uint32) {
 	popCount := int(popCountByProduction[productionIdx])
 	nonterminal := uint32(nonterminalByProduction[productionIdx])
+
+	if p.Trace != nil {
+		// The right hand side is still on the node stack here, before it is cut back below.
+		p.emitTrace(scanner, "REDUCE", reduceTracePayload(Nonterminal(nonterminal), p.nodeStack[len(p.nodeStack)-popCount:]))
+	}
 
 	p.stateStack = p.stateStack[:len(p.stateStack)-popCount]
 
@@ -509,7 +532,13 @@ func (p *Parser) recoverFromError(scanner TokenSource) bool {
 		// Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
 		if scanner.Token() == EndToken {
 			// The end of input is the one token which cannot be discarded.
+			if p.Trace != nil {
+				p.emitTrace(scanner, "FAIL", "")
+			}
 			return false
+		}
+		if p.Trace != nil {
+			p.emitTrace(scanner, "DISCARD", terminalTraceName(scanner.Token())+` "`+escapeLexeme(scanner.Lexeme())+`"`)
 		}
 		scanner.Next()
 	}
@@ -517,6 +546,9 @@ func (p *Parser) recoverFromError(scanner TokenSource) bool {
 
 	for {
 		if nextState, ok := p.errorShiftState(p.currentState()); ok {
+			if p.Trace != nil {
+				p.emitTrace(scanner, "RESYNC", "")
+			}
 			// Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
 			p.stateStack = append(p.stateStack, nextState)
 			p.nodeStack = append(p.nodeStack, Node{
@@ -526,7 +558,13 @@ func (p *Parser) recoverFromError(scanner TokenSource) bool {
 		}
 		if len(p.stateStack) == 1 {
 			// Only the state the parse started in is left and it cannot shift the error symbol either.
+			if p.Trace != nil {
+				p.emitTrace(scanner, "FAIL", "")
+			}
 			return false
+		}
+		if p.Trace != nil {
+			p.emitTrace(scanner, "POP", symbolTraceName(p.nodeStack[len(p.nodeStack)-1].Symbol))
 		}
 		// The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
 		// node, so dropping one drops one.
@@ -614,4 +652,83 @@ func (p *Parser) resetArena() {
 	p.arenaChunkIdx = 0
 	p.arenaAllocator = p.arenaChunks[0]
 	p.arenaAllocatorTop = 0
+}
+
+// emitTrace hands one trace line to p.Trace: the position of the current lookahead, the keyword, and an optional
+// payload. The caller has already checked that p.Trace is not nil.
+func (p *Parser) emitTrace(scanner TokenSource, keyword string, payload string) {
+	location := fmt.Sprintf("%d:%d", scanner.Line(), scanner.Column())
+	if payload == "" {
+		p.Trace(fmt.Sprintf("%-7s %s", location, keyword))
+		return
+	}
+	p.Trace(fmt.Sprintf("%-7s %-7s %s", location, keyword, payload))
+}
+
+// emitErrorTrace emits an ERROR line, marked suppressed while error recovery is not reporting to the caller.
+func (p *Parser) emitErrorTrace(scanner TokenSource, detail string) {
+	if p.errorRecoveryShiftsRemaining != 0 {
+		detail = "(suppressed) " + detail
+	}
+	p.emitTrace(scanner, "ERROR", detail)
+}
+
+// reduceTracePayload renders a reduction as "lhs => rhs", or "lhs => ε" for an empty right hand side.
+func reduceTracePayload(lhs Nonterminal, rhs []Node) string {
+	payload := lhs.String() + " =>"
+	if len(rhs) == 0 {
+		return payload + " ε"
+	}
+	for i := range rhs {
+		payload += " " + symbolTraceName(rhs[i].Symbol)
+	}
+	return payload
+}
+
+// symbolTraceName is the bare grammar name of a symbol, without the prefix Symbol.String adds.
+func symbolTraceName(symbol Symbol) string {
+	if nonterminal, ok := symbol.Nonterminal(); ok {
+		return nonterminal.String()
+	}
+	terminal, _ := symbol.Terminal()
+	return terminalTraceName(terminal)
+}
+
+// terminalTraceName names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name.
+func terminalTraceName(terminal Token) string {
+	switch terminal {
+	case EndToken:
+		return "$end"
+	case ErrorToken:
+		return "$error"
+	case InvalidToken:
+		return "$invalid"
+	default:
+		return terminal.String()
+	}
+}
+
+// escapeLexeme escapes the bytes of a lexeme for a trace line. The caller writes the quotes around the result.
+func escapeLexeme(lexeme []byte) string {
+	const hexDigits = "0123456789abcdef"
+	result := make([]byte, 0, len(lexeme))
+	for _, value := range lexeme {
+		switch {
+		case value == '\\':
+			result = append(result, '\\', '\\')
+		case value == '"':
+			result = append(result, '\\', '"')
+		case value == '\n':
+			result = append(result, '\\', 'n')
+		case value == '\r':
+			result = append(result, '\\', 'r')
+		case value == '\t':
+			result = append(result, '\\', 't')
+		case 0x20 <= value && value <= 0x7E:
+			result = append(result, value)
+		default:
+			result = append(result, '\\', 'x', hexDigits[value>>4], hexDigits[value&0x0F])
+		}
+	}
+	return string(result)
 }
