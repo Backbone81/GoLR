@@ -5,11 +5,12 @@ all: build
 build:
 	./gradlew build
 
-# Runs the tests against the version floor and against the newest IDEA release.
+# Runs the tests against the version floor, then statically verifies plugin compatibility with the
+# currently recommended IDEs via the IntelliJ Plugin Verifier.
 .PHONY: test
 test:
 	./gradlew test
-	./gradlew test -PplatformLatest=true
+	./gradlew verifyPlugin
 
 # Produces an installable plugin archive in build/distributions/. Install it via
 # IntelliJ: Settings | Plugins | gear icon | Install Plugin from Disk.
