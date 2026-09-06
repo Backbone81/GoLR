@@ -18,6 +18,12 @@ Every nonterminal node's `production` field names the alternative it was reduced
 `Production` variants (`ProductionExpression1`, ... - `@name` in the grammar overrides the auto-generated name). It is
 `None` on a terminal node.
 
+## Tracing
+
+`Parser` has a `trace` field of type `Option<TraceFunc>` (`Option<Box<dyn FnMut(&str)>>`). Set it after `Parser::new`
+for a trace of every parser action, `None` for none. See [parser generator backends](parsergen-backend.md) for the line
+format.
+
 ## Example
 
 [examples/calculator/rust/](../examples/calculator/rust/) is a calculator built on this backend. Its parser was

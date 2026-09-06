@@ -319,14 +319,26 @@ static NONTERMINAL_BY_PRODUCTION: [u8; 8] = [
     0, 1, 1, 1, 1, 1, 1, 1,
 ];
 
+/// Receives one line per parser action. It is a debug aid; the line format carries no stability guarantee.
+pub type TraceFunc = Box<dyn FnMut(&str)>;
+
 /// Parses the tokens of a scanner into a parse tree. One parser serves one source after another.
-#[derive(Debug, Default)]
-pub struct Parser;
+#[derive(Default)]
+pub struct Parser {
+    /// When set, called with one line for every action the parser takes. Set it after [`Parser::new`].
+    pub trace: Option<TraceFunc>,
+}
+
+impl fmt::Debug for Parser {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Parser").finish_non_exhaustive()
+    }
+}
 
 impl Parser {
     /// Creates a parser.
     pub fn new() -> Self {
-        Self
+        Self::default()
     }
 
     /// Parses the tokens the scanner delivers.
@@ -338,13 +350,20 @@ impl Parser {
     where
         S: TokenSource<'a> + ?Sized,
     {
-        ParseState::default().parse(scanner)
+        ParseState {
+            trace: self.trace.as_deref_mut(),
+            ..Default::default()
+        }
+        .parse(scanner)
     }
 }
 
 /// The stacks and the errors of one running parse.
 #[derive(Default)]
-struct ParseState<'a> {
+struct ParseState<'a, 't> {
+    /// When not `None`, called with one line for every action the parser takes.
+    trace: Option<&'t mut (dyn FnMut(&str) + 'static)>,
+
     /// The states of the running parse, the current one on top.
     state_stack: Vec<usize>,
 
@@ -359,7 +378,7 @@ struct ParseState<'a> {
     error_recovery_shifts_remaining: usize,
 }
 
-impl<'a> ParseState<'a> {
+impl<'a, 't> ParseState<'a, 't> {
     /// Runs one parse to its end.
     fn parse<S: TokenSource<'a> + ?Sized>(mut self, scanner: &mut S) -> ParseResult<'a> {
         self.state_stack.push(0);
@@ -424,6 +443,14 @@ impl<'a> ParseState<'a> {
 
         match action & ACTION_KIND_MASK {
             ACTION_KIND_SHIFT => {
+                if self.trace.is_some() {
+                    let payload = format!(
+                        "{} \"{}\"",
+                        terminal_trace_name(terminal),
+                        escape_lexeme(scanner.lexeme()),
+                    );
+                    self.emit_trace(scanner, "SHIFT", &payload);
+                }
                 self.state_stack.push(action >> ACTION_KIND_BITS);
                 self.node_stack.push(ParseNode {
                     symbol: ParseSymbol::Terminal(terminal),
@@ -439,28 +466,54 @@ impl<'a> ParseState<'a> {
                 StepResult::Continue
             }
             ACTION_KIND_REDUCE => {
-                self.reduce(action >> ACTION_KIND_BITS);
+                self.reduce(scanner, action >> ACTION_KIND_BITS);
                 StepResult::Continue
             }
-            ACTION_KIND_ACCEPT => StepResult::Accept,
-            ACTION_KIND_ERROR => StepResult::Failed(ParseError::new(
-                format!("unexpected token {terminal}"),
-                ErrorKind::Syntax,
-                scanner,
-            )),
-            _ => StepResult::Failed(ParseError::new(
-                format!("unexpected action {action} in state {state}"),
-                ErrorKind::Internal,
-                scanner,
-            )),
+            ACTION_KIND_ACCEPT => {
+                if self.trace.is_some() {
+                    self.emit_trace(scanner, "ACCEPT", "");
+                }
+                StepResult::Accept
+            }
+            ACTION_KIND_ERROR => {
+                if self.trace.is_some() {
+                    let detail = format!("unexpected token {}", terminal_trace_name(terminal));
+                    self.emit_error_trace(scanner, &detail);
+                }
+                StepResult::Failed(ParseError::new(
+                    format!("unexpected token {terminal}"),
+                    ErrorKind::Syntax,
+                    scanner,
+                ))
+            }
+            _ => {
+                if self.trace.is_some() {
+                    let detail = format!("unexpected action {action} in state {state}");
+                    self.emit_error_trace(scanner, &detail);
+                }
+                StepResult::Failed(ParseError::new(
+                    format!("unexpected action {action} in state {state}"),
+                    ErrorKind::Internal,
+                    scanner,
+                ))
+            }
         }
     }
 
     /// Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side, and
     /// continues in the state the goto of the uncovered state leads to.
-    fn reduce(&mut self, production_idx: usize) {
+    fn reduce<S: TokenSource<'a> + ?Sized>(&mut self, scanner: &S, production_idx: usize) {
         let pop_count = POP_COUNT_BY_PRODUCTION[production_idx] as usize;
         let nonterminal = NONTERMINAL_BY_PRODUCTION[production_idx] as usize;
+
+        if self.trace.is_some() {
+            // The right hand side is still on the node stack here, before it is cut back below.
+            let payload = reduce_trace_payload(
+                NONTERMINALS[nonterminal],
+                &self.node_stack[self.node_stack.len() - pop_count..],
+            );
+            self.emit_trace(scanner, "REDUCE", &payload);
+        }
 
         let uncovered_len = self.state_stack.len() - pop_count;
         self.state_stack.truncate(uncovered_len);
@@ -505,7 +558,18 @@ impl<'a> ParseState<'a> {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if scanner.token() == Token::EndToken {
                 // The end of input is the one token which cannot be discarded.
+                if self.trace.is_some() {
+                    self.emit_trace(scanner, "FAIL", "");
+                }
                 return false;
+            }
+            if self.trace.is_some() {
+                let payload = format!(
+                    "{} \"{}\"",
+                    terminal_trace_name(scanner.token()),
+                    escape_lexeme(scanner.lexeme()),
+                );
+                self.emit_trace(scanner, "DISCARD", &payload);
             }
             scanner.next();
         }
@@ -513,6 +577,9 @@ impl<'a> ParseState<'a> {
 
         loop {
             if let Some(next_state) = Self::error_shift_state(self.current_state()) {
+                if self.trace.is_some() {
+                    self.emit_trace(scanner, "RESYNC", "");
+                }
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 self.state_stack.push(next_state);
                 self.node_stack.push(ParseNode {
@@ -525,7 +592,16 @@ impl<'a> ParseState<'a> {
             }
             if self.state_stack.len() == 1 {
                 // Only the state the parse started in is left and it cannot shift the error symbol either.
+                if self.trace.is_some() {
+                    self.emit_trace(scanner, "FAIL", "");
+                }
                 return false;
+            }
+            if self.trace.is_some() {
+                let payload = symbol_trace_name(
+                    self.node_stack.last().expect("a node for every state above the first").symbol,
+                );
+                self.emit_trace(scanner, "POP", &payload);
             }
             // The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
             // node, so dropping one drops one.
@@ -574,4 +650,75 @@ impl<'a> ParseState<'a> {
         }
         Some(action >> ACTION_KIND_BITS)
     }
+
+    /// Hands one trace line to the trace hook: the position of the current lookahead, the keyword, and an optional
+    /// payload. The caller has already checked that the hook is set.
+    fn emit_trace<S: TokenSource<'a> + ?Sized>(&mut self, scanner: &S, keyword: &str, payload: &str) {
+        let location = format!("{}:{}", scanner.line(), scanner.column());
+        let line = if payload.is_empty() {
+            format!("{location:<7} {keyword}")
+        } else {
+            format!("{location:<7} {keyword:<7} {payload}")
+        };
+        let trace = self.trace.as_deref_mut().expect("the trace hook is set");
+        trace(&line);
+    }
+
+    /// Emits an ERROR line, marked suppressed while error recovery is not reporting to the caller.
+    fn emit_error_trace<S: TokenSource<'a> + ?Sized>(&mut self, scanner: &S, detail: &str) {
+        if self.error_recovery_shifts_remaining != 0 {
+            self.emit_trace(scanner, "ERROR", &format!("(suppressed) {detail}"));
+        } else {
+            self.emit_trace(scanner, "ERROR", detail);
+        }
+    }
+}
+
+/// Renders a reduction as `lhs => rhs`, or `lhs => ε` for an empty right hand side.
+fn reduce_trace_payload(lhs: Nonterminal, rhs: &[ParseNode<'_>]) -> String {
+    let mut payload = format!("{lhs} =>");
+    if rhs.is_empty() {
+        payload.push_str(" ε");
+        return payload;
+    }
+    for node in rhs {
+        payload.push(' ');
+        payload.push_str(&symbol_trace_name(node.symbol));
+    }
+    payload
+}
+
+/// The bare grammar name of a symbol, without the prefix [`ParseSymbol`]'s `Display` adds.
+fn symbol_trace_name(symbol: ParseSymbol) -> String {
+    match symbol {
+        ParseSymbol::Nonterminal(nonterminal) => nonterminal.to_string(),
+        ParseSymbol::Terminal(terminal) => terminal_trace_name(terminal),
+    }
+}
+
+/// Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name.
+fn terminal_trace_name(terminal: Token) -> String {
+    match terminal {
+        Token::EndToken => "$end".to_string(),
+        Token::ErrorToken => "$error".to_string(),
+        Token::InvalidToken => "$invalid".to_string(),
+        _ => terminal.to_string(),
+    }
+}
+
+/// Escapes the bytes of a lexeme for a trace line. The caller writes the quotes around the result.
+fn escape_lexeme(lexeme: &[u8]) -> String {
+    let mut result = String::with_capacity(lexeme.len());
+    for &value in lexeme {
+        match value {
+            b'\\' => result.push_str("\\\\"),
+            b'"' => result.push_str("\\\""),
+            b'\n' => result.push_str("\\n"),
+            b'\r' => result.push_str("\\r"),
+            b'\t' => result.push_str("\\t"),
+            0x20..=0x7e => result.push(value as char),
+            _ => result.push_str(&format!("\\x{value:02x}")),
+        }
+    }
+    result
 }

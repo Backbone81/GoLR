@@ -10,9 +10,11 @@
 mod parser;
 mod scanner;
 
+use std::cell::RefCell;
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::rc::Rc;
 
-use crate::parser::{ParseNode, ParseSymbol, Parser};
+use crate::parser::Parser;
 use crate::scanner::{Scanner, Token, TokenSkipper, TokenSource};
 
 const SCANNER_TRACE_FILE_NAME: &str = "scanner.actual";
@@ -95,40 +97,24 @@ fn append_scanner_trace(lines: &mut Vec<String>, source: &[u8], input_path: &str
     lines.push(format!("EOF {}", scanner.byte_offset()));
 }
 
-// append_node_trace appends the post-order walk of the subtree, which is the shift and reduce sequence of the parse.
-fn append_node_trace(lines: &mut Vec<String>, node: &ParseNode) {
-    for child in &node.children {
-        append_node_trace(lines, child);
-    }
-
-    match node.symbol {
-        ParseSymbol::Nonterminal(nonterminal) => {
-            lines.push(format!("REDUCE {} {}", nonterminal, node.children.len()));
-        }
-        // The leaf the recovery pushed where it resumed. It stands for the dropped input and names no token.
-        ParseSymbol::Terminal(Token::ErrorToken) => lines.push("RESYNC".to_string()),
-        ParseSymbol::Terminal(token) => lines.push(format!("SHIFT {token}")),
-    }
-}
-
-// append_parser_trace parses the whole input and appends its errors, the walk of the tree and the accept event.
-//
-// The errors come first because a shift carries no offset to interleave them by. A parse which was given up returns no
-// tree, so its trace is the errors alone and the missing accept event is what says the two outcomes apart.
+// append_parser_trace parses the whole input and appends the line the parser's trace hook emits for every action. The
+// hook reports the error recovery steps too, which the returned tree does not, so the tree and the error are ignored.
 fn append_parser_trace(lines: &mut Vec<String>, source: &[u8], input_path: &str) {
     // The TokenSkipper here, because a skipped rule never reaches the parser.
     let mut scanner = TokenSkipper::new(Scanner::new(source, input_path));
-    let result = Parser::new().parse(&mut scanner);
 
-    for error in &result.errors {
-        lines.push(format!("ERROR {}", error.byte_offset));
-    }
+    // The hook is 'static, so it collects through a shared cell rather than by borrowing the lines directly.
+    let collected: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
+    let sink = collected.clone();
 
-    let Some(tree) = &result.tree else {
-        return;
-    };
-    append_node_trace(lines, tree);
-    lines.push("ACCEPT".to_string());
+    let mut parser = Parser::new();
+    parser.trace = Some(Box::new(move |line: &str| sink.borrow_mut().push(line.to_string())));
+    let _ = parser.parse(&mut scanner);
+    drop(parser);
+
+    // The parser held the only other owner of the cell and is gone, so the lines can be moved straight out.
+    let collected = Rc::into_inner(collected).expect("the trace hook was the only other owner");
+    lines.extend(collected.into_inner());
 }
 
 // write_trace produces one trace and writes it to its file. Whatever was produced before a panic is written all the
