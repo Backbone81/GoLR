@@ -92,45 +92,15 @@ public class Runner {
         lines.add("EOF " + scanner.byteOffset());
     }
 
-    // appendNodeTrace appends the post-order walk of the subtree, which is the shift and reduce sequence of the parse.
-    private static void appendNodeTrace(List<String> lines, Parser.ParseNode node) {
-        for (Parser.ParseNode child : node.children()) {
-            appendNodeTrace(lines, child);
-        }
-
-        if (node.symbol() instanceof Parser.NonterminalSymbol symbol) {
-            lines.add("REDUCE " + symbol.nonterminal() + " " + node.children().size());
-            return;
-        }
-
-        // Everything which is no nonterminal is a terminal, so the outcome is known here.
-        Parser.TerminalSymbol symbol = (Parser.TerminalSymbol) node.symbol();
-        if (symbol.token() == Scanner.Token.ERROR_TOKEN) {
-            // The leaf the recovery pushed where it resumed. It stands for the dropped input and names no token.
-            lines.add("RESYNC");
-            return;
-        }
-        lines.add("SHIFT " + symbol.token());
-    }
-
-    // appendParserTrace parses the whole input and appends its errors, the walk of the tree and the accept event.
-    //
-    // The errors come first because a shift carries no offset to interleave them by. A parse which was given up
-    // returns no tree, so its trace is the errors alone and the missing accept event is what says the two outcomes
-    // apart.
+    // appendParserTrace parses the whole input and appends the line the parser's trace hook emits for every action.
+    // The hook reports the error recovery steps too, which the returned tree does not, so the tree and the error are
+    // ignored.
     private static void appendParserTrace(List<String> lines, byte[] source, String inputPath) {
+        Parser parser = new Parser();
+        parser.trace = lines::add;
+
         // The TokenSkipper here, because a skipped rule never reaches the parser.
-        Parser.ParseResult result = new Parser().parse(new Scanner.TokenSkipper(new Scanner(source, inputPath)));
-
-        for (Parser.ParseError error : result.errors()) {
-            lines.add("ERROR " + error.byteOffset());
-        }
-
-        if (result.tree() == null) {
-            return;
-        }
-        appendNodeTrace(lines, result.tree());
-        lines.add("ACCEPT");
+        parser.parse(new Scanner.TokenSkipper(new Scanner(source, inputPath)));
     }
 
     // writeTrace produces one trace and writes it to its file. Whatever was produced before a failure is written all

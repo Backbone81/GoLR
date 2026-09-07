@@ -10,6 +10,8 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.function.Consumer;
 
 /** Parses the tokens of a scanner into a parse tree. */
 @SuppressWarnings("auxiliaryclass")
@@ -330,6 +332,13 @@ public final class Parser {
     /** Holds the nonterminal on the left hand side of a production. */
 {{- template "tableField" .Tables.NonterminalByProduction }}
 
+    /**
+     * When not null, called with one line for every action the parser takes. Set it after {@code new Parser()}.
+     *
+     * <p>A debug aid; the line format carries no stability guarantee.
+     */
+    public Consumer<String> trace;
+
     /** The states of the running parse, the current one on top. */
     private int[] stateStack = new int[INITIAL_STACK_CAPACITY];
 
@@ -419,6 +428,12 @@ public final class Parser {
 
         return switch (action & ACTION_KIND_MASK) {
             case ACTION_KIND_SHIFT -> {
+                if (trace != null) {
+                    emitTrace(
+                            scanner,
+                            "SHIFT",
+                            terminalTraceName(terminal) + " \"" + escapeLexeme(scanner.lexeme()) + "\"");
+                }
                 pushState(action >> ACTION_KIND_BITS);
                 nodeStack.add(new ParseNode(new TerminalSymbol(terminal), scanner.lexeme(), List.of(), null));
                 scanner.next();
@@ -429,16 +444,29 @@ public final class Parser {
                 yield CONTINUE;
             }
             case ACTION_KIND_REDUCE -> {
-                reduce(action >> ACTION_KIND_BITS);
+                reduce(scanner, action >> ACTION_KIND_BITS);
                 yield CONTINUE;
             }
-            case ACTION_KIND_ACCEPT -> ACCEPT;
-            case ACTION_KIND_ERROR ->
-                new StepResult.Failed(new ParseError("unexpected token " + terminal, ErrorKind.SYNTAX, scanner));
-            default ->
-                new StepResult.Failed(
+            case ACTION_KIND_ACCEPT -> {
+                if (trace != null) {
+                    emitTrace(scanner, "ACCEPT", "");
+                }
+                yield ACCEPT;
+            }
+            case ACTION_KIND_ERROR -> {
+                if (trace != null) {
+                    emitErrorTrace(scanner, "unexpected token " + terminalTraceName(terminal));
+                }
+                yield new StepResult.Failed(new ParseError("unexpected token " + terminal, ErrorKind.SYNTAX, scanner));
+            }
+            default -> {
+                if (trace != null) {
+                    emitErrorTrace(scanner, "unexpected action " + action + " in state " + state);
+                }
+                yield new StepResult.Failed(
                         new ParseError(
                                 "unexpected action " + action + " in state " + state, ErrorKind.INTERNAL, scanner));
+            }
         };
     }
 
@@ -446,9 +474,19 @@ public final class Parser {
      * Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side, and
      * continues in the state the goto of the uncovered state leads to.
      */
-    private void reduce(int productionIdx) {
+    private void reduce(TokenSource scanner, int productionIdx) {
         int popCount = POP_COUNT_BY_PRODUCTION[productionIdx];
         int nonterminal = NONTERMINAL_BY_PRODUCTION[productionIdx];
+
+        if (trace != null) {
+            // The right hand side is still on the node stack here, before it is cut back below.
+            emitTrace(
+                    scanner,
+                    "REDUCE",
+                    reduceTracePayload(
+                            NONTERMINALS[nonterminal],
+                            nodeStack.subList(nodeStack.size() - popCount, nodeStack.size())));
+        }
 
         stateStackSize -= popCount;
 
@@ -495,7 +533,16 @@ public final class Parser {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if (scanner.token() == Scanner.Token.END_TOKEN) {
                 // The end of input is the one token which cannot be discarded.
+                if (trace != null) {
+                    emitTrace(scanner, "FAIL", "");
+                }
                 return false;
+            }
+            if (trace != null) {
+                emitTrace(
+                        scanner,
+                        "DISCARD",
+                        terminalTraceName(scanner.token()) + " \"" + escapeLexeme(scanner.lexeme()) + "\"");
             }
             scanner.next();
         }
@@ -504,6 +551,9 @@ public final class Parser {
         while (true) {
             int nextState = errorShiftState(currentState());
             if (nextState != NO_ERROR_SHIFT_STATE) {
+                if (trace != null) {
+                    emitTrace(scanner, "RESYNC", "");
+                }
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 pushState(nextState);
                 nodeStack.add(
@@ -512,7 +562,13 @@ public final class Parser {
             }
             if (stateStackSize == 1) {
                 // Only the state the parse started in is left and it cannot shift the error symbol either.
+                if (trace != null) {
+                    emitTrace(scanner, "FAIL", "");
+                }
                 return false;
+            }
+            if (trace != null) {
+                emitTrace(scanner, "POP", symbolTraceName(nodeStack.get(nodeStack.size() - 1).symbol()));
             }
             // The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
             // node, so dropping one drops one.
@@ -565,6 +621,80 @@ public final class Parser {
             return NO_ERROR_SHIFT_STATE;
         }
         return action >> ACTION_KIND_BITS;
+    }
+
+    /**
+     * Hands one trace line to {@link #trace}: the position of the current lookahead, the keyword, and an optional
+     * payload. The caller has already checked that {@link #trace} is not null.
+     */
+    private void emitTrace(TokenSource scanner, String keyword, String payload) {
+        String location = scanner.line() + ":" + scanner.column();
+        if (payload.isEmpty()) {
+            trace.accept(String.format(Locale.ROOT, "%-7s %s", location, keyword));
+            return;
+        }
+        trace.accept(String.format(Locale.ROOT, "%-7s %-7s %s", location, keyword, payload));
+    }
+
+    /** Emits an ERROR line, marked suppressed while error recovery is not reporting to the caller. */
+    private void emitErrorTrace(TokenSource scanner, String detail) {
+        if (errorRecoveryShiftsRemaining != 0) {
+            detail = "(suppressed) " + detail;
+        }
+        emitTrace(scanner, "ERROR", detail);
+    }
+
+    /** Renders a reduction as {@code lhs => rhs}, or {@code lhs => ε} for an empty right hand side. */
+    private static String reduceTracePayload(Nonterminal lhs, List<ParseNode> rhs) {
+        StringBuilder payload = new StringBuilder(lhs.toString()).append(" =>");
+        if (rhs.isEmpty()) {
+            return payload.append(" ε").toString();
+        }
+        for (ParseNode node : rhs) {
+            payload.append(' ').append(symbolTraceName(node.symbol()));
+        }
+        return payload.toString();
+    }
+
+    /** The bare grammar name of a symbol, without the prefix its toString adds. */
+    private static String symbolTraceName(ParseSymbol symbol) {
+        if (symbol instanceof NonterminalSymbol nonterminal) {
+            return nonterminal.nonterminal().toString();
+        }
+        return terminalTraceName(((TerminalSymbol) symbol).token());
+    }
+
+    /** Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name. */
+    private static String terminalTraceName(Scanner.Token terminal) {
+        return switch (terminal) {
+            case END_TOKEN -> "$end";
+            case ERROR_TOKEN -> "$error";
+            case INVALID_TOKEN -> "$invalid";
+            default -> terminal.toString();
+        };
+    }
+
+    /** Escapes the bytes of a lexeme for a trace line. The caller writes the quotes around the result. */
+    private static String escapeLexeme(ByteBuffer lexeme) {
+        StringBuilder result = new StringBuilder();
+        while (lexeme.hasRemaining()) {
+            int value = lexeme.get() & 0xff;
+            switch (value) {
+                case 0x5c -> result.append("\\\\");
+                case 0x22 -> result.append("\\\"");
+                case 0x0a -> result.append("\\n");
+                case 0x0d -> result.append("\\r");
+                case 0x09 -> result.append("\\t");
+                default -> {
+                    if (0x20 <= value && value <= 0x7e) {
+                        result.append((char) value);
+                    } else {
+                        result.append(String.format(Locale.ROOT, "\\x%02x", value));
+                    }
+                }
+            }
+        }
+        return result.toString();
     }
 
     /**
