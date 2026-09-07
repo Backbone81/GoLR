@@ -11,6 +11,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 
 namespace {{ .Config.Namespace }};
 
@@ -401,6 +403,13 @@ public sealed class Parser
     private static readonly {{ .Tables.NonterminalByProduction.Type }}[] NonterminalByProduction =
     { {{- .Tables.NonterminalByProduction.Literal "        " }}    };
 
+    /// <summary>
+    /// When not null, called with one line for every action the parser takes. Set it after <c>new Parser()</c>.
+    ///
+    /// A debug aid; the line format carries no stability guarantee.
+    /// </summary>
+    public Action<string>? Trace { get; set; }
+
     /// <summary>The states of the running parse, the current one on top.</summary>
     private readonly List<int> _stateStack = new();
 
@@ -500,6 +509,10 @@ public sealed class Parser
         switch (action & ActionKindMask)
         {
             case ActionKindShift:
+                if (Trace != null)
+                {
+                    EmitTrace(scanner, "SHIFT", $"{TerminalTraceName(terminal)} \"{EscapeLexeme(scanner.Lexeme.Span)}\"");
+                }
                 _stateStack.Add(action >> ActionKindBits);
                 _nodeStack.Add(new ParseNode(
                     ParseSymbol.NewTerminal(terminal), scanner.Lexeme, Array.Empty<ParseNode>(), null));
@@ -511,14 +524,26 @@ public sealed class Parser
                 }
                 return StepResult.Continue;
             case ActionKindReduce:
-                Reduce(action >> ActionKindBits);
+                Reduce(scanner, action >> ActionKindBits);
                 return StepResult.Continue;
             case ActionKindAccept:
+                if (Trace != null)
+                {
+                    EmitTrace(scanner, "ACCEPT", "");
+                }
                 return StepResult.Accept;
             case ActionKindError:
+                if (Trace != null)
+                {
+                    EmitErrorTrace(scanner, $"unexpected token {TerminalTraceName(terminal)}");
+                }
                 error = new ParseError($"unexpected token {terminal.ToDisplayString()}", ErrorKind.Syntax, scanner);
                 return StepResult.Failed;
             default:
+                if (Trace != null)
+                {
+                    EmitErrorTrace(scanner, $"unexpected action {action} in state {state}");
+                }
                 error = new ParseError($"unexpected action {action} in state {state}", ErrorKind.Internal, scanner);
                 return StepResult.Failed;
         }
@@ -528,11 +553,19 @@ public sealed class Parser
     /// Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side, and
     /// continues in the state the goto of the uncovered state leads to.
     /// </summary>
+    /// <param name="scanner">The scanner the lookahead position is taken from.</param>
     /// <param name="productionIdx">The production to reduce by.</param>
-    private void Reduce(int productionIdx)
+    private void Reduce(ITokenSource scanner, int productionIdx)
     {
         int popCount = PopCountByProduction[productionIdx];
         int nonterminal = NonterminalByProduction[productionIdx];
+
+        if (Trace != null)
+        {
+            // The right hand side is still on the node stack here, before it is cut back below.
+            EmitTrace(scanner, "REDUCE", ReduceTracePayload(
+                (Nonterminal)nonterminal, _nodeStack.GetRange(_nodeStack.Count - popCount, popCount)));
+        }
 
         _stateStack.RemoveRange(_stateStack.Count - popCount, popCount);
 
@@ -580,7 +613,15 @@ public sealed class Parser
             if (scanner.Token == Token.EndToken)
             {
                 // The end of input is the one token which cannot be discarded.
+                if (Trace != null)
+                {
+                    EmitTrace(scanner, "FAIL", "");
+                }
                 return false;
+            }
+            if (Trace != null)
+            {
+                EmitTrace(scanner, "DISCARD", $"{TerminalTraceName(scanner.Token)} \"{EscapeLexeme(scanner.Lexeme.Span)}\"");
             }
             scanner.Next();
         }
@@ -591,6 +632,10 @@ public sealed class Parser
             int nextState = ErrorShiftState(CurrentState());
             if (nextState != NoErrorShiftState)
             {
+                if (Trace != null)
+                {
+                    EmitTrace(scanner, "RESYNC", "");
+                }
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 _stateStack.Add(nextState);
                 _nodeStack.Add(new ParseNode(
@@ -600,7 +645,15 @@ public sealed class Parser
             if (_stateStack.Count == 1)
             {
                 // Only the state the parse started in is left and it cannot shift the error symbol either.
+                if (Trace != null)
+                {
+                    EmitTrace(scanner, "FAIL", "");
+                }
                 return false;
+            }
+            if (Trace != null)
+            {
+                EmitTrace(scanner, "POP", SymbolTraceName(_nodeStack[^1].Symbol));
             }
             // The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
             // node, so dropping one drops one.
@@ -649,6 +702,112 @@ public sealed class Parser
             return NoErrorShiftState;
         }
         return action >> ActionKindBits;
+    }
+
+    /// <summary>
+    /// Hands one trace line to <see cref="Trace"/>: the position of the current lookahead, the keyword, and an optional
+    /// payload. The caller has already checked that <see cref="Trace"/> is not null.
+    /// </summary>
+    /// <param name="scanner">The scanner the lookahead position is taken from.</param>
+    /// <param name="keyword">The trace keyword.</param>
+    /// <param name="payload">The payload, or an empty string for none.</param>
+    private void EmitTrace(ITokenSource scanner, string keyword, string payload)
+    {
+        string location = $"{scanner.Line}:{scanner.Column}".PadRight(7);
+        if (payload.Length == 0)
+        {
+            Trace!.Invoke($"{location} {keyword}");
+            return;
+        }
+        Trace!.Invoke($"{location} {keyword.PadRight(7)} {payload}");
+    }
+
+    /// <summary>Emits an ERROR line, marked suppressed while error recovery is not reporting to the caller.</summary>
+    /// <param name="scanner">The scanner the lookahead position is taken from.</param>
+    /// <param name="detail">The error detail, without the suppressed marker in front of it.</param>
+    private void EmitErrorTrace(ITokenSource scanner, string detail)
+    {
+        if (_errorRecoveryShiftsRemaining != 0)
+        {
+            detail = "(suppressed) " + detail;
+        }
+        EmitTrace(scanner, "ERROR", detail);
+    }
+
+    /// <summary>Renders a reduction as "lhs => rhs", or "lhs => ε" for an empty right hand side.</summary>
+    /// <param name="lhs">The nonterminal on the left hand side.</param>
+    /// <param name="rhs">The nodes of the right hand side.</param>
+    private static string ReduceTracePayload(Nonterminal lhs, IReadOnlyList<ParseNode> rhs)
+    {
+        StringBuilder payload = new StringBuilder(lhs.ToDisplayString()).Append(" =>");
+        if (rhs.Count == 0)
+        {
+            return payload.Append(" ε").ToString();
+        }
+        foreach (ParseNode node in rhs)
+        {
+            payload.Append(' ').Append(SymbolTraceName(node.Symbol));
+        }
+        return payload.ToString();
+    }
+
+    /// <summary>The bare grammar name of a symbol, without the prefix its ToString adds.</summary>
+    /// <param name="symbol">The symbol to name.</param>
+    private static string SymbolTraceName(ParseSymbol symbol)
+    {
+        if (symbol.TryGetNonterminal(out Nonterminal nonterminal))
+        {
+            return nonterminal.ToDisplayString();
+        }
+        _ = symbol.TryGetTerminal(out Token terminal);
+        return TerminalTraceName(terminal);
+    }
+
+    /// <summary>Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name.</summary>
+    /// <param name="terminal">The terminal to name.</param>
+    private static string TerminalTraceName(Token terminal) => terminal switch
+    {
+        Token.EndToken => "$end",
+        Token.ErrorToken => "$error",
+        Token.InvalidToken => "$invalid",
+        _ => terminal.ToDisplayString(),
+    };
+
+    /// <summary>Escapes the bytes of a lexeme for a trace line. The caller writes the quotes around the result.</summary>
+    /// <param name="lexeme">The bytes to escape.</param>
+    private static string EscapeLexeme(ReadOnlySpan<byte> lexeme)
+    {
+        StringBuilder result = new StringBuilder();
+        foreach (byte value in lexeme)
+        {
+            switch (value)
+            {
+                case 0x5c:
+                    result.Append("\\\\");
+                    continue;
+                case 0x22:
+                    result.Append("\\\"");
+                    continue;
+                case 0x0a:
+                    result.Append("\\n");
+                    continue;
+                case 0x0d:
+                    result.Append("\\r");
+                    continue;
+                case 0x09:
+                    result.Append("\\t");
+                    continue;
+            }
+
+            if (0x20 <= value && value <= 0x7e)
+            {
+                result.Append((char)value);
+                continue;
+            }
+
+            result.Append("\\x").Append(value.ToString("x2", CultureInfo.InvariantCulture));
+        }
+        return result.ToString();
     }
 
     /// <summary>

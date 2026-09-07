@@ -107,51 +107,15 @@ internal static class Runner
         lines.Add($"EOF {scanner.ByteOffset}");
     }
 
-    // AppendNodeTrace appends the post-order walk of the subtree, which is the shift and reduce sequence of the parse.
-    private static void AppendNodeTrace(List<string> lines, ParseNode node)
-    {
-        foreach (ParseNode child in node.Children)
-        {
-            AppendNodeTrace(lines, child);
-        }
-
-        if (node.Symbol.TryGetNonterminal(out Nonterminal nonterminal))
-        {
-            lines.Add($"REDUCE {nonterminal.ToDisplayString()} {node.Children.Count}");
-            return;
-        }
-
-        // Everything which is no nonterminal is a terminal, so the outcome is known here.
-        _ = node.Symbol.TryGetTerminal(out Token token);
-        if (token == Token.ErrorToken)
-        {
-            // The leaf the recovery pushed where it resumed. It stands for the dropped input and names no token.
-            lines.Add("RESYNC");
-            return;
-        }
-        lines.Add($"SHIFT {token.ToDisplayString()}");
-    }
-
-    // AppendParserTrace parses the whole input and appends its errors, the walk of the tree and the accept event.
-    //
-    // The errors come first because a shift carries no offset to interleave them by. A parse which was given up returns
-    // no tree, so its trace is the errors alone and the missing accept event is what says the two outcomes apart.
+    // AppendParserTrace parses the whole input and appends the line the parser's trace hook emits for every action. The
+    // hook reports the error recovery steps too, which the returned tree does not, so the tree and the error are
+    // ignored.
     private static void AppendParserTrace(List<string> lines, byte[] source, string inputPath)
     {
+        Parser.Parser parser = new Parser.Parser { Trace = lines.Add };
+
         // The TokenSkipper here, because a skipped rule never reaches the parser.
-        ParseResult result = new Parser.Parser().Parse(new TokenSkipper(new Scanner(source, inputPath)));
-
-        foreach (ParseError error in result.Errors)
-        {
-            lines.Add($"ERROR {error.ByteOffset}");
-        }
-
-        if (result.Tree == null)
-        {
-            return;
-        }
-        AppendNodeTrace(lines, result.Tree);
-        lines.Add("ACCEPT");
+        parser.Parse(new TokenSkipper(new Scanner(source, inputPath)));
     }
 
     // WriteTrace produces one trace and writes it to its file. Whatever was produced before a throw is written all the

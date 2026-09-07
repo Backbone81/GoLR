@@ -14,6 +14,11 @@ Every nonterminal node's `Production` property names the alternative it was redu
 `Production` members (`ProductionExpression1`, ... - `@name` in the grammar overrides the auto-generated name). It is
 null on a terminal node.
 
+## Tracing
+
+`Parser` has a `Trace` property of type `Action<string>?`. Set it after `new Parser()` for a trace of every parser
+action, null for none. See [parser generator backends](parsergen-backend.md) for the line format.
+
 ## Example
 
 [examples/calculator/csharp/](../examples/calculator/csharp/) is a calculator built on this backend. Its parser was
