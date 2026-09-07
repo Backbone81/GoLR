@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <iterator>
 #include <optional>
 #include <string>
@@ -162,9 +163,16 @@ struct ParseResult {
     std::vector<ParseError> errors;
 };
 
+/// Receives one line per parser action. A debug aid; the line format carries no stability guarantee.
+using TraceFunc = std::function<void(std::string_view)>;
+
 /// Parses the tokens of a scanner into a parse tree. One parser serves one source after another.
 class Parser final {
 public:
+    /// Sets the hook called with one line for every action the parser takes. Pass an empty std::function to turn
+    /// tracing off. Set it after the parser is constructed.
+    void set_trace(TraceFunc trace) { trace_ = std::move(trace); }
+
     /// Parses the tokens the scanner delivers. Can be called more than once, with a different scanner each time. The
     /// scanner is any type with the members Scanner and TokenSkipper have.
     ///
@@ -348,6 +356,13 @@ private:
 
         switch (action & ACTION_KIND_MASK) {
         case ACTION_KIND_SHIFT:
+            if (trace_) {
+                emit_trace(scanner, "SHIFT",
+                           std::string(terminal_trace_name(terminal))
+                               .append(" \"")
+                               .append(escape_lexeme(scanner.lexeme()))
+                               .append("\""));
+            }
             state_stack_.push_back(action >> ACTION_KIND_BITS);
             node_stack_.push_back(ParseNode{terminal, scanner.lexeme(), {}, std::nullopt});
             scanner.next();
@@ -357,11 +372,17 @@ private:
             }
             return StepContinue{};
         case ACTION_KIND_REDUCE:
-            reduce(action >> ACTION_KIND_BITS);
+            reduce(scanner, action >> ACTION_KIND_BITS);
             return StepContinue{};
         case ACTION_KIND_ACCEPT:
+            if (trace_) {
+                emit_trace(scanner, "ACCEPT", "");
+            }
             return StepAccept{};
         case ACTION_KIND_ERROR:
+            if (trace_) {
+                emit_error_trace(scanner, std::string("unexpected token ").append(terminal_trace_name(terminal)));
+            }
             return ParseError(
                 std::string("unexpected token ").append(to_string(terminal)),
                 ErrorKind::Syntax,
@@ -369,6 +390,10 @@ private:
         default:
             // Every value the mask selects has a case of its own, so this is never reached. It is here to make the
             // switch complete.
+            if (trace_) {
+                emit_error_trace(scanner,
+                                 "unexpected action " + std::to_string(action) + " in state " + std::to_string(state));
+            }
             return ParseError(
                 "unexpected action " + std::to_string(action) + " in state " + std::to_string(state),
                 ErrorKind::Internal,
@@ -378,9 +403,17 @@ private:
 
     /// Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side, and
     /// continues in the state the goto of the uncovered state leads to.
-    void reduce(std::size_t production_idx) {
+    template <typename ScannerT>
+    void reduce(const ScannerT& scanner, std::size_t production_idx) {
         const std::size_t pop_count = POP_COUNT_BY_PRODUCTION[production_idx];
         const std::size_t nonterminal = NONTERMINAL_BY_PRODUCTION[production_idx];
+
+        if (trace_) {
+            // The right hand side is still on the node stack here, before it is cut back below.
+            emit_trace(scanner, "REDUCE",
+                       reduce_trace_payload(static_cast<Nonterminal>(nonterminal),
+                                            node_stack_.data() + node_stack_.size() - pop_count, pop_count));
+        }
 
         state_stack_.resize(state_stack_.size() - pop_count);
 
@@ -427,7 +460,17 @@ private:
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if (scanner.token() == Token::EndToken) {
                 // The end of input is the one token which cannot be discarded.
+                if (trace_) {
+                    emit_trace(scanner, "FAIL", "");
+                }
                 return false;
+            }
+            if (trace_) {
+                emit_trace(scanner, "DISCARD",
+                           std::string(terminal_trace_name(scanner.token()))
+                               .append(" \"")
+                               .append(escape_lexeme(scanner.lexeme()))
+                               .append("\""));
             }
             scanner.next();
         }
@@ -436,6 +479,9 @@ private:
         while (true) {
             const std::optional<std::size_t> next_state = error_shift_state(current_state());
             if (next_state.has_value()) {
+                if (trace_) {
+                    emit_trace(scanner, "RESYNC", "");
+                }
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 state_stack_.push_back(*next_state);
                 node_stack_.push_back(ParseNode{Token::ErrorToken, std::string_view(), {}, std::nullopt});
@@ -443,7 +489,13 @@ private:
             }
             if (state_stack_.size() == 1) {
                 // Only the state the parse started in is left and it cannot shift the error symbol either.
+                if (trace_) {
+                    emit_trace(scanner, "FAIL", "");
+                }
                 return false;
+            }
+            if (trace_) {
+                emit_trace(scanner, "POP", symbol_trace_name(node_stack_.back().symbol));
             }
             // The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
             // node, so dropping one drops one.
@@ -503,6 +555,111 @@ private:
         }
         return action >> ACTION_KIND_BITS;
     }
+
+    /// Pads a trace field with spaces to a width of at least seven, leaving a longer field as it is.
+    [[nodiscard]] static std::string pad_field(std::string field) {
+        if (field.size() < 7) {
+            field.resize(7, ' ');
+        }
+        return field;
+    }
+
+    /// Hands one trace line to trace_: the position of the current lookahead, the keyword, and an optional payload. The
+    /// caller has already checked that trace_ holds a callable.
+    template <typename ScannerT>
+    void emit_trace(const ScannerT& scanner, std::string_view keyword, std::string_view payload) {
+        const std::string location =
+            pad_field(std::to_string(scanner.line()) + ":" + std::to_string(scanner.column()));
+        if (payload.empty()) {
+            trace_(location + " " + std::string(keyword));
+            return;
+        }
+        trace_(location + " " + pad_field(std::string(keyword)) + " " + std::string(payload));
+    }
+
+    /// Emits an ERROR line, marked suppressed while error recovery is not reporting to the caller.
+    template <typename ScannerT>
+    void emit_error_trace(const ScannerT& scanner, std::string_view detail) {
+        std::string full_detail(detail);
+        if (error_recovery_shifts_remaining_ != 0) {
+            full_detail = "(suppressed) " + full_detail;
+        }
+        emit_trace(scanner, "ERROR", full_detail);
+    }
+
+    /// Renders a reduction as "lhs => rhs", or "lhs => ε" for an empty right hand side.
+    [[nodiscard]] static std::string reduce_trace_payload(Nonterminal lhs, const ParseNode* rhs,
+                                                          std::size_t rhs_count) {
+        std::string payload = std::string(to_string(lhs)).append(" =>");
+        if (rhs_count == 0) {
+            return payload.append(" ε");
+        }
+        for (std::size_t i = 0; i < rhs_count; ++i) {
+            payload.append(" ").append(symbol_trace_name(rhs[i].symbol));
+        }
+        return payload;
+    }
+
+    /// The bare grammar name of a symbol, without the prefix to_string adds.
+    [[nodiscard]] static std::string symbol_trace_name(const ParseSymbol& symbol) {
+        if (const Token* terminal = std::get_if<Token>(&symbol)) {
+            return std::string(terminal_trace_name(*terminal));
+        }
+        return std::string(to_string(std::get<Nonterminal>(symbol)));
+    }
+
+    /// Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name.
+    [[nodiscard]] static constexpr std::string_view terminal_trace_name(Token token) noexcept {
+        switch (token) {
+        case Token::EndToken:
+            return "$end";
+        case Token::ErrorToken:
+            return "$error";
+        case Token::InvalidToken:
+            return "$invalid";
+        default:
+            return to_string(token);
+        }
+    }
+
+    /// Escapes the bytes of a lexeme for a trace line. The caller writes the quotes around the result.
+    [[nodiscard]] static std::string escape_lexeme(std::string_view lexeme) {
+        static constexpr char hex_digits[] = "0123456789abcdef";
+        std::string result;
+        for (const char raw : lexeme) {
+            const auto value = static_cast<unsigned char>(raw);
+            switch (value) {
+            case '\\':
+                result += "\\\\";
+                break;
+            case '"':
+                result += "\\\"";
+                break;
+            case '\n':
+                result += "\\n";
+                break;
+            case '\r':
+                result += "\\r";
+                break;
+            case '\t':
+                result += "\\t";
+                break;
+            default:
+                if (0x20 <= value && value <= 0x7e) {
+                    result += raw;
+                    break;
+                }
+                result += "\\x";
+                result += hex_digits[value >> 4];
+                result += hex_digits[value & 0x0F];
+                break;
+            }
+        }
+        return result;
+    }
+
+    /// The trace hook, empty when tracing is off. See set_trace.
+    TraceFunc trace_;
 
     /// The states of the running parse, the current one on top.
     std::vector<std::size_t> state_stack_;

@@ -12,7 +12,6 @@
 #include <iterator>
 #include <string>
 #include <string_view>
-#include <variant>
 #include <vector>
 
 #include "parser.hpp"
@@ -94,47 +93,17 @@ void append_scanner_trace(std::vector<std::string>& lines, std::string_view sour
     lines.push_back("EOF " + std::to_string(scanner.byte_offset()));
 }
 
-// append_node_trace appends the post-order walk of the subtree, which is the shift and reduce sequence of the parse.
-void append_node_trace(std::vector<std::string>& lines, const parser::ParseNode& node) {
-    for (const parser::ParseNode& child : node.children) {
-        append_node_trace(lines, child);
-    }
-
-    if (const parser::Token* terminal = std::get_if<parser::Token>(&node.symbol)) {
-        if (*terminal == parser::Token::ErrorToken) {
-            // The leaf the recovery pushed where it resumed. It stands for the dropped input and names no token.
-            lines.push_back("RESYNC");
-            return;
-        }
-        lines.push_back("SHIFT " + std::string(parser::to_string(*terminal)));
-        return;
-    }
-
-    lines.push_back("REDUCE " + std::string(parser::to_string(std::get<parser::Nonterminal>(node.symbol))) + " " +
-                    std::to_string(node.children.size()));
-}
-
-// append_parser_trace parses the whole input and appends its errors, the walk of the tree and the accept event.
-//
-// The errors come first because a shift carries no offset to interleave them by. A parse which was given up returns no
-// tree, so its trace is the errors alone and the missing accept event is what says the two outcomes apart.
+// append_parser_trace parses the whole input and appends the line the parser's trace hook emits for every action. The
+// hook reports the error recovery steps too, which the returned tree does not, so the tree and the error are ignored.
 void append_parser_trace(std::vector<std::string>& lines, std::string_view source, const std::string& input_path) {
-    // The TokenSkipper here, because a skipped rule never reaches the parser.
     parser::Scanner scanner(source, input_path);
     parser::TokenSkipper skipper(scanner);
 
     parser::Parser instance;
-    const parser::ParseResult result = instance.parse(skipper);
+    instance.set_trace([&lines](std::string_view line) { lines.emplace_back(line); });
 
-    for (const parser::ParseError& error : result.errors) {
-        lines.push_back("ERROR " + std::to_string(error.byte_offset));
-    }
-
-    if (!result.tree.has_value()) {
-        return;
-    }
-    append_node_trace(lines, *result.tree);
-    lines.push_back("ACCEPT");
+    // The TokenSkipper here, because a skipped rule never reaches the parser.
+    static_cast<void>(instance.parse(skipper));
 }
 
 // write_trace produces one trace and writes it to its file. Whatever was produced before an exception is written all

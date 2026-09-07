@@ -18,6 +18,12 @@ Every nonterminal node's `production` field names the alternative it was reduced
 `Production` enumerators (`ProductionExpression1`, ... - `@name` in the grammar overrides the auto-generated name). It
 is `std::nullopt` on a terminal node.
 
+## Tracing
+
+`Parser::set_trace` takes a `TraceFunc` (`std::function<void(std::string_view)>`), called with one line for every
+parser action. Set it after construction; pass an empty `std::function` for no tracing. See
+[parser generator backends](parsergen-backend.md) for the line format.
+
 ## Example
 
 [examples/calculator/cpp/](../examples/calculator/cpp/) is a calculator built on this backend. Its parser was generated
