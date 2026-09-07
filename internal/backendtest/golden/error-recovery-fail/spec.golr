@@ -1,0 +1,33 @@
+// Error recovery which runs and gives up, even though the grammar marks a place to resume at. `@error ";"` sits inside
+// `body`, so the error symbol can only be shifted while a `body` is being parsed, which is between the parentheses.
+// An error outside them is nowhere near that place: the recovery pops the stack looking for a state which shifts the
+// error symbol, finds none, unwinds down to the start state, and the parse is over. The trace ends in FAIL rather than
+// RESYNC, which is what says the recovery failed as opposed to the grammar carrying no `@error` at all.
+//
+// The input is a whole parenthesised body followed by a stray semicolon. The body parses cleanly, so the trace first
+// shows a shift and a reduce for it; the semicolon then arrives where the start symbol is already complete and only the
+// end of input is allowed. The recovery pops the reduced `program` and reaches the start state, which cannot shift the
+// error symbol, so it fails. The pop in front of the FAIL is what shows the recovery tried.
+//
+// The scanner is not what this case is about, so its rules are single characters and runs of digits.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NUMBER:    /[0-9]+/;
+    OPEN:      "(";
+    CLOSE:     ")";
+    SEMICOLON: ";";
+}
+
+@parser {
+    program
+        : "(" body ")"
+        ;
+
+    body
+        : NUMBER
+        | body NUMBER
+        | @error ";"
+        ;
+}

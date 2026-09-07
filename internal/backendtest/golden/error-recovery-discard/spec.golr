@@ -1,0 +1,28 @@
+// The DISCARD step of error recovery on its own. `@error ";"` says a statement which went wrong may be resumed at the
+// next semicolon, so the recovery shifts the error symbol in the state which allows it and then waits for a ";". When
+// the token which caused the error is not a ";", it is kept for that state to look at, because the state a recovery
+// resumes in is usually waiting for exactly it. Only a parse which fails again on that very same token throws it away,
+// which is what an untouched countdown of tokens to shift tells the recovery, and that throwing away is the DISCARD.
+//
+// The input is two plus signs and a semicolon. The first plus fails at the start, the recovery resumes at the error
+// symbol, and the plus fails there too because that state wants a ";". Nothing was shifted in between, so the plus is
+// discarded rather than kept, the error symbol is popped, and the recovery starts over. The second plus goes the same
+// way. The semicolon then ends the recovery and the parse accepts, so the trace also shows that a discard leaves the
+// parser able to carry on.
+//
+// The scanner is not what this case is about, so its rules are single characters and runs of digits.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NUMBER:    /[0-9]+/;
+    PLUS:      "+";
+    SEMICOLON: ";";
+}
+
+@parser {
+    statement
+        : NUMBER ";"
+        | @error ";"
+        ;
+}
