@@ -371,8 +371,14 @@ const nonterminalByProduction = new Uint8Array([
     0, 1, 1, 1, 1, 1, 1, 1,
 ]);
 
+/** Receives one line per parser action. A debug aid; the line format carries no stability guarantee. */
+export type TraceFunc = (line: string) => void;
+
 /** Parses the tokens of a scanner into a parse tree. */
 export class Parser {
+    /** When not null, called with one line for every action the parser takes. Set it after `new Parser()`. */
+    trace: TraceFunc | null = null;
+
     /** The states of the running parse, the current one on top. */
     readonly #stateStack: number[] = [];
 
@@ -456,6 +462,9 @@ export class Parser {
 
         switch (action & actionKindMask) {
             case actionKindShift:
+                if (this.trace !== null) {
+                    this.#emitTrace(scanner, "SHIFT", `${terminalTraceName(terminal)} "${escapeLexeme(scanner.lexeme())}"`);
+                }
                 this.#stateStack.push(action >>> actionKindBits);
                 this.#nodeStack.push(new ParseNode(ParseSymbol.newTerminal(terminal), scanner.lexeme(), [], null));
                 scanner.next();
@@ -465,13 +474,22 @@ export class Parser {
                 }
                 return null;
             case actionKindReduce:
-                this.#reduce(action >>> actionKindBits);
+                this.#reduce(scanner, action >>> actionKindBits);
                 return null;
             case actionKindAccept:
+                if (this.trace !== null) {
+                    this.#emitTrace(scanner, "ACCEPT", "");
+                }
                 return accept;
             case actionKindError:
+                if (this.trace !== null) {
+                    this.#emitErrorTrace(scanner, `unexpected token ${terminalTraceName(terminal)}`);
+                }
                 return new ParseError(`unexpected token ${tokenToString(terminal)}`, ErrorKind.Syntax, scanner);
             default:
+                if (this.trace !== null) {
+                    this.#emitErrorTrace(scanner, `unexpected action ${action} in state ${state}`);
+                }
                 return new ParseError(
                     `unexpected action ${action} in state ${state}`,
                     ErrorKind.Internal,
@@ -484,9 +502,18 @@ export class Parser {
      * Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side, and
      * continues in the state the goto of the uncovered state leads to.
      */
-    #reduce(productionIdx: number): void {
+    #reduce(scanner: TokenSource, productionIdx: number): void {
         const popCount = popCountByProduction[productionIdx]!;
         const nonterminal = nonterminalByProduction[productionIdx]!;
+
+        if (this.trace !== null) {
+            // The right hand side is still on the node stack here, before it is cut back below.
+            this.#emitTrace(
+                scanner,
+                "REDUCE",
+                reduceTracePayload(nonterminal as Nonterminal, this.#nodeStack.slice(this.#nodeStack.length - popCount)),
+            );
+        }
 
         this.#stateStack.length -= popCount;
 
@@ -529,7 +556,13 @@ export class Parser {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if (scanner.token() === Token.EndToken) {
                 // The end of input is the one token which cannot be discarded.
+                if (this.trace !== null) {
+                    this.#emitTrace(scanner, "FAIL", "");
+                }
                 return false;
+            }
+            if (this.trace !== null) {
+                this.#emitTrace(scanner, "DISCARD", `${terminalTraceName(scanner.token())} "${escapeLexeme(scanner.lexeme())}"`);
             }
             scanner.next();
         }
@@ -538,6 +571,9 @@ export class Parser {
         for (;;) {
             const nextState = Parser.#errorShiftState(this.#currentState());
             if (nextState !== noErrorShiftState) {
+                if (this.trace !== null) {
+                    this.#emitTrace(scanner, "RESYNC", "");
+                }
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 this.#stateStack.push(nextState);
                 this.#nodeStack.push(new ParseNode(ParseSymbol.newTerminal(Token.ErrorToken), null, [], null));
@@ -545,7 +581,13 @@ export class Parser {
             }
             if (this.#stateStack.length === 1) {
                 // Only the state the parse started in is left and it cannot shift the error symbol either.
+                if (this.trace !== null) {
+                    this.#emitTrace(scanner, "FAIL", "");
+                }
                 return false;
+            }
+            if (this.trace !== null) {
+                this.#emitTrace(scanner, "POP", symbolTraceName(this.#nodeStack[this.#nodeStack.length - 1]!.symbol));
             }
             // The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
             // node, so dropping one drops one.
@@ -590,4 +632,88 @@ export class Parser {
         }
         return action >>> actionKindBits;
     }
+
+    /**
+     * Hands one trace line to trace: the position of the current lookahead, the keyword, and an optional payload. The
+     * caller has already checked that trace is not null.
+     */
+    #emitTrace(scanner: TokenSource, keyword: string, payload: string): void {
+        const location = `${scanner.line()}:${scanner.column()}`.padEnd(7);
+        if (payload === "") {
+            this.trace!(`${location} ${keyword}`);
+            return;
+        }
+        this.trace!(`${location} ${keyword.padEnd(7)} ${payload}`);
+    }
+
+    /** Emits an ERROR line, marked suppressed while error recovery is not reporting to the caller. */
+    #emitErrorTrace(scanner: TokenSource, detail: string): void {
+        if (this.#errorRecoveryShiftsRemaining !== 0) {
+            detail = `(suppressed) ${detail}`;
+        }
+        this.#emitTrace(scanner, "ERROR", detail);
+    }
+}
+
+/** Renders a reduction as "lhs => rhs", or "lhs => ε" for an empty right hand side. */
+function reduceTracePayload(lhs: Nonterminal, rhs: ParseNode[]): string {
+    let payload = `${nonterminalToString(lhs)} =>`;
+    if (rhs.length === 0) {
+        return payload + " ε";
+    }
+    for (const node of rhs) {
+        payload += ` ${symbolTraceName(node.symbol)}`;
+    }
+    return payload;
+}
+
+/** The bare grammar name of a symbol, without the prefix symbolToString adds. */
+function symbolTraceName(symbol: ParseSymbol): string {
+    const nonterminal = ParseSymbol.nonterminal(symbol);
+    if (nonterminal !== null) {
+        return nonterminalToString(nonterminal);
+    }
+    return terminalTraceName(ParseSymbol.terminal(symbol)!);
+}
+
+/** Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name. */
+function terminalTraceName(terminal: Token): string {
+    switch (terminal) {
+        case Token.EndToken: return "$end";
+        case Token.ErrorToken: return "$error";
+        case Token.InvalidToken: return "$invalid";
+        default: return tokenToString(terminal);
+    }
+}
+
+/** Escapes the bytes of a lexeme for a trace line. The caller writes the quotes around the result. */
+function escapeLexeme(lexeme: Uint8Array): string {
+    let result = "";
+    for (const value of lexeme) {
+        switch (value) {
+            case 0x5c:
+                result += "\\\\";
+                continue;
+            case 0x22:
+                result += "\\\"";
+                continue;
+            case 0x0a:
+                result += "\\n";
+                continue;
+            case 0x0d:
+                result += "\\r";
+                continue;
+            case 0x09:
+                result += "\\t";
+                continue;
+        }
+
+        if (0x20 <= value && value <= 0x7e) {
+            result += String.fromCharCode(value);
+            continue;
+        }
+
+        result += "\\x" + value.toString(16).padStart(2, "0");
+    }
+    return result;
 }

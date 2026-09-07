@@ -7,8 +7,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
 import { Scanner, Token, TokenSkipper, tokenToString } from "./scanner.js";
-import { Nonterminal, Parser, ParseSymbol, nonterminalToString } from "./parser.js";
-import type { ParseNode } from "./parser.js";
+import { Parser } from "./parser.js";
 
 const scannerTraceFileName = "scanner.actual";
 const parserTraceFileName = "parser.actual";
@@ -82,44 +81,14 @@ function appendScannerTrace(lines: string[], source: Uint8Array, inputPath: stri
     lines.push(`EOF ${scanner.byteOffset()}`);
 }
 
-// appendNodeTrace appends the post-order walk of the subtree, which is the shift and reduce sequence of the parse.
-function appendNodeTrace(lines: string[], node: ParseNode): void {
-    for (const child of node.children) {
-        appendNodeTrace(lines, child);
-    }
-
-    const nonterminal = ParseSymbol.nonterminal(node.symbol);
-    if (nonterminal !== null) {
-        lines.push(`REDUCE ${nonterminalToString(nonterminal)} ${node.children.length}`);
-        return;
-    }
-
-    const token = ParseSymbol.terminal(node.symbol)!;
-    if (token === Token.ErrorToken) {
-        // The leaf the recovery pushed where it resumed. It stands for the dropped input and names no token.
-        lines.push("RESYNC");
-        return;
-    }
-    lines.push(`SHIFT ${tokenToString(token)}`);
-}
-
-// appendParserTrace parses the whole input and appends its errors, the walk of the tree and the accept event.
-//
-// The errors come first because a shift carries no offset to interleave them by. A parse which was given up returns no
-// tree, so its trace is the errors alone and the missing accept event is what says the two outcomes apart.
+// appendParserTrace parses the whole input and appends the line the parser's trace hook emits for every action. The
+// hook reports the error recovery steps too, which the returned tree does not, so the tree and the error are ignored.
 function appendParserTrace(lines: string[], source: Uint8Array, inputPath: string): void {
+    const parser = new Parser();
+    parser.trace = (line) => lines.push(line);
+
     // The TokenSkipper here, because a skipped rule never reaches the parser.
-    const { tree, errors } = new Parser().parse(new TokenSkipper(new Scanner(source, inputPath)));
-
-    for (const error of errors) {
-        lines.push(`ERROR ${error.byteOffset}`);
-    }
-
-    if (tree === null) {
-        return;
-    }
-    appendNodeTrace(lines, tree);
-    lines.push("ACCEPT");
+    parser.parse(new TokenSkipper(new Scanner(source, inputPath)));
 }
 
 // writeTrace produces one trace and writes it to its file. Whatever was produced before a throw is written all the

@@ -17,6 +17,11 @@ Every nonterminal node's `production` field names the alternative it was reduced
 `Production` values (`ProductionExpression1`, ... - `@name` in the grammar overrides the auto-generated name). It is
 null on a terminal node.
 
+## Tracing
+
+`Parser` has a `trace` field of type `TraceFunc | null` (`(line: string) => void`). Set it after `new Parser()` for a
+trace of every parser action, null for none. See [parser generator backends](parsergen-backend.md) for the line format.
+
 ## Example
 
 [examples/calculator/typescript/](../examples/calculator/typescript/) is a calculator built on this backend. Its parser
