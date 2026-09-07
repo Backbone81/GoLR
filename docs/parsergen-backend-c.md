@@ -22,6 +22,12 @@ Every nonterminal node's `production` field names the alternative it was reduced
 `<Prefix>Production` enumerators (`<PREFIX>_PRODUCTION_EXPRESSION1`, ... - `@name` in the grammar overrides the
 auto-generated name). It is `<PREFIX>_NO_PRODUCTION` on a terminal node, which no production reduces to.
 
+## Tracing
+
+The `Parser` struct has `trace` and `trace_context` fields. Set `trace` to a `<Prefix>TraceFunc`
+(`void (*)(void *context, const char *line)`) after `<prefix>_parser_init` for a trace of every parser action; leave it
+null for none. See [parser generator backends](parsergen-backend.md) for the line format.
+
 ## Example
 
 [examples/calculator/c/](../examples/calculator/c/) is a calculator built on this backend. Its parser was generated

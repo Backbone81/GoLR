@@ -112,6 +112,10 @@ struct CalculatorParseNode {
 /// short rather than allocated for.
 #define CALCULATOR_PARSE_ERROR_REASON_SIZE 256
 
+/// How many bytes a trace line is built in, the terminating zero included. A line which does not fit is cut short
+/// rather than grown for; no real grammar produces one that long.
+#define CALCULATOR_TRACE_LINE_SIZE 1024
+
 /// What a parse error is about.
 typedef enum CalculatorErrorKind {
     /// An error in the input.
@@ -181,9 +185,19 @@ typedef struct CalculatorParseResult {
 /// which failed.
 void calculator_parse_result_free(CalculatorParseResult *result);
 
+/// Receives one line per parser action. A debug aid; the line format carries no stability guarantee.
+typedef void (*CalculatorTraceFunc)(void *context, const char *line);
+
 /// Parses the tokens of a scanner into a parse tree. One parser serves one source after another, reusing the memory it
-/// already has. The fields are internal.
+/// already has. Every field but trace and trace_context is internal.
 typedef struct CalculatorParser {
+    /// The hook called with one line for every action the parser takes, or null for no tracing. Set it, together with
+    /// trace_context, after calculator_parser_init.
+    CalculatorTraceFunc trace;
+
+    /// The pointer handed to trace on every call.
+    void *trace_context;
+
     size_t *state_stack;
     size_t state_count;
     size_t state_capacity;
@@ -200,6 +214,10 @@ typedef struct CalculatorParser {
 
     size_t error_recovery_shifts_remaining;
     bool out_of_memory;
+
+    /// Reused scratch for the assembled trace line and, while it is built, its payload.
+    char trace_line[CALCULATOR_TRACE_LINE_SIZE];
+    char trace_payload[CALCULATOR_TRACE_LINE_SIZE];
 } CalculatorParser;
 
 /// Prepares a parser which has nothing allocated yet.
@@ -636,9 +654,138 @@ static bool calculator_error_shift_state(size_t state, size_t *next_state) {
     return true;
 }
 
+/// Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name.
+static const char *calculator_terminal_trace_name(CalculatorToken token) {
+    switch (token) {
+    case CALCULATOR_TOKEN_END_TOKEN:
+        return "$end";
+    case CALCULATOR_TOKEN_ERROR_TOKEN:
+        return "$error";
+    case CALCULATOR_TOKEN_INVALID_TOKEN:
+        return "$invalid";
+    default:
+        return calculator_token_to_string(token);
+    }
+}
+
+/// The bare grammar name of a symbol, without the prefix calculator_parse_symbol_to_string adds.
+static const char *calculator_symbol_trace_name(const CalculatorParseSymbol *symbol) {
+    if (symbol->kind == CALCULATOR_SYMBOL_KIND_TERMINAL) {
+        return calculator_terminal_trace_name(symbol->value.terminal);
+    }
+    return calculator_nonterminal_to_string(symbol->value.nonterminal);
+}
+
+/// Builds "<name> \"<escaped lexeme>\"" into parser->trace_payload for a SHIFT or DISCARD line, escaping the lexeme
+/// byte by byte and cutting the whole thing short when it does not fit.
+static void calculator_parser_trace_lexeme_payload(CalculatorParser *parser, const char *name, CalculatorStringView lexeme) {
+    static const char hex_digits[] = "0123456789abcdef";
+    int written = snprintf(parser->trace_payload, sizeof(parser->trace_payload), "%s \"", name);
+    size_t length = written < 0 ? 0 : (size_t)written;
+    size_t idx;
+
+    if (length >= sizeof(parser->trace_payload)) {
+        length = sizeof(parser->trace_payload) - 1;
+    }
+    /* Leaves room for the widest escape, the closing quote and the terminating zero. */
+    for (idx = 0; idx < lexeme.length && length + 5 < sizeof(parser->trace_payload); idx++) {
+        unsigned char value = (unsigned char)lexeme.data[idx];
+        switch (value) {
+        case '\\':
+            parser->trace_payload[length++] = '\\';
+            parser->trace_payload[length++] = '\\';
+            break;
+        case '"':
+            parser->trace_payload[length++] = '\\';
+            parser->trace_payload[length++] = '"';
+            break;
+        case '\n':
+            parser->trace_payload[length++] = '\\';
+            parser->trace_payload[length++] = 'n';
+            break;
+        case '\r':
+            parser->trace_payload[length++] = '\\';
+            parser->trace_payload[length++] = 'r';
+            break;
+        case '\t':
+            parser->trace_payload[length++] = '\\';
+            parser->trace_payload[length++] = 't';
+            break;
+        default:
+            if (0x20 <= value && value <= 0x7e) {
+                parser->trace_payload[length++] = (char)value;
+            } else {
+                parser->trace_payload[length++] = '\\';
+                parser->trace_payload[length++] = 'x';
+                parser->trace_payload[length++] = hex_digits[(size_t)(value >> 4)];
+                parser->trace_payload[length++] = hex_digits[(size_t)(value & 0x0f)];
+            }
+            break;
+        }
+    }
+
+    parser->trace_payload[length++] = '"';
+    parser->trace_payload[length] = '\0';
+}
+
+/// Builds "<lhs> => <rhs>..." into parser->trace_payload for a REDUCE line, or "<lhs> => ε" for an empty right hand
+/// side, cutting it short when it does not fit. The right hand side is the top nodes of the node stack, which are still
+/// there when this runs.
+static void calculator_parser_trace_reduce_payload(CalculatorParser *parser, CalculatorNonterminal lhs, size_t rhs_count) {
+    int written = snprintf(parser->trace_payload, sizeof(parser->trace_payload), "%s =>", calculator_nonterminal_to_string(lhs));
+    size_t length = written < 0 ? 0 : (size_t)written;
+    size_t idx;
+
+    if (length >= sizeof(parser->trace_payload)) {
+        return;
+    }
+    if (rhs_count == 0) {
+        snprintf(parser->trace_payload + length, sizeof(parser->trace_payload) - length, " ε");
+        return;
+    }
+    for (idx = 0; idx < rhs_count; idx++) {
+        const char *name = calculator_symbol_trace_name(&parser->node_stack[parser->node_count - rhs_count + idx].symbol);
+        int piece = snprintf(parser->trace_payload + length, sizeof(parser->trace_payload) - length, " %s", name);
+        if (piece < 0) {
+            return;
+        }
+        length += (size_t)piece;
+        if (length >= sizeof(parser->trace_payload)) {
+            return;
+        }
+    }
+}
+
+/// Hands one trace line to parser->trace: the position of the current lookahead left justified to seven, the keyword
+/// left justified to seven when a payload follows, and the payload. A null payload leaves it off. A line which does not
+/// fit parser->trace_line is cut short. The caller has checked that parser->trace is set.
+static void calculator_parser_emit_trace(CalculatorParser *parser, const CalculatorTokenSource *scanner, const char *keyword, const char *payload) {
+    char location[48];
+
+    snprintf(location, sizeof(location), "%zu:%zu", scanner->line(scanner->context), scanner->column(scanner->context));
+    if (payload != NULL) {
+        snprintf(parser->trace_line, sizeof(parser->trace_line), "%-7s %-7s %s", location, keyword, payload);
+    } else {
+        snprintf(parser->trace_line, sizeof(parser->trace_line), "%-7s %s", location, keyword);
+    }
+    parser->trace(parser->trace_context, parser->trace_line);
+}
+
+/// Emits an ERROR line, marked suppressed while error recovery is not reporting to the caller.
+static void calculator_parser_emit_error_trace(CalculatorParser *parser, const CalculatorTokenSource *scanner, const char *detail) {
+    char full_detail[CALCULATOR_PARSE_ERROR_REASON_SIZE + 16];
+
+    if (parser->error_recovery_shifts_remaining != 0) {
+        snprintf(full_detail, sizeof(full_detail), "(suppressed) %s", detail);
+        calculator_parser_emit_trace(parser, scanner, "ERROR", full_detail);
+        return;
+    }
+    calculator_parser_emit_trace(parser, scanner, "ERROR", detail);
+}
+
 /// Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side, and
 /// continues in the state the goto of the uncovered state leads to. Returns false when an allocation failed.
-static bool calculator_parser_reduce(CalculatorParser *parser, size_t production_idx) {
+static bool calculator_parser_reduce(CalculatorParser *parser, const CalculatorTokenSource *scanner, size_t production_idx) {
     size_t pop_count = CALCULATOR_POP_COUNT_BY_PRODUCTION[production_idx];
     size_t nonterminal = CALCULATOR_NONTERMINAL_BY_PRODUCTION[production_idx];
     CalculatorParseNode *children = NULL;
@@ -647,6 +794,12 @@ static bool calculator_parser_reduce(CalculatorParser *parser, size_t production
     size_t goto_state;
     size_t cell_idx;
     size_t cell_nonterminal;
+
+    if (parser->trace != NULL) {
+        /* The right hand side is still on the node stack here, before it is cut back below. */
+        calculator_parser_trace_reduce_payload(parser, (CalculatorNonterminal)nonterminal, pop_count);
+        calculator_parser_emit_trace(parser, scanner, "REDUCE", parser->trace_payload);
+    }
 
     parser->state_count -= pop_count;
 
@@ -718,6 +871,11 @@ static CalculatorStepResult calculator_parser_step(CalculatorParser *parser, con
 
     switch (action & CALCULATOR_ACTION_KIND_MASK) {
     case CALCULATOR_ACTION_KIND_SHIFT:
+        if (parser->trace != NULL) {
+            calculator_parser_trace_lexeme_payload(parser, calculator_terminal_trace_name(terminal),
+                                                  scanner->lexeme(scanner->context));
+            calculator_parser_emit_trace(parser, scanner, "SHIFT", parser->trace_payload);
+        }
         if (!calculator_parser_push_state(parser, action >> CALCULATOR_ACTION_KIND_BITS)) {
             return CALCULATOR_STEP_FAILED;
         }
@@ -737,21 +895,31 @@ static CalculatorStepResult calculator_parser_step(CalculatorParser *parser, con
         }
         return CALCULATOR_STEP_CONTINUE;
     case CALCULATOR_ACTION_KIND_REDUCE:
-        if (!calculator_parser_reduce(parser, action >> CALCULATOR_ACTION_KIND_BITS)) {
+        if (!calculator_parser_reduce(parser, scanner, action >> CALCULATOR_ACTION_KIND_BITS)) {
             return CALCULATOR_STEP_FAILED;
         }
         return CALCULATOR_STEP_CONTINUE;
     case CALCULATOR_ACTION_KIND_ACCEPT:
+        if (parser->trace != NULL) {
+            calculator_parser_emit_trace(parser, scanner, "ACCEPT", NULL);
+        }
         return CALCULATOR_STEP_ACCEPT;
     case CALCULATOR_ACTION_KIND_ERROR:
         snprintf(reason, sizeof(reason), "unexpected token %s", calculator_token_to_string(terminal));
         *error = calculator_parse_error_at(reason, CALCULATOR_ERROR_KIND_SYNTAX, scanner);
+        if (parser->trace != NULL) {
+            snprintf(reason, sizeof(reason), "unexpected token %s", calculator_terminal_trace_name(terminal));
+            calculator_parser_emit_error_trace(parser, scanner, reason);
+        }
         return CALCULATOR_STEP_FAILED;
     default:
         /* Every value the mask selects has a case of its own, so this is never reached. It is here to make the switch
            complete. */
         snprintf(reason, sizeof(reason), "unexpected action %zu in state %zu", action, state);
         *error = calculator_parse_error_at(reason, CALCULATOR_ERROR_KIND_INTERNAL, scanner);
+        if (parser->trace != NULL) {
+            calculator_parser_emit_error_trace(parser, scanner, reason);
+        }
         return CALCULATOR_STEP_FAILED;
     }
 }
@@ -777,7 +945,15 @@ static bool calculator_parser_recover_from_error(CalculatorParser *parser, const
         /* Nothing was shifted since the last error, so the parser is failing on the token it already failed on. */
         if (scanner->token(scanner->context) == CALCULATOR_TOKEN_END_TOKEN) {
             /* The end of input is the one token which cannot be discarded. */
+            if (parser->trace != NULL) {
+                calculator_parser_emit_trace(parser, scanner, "FAIL", NULL);
+            }
             return false;
+        }
+        if (parser->trace != NULL) {
+            calculator_parser_trace_lexeme_payload(parser, calculator_terminal_trace_name(scanner->token(scanner->context)),
+                                                  scanner->lexeme(scanner->context));
+            calculator_parser_emit_trace(parser, scanner, "DISCARD", parser->trace_payload);
         }
         scanner->next(scanner->context);
     }
@@ -785,6 +961,9 @@ static bool calculator_parser_recover_from_error(CalculatorParser *parser, const
 
     for (;;) {
         if (calculator_error_shift_state(calculator_parser_current_state(parser), &next_state)) {
+            if (parser->trace != NULL) {
+                calculator_parser_emit_trace(parser, scanner, "RESYNC", NULL);
+            }
             /* Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme. */
             if (!calculator_parser_push_state(parser, next_state)) {
                 return false;
@@ -800,7 +979,14 @@ static bool calculator_parser_recover_from_error(CalculatorParser *parser, const
         }
         if (parser->state_count == 1) {
             /* Only the state the parse started in is left and it cannot shift the error symbol either. */
+            if (parser->trace != NULL) {
+                calculator_parser_emit_trace(parser, scanner, "FAIL", NULL);
+            }
             return false;
+        }
+        if (parser->trace != NULL) {
+            calculator_parser_emit_trace(parser, scanner, "POP",
+                                         calculator_symbol_trace_name(&parser->node_stack[parser->node_count - 1].symbol));
         }
         /* The state cannot resume here, so it is dropped together with what it had parsed. One state carries one node,
            so dropping one drops one. */
@@ -810,6 +996,8 @@ static bool calculator_parser_recover_from_error(CalculatorParser *parser, const
 }
 
 void calculator_parser_init(CalculatorParser *parser) {
+    parser->trace = NULL;
+    parser->trace_context = NULL;
     parser->state_stack = NULL;
     parser->state_count = 0;
     parser->state_capacity = 0;

@@ -90,34 +90,13 @@ static void write_scanner_trace(FILE *out, const char *source, size_t source_len
     fprintf(out, "EOF %zu\n", parser_scanner_byte_offset(&scanner));
 }
 
-/* Writes the post-order walk of the subtree, which is the shift and reduce sequence of the parse. */
-static void write_node_trace(FILE *out, const ParserParseNode *node) {
-    size_t idx;
-    ParserToken terminal;
-    ParserNonterminal nonterminal;
-
-    for (idx = 0; idx < node->child_count; idx++) {
-        write_node_trace(out, &node->children[idx]);
-    }
-
-    if (parser_parse_symbol_terminal(&node->symbol, &terminal)) {
-        if (terminal == PARSER_TOKEN_ERROR_TOKEN) {
-            /* The leaf the recovery pushed where it resumed. It stands for the dropped input and names no token. */
-            fputs("RESYNC\n", out);
-            return;
-        }
-        fprintf(out, "SHIFT %s\n", parser_token_to_string(terminal));
-        return;
-    }
-
-    parser_parse_symbol_nonterminal(&node->symbol, &nonterminal);
-    fprintf(out, "REDUCE %s %zu\n", parser_nonterminal_to_string(nonterminal), node->child_count);
+/* Writes one trace line to the file behind the context pointer. This is the parser's trace hook. */
+static void write_trace_line(void *context, const char *line) {
+    fprintf((FILE *)context, "%s\n", line);
 }
 
-/* Parses the whole input and writes its errors, the walk of the tree and the accept event.
-
-   The errors come first because a shift carries no offset to interleave them by. A parse which was given up returns no
-   tree, so its trace is the errors alone and the missing accept event is what says the two outcomes apart. */
+/* Parses the whole input and writes the line the parser's trace hook emits for every action. The hook reports the error
+   recovery steps too, which the returned tree does not, so the tree and the errors are ignored. */
 static void write_parser_trace(FILE *out, const char *source, size_t source_length, const char *input_path) {
     /* The token skipper here, because a skipped rule never reaches the parser. */
     ParserScanner scanner;
@@ -125,23 +104,16 @@ static void write_parser_trace(FILE *out, const char *source, size_t source_leng
     ParserTokenSource source_of_tokens;
     ParserParser parser;
     ParserParseResult result;
-    size_t idx;
 
     parser_scanner_init(&scanner, source, source_length, input_path);
     parser_token_skipper_init(&skipper, parser_scanner_as_token_source(&scanner));
     source_of_tokens = parser_token_skipper_as_token_source(&skipper);
 
     parser_parser_init(&parser);
+    parser.trace = write_trace_line;
+    parser.trace_context = out;
+
     result = parser_parser_parse(&parser, &source_of_tokens);
-
-    for (idx = 0; idx < result.error_count; idx++) {
-        fprintf(out, "ERROR %zu\n", result.errors[idx].byte_offset);
-    }
-
-    if (result.tree != NULL) {
-        write_node_trace(out, result.tree);
-        fputs("ACCEPT\n", out);
-    }
 
     parser_parse_result_free(&result);
     parser_parser_free(&parser);

@@ -115,6 +115,10 @@ struct {{ .Type "ParseNode" }} {
 /// short rather than allocated for.
 #define {{ .Const "ParseErrorReasonSize" }} 256
 
+/// How many bytes a trace line is built in, the terminating zero included. A line which does not fit is cut short
+/// rather than grown for; no real grammar produces one that long.
+#define {{ .Const "TraceLineSize" }} 1024
+
 /// What a parse error is about.
 typedef enum {{ .Type "ErrorKind" }} {
     /// An error in the input.
@@ -184,9 +188,19 @@ typedef struct {{ .Type "ParseResult" }} {
 /// which failed.
 void {{ .Func "ParseResultFree" }}({{ .Type "ParseResult" }} *result);
 
+/// Receives one line per parser action. A debug aid; the line format carries no stability guarantee.
+typedef void (*{{ .Type "TraceFunc" }})(void *context, const char *line);
+
 /// Parses the tokens of a scanner into a parse tree. One parser serves one source after another, reusing the memory it
-/// already has. The fields are internal.
+/// already has. Every field but trace and trace_context is internal.
 typedef struct {{ .Type "Parser" }} {
+    /// The hook called with one line for every action the parser takes, or null for no tracing. Set it, together with
+    /// trace_context, after {{ .Func "ParserInit" }}.
+    {{ .Type "TraceFunc" }} trace;
+
+    /// The pointer handed to trace on every call.
+    void *trace_context;
+
     size_t *state_stack;
     size_t state_count;
     size_t state_capacity;
@@ -203,6 +217,10 @@ typedef struct {{ .Type "Parser" }} {
 
     size_t error_recovery_shifts_remaining;
     bool out_of_memory;
+
+    /// Reused scratch for the assembled trace line and, while it is built, its payload.
+    char trace_line[{{ .Const "TraceLineSize" }}];
+    char trace_payload[{{ .Const "TraceLineSize" }}];
 } {{ .Type "Parser" }};
 
 /// Prepares a parser which has nothing allocated yet.
@@ -600,9 +618,138 @@ static bool {{ .Func "ErrorShiftState" }}(size_t state, size_t *next_state) {
     return true;
 }
 
+/// Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name.
+static const char *{{ .Func "TerminalTraceName" }}({{ .Type "Token" }} token) {
+    switch (token) {
+    case {{ .Const "TokenEndToken" }}:
+        return "$end";
+    case {{ .Const "TokenErrorToken" }}:
+        return "$error";
+    case {{ .Const "TokenInvalidToken" }}:
+        return "$invalid";
+    default:
+        return {{ .Func "TokenToString" }}(token);
+    }
+}
+
+/// The bare grammar name of a symbol, without the prefix {{ .Func "ParseSymbolToString" }} adds.
+static const char *{{ .Func "SymbolTraceName" }}(const {{ .Type "ParseSymbol" }} *symbol) {
+    if (symbol->kind == {{ .Const "SymbolKindTerminal" }}) {
+        return {{ .Func "TerminalTraceName" }}(symbol->value.terminal);
+    }
+    return {{ .Func "NonterminalToString" }}(symbol->value.nonterminal);
+}
+
+/// Builds "<name> \"<escaped lexeme>\"" into parser->trace_payload for a SHIFT or DISCARD line, escaping the lexeme
+/// byte by byte and cutting the whole thing short when it does not fit.
+static void {{ .Func "ParserTraceLexemePayload" }}({{ .Type "Parser" }} *parser, const char *name, {{ .Type "StringView" }} lexeme) {
+    static const char hex_digits[] = "0123456789abcdef";
+    int written = snprintf(parser->trace_payload, sizeof(parser->trace_payload), "%s \"", name);
+    size_t length = written < 0 ? 0 : (size_t)written;
+    size_t idx;
+
+    if (length >= sizeof(parser->trace_payload)) {
+        length = sizeof(parser->trace_payload) - 1;
+    }
+    /* Leaves room for the widest escape, the closing quote and the terminating zero. */
+    for (idx = 0; idx < lexeme.length && length + 5 < sizeof(parser->trace_payload); idx++) {
+        unsigned char value = (unsigned char)lexeme.data[idx];
+        switch (value) {
+        case '\\':
+            parser->trace_payload[length++] = '\\';
+            parser->trace_payload[length++] = '\\';
+            break;
+        case '"':
+            parser->trace_payload[length++] = '\\';
+            parser->trace_payload[length++] = '"';
+            break;
+        case '\n':
+            parser->trace_payload[length++] = '\\';
+            parser->trace_payload[length++] = 'n';
+            break;
+        case '\r':
+            parser->trace_payload[length++] = '\\';
+            parser->trace_payload[length++] = 'r';
+            break;
+        case '\t':
+            parser->trace_payload[length++] = '\\';
+            parser->trace_payload[length++] = 't';
+            break;
+        default:
+            if (0x20 <= value && value <= 0x7e) {
+                parser->trace_payload[length++] = (char)value;
+            } else {
+                parser->trace_payload[length++] = '\\';
+                parser->trace_payload[length++] = 'x';
+                parser->trace_payload[length++] = hex_digits[(size_t)(value >> 4)];
+                parser->trace_payload[length++] = hex_digits[(size_t)(value & 0x0f)];
+            }
+            break;
+        }
+    }
+
+    parser->trace_payload[length++] = '"';
+    parser->trace_payload[length] = '\0';
+}
+
+/// Builds "<lhs> => <rhs>..." into parser->trace_payload for a REDUCE line, or "<lhs> => ε" for an empty right hand
+/// side, cutting it short when it does not fit. The right hand side is the top nodes of the node stack, which are still
+/// there when this runs.
+static void {{ .Func "ParserTraceReducePayload" }}({{ .Type "Parser" }} *parser, {{ .Type "Nonterminal" }} lhs, size_t rhs_count) {
+    int written = snprintf(parser->trace_payload, sizeof(parser->trace_payload), "%s =>", {{ .Func "NonterminalToString" }}(lhs));
+    size_t length = written < 0 ? 0 : (size_t)written;
+    size_t idx;
+
+    if (length >= sizeof(parser->trace_payload)) {
+        return;
+    }
+    if (rhs_count == 0) {
+        snprintf(parser->trace_payload + length, sizeof(parser->trace_payload) - length, " ε");
+        return;
+    }
+    for (idx = 0; idx < rhs_count; idx++) {
+        const char *name = {{ .Func "SymbolTraceName" }}(&parser->node_stack[parser->node_count - rhs_count + idx].symbol);
+        int piece = snprintf(parser->trace_payload + length, sizeof(parser->trace_payload) - length, " %s", name);
+        if (piece < 0) {
+            return;
+        }
+        length += (size_t)piece;
+        if (length >= sizeof(parser->trace_payload)) {
+            return;
+        }
+    }
+}
+
+/// Hands one trace line to parser->trace: the position of the current lookahead left justified to seven, the keyword
+/// left justified to seven when a payload follows, and the payload. A null payload leaves it off. A line which does not
+/// fit parser->trace_line is cut short. The caller has checked that parser->trace is set.
+static void {{ .Func "ParserEmitTrace" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner, const char *keyword, const char *payload) {
+    char location[48];
+
+    snprintf(location, sizeof(location), "%zu:%zu", scanner->line(scanner->context), scanner->column(scanner->context));
+    if (payload != NULL) {
+        snprintf(parser->trace_line, sizeof(parser->trace_line), "%-7s %-7s %s", location, keyword, payload);
+    } else {
+        snprintf(parser->trace_line, sizeof(parser->trace_line), "%-7s %s", location, keyword);
+    }
+    parser->trace(parser->trace_context, parser->trace_line);
+}
+
+/// Emits an ERROR line, marked suppressed while error recovery is not reporting to the caller.
+static void {{ .Func "ParserEmitErrorTrace" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner, const char *detail) {
+    char full_detail[{{ .Const "ParseErrorReasonSize" }} + 16];
+
+    if (parser->error_recovery_shifts_remaining != 0) {
+        snprintf(full_detail, sizeof(full_detail), "(suppressed) %s", detail);
+        {{ .Func "ParserEmitTrace" }}(parser, scanner, "ERROR", full_detail);
+        return;
+    }
+    {{ .Func "ParserEmitTrace" }}(parser, scanner, "ERROR", detail);
+}
+
 /// Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side, and
 /// continues in the state the goto of the uncovered state leads to. Returns false when an allocation failed.
-static bool {{ .Func "ParserReduce" }}({{ .Type "Parser" }} *parser, size_t production_idx) {
+static bool {{ .Func "ParserReduce" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner, size_t production_idx) {
     size_t pop_count = {{ .Const "PopCountByProduction" }}[production_idx];
     size_t nonterminal = {{ .Const "NonterminalByProduction" }}[production_idx];
     {{ .Type "ParseNode" }} *children = NULL;
@@ -611,6 +758,12 @@ static bool {{ .Func "ParserReduce" }}({{ .Type "Parser" }} *parser, size_t prod
     size_t goto_state;
     size_t cell_idx;
     size_t cell_nonterminal;
+
+    if (parser->trace != NULL) {
+        /* The right hand side is still on the node stack here, before it is cut back below. */
+        {{ .Func "ParserTraceReducePayload" }}(parser, ({{ .Type "Nonterminal" }})nonterminal, pop_count);
+        {{ .Func "ParserEmitTrace" }}(parser, scanner, "REDUCE", parser->trace_payload);
+    }
 
     parser->state_count -= pop_count;
 
@@ -682,6 +835,11 @@ static {{ .Type "StepResult" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *p
 
     switch (action & {{ .Const "ActionKindMask" }}) {
     case {{ .Const "ActionKindShift" }}:
+        if (parser->trace != NULL) {
+            {{ .Func "ParserTraceLexemePayload" }}(parser, {{ .Func "TerminalTraceName" }}(terminal),
+                                                  scanner->lexeme(scanner->context));
+            {{ .Func "ParserEmitTrace" }}(parser, scanner, "SHIFT", parser->trace_payload);
+        }
         if (!{{ .Func "ParserPushState" }}(parser, action >> {{ .Const "ActionKindBits" }})) {
             return {{ .Const "StepFailed" }};
         }
@@ -701,21 +859,31 @@ static {{ .Type "StepResult" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *p
         }
         return {{ .Const "StepContinue" }};
     case {{ .Const "ActionKindReduce" }}:
-        if (!{{ .Func "ParserReduce" }}(parser, action >> {{ .Const "ActionKindBits" }})) {
+        if (!{{ .Func "ParserReduce" }}(parser, scanner, action >> {{ .Const "ActionKindBits" }})) {
             return {{ .Const "StepFailed" }};
         }
         return {{ .Const "StepContinue" }};
     case {{ .Const "ActionKindAccept" }}:
+        if (parser->trace != NULL) {
+            {{ .Func "ParserEmitTrace" }}(parser, scanner, "ACCEPT", NULL);
+        }
         return {{ .Const "StepAccept" }};
     case {{ .Const "ActionKindError" }}:
         snprintf(reason, sizeof(reason), "unexpected token %s", {{ .Func "TokenToString" }}(terminal));
         *error = {{ .Func "ParseErrorAt" }}(reason, {{ .Const "ErrorKindSyntax" }}, scanner);
+        if (parser->trace != NULL) {
+            snprintf(reason, sizeof(reason), "unexpected token %s", {{ .Func "TerminalTraceName" }}(terminal));
+            {{ .Func "ParserEmitErrorTrace" }}(parser, scanner, reason);
+        }
         return {{ .Const "StepFailed" }};
     default:
         /* Every value the mask selects has a case of its own, so this is never reached. It is here to make the switch
            complete. */
         snprintf(reason, sizeof(reason), "unexpected action %zu in state %zu", action, state);
         *error = {{ .Func "ParseErrorAt" }}(reason, {{ .Const "ErrorKindInternal" }}, scanner);
+        if (parser->trace != NULL) {
+            {{ .Func "ParserEmitErrorTrace" }}(parser, scanner, reason);
+        }
         return {{ .Const "StepFailed" }};
     }
 }
@@ -741,7 +909,15 @@ static bool {{ .Func "ParserRecoverFromError" }}({{ .Type "Parser" }} *parser, c
         /* Nothing was shifted since the last error, so the parser is failing on the token it already failed on. */
         if (scanner->token(scanner->context) == {{ .Const "TokenEndToken" }}) {
             /* The end of input is the one token which cannot be discarded. */
+            if (parser->trace != NULL) {
+                {{ .Func "ParserEmitTrace" }}(parser, scanner, "FAIL", NULL);
+            }
             return false;
+        }
+        if (parser->trace != NULL) {
+            {{ .Func "ParserTraceLexemePayload" }}(parser, {{ .Func "TerminalTraceName" }}(scanner->token(scanner->context)),
+                                                  scanner->lexeme(scanner->context));
+            {{ .Func "ParserEmitTrace" }}(parser, scanner, "DISCARD", parser->trace_payload);
         }
         scanner->next(scanner->context);
     }
@@ -749,6 +925,9 @@ static bool {{ .Func "ParserRecoverFromError" }}({{ .Type "Parser" }} *parser, c
 
     for (;;) {
         if ({{ .Func "ErrorShiftState" }}({{ .Func "ParserCurrentState" }}(parser), &next_state)) {
+            if (parser->trace != NULL) {
+                {{ .Func "ParserEmitTrace" }}(parser, scanner, "RESYNC", NULL);
+            }
             /* Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme. */
             if (!{{ .Func "ParserPushState" }}(parser, next_state)) {
                 return false;
@@ -764,7 +943,14 @@ static bool {{ .Func "ParserRecoverFromError" }}({{ .Type "Parser" }} *parser, c
         }
         if (parser->state_count == 1) {
             /* Only the state the parse started in is left and it cannot shift the error symbol either. */
+            if (parser->trace != NULL) {
+                {{ .Func "ParserEmitTrace" }}(parser, scanner, "FAIL", NULL);
+            }
             return false;
+        }
+        if (parser->trace != NULL) {
+            {{ .Func "ParserEmitTrace" }}(parser, scanner, "POP",
+                                         {{ .Func "SymbolTraceName" }}(&parser->node_stack[parser->node_count - 1].symbol));
         }
         /* The state cannot resume here, so it is dropped together with what it had parsed. One state carries one node,
            so dropping one drops one. */
@@ -774,6 +960,8 @@ static bool {{ .Func "ParserRecoverFromError" }}({{ .Type "Parser" }} *parser, c
 }
 
 void {{ .Func "ParserInit" }}({{ .Type "Parser" }} *parser) {
+    parser->trace = NULL;
+    parser->trace_context = NULL;
     parser->state_stack = NULL;
     parser->state_count = 0;
     parser->state_capacity = 0;
