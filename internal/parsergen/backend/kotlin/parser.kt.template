@@ -7,6 +7,7 @@
 package {{ .Config.PackageName }}
 
 import java.nio.ByteBuffer
+import java.util.Locale
 
 /** Every nonterminal symbol of the grammar. */
 enum class Nonterminal(private val displayName: String) {
@@ -291,8 +292,14 @@ private val TERMINAL_COLUMN_BY_TOKEN: {{ .Tables.TerminalColumn.Type }} = newTer
 /** Holds the nonterminal on the left hand side of a production. */
 {{- template "tableProperty" .Tables.NonterminalByProduction }}
 
+/** Receives one line per parser action. A debug aid; the line format carries no stability guarantee. */
+typealias TraceFunc = (String) -> Unit
+
 /** Parses the tokens of a scanner into a parse tree. */
 class Parser {
+    /** When not null, called with one line for every action the parser takes. Set it after `Parser()`. */
+    var trace: TraceFunc? = null
+
     /** The states of the running parse, the current one on top. */
     private var stateStack = IntArray(INITIAL_STACK_CAPACITY)
 
@@ -383,6 +390,9 @@ class Parser {
 
         return when (action and ACTION_KIND_MASK) {
             ACTION_KIND_SHIFT -> {
+                if (trace != null) {
+                    emitTrace(scanner, "SHIFT", "${terminalTraceName(terminal)} \"${escapeLexeme(scanner.lexeme)}\"")
+                }
                 pushState(action shr ACTION_KIND_BITS)
                 nodeStack.add(ParseNode(TerminalSymbol(terminal), scanner.lexeme, emptyList(), null))
                 scanner.next()
@@ -394,19 +404,32 @@ class Parser {
             }
 
             ACTION_KIND_REDUCE -> {
-                reduce(action shr ACTION_KIND_BITS)
+                reduce(scanner, action shr ACTION_KIND_BITS)
                 StepResult.Continue
             }
 
-            ACTION_KIND_ACCEPT -> StepResult.Accept
+            ACTION_KIND_ACCEPT -> {
+                if (trace != null) {
+                    emitTrace(scanner, "ACCEPT", "")
+                }
+                StepResult.Accept
+            }
 
-            ACTION_KIND_ERROR ->
+            ACTION_KIND_ERROR -> {
+                if (trace != null) {
+                    emitErrorTrace(scanner, "unexpected token ${terminalTraceName(terminal)}")
+                }
                 StepResult.Failed(ParseError("unexpected token $terminal", ErrorKind.SYNTAX, scanner))
+            }
 
-            else ->
+            else -> {
+                if (trace != null) {
+                    emitErrorTrace(scanner, "unexpected action $action in state $state")
+                }
                 StepResult.Failed(
                     ParseError("unexpected action $action in state $state", ErrorKind.INTERNAL, scanner),
                 )
+            }
         }
     }
 
@@ -414,9 +437,21 @@ class Parser {
      * Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side, and
      * continues in the state the goto of the uncovered state leads to.
      */
-    private fun reduce(productionIdx: Int) {
+    private fun reduce(scanner: TokenSource, productionIdx: Int) {
         val popCount = {{ .Tables.PopCountByProduction.Name }}[productionIdx]{{ .Tables.PopCountByProduction.ToInt }}
         val nonterminal = {{ .Tables.NonterminalByProduction.Name }}[productionIdx]{{ .Tables.NonterminalByProduction.ToInt }}
+
+        if (trace != null) {
+            // The right hand side is still on the node stack here, before it is cut back below.
+            emitTrace(
+                scanner,
+                "REDUCE",
+                reduceTracePayload(
+                    Nonterminal.entries[nonterminal],
+                    nodeStack.subList(nodeStack.size - popCount, nodeStack.size),
+                ),
+            )
+        }
 
         stateStackSize -= popCount
 
@@ -461,7 +496,13 @@ class Parser {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if (scanner.token == Token.END_TOKEN) {
                 // The end of input is the one token which cannot be discarded.
+                if (trace != null) {
+                    emitTrace(scanner, "FAIL", "")
+                }
                 return false
+            }
+            if (trace != null) {
+                emitTrace(scanner, "DISCARD", "${terminalTraceName(scanner.token)} \"${escapeLexeme(scanner.lexeme)}\"")
             }
             scanner.next()
         }
@@ -470,6 +511,9 @@ class Parser {
         while (true) {
             val nextState = errorShiftState(currentState())
             if (nextState != null) {
+                if (trace != null) {
+                    emitTrace(scanner, "RESYNC", "")
+                }
                 // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 pushState(nextState)
                 nodeStack.add(ParseNode(TerminalSymbol(Token.ERROR_TOKEN), EMPTY_LEXEME, emptyList(), null))
@@ -477,7 +521,13 @@ class Parser {
             }
             if (stateStackSize == 1) {
                 // Only the state the parse started in is left and it cannot shift the error symbol either.
+                if (trace != null) {
+                    emitTrace(scanner, "FAIL", "")
+                }
                 return false
+            }
+            if (trace != null) {
+                emitTrace(scanner, "POP", symbolTraceName(nodeStack.last().symbol))
             }
             // The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
             // node, so dropping one drops one.
@@ -496,6 +546,26 @@ class Parser {
         }
         stateStack[stateStackSize] = state
         stateStackSize++
+    }
+
+    /**
+     * Hands one trace line to [trace]: the position of the current lookahead, the keyword, and an optional payload. The
+     * caller has already checked that [trace] is not null.
+     */
+    private fun emitTrace(scanner: TokenSource, keyword: String, payload: String) {
+        val sink = checkNotNull(trace) { "the trace hook is set" }
+        val location = "${scanner.line}:${scanner.column}"
+        if (payload.isEmpty()) {
+            sink(String.format(Locale.ROOT, "%-7s %s", location, keyword))
+            return
+        }
+        sink(String.format(Locale.ROOT, "%-7s %-7s %s", location, keyword, payload))
+    }
+
+    /** Emits an ERROR line, marked suppressed while error recovery is not reporting to the caller. */
+    private fun emitErrorTrace(scanner: TokenSource, detail: String) {
+        val fullDetail = if (errorRecoveryShiftsRemaining != 0) "(suppressed) $detail" else detail
+        emitTrace(scanner, "ERROR", fullDetail)
     }
 }
 
@@ -524,6 +594,52 @@ private fun errorShiftState(state: Int): Int? {
         return null
     }
     return action shr ACTION_KIND_BITS
+}
+
+/** Renders a reduction as `lhs => rhs`, or `lhs => ε` for an empty right hand side. */
+private fun reduceTracePayload(lhs: Nonterminal, rhs: List<ParseNode>): String {
+    val payload = StringBuilder("$lhs =>")
+    if (rhs.isEmpty()) {
+        return payload.append(" ε").toString()
+    }
+    for (node in rhs) {
+        payload.append(' ').append(symbolTraceName(node.symbol))
+    }
+    return payload.toString()
+}
+
+/** The bare grammar name of a symbol, without the prefix its toString adds. */
+private fun symbolTraceName(symbol: ParseSymbol): String =
+    when (symbol) {
+        is NonterminalSymbol -> symbol.nonterminal.toString()
+        is TerminalSymbol -> terminalTraceName(symbol.token)
+    }
+
+/** Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name. */
+private fun terminalTraceName(terminal: Token): String =
+    when (terminal) {
+        Token.END_TOKEN -> "\$end"
+        Token.ERROR_TOKEN -> "\$error"
+        Token.INVALID_TOKEN -> "\$invalid"
+        else -> terminal.toString()
+    }
+
+/** Escapes the bytes of a lexeme for a trace line. The caller writes the quotes around the result. */
+private fun escapeLexeme(lexeme: ByteBuffer): String {
+    val result = StringBuilder()
+    while (lexeme.hasRemaining()) {
+        val value = lexeme.get().toInt() and 0xff
+        when (value) {
+            0x5c -> result.append("\\\\")
+            0x22 -> result.append("\\\"")
+            0x0a -> result.append("\\n")
+            0x0d -> result.append("\\r")
+            0x09 -> result.append("\\t")
+            in 0x20..0x7e -> result.append(value.toChar())
+            else -> result.append(String.format(Locale.ROOT, "\\x%02x", value))
+        }
+    }
+    return result.toString()
 }
 
 /**

@@ -7,11 +7,8 @@
 import java.io.File
 import java.nio.ByteBuffer
 import java.util.Locale
-import parser.NonterminalSymbol
-import parser.ParseNode
 import parser.Parser
 import parser.Scanner
-import parser.TerminalSymbol
 import parser.Token
 import parser.TokenSkipper
 
@@ -83,40 +80,14 @@ private fun appendScannerTrace(lines: MutableList<String>, source: ByteArray, in
     lines.add("EOF ${scanner.byteOffset}")
 }
 
-// appendNodeTrace appends the post-order walk of the subtree, which is the shift and reduce sequence of the parse.
-private fun appendNodeTrace(lines: MutableList<String>, node: ParseNode) {
-    for (child in node.children) {
-        appendNodeTrace(lines, child)
-    }
-
-    when (val symbol = node.symbol) {
-        is NonterminalSymbol -> lines.add("REDUCE ${symbol.nonterminal} ${node.children.size}")
-
-        // The leaf the recovery pushed where it resumed stands for the dropped input and names no token.
-        is TerminalSymbol ->
-            if (symbol.token == Token.ERROR_TOKEN) {
-                lines.add("RESYNC")
-            } else {
-                lines.add("SHIFT ${symbol.token}")
-            }
-    }
-}
-
-// appendParserTrace parses the whole input and appends its errors, the walk of the tree and the accept event.
-//
-// The errors come first because a shift carries no offset to interleave them by. A parse which was given up returns no
-// tree, so its trace is the errors alone and the missing accept event is what says the two outcomes apart.
+// appendParserTrace parses the whole input and appends the line the parser's trace hook emits for every action. The
+// hook reports the error recovery steps too, which the returned tree does not, so the tree and the error are ignored.
 private fun appendParserTrace(lines: MutableList<String>, source: ByteArray, inputPath: String) {
+    val parser = Parser()
+    parser.trace = { line -> lines.add(line) }
+
     // The TokenSkipper here, because a skipped rule never reaches the parser.
-    val result = Parser().parse(TokenSkipper(Scanner(source, inputPath)))
-
-    for (error in result.errors) {
-        lines.add("ERROR ${error.byteOffset}")
-    }
-
-    val tree = result.tree ?: return
-    appendNodeTrace(lines, tree)
-    lines.add("ACCEPT")
+    parser.parse(TokenSkipper(Scanner(source, inputPath)))
 }
 
 // writeTrace produces one trace and writes it to its file. Whatever was produced before a failure is written all the
