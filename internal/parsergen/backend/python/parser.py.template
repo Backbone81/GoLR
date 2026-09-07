@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum, auto
-from typing import Final
+from typing import Callable, Final
 
 from {{ .Config.ScannerModule }} import Token, TokenSource
 
@@ -22,6 +22,7 @@ __all__ = [
     "Parser",
     "Production",
     "TerminalSymbol",
+    "TraceFunc",
 ]
 
 
@@ -350,15 +351,23 @@ _NONTERMINAL_BY_PRODUCTION: Final[tuple[int, ...]] = ({{ .Tables.NonterminalByPr
 """Holds the nonterminal on the left hand side of a production."""
 
 
+TraceFunc = Callable[[str], None]
+"""Receives one line per parser action. A debug aid; the line format carries no stability guarantee."""
+
+
 class Parser:
     """Parses the tokens of a scanner into a parse tree. One parser serves one source after another."""
 
     __slots__ = (
+        "trace",
         "_state_stack",
         "_node_stack",
         "_errors",
         "_error_recovery_shifts_remaining",
     )
+
+    trace: TraceFunc | None
+    """When not `None`, called with one line for every action the parser takes. Set it after `Parser()`."""
 
     _state_stack: list[int]
     """The states of the running parse, the current one on top."""
@@ -377,6 +386,7 @@ class Parser:
 
     def __init__(self) -> None:
         """Creates a parser which is ready to be given a scanner to parse."""
+        self.trace = None
         self._state_stack = []
         self._node_stack = []
         self._errors = []
@@ -449,6 +459,8 @@ class Parser:
 
         action_kind = action & _ACTION_KIND_MASK
         if action_kind == _ACTION_KIND_SHIFT:
+            if self.trace is not None:
+                self._emit_trace(scanner, "SHIFT", f'{_terminal_trace_name(terminal)} "{_escape_lexeme(scanner.lexeme)}"')
             self._state_stack.append(action >> _ACTION_KIND_BITS)
             self._node_stack.append(ParseNode(TerminalSymbol(terminal), scanner.lexeme))
             scanner.next()
@@ -457,21 +469,35 @@ class Parser:
                 self._error_recovery_shifts_remaining -= 1
             return _StepResult.CONTINUE
         if action_kind == _ACTION_KIND_REDUCE:
-            self._reduce(action >> _ACTION_KIND_BITS)
+            self._reduce(scanner, action >> _ACTION_KIND_BITS)
             return _StepResult.CONTINUE
         if action_kind == _ACTION_KIND_ACCEPT:
+            if self.trace is not None:
+                self._emit_trace(scanner, "ACCEPT", "")
             return _StepResult.ACCEPT
         if action_kind == _ACTION_KIND_ERROR:
+            if self.trace is not None:
+                self._emit_error_trace(scanner, f"unexpected token {_terminal_trace_name(terminal)}")
             return ParseError.from_scanner(f"unexpected token {terminal}", ErrorKind.SYNTAX, scanner)
+        if self.trace is not None:
+            self._emit_error_trace(scanner, f"unexpected action {action} in state {state}")
         return ParseError.from_scanner(f"unexpected action {action} in state {state}", ErrorKind.INTERNAL, scanner)
 
-    def _reduce(self, production_idx: int) -> None:
+    def _reduce(self, scanner: TokenSource, production_idx: int) -> None:
         """Replaces the right hand side of the production on the stacks with the nonterminal on its left hand side.
 
         The parse continues in the state the goto of the uncovered state leads to.
         """
         pop_count = _POP_COUNT_BY_PRODUCTION[production_idx]
         nonterminal = _NONTERMINAL_BY_PRODUCTION[production_idx]
+
+        if self.trace is not None:
+            # The right hand side is still on the node stack here, before it is cut back below.
+            self._emit_trace(
+                scanner,
+                "REDUCE",
+                _reduce_trace_payload(Nonterminal(nonterminal), self._node_stack[len(self._node_stack) - pop_count:]),
+            )
 
         del self._state_stack[len(self._state_stack) - pop_count:]
 
@@ -514,20 +540,32 @@ class Parser:
             # Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if scanner.token == Token.END_TOKEN:
                 # The end of input is the one token which cannot be discarded.
+                if self.trace is not None:
+                    self._emit_trace(scanner, "FAIL", "")
                 return False
+            if self.trace is not None:
+                self._emit_trace(
+                    scanner, "DISCARD", f'{_terminal_trace_name(scanner.token)} "{_escape_lexeme(scanner.lexeme)}"'
+                )
             scanner.next()
         self._error_recovery_shifts_remaining = _ERROR_RECOVERY_SHIFTS
 
         while True:
             next_state = self._error_shift_state(self._current_state())
             if next_state is not None:
+                if self.trace is not None:
+                    self._emit_trace(scanner, "RESYNC", "")
                 # Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
                 self._state_stack.append(next_state)
                 self._node_stack.append(ParseNode(TerminalSymbol(Token.ERROR_TOKEN)))
                 return True
             if len(self._state_stack) == 1:
                 # Only the state the parse started in is left and it cannot shift the error symbol either.
+                if self.trace is not None:
+                    self._emit_trace(scanner, "FAIL", "")
                 return False
+            if self.trace is not None:
+                self._emit_trace(scanner, "POP", _symbol_trace_name(self._node_stack[-1].symbol))
             # The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
             # node, so dropping one drops one.
             self._state_stack.pop()
@@ -563,3 +601,68 @@ class Parser:
         if action & _ACTION_KIND_MASK != _ACTION_KIND_SHIFT:
             return None
         return action >> _ACTION_KIND_BITS
+
+    def _emit_trace(self, scanner: TokenSource, keyword: str, payload: str) -> None:
+        """Hands one trace line to `self.trace`: the position of the current lookahead, the keyword, and an optional
+        payload. The caller has already checked that `self.trace` is not `None`.
+        """
+        location = f"{scanner.line}:{scanner.column}"
+        if payload == "":
+            self.trace(f"{location:<7} {keyword}")
+            return
+        self.trace(f"{location:<7} {keyword:<7} {payload}")
+
+    def _emit_error_trace(self, scanner: TokenSource, detail: str) -> None:
+        """Emits an ERROR line, marked suppressed while error recovery is not reporting to the caller."""
+        if self._error_recovery_shifts_remaining != 0:
+            detail = "(suppressed) " + detail
+        self._emit_trace(scanner, "ERROR", detail)
+
+
+def _reduce_trace_payload(lhs: Nonterminal, rhs: list[ParseNode]) -> str:
+    """Renders a reduction as `lhs => rhs`, or `lhs => ε` for an empty right hand side."""
+    payload = str(lhs) + " =>"
+    if not rhs:
+        return payload + " ε"
+    for node in rhs:
+        payload += " " + _symbol_trace_name(node.symbol)
+    return payload
+
+
+def _symbol_trace_name(symbol: ParseSymbol) -> str:
+    """The bare grammar name of a symbol, without the prefix its `__str__` adds."""
+    if isinstance(symbol, NonterminalSymbol):
+        return str(symbol.nonterminal)
+    return _terminal_trace_name(symbol.token)
+
+
+def _terminal_trace_name(terminal: Token) -> str:
+    """Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name."""
+    if terminal == Token.END_TOKEN:
+        return "$end"
+    if terminal == Token.ERROR_TOKEN:
+        return "$error"
+    if terminal == Token.INVALID_TOKEN:
+        return "$invalid"
+    return str(terminal)
+
+
+def _escape_lexeme(lexeme: bytes) -> str:
+    """Escapes the bytes of a lexeme for a trace line. The caller writes the quotes around the result."""
+    result = []
+    for value in lexeme:
+        if value == ord("\\"):
+            result.append("\\\\")
+        elif value == ord('"'):
+            result.append('\\"')
+        elif value == ord("\n"):
+            result.append("\\n")
+        elif value == ord("\r"):
+            result.append("\\r")
+        elif value == ord("\t"):
+            result.append("\\t")
+        elif 0x20 <= value <= 0x7E:
+            result.append(chr(value))
+        else:
+            result.append(f"\\x{value:02x}")
+    return "".join(result)

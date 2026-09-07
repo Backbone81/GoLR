@@ -6,7 +6,7 @@
 
 import sys
 
-from parser import NonterminalSymbol, Parser
+from parser import Parser
 from scanner import Scanner, Token, TokenSkipper
 
 SCANNER_TRACE_FILE_NAME = "scanner.actual"
@@ -72,39 +72,17 @@ def append_scanner_trace(lines, source, input_path):
     lines.append(f"EOF {scanner.byte_offset}")
 
 
-def append_node_trace(lines, node):
-    """Appends the post-order walk of the subtree, which is the shift and reduce sequence of the parse."""
-    for child in node.children:
-        append_node_trace(lines, child)
-
-    if isinstance(node.symbol, NonterminalSymbol):
-        lines.append(f"REDUCE {node.symbol.nonterminal} {len(node.children)}")
-        return
-
-    token = node.symbol.token
-    if token == Token.ERROR_TOKEN:
-        # The leaf the recovery pushed where it resumed. It stands for the dropped input and names no token.
-        lines.append("RESYNC")
-        return
-    lines.append(f"SHIFT {token}")
-
-
 def append_parser_trace(lines, source, input_path):
-    """Parses the whole input and appends its errors, the walk of the tree and the accept event.
+    """Parses the whole input and appends the line the parser's trace hook emits for every action.
 
-    The errors come first because a shift carries no offset to interleave them by. A parse which was given up returns
-    no tree, so its trace is the errors alone and the missing accept event is what says the two outcomes apart.
+    The hook reports the error recovery steps too, which the returned tree does not, so the tree and the error are
+    ignored.
     """
+    parser = Parser()
+    parser.trace = lines.append
+
     # The TokenSkipper here, because a skipped rule never reaches the parser.
-    result = Parser().parse(TokenSkipper(Scanner(source, input_path)))
-
-    for error in result.errors:
-        lines.append(f"ERROR {error.byte_offset}")
-
-    if result.tree is None:
-        return
-    append_node_trace(lines, result.tree)
-    lines.append("ACCEPT")
+    parser.parse(TokenSkipper(Scanner(source, input_path)))
 
 
 def write_trace(file_name, produce, source, input_path):

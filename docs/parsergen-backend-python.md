@@ -16,6 +16,12 @@ Every nonterminal node's `production` field names the alternative it was reduced
 `Production` members (`PRODUCTION_EXPRESSION1`, ... - `@name` in the grammar overrides the auto-generated name). It is
 `None` on a terminal node.
 
+## Tracing
+
+`Parser` has a `trace` attribute of type `TraceFunc | None` (`Callable[[str], None] | None`). Set it after `Parser()`
+for a trace of every parser action, `None` for none. See [parser generator backends](parsergen-backend.md) for the line
+format.
+
 ## Example
 
 [examples/calculator/python/](../examples/calculator/python/) is a calculator built on this backend. Its parser was
