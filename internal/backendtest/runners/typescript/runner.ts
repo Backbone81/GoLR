@@ -53,32 +53,28 @@ function escapeLexeme(lexeme: Uint8Array): string {
     return result;
 }
 
-// appendScannerTrace scans the whole input and appends one line per event.
+// appendScannerTrace scans the whole input and appends one line per event: the position the token or the failed match
+// starts at, a keyword, and for a token its rule and lexeme, for a failed match the bytes it could not match.
 function appendScannerTrace(lines: string[], source: Uint8Array, inputPath: string): void {
-    // The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the offsets of the tokens
-    // around it are only checkable when it is in the trace.
+    // The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the position of the
+    // tokens around it is only checkable when it is in the trace.
     const scanner = new Scanner(source, inputPath);
 
     while (scanner.next()) {
-        const token = scanner.token();
+        const location = `${scanner.line()}:${scanner.column()}`.padEnd(7);
+        const lexeme = escapeLexeme(scanner.lexeme());
 
-        // For a failed match this is the start of the attempt, not the byte which could not be consumed.
-        const start = scanner.byteOffset();
-
-        if (token === Token.InvalidToken) {
-            lines.push(`ERROR ${start}`);
+        if (scanner.token() === Token.InvalidToken) {
+            lines.push(`${location} ${"ERROR".padEnd(7)} "${lexeme}"`);
             continue;
         }
-
-        // The end comes from the length of the lexeme rather than from an offset the scanner reports, so that a lexeme
-        // which disagrees with the offsets cannot pass unnoticed.
-        const lexeme = scanner.lexeme();
-        lines.push(`TOKEN ${tokenToString(token)} ${start} ${start + lexeme.length} "${escapeLexeme(lexeme)}"`);
+        lines.push(`${location} ${"TOKEN".padEnd(7)} ${tokenToString(scanner.token())} "${lexeme}"`);
     }
 
-    // The offset the scanner reports after it ran out of input, not source.length. The two agree only when the scanner
-    // consumed everything.
-    lines.push(`EOF ${scanner.byteOffset()}`);
+    // The position after the scanner ran out of input, which is one past the last byte only when it consumed
+    // everything.
+    const endLocation = `${scanner.line()}:${scanner.column()}`.padEnd(7);
+    lines.push(`${endLocation} EOF`);
 }
 
 // appendParserTrace parses the whole input and appends the line the parser's trace hook emits for every action. The

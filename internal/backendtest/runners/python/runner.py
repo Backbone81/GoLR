@@ -47,29 +47,29 @@ def escape_lexeme(lexeme):
 
 
 def append_scanner_trace(lines, source, input_path):
-    """Scans the whole input and appends one line per event."""
-    # The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the offsets of the tokens
-    # around it are only checkable when it is in the trace.
+    """Scans the whole input and appends one line per event.
+
+    The position the token or the failed match starts at, a keyword, and for a token its rule and lexeme, for a
+    failed match the bytes it could not match.
+    """
+    # The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the position of the
+    # tokens around it is only checkable when it is in the trace.
     scanner = Scanner(source, input_path)
 
     while scanner.next():
-        token = scanner.token
+        location = f"{scanner.line}:{scanner.column}"
+        lexeme = escape_lexeme(scanner.lexeme)
 
-        # For a failed match this is the start of the attempt, not the byte which could not be consumed.
-        start = scanner.byte_offset
-
-        if token == Token.INVALID_TOKEN:
-            lines.append(f"ERROR {start}")
+        if scanner.token == Token.INVALID_TOKEN:
+            lines.append(f'{location:<7} {"ERROR":<7} "{lexeme}"')
             continue
 
-        # The end comes from the length of the lexeme rather than from an offset the scanner reports, so that a lexeme
-        # which disagrees with the offsets cannot pass unnoticed.
-        lexeme = scanner.lexeme
-        lines.append(f'TOKEN {token} {start} {start + len(lexeme)} "{escape_lexeme(lexeme)}"')
+        lines.append(f'{location:<7} {"TOKEN":<7} {scanner.token} "{lexeme}"')
 
-    # The offset the scanner reports after it ran out of input, not the length of the source. The two agree only when
-    # the scanner consumed everything.
-    lines.append(f"EOF {scanner.byte_offset}")
+    # The position after the scanner ran out of input, which is one past the last byte only when it consumed
+    # everything.
+    location = f"{scanner.line}:{scanner.column}"
+    lines.append(f"{location:<7} EOF")
 
 
 def append_parser_trace(lines, source, input_path):

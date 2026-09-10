@@ -65,31 +65,27 @@ public class Runner {
         return result.toString();
     }
 
-    // appendScannerTrace scans the whole input and appends one line per event.
+    // appendScannerTrace scans the whole input and appends one line per event: the position the token or the failed
+    // match starts at, a keyword, and for a token its rule and lexeme, for a failed match the bytes it could not match.
     private static void appendScannerTrace(List<String> lines, byte[] source, String inputPath) {
-        // The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the offsets of the
-        // tokens around it are only checkable when it is in the trace.
+        // The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the position of the
+        // tokens around it is only checkable when it is in the trace.
         Scanner scanner = new Scanner(source, inputPath);
 
         while (scanner.next()) {
-            // For a failed match this is the start of the attempt, not the byte which could not be consumed.
-            int start = scanner.byteOffset();
+            String location = scanner.line() + ":" + scanner.column();
+            String lexeme = escapeLexeme(scanner.lexeme());
 
             if (scanner.token() == Scanner.Token.INVALID_TOKEN) {
-                lines.add("ERROR " + start);
+                lines.add(String.format(Locale.ROOT, "%-7s %-7s \"%s\"", location, "ERROR", lexeme));
                 continue;
             }
-
-            // The end comes from the length of the lexeme rather than from an offset the scanner reports, so that a
-            // lexeme which disagrees with the offsets cannot pass unnoticed.
-            ByteBuffer lexeme = scanner.lexeme();
-            int end = start + lexeme.remaining();
-            lines.add("TOKEN " + scanner.token() + " " + start + " " + end + " \"" + escapeLexeme(lexeme) + "\"");
+            lines.add(String.format(Locale.ROOT, "%-7s %-7s %s \"%s\"", location, "TOKEN", scanner.token(), lexeme));
         }
 
-        // The offset the scanner reports after it ran out of input, not source.length. The two agree only when the
-        // scanner consumed everything.
-        lines.add("EOF " + scanner.byteOffset());
+        // The position after the scanner ran out of input, which is one past the last byte only when it consumed
+        // everything.
+        lines.add(String.format(Locale.ROOT, "%-7s %s", scanner.line() + ":" + scanner.column(), "EOF"));
     }
 
     // appendParserTrace parses the whole input and appends the line the parser's trace hook emits for every action.

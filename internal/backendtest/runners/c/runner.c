@@ -59,35 +59,38 @@ static void write_escaped_lexeme(FILE *out, ParserStringView lexeme) {
     }
 }
 
-/* Scans the whole input and writes one line per event. */
+/* Scans the whole input and writes one line per event: the position the token or the failed match starts at, a
+   keyword, and for a token its rule and lexeme, for a failed match the bytes it could not match. */
 static void write_scanner_trace(FILE *out, const char *source, size_t source_length, const char *input_path) {
-    /* The plain scanner and not the token skipper: a skipped rule matched like any other, and the offsets of the
-       tokens around it are only checkable when it is in the trace. */
+    /* The plain scanner and not the token skipper: a skipped rule matched like any other, and the position of the
+       tokens around it is only checkable when it is in the trace. */
     ParserScanner scanner;
+    char location[48];
+
     parser_scanner_init(&scanner, source, source_length, input_path);
 
     while (parser_scanner_next(&scanner)) {
-        /* For a failed match this is the start of the attempt, not the byte which could not be consumed. */
-        size_t start = parser_scanner_byte_offset(&scanner);
-        ParserStringView lexeme;
+        ParserStringView lexeme = parser_scanner_lexeme(&scanner);
+
+        snprintf(location, sizeof(location), "%zu:%zu", parser_scanner_line(&scanner),
+                 parser_scanner_column(&scanner));
 
         if (parser_scanner_token(&scanner) == PARSER_TOKEN_INVALID_TOKEN) {
-            fprintf(out, "ERROR %zu\n", start);
+            fprintf(out, "%-7s %-7s \"", location, "ERROR");
+            write_escaped_lexeme(out, lexeme);
+            fputs("\"\n", out);
             continue;
         }
 
-        /* The end comes from the length of the lexeme rather than from an offset the scanner reports, so that a lexeme
-           which disagrees with the offsets cannot pass unnoticed. */
-        lexeme = parser_scanner_lexeme(&scanner);
-        fprintf(out, "TOKEN %s %zu %zu \"", parser_token_to_string(parser_scanner_token(&scanner)), start,
-                start + lexeme.length);
+        fprintf(out, "%-7s %-7s %s \"", location, "TOKEN", parser_token_to_string(parser_scanner_token(&scanner)));
         write_escaped_lexeme(out, lexeme);
         fputs("\"\n", out);
     }
 
-    /* The offset the scanner reports after it ran out of input, not the length of the source. The two agree only when
-       the scanner consumed everything. */
-    fprintf(out, "EOF %zu\n", parser_scanner_byte_offset(&scanner));
+    /* The position after the scanner ran out of input, which is one past the last byte only when it consumed
+       everything. */
+    snprintf(location, sizeof(location), "%zu:%zu", parser_scanner_line(&scanner), parser_scanner_column(&scanner));
+    fprintf(out, "%-7s %s\n", location, "EOF");
 }
 
 /* Writes one trace line to the file behind the context pointer. This is the parser's trace hook. */

@@ -77,34 +77,31 @@ internal static class Runner
         return result.ToString();
     }
 
-    // AppendScannerTrace scans the whole input and appends one line per event.
+    // AppendScannerTrace scans the whole input and appends one line per event: the position the token or the failed
+    // match starts at, a keyword, and for a token its rule and lexeme, for a failed match the bytes it could not match.
     private static void AppendScannerTrace(List<string> lines, byte[] source, string inputPath)
     {
-        // The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the offsets of the
-        // tokens around it are only checkable when it is in the trace.
+        // The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the position of the
+        // tokens around it is only checkable when it is in the trace.
         Scanner scanner = new Scanner(source, inputPath);
 
         while (scanner.Next())
         {
-            // For a failed match this is the start of the attempt, not the byte which could not be consumed.
-            int start = scanner.ByteOffset;
+            string location = $"{scanner.Line}:{scanner.Column}".PadRight(7);
+            string lexeme = EscapeLexeme(scanner.Lexeme.Span);
 
             if (scanner.Token == Token.InvalidToken)
             {
-                lines.Add($"ERROR {start}");
+                lines.Add($"{location} {"ERROR".PadRight(7)} \"{lexeme}\"");
                 continue;
             }
-
-            // The end comes from the length of the lexeme rather than from an offset the scanner reports, so that a
-            // lexeme which disagrees with the offsets cannot pass unnoticed.
-            ReadOnlySpan<byte> lexeme = scanner.Lexeme.Span;
-            string name = scanner.Token.ToDisplayString();
-            lines.Add($"TOKEN {name} {start} {start + lexeme.Length} \"{EscapeLexeme(lexeme)}\"");
+            lines.Add($"{location} {"TOKEN".PadRight(7)} {scanner.Token.ToDisplayString()} \"{lexeme}\"");
         }
 
-        // The offset the scanner reports after it ran out of input, not source.Length. The two agree only when the
-        // scanner consumed everything.
-        lines.Add($"EOF {scanner.ByteOffset}");
+        // The position after the scanner ran out of input, which is one past the last byte only when it consumed
+        // everything.
+        string endLocation = $"{scanner.Line}:{scanner.Column}".PadRight(7);
+        lines.Add($"{endLocation} EOF");
     }
 
     // AppendParserTrace parses the whole input and appends the line the parser's trace hook emits for every action. The

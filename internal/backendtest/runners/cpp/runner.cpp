@@ -65,32 +65,37 @@ std::string escape_lexeme(std::string_view lexeme) {
     return result;
 }
 
-// append_scanner_trace scans the whole input and appends one line per event.
+// pad_field left justifies a field to width 7, like the parser trace lines.
+std::string pad_field(std::string field) {
+    if (field.size() < 7) {
+        field.resize(7, ' ');
+    }
+    return field;
+}
+
+// append_scanner_trace scans the whole input and appends one line per event: the position the token or the failed
+// match starts at, a keyword, and for a token its rule and lexeme, for a failed match the bytes it could not match.
 void append_scanner_trace(std::vector<std::string>& lines, std::string_view source, const std::string& input_path) {
-    // The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the offsets of the tokens
-    // around it are only checkable when it is in the trace.
+    // The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the position of the
+    // tokens around it is only checkable when it is in the trace.
     parser::Scanner scanner(source, input_path);
 
     while (scanner.next()) {
-        // For a failed match this is the start of the attempt, not the byte which could not be consumed.
-        const std::size_t start = scanner.byte_offset();
+        const std::string location =
+            pad_field(std::to_string(scanner.line()) + ":" + std::to_string(scanner.column()));
+        const std::string lexeme = escape_lexeme(scanner.lexeme());
 
         if (scanner.token() == parser::Token::InvalidToken) {
-            lines.push_back("ERROR " + std::to_string(start));
+            lines.push_back(location + " " + pad_field("ERROR") + " \"" + lexeme + "\"");
             continue;
         }
-
-        // The end comes from the length of the lexeme rather than from an offset the scanner reports, so that a lexeme
-        // which disagrees with the offsets cannot pass unnoticed.
-        const std::string_view lexeme = scanner.lexeme();
-        const std::size_t end = start + lexeme.size();
-        lines.push_back("TOKEN " + std::string(parser::to_string(scanner.token())) + " " + std::to_string(start) +
-                        " " + std::to_string(end) + " \"" + escape_lexeme(lexeme) + "\"");
+        lines.push_back(location + " " + pad_field("TOKEN") + " " + std::string(parser::to_string(scanner.token())) +
+                        " \"" + lexeme + "\"");
     }
 
-    // The offset the scanner reports after it ran out of input, not the length of the source. The two agree only when
-    // the scanner consumed everything.
-    lines.push_back("EOF " + std::to_string(scanner.byte_offset()));
+    // The position after the scanner ran out of input, which is one past the last byte only when it consumed
+    // everything.
+    lines.push_back(pad_field(std::to_string(scanner.line()) + ":" + std::to_string(scanner.column())) + " EOF");
 }
 
 // append_parser_trace parses the whole input and appends the line the parser's trace hook emits for every action. The

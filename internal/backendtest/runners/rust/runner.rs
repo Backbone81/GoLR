@@ -64,37 +64,28 @@ fn escape_lexeme(lexeme: &[u8]) -> String {
     result
 }
 
-// append_scanner_trace scans the whole input and appends one line per event.
+// append_scanner_trace scans the whole input and appends one line per event: the position the token or the failed
+// match starts at, a keyword, and for a token its rule and lexeme, for a failed match the bytes it could not match.
 fn append_scanner_trace(lines: &mut Vec<String>, source: &[u8], input_path: &str) {
-    // The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the offsets of the tokens
-    // around it are only checkable when it is in the trace.
+    // The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the position of the
+    // tokens around it is only checkable when it is in the trace.
     let mut scanner = Scanner::new(source, input_path);
 
     while scanner.next() {
-        // For a failed match this is the start of the attempt, not the byte which could not be consumed.
-        let start = scanner.byte_offset();
+        let location = format!("{}:{}", scanner.line(), scanner.column());
+        let lexeme = escape_lexeme(scanner.lexeme());
 
         if scanner.token() == Token::InvalidToken {
-            lines.push(format!("ERROR {start}"));
+            lines.push(format!("{location:<7} {:<7} \"{lexeme}\"", "ERROR"));
             continue;
         }
-
-        // The end comes from the length of the lexeme rather than from an offset the scanner reports, so that a lexeme
-        // which disagrees with the offsets cannot pass unnoticed.
-        let lexeme = scanner.lexeme();
-        let end = start + lexeme.len();
-        lines.push(format!(
-            "TOKEN {} {} {} \"{}\"",
-            scanner.token(),
-            start,
-            end,
-            escape_lexeme(lexeme),
-        ));
+        lines.push(format!("{location:<7} {:<7} {} \"{lexeme}\"", "TOKEN", scanner.token()));
     }
 
-    // The offset the scanner reports after it ran out of input, not the length of the source. The two agree only when
-    // the scanner consumed everything.
-    lines.push(format!("EOF {}", scanner.byte_offset()));
+    // The position after the scanner ran out of input, which is one past the last byte only when it consumed
+    // everything.
+    let location = format!("{}:{}", scanner.line(), scanner.column());
+    lines.push(format!("{location:<7} {}", "EOF"));
 }
 
 // append_parser_trace parses the whole input and appends the line the parser's trace hook emits for every action. The
