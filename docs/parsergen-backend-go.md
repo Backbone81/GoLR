@@ -1,7 +1,7 @@
-# Parser Generator Backend: Golang
+# Parser Generator Backend: Go
 
 This backend outputs a parser as Go source code. See [parser generator backends](parsergen-backend.md) for what every
-generated parser does and [scanner generator backend: Go](scannergen-backend-golang.md) for the scanner side.
+generated parser does and [scanner generator backend: Go](scannergen-backend-go.md) for the scanner side.
 
 `--backend-go-package-name` sets the package the file declares, which defaults to `parser`.
 

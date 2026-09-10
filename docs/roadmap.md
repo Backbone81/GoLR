@@ -2,8 +2,6 @@
 
 ## General Topics
 
-- Fix the naming of "golang" in the documentation. We should use Go where possible. Use only golang when it collides
-  in go code with the reserved keyword.
 - Extend the documentation.
 - Add benchmarks to all documentation.
 - Add a benchmark mode which runs with the garbage collector disabled, by setting `GOGC=off` together with a

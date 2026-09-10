@@ -6,7 +6,7 @@ A backend turns the DFA the core constructed into its output. These backends are
 - [C#](scannergen-backend-csharp.md)
 - [C++](scannergen-backend-cpp.md)
 - [DOT](scannergen-backend-dot.md)
-- [Go](scannergen-backend-golang.md)
+- [Go](scannergen-backend-go.md)
 - [Java](scannergen-backend-java.md)
 - [JavaScript](scannergen-backend-javascript.md)
 - [JSON](scannergen-backend-json.md)

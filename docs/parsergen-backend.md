@@ -6,7 +6,7 @@ A backend turns the parse table the core computed into its output. These backend
 - [C#](parsergen-backend-csharp.md)
 - [C++](parsergen-backend-cpp.md)
 - [DOT](parsergen-backend-dot.md)
-- [Go](parsergen-backend-golang.md)
+- [Go](parsergen-backend-go.md)
 - [Java](parsergen-backend-java.md)
 - [JavaScript](parsergen-backend-javascript.md)
 - [JSON](parsergen-backend-json.md)

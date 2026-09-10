@@ -1,7 +1,7 @@
-# Scanner Generator Backend: Golang
+# Scanner Generator Backend: Go
 
 This backend outputs a scanner as Go source code. See [scanner generator backends](scannergen-backend.md) for what
-every generated scanner does and [parser generator backend: Go](parsergen-backend-golang.md) for the parser side.
+every generated scanner does and [parser generator backend: Go](parsergen-backend-go.md) for the parser side.
 
 `--backend-go-package-name` sets the package the file declares, which defaults to `parser`.
 
