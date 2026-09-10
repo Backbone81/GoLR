@@ -1,5 +1,5 @@
-TOKEN CAFE 0 5 "caf\xc3\xa9"
-TOKEN WHITESPACE 5 6 " "
-TOKEN NAME 6 10 "cafe"
-TOKEN WHITESPACE 10 11 "\n"
-EOF 11
+1:1     TOKEN   CAFE "caf\xc3\xa9"
+1:6     TOKEN   WHITESPACE " "
+1:7     TOKEN   NAME "cafe"
+1:11    TOKEN   WHITESPACE "\n"
+2:1     EOF

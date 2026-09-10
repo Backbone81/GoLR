@@ -1,6 +1,6 @@
-TOKEN LETTER 0 1 "a"
-TOKEN NUL 1 2 "\x00"
-TOKEN CONTROL 2 3 "\t"
-TOKEN CONTROL 3 4 "\x7f"
-TOKEN LETTER 4 5 "b"
-EOF 5
+1:1     TOKEN   LETTER "a"
+1:2     TOKEN   NUL "\x00"
+1:3     TOKEN   CONTROL "\t"
+1:4     TOKEN   CONTROL "\x7f"
+1:5     TOKEN   LETTER "b"
+1:6     EOF

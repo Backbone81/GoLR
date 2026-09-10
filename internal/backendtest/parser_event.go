@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// traceLine formats one parser trace line: the source position, the keyword, and an optional payload. No trailing
-// whitespace.
+// traceLine formats one trace line, scanner or parser: the source position, the keyword, and an optional payload. No
+// trailing whitespace.
 func traceLine(line int, column int, keyword string, payload string) string {
 	location := fmt.Sprintf("%d:%d", line, column)
 	if payload == "" {

@@ -8,8 +8,8 @@ import (
 // Trace is the sequence of events a scanner or a parser produces for one input, one line per event. The canonical text
 // is UTF-8 with LF line endings and a trailing newline.
 //
-// A scanner trace locates everything by byte offset. A parser trace locates every action by line and column, so an
-// unexpected parse in a large source can be found by position.
+// Every event locates itself by line and column, so a scanner trace and a parser trace of the same input line up and
+// an unexpected result in a large source can be found by position.
 //
 // Scanner and parser events go into separate traces, never one. No event carries a state or production index, so a
 // trace is a property of the grammar and the input: a reduction is named "lhs => rhs", not by number.

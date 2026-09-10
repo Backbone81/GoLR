@@ -1,7 +1,7 @@
-TOKEN NAME 0 3 "foo"
-TOKEN WHITESPACE 3 4 " "
-TOKEN COMMENT 4 15 "# a comment"
-TOKEN WHITESPACE 15 16 "\n"
-TOKEN NAME 16 19 "bar"
-TOKEN WHITESPACE 19 20 "\n"
-EOF 20
+1:1     TOKEN   NAME "foo"
+1:4     TOKEN   WHITESPACE " "
+1:5     TOKEN   COMMENT "# a comment"
+1:16    TOKEN   WHITESPACE "\n"
+2:1     TOKEN   NAME "bar"
+2:4     TOKEN   WHITESPACE "\n"
+3:1     EOF

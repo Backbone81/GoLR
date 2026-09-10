@@ -15,36 +15,47 @@ var _ = Describe("Scanner events", func() {
 			func(event fmt.Stringer, expected string) {
 				Expect(event.String()).To(Equal(expected))
 			},
-			Entry("TOKEN",
-				backendtest.Token{RuleName: "IDENTIFIER", Start: 0, End: 5, Lexeme: "hello"},
-				`TOKEN IDENTIFIER 0 5 "hello"`),
-			Entry("ERROR",
-				backendtest.ScannerError{Offset: 7},
-				"ERROR 7"),
-			Entry("EOF",
-				backendtest.EOF{Offset: 12},
-				"EOF 12"),
+			Entry("TOKEN carries the position, the rule and the escaped lexeme",
+				backendtest.Token{Line: 1, Column: 1, RuleName: "IDENTIFIER", Lexeme: "hello"},
+				`1:1     TOKEN   IDENTIFIER "hello"`),
+			Entry("ERROR carries the position and the bytes no rule matched",
+				backendtest.ScannerError{Line: 1, Column: 8, Lexeme: "?"},
+				`1:8     ERROR   "?"`),
+			Entry("EOF carries only the position",
+				backendtest.EOF{Line: 2, Column: 1},
+				"2:1     EOF"),
+			Entry("a long position pushes the rest right instead of being truncated",
+				backendtest.Token{Line: 1234, Column: 56, RuleName: "NAME", Lexeme: "x"},
+				`1234:56 TOKEN   NAME "x"`),
 			// The quotes are what let a lexeme contain the space which separates the other fields.
 			Entry("a lexeme with spaces",
-				backendtest.Token{RuleName: "WHITESPACE", Start: 0, End: 3, Lexeme: "  x"},
-				`TOKEN WHITESPACE 0 3 "  x"`),
+				backendtest.Token{Line: 1, Column: 1, RuleName: "WHITESPACE", Lexeme: "  x"},
+				`1:1     TOKEN   WHITESPACE "  x"`),
 			Entry("a lexeme which needs escaping",
-				backendtest.Token{RuleName: "STRING", Start: 0, End: 6, Lexeme: "\"a\\b\"\n"},
-				`TOKEN STRING 0 6 "\"a\\b\"\n"`),
+				backendtest.Token{Line: 1, Column: 1, RuleName: "STRING", Lexeme: "\"a\\b\"\n"},
+				`1:1     TOKEN   STRING "\"a\\b\"\n"`),
 			Entry("an empty lexeme",
-				backendtest.Token{RuleName: "EMPTY", Start: 4, End: 4, Lexeme: ""},
-				`TOKEN EMPTY 4 4 ""`),
+				backendtest.Token{Line: 4, Column: 2, RuleName: "EMPTY", Lexeme: ""},
+				`4:2     TOKEN   EMPTY ""`),
+			Entry("an error whose bytes need escaping",
+				backendtest.ScannerError{Line: 1, Column: 1, Lexeme: "\xff"},
+				`1:1     ERROR   "\xff"`),
 		)
 
 		It("writes a whole trace with one event per line and a trailing newline", func() {
 			trace := backendtest.Trace{
-				backendtest.Token{RuleName: "IF", Start: 0, End: 2, Lexeme: "if"},
-				backendtest.Token{RuleName: "WHITESPACE", Start: 2, End: 3, Lexeme: " "},
-				backendtest.ScannerError{Offset: 3},
-				backendtest.EOF{Offset: 4},
+				backendtest.Token{Line: 1, Column: 1, RuleName: "IF", Lexeme: "if"},
+				backendtest.Token{Line: 1, Column: 3, RuleName: "WHITESPACE", Lexeme: " "},
+				backendtest.ScannerError{Line: 1, Column: 4, Lexeme: "?"},
+				backendtest.EOF{Line: 1, Column: 5},
 			}
 
-			Expect(trace.String()).To(Equal(`TOKEN IF 0 2 "if"` + "\n" + `TOKEN WHITESPACE 2 3 " "` + "\nERROR 3\nEOF 4\n"))
+			Expect(trace.String()).To(Equal(
+				`1:1     TOKEN   IF "if"` + "\n" +
+					`1:3     TOKEN   WHITESPACE " "` + "\n" +
+					`1:4     ERROR   "?"` + "\n" +
+					"1:5     EOF\n",
+			))
 		})
 	})
 

@@ -1,7 +1,7 @@
-TOKEN ABCD 0 4 "abcd"
-TOKEN WHITESPACE 4 5 " "
-TOKEN AB 5 7 "ab"
-TOKEN WHITESPACE 7 8 " "
-TOKEN ABCD 8 12 "abcd"
-TOKEN WHITESPACE 12 13 "\n"
-EOF 13
+1:1     TOKEN   ABCD "abcd"
+1:5     TOKEN   WHITESPACE " "
+1:6     TOKEN   AB "ab"
+1:8     TOKEN   WHITESPACE " "
+1:9     TOKEN   ABCD "abcd"
+1:13    TOKEN   WHITESPACE "\n"
+2:1     EOF

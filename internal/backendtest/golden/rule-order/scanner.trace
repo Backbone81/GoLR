@@ -1,5 +1,5 @@
-TOKEN KEYWORD 0 3 "for"
-TOKEN WHITESPACE 3 4 " "
-TOKEN NAME 4 8 "fort"
-TOKEN WHITESPACE 8 9 "\n"
-EOF 9
+1:1     TOKEN   KEYWORD "for"
+1:4     TOKEN   WHITESPACE " "
+1:5     TOKEN   NAME "fort"
+1:9     TOKEN   WHITESPACE "\n"
+2:1     EOF

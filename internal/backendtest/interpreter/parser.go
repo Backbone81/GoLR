@@ -199,7 +199,7 @@ func (p *Parser) Parse() backendtest.Trace {
 		case parsertable.ActionKindReduce:
 			p.reduce(action.ProductionIdx())
 		case parsertable.ActionKindAccept:
-			line, column := p.lineCol(p.token.start)
+			line, column := lineCol(p.lineStarts, p.token.start)
 			p.trace = append(p.trace, backendtest.Accept{Line: line, Column: column})
 			return p.trace
 		case parsertable.ActionKindError:
@@ -228,7 +228,7 @@ func (p *Parser) action() parsertable.Action {
 // position again after an error. The synthetic shift of the end of input symbol goes through here too, so it appears in
 // the trace like any other shift.
 func (p *Parser) shift(stateIdx int) {
-	line, column := p.lineCol(p.token.start)
+	line, column := lineCol(p.lineStarts, p.token.start)
 	p.trace = append(p.trace, backendtest.Shift{
 		Line:         line,
 		Column:       column,
@@ -258,7 +258,7 @@ func (p *Parser) reduce(productionIdx int) {
 	for i, child := range p.nodeStack[len(p.nodeStack)-popCount:] {
 		rightHandSide[i] = child.name
 	}
-	line, column := p.lineCol(p.token.start)
+	line, column := lineCol(p.lineStarts, p.token.start)
 	p.trace = append(p.trace, backendtest.Reduce{
 		Line:          line,
 		Column:        column,
@@ -289,7 +289,7 @@ func (p *Parser) reduce(productionIdx int) {
 // tells us. Popping and discarding in the same round is what guarantees progress: every round either gets the parse
 // going again or consumes one token.
 func (p *Parser) recoverFromError() bool {
-	line, column := p.lineCol(p.token.start)
+	line, column := lineCol(p.lineStarts, p.token.start)
 	p.trace = append(p.trace, backendtest.ParserError{
 		Line:   line,
 		Column: column,
@@ -323,7 +323,7 @@ func (p *Parser) recoverFromError() bool {
 // reporting whether it found such a state. A grammar which marks no place to resume at unwinds the whole stack here.
 func (p *Parser) popToErrorState() bool {
 	for {
-		line, column := p.lineCol(p.token.start)
+		line, column := lineCol(p.lineStarts, p.token.start)
 		if stateIdx, ok := p.compressed.ErrorShiftStateIdx(p.stateStack[len(p.stateStack)-1]); ok {
 			p.trace = append(p.trace, backendtest.Resync{Line: line, Column: column})
 			// Shift the error symbol. Its node stands for the part of the input which was dropped.
@@ -348,10 +348,11 @@ func (p *Parser) popToErrorState() bool {
 	}
 }
 
-// lineCol turns a byte offset into a one based line and column, matching how the generated scanners count.
-func (p *Parser) lineCol(offset int) (int, int) {
-	line := sort.Search(len(p.lineStarts), func(i int) bool { return p.lineStarts[i] > offset })
-	return line, offset - p.lineStarts[line-1] + 1
+// lineCol turns a byte offset into a one based line and column, matching how the generated scanners count. lineStarts
+// is the offset each line begins at, from newLineStarts.
+func lineCol(lineStarts []int, offset int) (int, int) {
+	line := sort.Search(len(lineStarts), func(i int) bool { return lineStarts[i] > offset })
+	return line, offset - lineStarts[line-1] + 1
 }
 
 // advanceToken reads the next token the parser has to decide on, skipping the rules the scanner marks as skipped the

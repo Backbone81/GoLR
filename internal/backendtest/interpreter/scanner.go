@@ -12,10 +12,10 @@ import (
 // Match is what the scanner found for one attempt at a token: the rule which matched, and the extent of the input the
 // scanner consumed for it.
 //
-// A match with a RuleIdx of table.NoRule is an attempt in which no rule matched. Start is then the offset the trace
-// reports the error at, and End is where the scanner picks up again, which is one byte past the byte it could not
-// consume. The extent of a failed attempt is deliberately part of the match instead of being implicit, because it is
-// what decides the offsets of everything the scanner reports after an error.
+// A match with a RuleIdx of table.NoRule is an attempt in which no rule matched. Start is then where the error is
+// reported and End is where the scanner picks up again, which is one byte past the byte it could not consume. The bytes
+// between the two are the error's lexeme in the trace: how far the scanner ran before it backed up is exactly what a
+// driver can get wrong.
 type Match struct {
 	// RuleIdx is the index of the rule which matched, or table.NoRule when no rule matched.
 	RuleIdx int
@@ -39,6 +39,9 @@ type Scanner struct {
 	rules  []frontend.Rule
 	source []byte
 
+	// lineStarts holds the byte offset each line begins at, so Event can turn a match offset into a line and column.
+	lineStarts []int
+
 	// offset is where the next attempt at a token starts. It is the only state which survives a call to Next, so
 	// that a scan is a function of the input alone.
 	offset int
@@ -50,9 +53,10 @@ type Scanner struct {
 // every byte.
 func NewScanner(dfa backend.DFA, source []byte) *Scanner {
 	return &Scanner{
-		dfa:    table.NewCompressedDFA(dfa),
-		rules:  dfa.Rules,
-		source: source,
+		dfa:        table.NewCompressedDFA(dfa),
+		rules:      dfa.Rules,
+		source:     source,
+		lineStarts: newLineStarts(source),
 	}
 }
 
@@ -124,21 +128,23 @@ func (s *Scanner) rule(match Match) (frontend.Rule, bool) {
 	return s.rules[match.RuleIdx], true
 }
 
-// Event returns the trace event for the given match. A match which no rule produced becomes an error carrying the
-// offset it started at, and every other match becomes a token, whether or not its rule was marked for skipping, see
-// backendtest.Token.
+// Event returns the trace event for the given match, positioned where the match starts. A match which no rule produced
+// becomes an error carrying the bytes it could not match, every other match becomes a token, whether or not its rule
+// was marked for skipping, see backendtest.Token.
 func (s *Scanner) Event(match Match) fmt.Stringer {
+	line, column := lineCol(s.lineStarts, match.Start)
+	lexeme := string(s.source[match.Start:match.End])
+
 	rule, ok := s.rule(match)
 	if !ok {
-		return backendtest.ScannerError{Offset: match.Start}
+		return backendtest.ScannerError{Line: line, Column: column, Lexeme: lexeme}
 	}
-
-	lexeme := string(s.source[match.Start:match.End])
-	return backendtest.Token{RuleName: rule.Name, Start: match.Start, End: match.End, Lexeme: lexeme}
+	return backendtest.Token{Line: line, Column: column, RuleName: rule.Name, Lexeme: lexeme}
 }
 
 // ScanTrace scans the whole input and returns the canonical trace of it. Every trace ends with the end of input event,
-// including the trace of an empty input, so that a trace always states the length of the input it belongs to.
+// positioned one past the last byte, including the trace of an empty input, so that a trace always states where the
+// input it belongs to ends.
 func ScanTrace(dfa backend.DFA, source []byte) backendtest.Trace {
 	scanner := NewScanner(dfa, source)
 
@@ -150,5 +156,7 @@ func ScanTrace(dfa backend.DFA, source []byte) backendtest.Trace {
 		}
 		result = append(result, scanner.Event(match))
 	}
-	return append(result, backendtest.EOF{Offset: len(source)})
+
+	line, column := lineCol(scanner.lineStarts, len(source))
+	return append(result, backendtest.EOF{Line: line, Column: column})
 }

@@ -1,5 +1,5 @@
-TOKEN MAYBE 0 2 "aa"
-ERROR 2
-TOKEN B 3 4 "b"
-ERROR 4
-EOF 5
+1:1     TOKEN   MAYBE "aa"
+1:3     ERROR   " "
+1:4     TOKEN   B "b"
+1:5     ERROR   "\n"
+2:1     EOF

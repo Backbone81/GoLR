@@ -45,39 +45,39 @@ var _ = Describe("Scanner", func() {
 	Context("maximal munch", func() {
 		It("prefers the longer match over the keyword", func() {
 			expectScannerTrace(keywordDFA(), "iffy",
-				`TOKEN NAME 0 4 "iffy"`,
-				"EOF 4",
+				`1:1     TOKEN   NAME "iffy"`,
+				"1:5     EOF",
 			)
 		})
 
 		It("breaks a tie at equal length by rule order", func() {
 			expectScannerTrace(keywordDFA(), "if",
-				`TOKEN IF 0 2 "if"`,
-				"EOF 2",
+				`1:1     TOKEN   IF "if"`,
+				"1:3     EOF",
 			)
 		})
 
 		It("backs up to the last accepting state when it runs into a dead state", func() {
 			expectScannerTrace(backupDFA(), "abc",
-				`TOKEN AB 0 2 "ab"`,
-				"ERROR 2",
-				"EOF 3",
+				`1:1     TOKEN   AB "ab"`,
+				`1:3     ERROR   "c"`,
+				"1:4     EOF",
 			)
 		})
 
 		It("consumes the longer alternative when the input completes it", func() {
 			expectScannerTrace(backupDFA(), "abcd",
-				`TOKEN ABCD 0 4 "abcd"`,
-				"EOF 4",
+				`1:1     TOKEN   ABCD "abcd"`,
+				"1:5     EOF",
 			)
 		})
 
 		It("takes the last accepting state up to the very last byte of the input", func() {
 			expectScannerTrace(backupDFA(), "abcab",
-				`TOKEN AB 0 2 "ab"`,
-				"ERROR 2",
-				`TOKEN AB 3 5 "ab"`,
-				"EOF 5",
+				`1:1     TOKEN   AB "ab"`,
+				`1:3     ERROR   "c"`,
+				`1:4     TOKEN   AB "ab"`,
+				"1:6     EOF",
 			)
 		})
 	})
@@ -85,78 +85,78 @@ var _ = Describe("Scanner", func() {
 	Context("skipped rules", func() {
 		It("reports them as ordinary tokens, because a runner is never told which rules are skipped", func() {
 			expectScannerTrace(keywordDFA(), "if fy",
-				`TOKEN IF 0 2 "if"`,
-				`TOKEN WHITESPACE 2 3 " "`,
-				`TOKEN NAME 3 5 "fy"`,
-				"EOF 5",
+				`1:1     TOKEN   IF "if"`,
+				`1:3     TOKEN   WHITESPACE " "`,
+				`1:4     TOKEN   NAME "fy"`,
+				"1:6     EOF",
 			)
 		})
 	})
 
 	Context("input no rule matches", func() {
-		It("reports the offset the failed match started at", func() {
+		It("reports the position the failed match started at", func() {
 			expectScannerTrace(keywordDFA(), "a?b",
-				`TOKEN NAME 0 1 "a"`,
-				"ERROR 1",
-				`TOKEN NAME 2 3 "b"`,
-				"EOF 3",
+				`1:1     TOKEN   NAME "a"`,
+				`1:2     ERROR   "?"`,
+				`1:3     TOKEN   NAME "b"`,
+				"1:4     EOF",
 			)
 		})
 
 		It("keeps scanning instead of giving up on the first error", func() {
 			expectScannerTrace(keywordDFA(), "??",
-				"ERROR 0",
-				"ERROR 1",
-				"EOF 2",
+				`1:1     ERROR   "?"`,
+				`1:2     ERROR   "?"`,
+				"1:3     EOF",
 			)
 		})
 
-		It("ends a failed match at the byte it could not consume", func() {
+		It("carries the whole stretch of bytes it could not match", func() {
 			expectScannerTrace(deadEndDFA(), "abcx",
-				"ERROR 0",
-				"ERROR 3",
-				"EOF 4",
+				`1:1     ERROR   "abc"`,
+				`1:4     ERROR   "x"`,
+				"1:5     EOF",
 			)
 		})
 
 		It("leaves the token which follows a failed match whole", func() {
 			expectScannerTrace(partialMatchDFA(), "-ab-",
-				"ERROR 0",
-				`TOKEN IDENT 1 3 "ab"`,
-				"ERROR 3",
-				"EOF 4",
+				`1:1     ERROR   "-"`,
+				`1:2     TOKEN   IDENT "ab"`,
+				`1:4     ERROR   "-"`,
+				"1:5     EOF",
 			)
 		})
 
 		It("reports an input which ends in the middle of a token", func() {
 			expectScannerTrace(backupDFA(), "abc",
-				`TOKEN AB 0 2 "ab"`,
-				"ERROR 2",
-				"EOF 3",
+				`1:1     TOKEN   AB "ab"`,
+				`1:3     ERROR   "c"`,
+				"1:4     EOF",
 			)
 		})
 
 		It("stops at the end of the input rather than one byte past it", func() {
 			expectScannerTrace(deadEndDFA(), "abc",
-				"ERROR 0",
-				"EOF 3",
+				`1:1     ERROR   "abc"`,
+				"1:4     EOF",
 			)
 		})
 	})
 
 	Context("bytes", func() {
-		It("reports offsets in bytes and escapes a lexeme byte by byte", func() {
+		It("counts the column in bytes and escapes a lexeme byte by byte", func() {
 			expectScannerTrace(rulesToDFA(dsl.Rule("UMLAUT", dsl.Literal("ä"))), "ää",
-				`TOKEN UMLAUT 0 2 "\xc3\xa4"`,
-				`TOKEN UMLAUT 2 4 "\xc3\xa4"`,
-				"EOF 4",
+				`1:1     TOKEN   UMLAUT "\xc3\xa4"`,
+				`1:3     TOKEN   UMLAUT "\xc3\xa4"`,
+				"1:5     EOF",
 			)
 		})
 
 		It("scans the byte at the lower end of the byte range", func() {
 			expectScannerTrace(rulesToDFA(dsl.Rule("NUL", dsl.CharClass(dsl.CharRange(0, 0)))), "\x00",
-				`TOKEN NUL 0 1 "\x00"`,
-				"EOF 1",
+				`1:1     TOKEN   NUL "\x00"`,
+				"1:2     EOF",
 			)
 		})
 	})
@@ -164,7 +164,7 @@ var _ = Describe("Scanner", func() {
 	Context("edge cases", func() {
 		It("traces an empty input as the end of input alone", func() {
 			expectScannerTrace(keywordDFA(), "",
-				"EOF 0",
+				"1:1     EOF",
 			)
 		})
 
@@ -172,12 +172,12 @@ var _ = Describe("Scanner", func() {
 			emptyDFA := rulesToDFA(dsl.Rule("AS", dsl.ZeroOrMore(dsl.CharClass(dsl.CharRange('a', 'a')))))
 
 			expectScannerTrace(emptyDFA, "aa",
-				`TOKEN AS 0 2 "aa"`,
-				"EOF 2",
+				`1:1     TOKEN   AS "aa"`,
+				"1:3     EOF",
 			)
 			expectScannerTrace(emptyDFA, "b",
-				"ERROR 0",
-				"EOF 1",
+				`1:1     ERROR   "b"`,
+				"1:2     EOF",
 			)
 		})
 	})
@@ -185,25 +185,25 @@ var _ = Describe("Scanner", func() {
 	Context("the GoLR specification", func() {
 		It("traces a real scanner of non-trivial size", func() {
 			expectScannerTrace(golrSpecDFA(), `@parser { a: "b"; }`,
-				`TOKEN PARSER 0 7 "@parser"`,
-				`TOKEN WHITESPACE 7 8 " "`,
-				`TOKEN LBRACE 8 9 "{"`,
-				`TOKEN WHITESPACE 9 10 " "`,
-				`TOKEN IDENTIFIER 10 11 "a"`,
-				`TOKEN COLON 11 12 ":"`,
-				`TOKEN WHITESPACE 12 13 " "`,
-				`TOKEN STRING 13 16 "\"b\""`,
-				`TOKEN SEMI 16 17 ";"`,
-				`TOKEN WHITESPACE 17 18 " "`,
-				`TOKEN RBRACE 18 19 "}"`,
-				"EOF 19",
+				`1:1     TOKEN   PARSER "@parser"`,
+				`1:8     TOKEN   WHITESPACE " "`,
+				`1:9     TOKEN   LBRACE "{"`,
+				`1:10    TOKEN   WHITESPACE " "`,
+				`1:11    TOKEN   IDENTIFIER "a"`,
+				`1:12    TOKEN   COLON ":"`,
+				`1:13    TOKEN   WHITESPACE " "`,
+				`1:14    TOKEN   STRING "\"b\""`,
+				`1:17    TOKEN   SEMI ";"`,
+				`1:18    TOKEN   WHITESPACE " "`,
+				`1:19    TOKEN   RBRACE "}"`,
+				"1:20    EOF",
 			)
 		})
 
 		It("reports a string which the end of the input cuts short", func() {
 			expectScannerTrace(golrSpecDFA(), `"abc`,
-				"ERROR 0",
-				"EOF 4",
+				`1:1     ERROR   "\"abc"`,
+				"1:5     EOF",
 			)
 		})
 	})

@@ -1,5 +1,5 @@
-TOKEN LETTERS 0 2 "ab"
-ERROR 2
-ERROR 3
-TOKEN LETTERS 4 6 "cd"
-EOF 6
+1:1     TOKEN   LETTERS "ab"
+1:3     ERROR   "\xff"
+1:4     ERROR   "\x80"
+1:5     TOKEN   LETTERS "cd"
+1:7     EOF

@@ -1,5 +1,5 @@
-TOKEN NAME 0 5 "title"
-TOKEN WHITESPACE 5 6 " "
-TOKEN NAME 6 11 "extra"
-TOKEN WHITESPACE 11 12 "\n"
-EOF 12
+1:1     TOKEN   NAME "title"
+1:6     TOKEN   WHITESPACE " "
+1:7     TOKEN   NAME "extra"
+1:12    TOKEN   WHITESPACE "\n"
+2:1     EOF

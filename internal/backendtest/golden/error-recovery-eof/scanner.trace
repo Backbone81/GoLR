@@ -1,2 +1,2 @@
-TOKEN NUMBER 0 1 "1"
-EOF 1
+1:1     TOKEN   NUMBER "1"
+1:2     EOF

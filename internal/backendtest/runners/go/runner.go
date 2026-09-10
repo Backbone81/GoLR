@@ -64,36 +64,27 @@ func escapeLexeme(lexeme []byte) string {
 	return result.String()
 }
 
-// appendScannerTrace scans the whole input and appends one line per event.
+// appendScannerTrace scans the whole input and appends one line per event: the position the token or the failed match
+// starts at, a keyword, and for a token its rule and lexeme, for a failed match the bytes it could not match.
 func appendScannerTrace(lines []string, source []byte, inputPath string) []string {
-	// The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the offsets of the tokens
-	// around it are only checkable when it is in the trace.
+	// The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the position of the
+	// tokens around it is only checkable when it is in the trace.
 	scanner := parser.NewScanner(source, inputPath)
 
 	for scanner.Next() {
-		// For a failed match this is the start of the attempt, not the byte which could not be consumed.
-		start := scanner.ByteOffset()
+		location := fmt.Sprintf("%d:%d", scanner.Line(), scanner.Column())
+		lexeme := escapeLexeme(scanner.Lexeme())
 
 		if scanner.Token() == parser.InvalidToken {
-			lines = append(lines, fmt.Sprintf("ERROR %d", start))
+			lines = append(lines, fmt.Sprintf(`%-7s %-7s "%s"`, location, "ERROR", lexeme))
 			continue
 		}
-
-		// The end comes from the length of the lexeme rather than from an offset the scanner reports, so that a lexeme
-		// which disagrees with the offsets cannot pass unnoticed.
-		lexeme := scanner.Lexeme()
-		lines = append(lines, fmt.Sprintf(
-			`TOKEN %s %d %d "%s"`,
-			scanner.Token(),
-			start,
-			start+len(lexeme),
-			escapeLexeme(lexeme),
-		))
+		lines = append(lines, fmt.Sprintf(`%-7s %-7s %s "%s"`, location, "TOKEN", scanner.Token(), lexeme))
 	}
 
-	// The offset the scanner reports after it ran out of input, not the length of the source. The two agree only when
-	// the scanner consumed everything.
-	return append(lines, fmt.Sprintf("EOF %d", scanner.ByteOffset()))
+	// The position after the scanner ran out of input, which is one past the last byte only when it consumed
+	// everything.
+	return append(lines, fmt.Sprintf("%-7s %s", fmt.Sprintf("%d:%d", scanner.Line(), scanner.Column()), "EOF"))
 }
 
 // appendParserTrace parses the whole input and appends the line the parser's trace hook emits for every action. The
