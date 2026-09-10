@@ -26,7 +26,7 @@ auto-generated name). It is `<PREFIX>_NO_PRODUCTION` on a terminal node, which n
 
 The `Parser` struct has `trace` and `trace_context` fields. Set `trace` to a `<Prefix>TraceFunc`
 (`void (*)(void *context, const char *line)`) after `<prefix>_parser_init` for a trace of every parser action; leave it
-null for none. See [parser generator backends](parsergen-backend.md) for the line format.
+`null` for none. See [parser generator backends](parsergen-backend.md) for the line format.
 
 ## Example
 

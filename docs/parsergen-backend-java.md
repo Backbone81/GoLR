@@ -19,7 +19,7 @@ null on a terminal node.
 ## Tracing
 
 `Parser` has a public `trace` field of type `Consumer<String>`. Set it after `new Parser()` for a trace of every parser
-action, null for none. See [parser generator backends](parsergen-backend.md) for the line format.
+action, `null` for none. See [parser generator backends](parsergen-backend.md) for the line format.
 
 ## Example
 

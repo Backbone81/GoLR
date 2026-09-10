@@ -1,0 +1,6 @@
+1:1     SHIFT   NUMBER "1"
+1:2     ERROR   unexpected token $end
+1:2     POP     NUMBER
+1:2     RESYNC
+1:2     ERROR   (suppressed) unexpected token $end
+1:2     FAIL

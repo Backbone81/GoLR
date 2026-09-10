@@ -1,0 +1,26 @@
+// Error recovery which gives up because the token it would have to throw away is the end of input. `@error ";"` marks a
+// place to resume at, so the recovery does pop the stack and shift the error symbol; what it can not do afterwards is
+// discard the end of input, which is the one token no recovery is allowed to drop. The trace ends in FAIL with no POP
+// in front of it, right after a suppressed error on the end of input, which is what tells this path apart from the FAIL
+// where the stack unwinds to the start state and from the FAIL where the grammar carries no `@error` at all.
+//
+// The input is a single number with no terminating semicolon. The number shifts, then the end of input arrives where
+// the statement still needs its `;`. The recovery reports the error, pops the number, and resyncs on the error symbol
+// in the start state. The end of input is still not a `;`, so the recovery runs again, but now nothing has been shifted
+// since the last error and the failing token can not be discarded, so it fails.
+//
+// The scanner is not what this case is about, so its rules are single characters and runs of digits.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NUMBER:    /[0-9]+/;
+    SEMICOLON: ";";
+}
+
+@parser {
+    statement
+        : NUMBER ";"
+        | @error ";"
+        ;
+}

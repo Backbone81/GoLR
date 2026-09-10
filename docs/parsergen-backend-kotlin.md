@@ -20,7 +20,7 @@ null on a terminal node.
 ## Tracing
 
 `Parser` has a `trace` property of type `TraceFunc?` (`((String) -> Unit)?`). Set it after `Parser()` for a trace of
-every parser action, null for none. See [parser generator backends](parsergen-backend.md) for the line format.
+every parser action, `null` for none. See [parser generator backends](parsergen-backend.md) for the line format.
 
 ## Example
 
