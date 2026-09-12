@@ -12,6 +12,16 @@ type Formatter struct {
 	scanner     *golrparser.Scanner
 	indentLevel int
 
+	// lastScannerIdentifierLen is the length of the most recently emitted identifier inside a @scanner section,
+	// i.e. the left hand side of the scanner rule whose ":" comes next.
+	lastScannerIdentifierLen int
+
+	// scannerRuleGroups collects scanner rule marks seen during the first pass, grouped by contiguous runs of
+	// rules not separated by an explicit blank line. It always has at least one (possibly empty) group; a new
+	// one is started as soon as an explicit blank line is seen inside a @scanner section, and it stays empty if
+	// no rule follows before the next one. Consumed by alignScannerRules afterwards.
+	scannerRuleGroups [][]scannerRuleRHS
+
 	// indentNext reports if the next output needs to be indented or not.
 	indentNext bool
 
@@ -37,6 +47,16 @@ type Formatter struct {
 	output *bytes.Buffer
 }
 
+// scannerRuleRHS notes down where a scanner rule's right hand side starts, so a second pass can align it with
+// the other rules in the same group.
+type scannerRuleRHS struct {
+	// offset is the byte position in the output right after the rule's ":", where padding is inserted.
+	offset int
+
+	// ruleNameLen is the length of the rule's identifier.
+	ruleNameLen int
+}
+
 func NewFormatter() *Formatter {
 	return &Formatter{
 		config: DefaultConfig,
@@ -51,6 +71,8 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 	f.context = f.context[:0]
 	f.explicitBlankLine = false
 	f.explicitNewline = false
+	f.lastScannerIdentifierLen = 0
+	f.scannerRuleGroups = [][]scannerRuleRHS{nil}
 
 	f.output = bytes.NewBuffer(make([]byte, 0, len(source)))
 	f.scanner = golrparser.NewScanner(source, filePath)
@@ -65,6 +87,11 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 			}
 			if newlines >= 2 {
 				f.explicitBlankLine = true
+				if f.currentContext() == golrparser.TokenScanner {
+					// Start a new alignment group. It stays empty if no rule follows before the next blank
+					// line, which is harmless.
+					f.scannerRuleGroups = append(f.scannerRuleGroups, nil)
+				}
 			}
 			continue
 
@@ -92,6 +119,17 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 
 		case golrparser.TokenColon:
 			switch f.currentContext() {
+			case golrparser.TokenScanner:
+				// Note down where the rule's right hand side starts, so the second pass can align it.
+				mark := scannerRuleRHS{
+					offset:      f.output.Len() + 1,
+					ruleNameLen: f.lastScannerIdentifierLen,
+				}
+				lastGroup := len(f.scannerRuleGroups) - 1
+				f.scannerRuleGroups[lastGroup] = append(f.scannerRuleGroups[lastGroup], mark)
+
+				f.emitTight = true
+				f.emit(f.scanner.Lexeme())
 			case golrparser.TokenParser:
 				f.indentInc()
 				f.linebreak()
@@ -133,7 +171,8 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 			}
 			f.emit(f.scanner.Lexeme())
 			f.linebreak()
-			if f.currentContext() == golrparser.TokenScanner {
+			switch f.currentContext() {
+			case golrparser.TokenScanner:
 				// We need an additional linebreak between @scanner and @parser section.
 				f.linebreak()
 			}
@@ -155,10 +194,16 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 			f.emit(f.scanner.Lexeme())
 
 		case golrparser.TokenIdentifier:
-			if f.explicitBlankLine && f.currentContext() == golrparser.TokenScanner {
-				// As the user did provide explicit blank lines to separate scanner rules,
-				// we emit a linebreak as well.
-				f.linebreak()
+			switch f.currentContext() {
+			case golrparser.TokenScanner:
+				// This identifier is the left hand side of a scanner rule; remember its length for the ":"
+				// that follows right after.
+				f.lastScannerIdentifierLen = len(f.scanner.Lexeme())
+				if f.explicitBlankLine {
+					// As the user did provide explicit blank lines to separate scanner rules,
+					// we emit a linebreak as well.
+					f.linebreak()
+				}
 			}
 			f.emit(f.scanner.Lexeme())
 
@@ -182,7 +227,7 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 		f.explicitNewline = false
 	}
 	f.linebreak()
-	return f.output.Bytes()
+	return f.alignScannerRules(f.output.Bytes())
 }
 
 func (f *Formatter) indentInc() {
@@ -236,4 +281,28 @@ func (f *Formatter) currentContext() golrparser.Token {
 		return golrparser.InvalidToken
 	}
 	return f.context[len(f.context)-1]
+}
+
+// alignScannerRules is the second pass over the pretty printed output. It pads the ":" of scanner rules within
+// each group (a run of rules not separated by an explicit blank line) so their right hand sides start in the same
+// column.
+func (f *Formatter) alignScannerRules(data []byte) []byte {
+	result := make([]byte, 0, len(data))
+	lastOffset := 0
+	for _, group := range f.scannerRuleGroups {
+		maxPrefixLen := 0
+		for _, mark := range group {
+			maxPrefixLen = max(maxPrefixLen, mark.ruleNameLen)
+		}
+
+		for _, mark := range group {
+			result = append(result, data[lastOffset:mark.offset]...)
+			for range maxPrefixLen - mark.ruleNameLen {
+				result = append(result, ' ')
+			}
+			lastOffset = mark.offset
+		}
+	}
+	result = append(result, data[lastOffset:]...)
+	return result
 }
