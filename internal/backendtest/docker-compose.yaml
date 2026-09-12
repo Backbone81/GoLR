@@ -115,7 +115,7 @@ services:
 
   typescript:
     <<: *common
-    image: mcr.microsoft.com/devcontainers/typescript-node:5.1.2-24
+    image: mcr.microsoft.com/devcontainers/typescript-node:5.2.1-24
     command: ["typescript"]
 
   python:
