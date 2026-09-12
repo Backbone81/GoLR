@@ -33,8 +33,8 @@
     FOXTROT: "foxtrot";
     GOLF:    "golf";
 
-    NUMBER:  /[0-9]+/;
-    NAME:    /[a-z]+/;
+    NUMBER: /[0-9]+/;
+    NAME:   /[a-z]+/;
 
     SEMICOLON: ";";
 }
@@ -46,13 +46,13 @@
         ;
 
     statement
-        : "alpha"   NUMBER ";"
-        | "bravo"   NAME ";"
+        : "alpha" NUMBER ";"
+        | "bravo" NAME ";"
         | "charlie" NUMBER ";"
-        | "delta"   NAME ";"
-        | "echo"    value ";"
+        | "delta" NAME ";"
+        | "echo" value ";"
         | "foxtrot" value ";"
-        | "golf"    value ";"
+        | "golf" value ";"
         ;
 
     value

@@ -17,8 +17,8 @@
 @scanner {
     WHITESPACE: /[ \t\n]+/ @skip;
 
-    NUMBER:   /[0-9]+/;
-    PLUS:     "+";
+    NUMBER: /[0-9]+/;
+    PLUS:   "+";
 
     LPAREN:   "(";
     RPAREN:   ")";

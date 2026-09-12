@@ -13,7 +13,7 @@
 @scanner {
     WHITESPACE: /[ \t\n]+/ @skip;
 
-    NUMBER:   /[0-9]+/;
+    NUMBER: /[0-9]+/;
 
     PLUS:     "+";
     MINUS:    "-";
@@ -24,8 +24,8 @@
 @parser {
     @precedence {
         @right: "^";
-        @left:  "*";
-        @left:  "+" "-";
+        @left: "*";
+        @left: "+" "-";
     }
 
     expression

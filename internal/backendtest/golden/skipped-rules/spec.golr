@@ -6,7 +6,7 @@
 
 @scanner {
     WHITESPACE: /[ \t\n]+/ @skip;
-    COMMENT:    /#[^\n]*/  @skip;
+    COMMENT:    /#[^\n]*/ @skip;
 
     NAME: /[a-z]+/;
 }
