@@ -207,6 +207,9 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 
 		case golrparser.TokenRbrace:
 			f.indentLevel = max(f.indentLevel-1, 0)
+			// A blank line may still be pending to separate the previous rule from a following one (see
+			// TokenSemi); it must not leak into a blank line before the closing brace itself.
+			f.pendingBlankLine = false
 			if !f.indentNext {
 				// Skip if we're already at the start of a fresh line (e.g. an empty "{}" block), otherwise this
 				// would add a spurious blank line before "}".
