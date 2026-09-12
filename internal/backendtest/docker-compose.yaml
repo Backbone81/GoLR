@@ -135,5 +135,5 @@ services:
 
   csharp:
     <<: *common
-    image: mcr.microsoft.com/dotnet/sdk:10.0
+    image: mcr.microsoft.com/dotnet/sdk:11.0
     command: ["csharp"]
