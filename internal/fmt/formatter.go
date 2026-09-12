@@ -29,6 +29,11 @@ type Formatter struct {
 	// linebreak is lazy so that a same-line trailing comment can still be emitted before it.
 	pendingLinebreak bool
 
+	// pendingBlankLine reports if a blank line before the next emitted content has already been scheduled, so a
+	// second, independent reason to want one (e.g. automatic spacing between rules and a user's own blank line
+	// around a comment coinciding) does not stack into two. Cleared once real content is emitted.
+	pendingBlankLine bool
+
 	// emitTight reports if the next emit should not write a whitespace to separate the previous token from the next
 	// one.
 	emitTight bool
@@ -43,6 +48,10 @@ type Formatter struct {
 	// explicitNewline reports if the whitespace just consumed contained a linebreak, i.e. the next token starts on a
 	// new source line instead of trailing the previous token.
 	explicitNewline bool
+
+	// explicitComment reports if the token just emitted was a comment, so a following explicit blank line can be
+	// attributed to it instead of to whatever token comes after the whitespace.
+	explicitComment bool
 
 	output *bytes.Buffer
 }
@@ -63,20 +72,31 @@ func NewFormatter() *Formatter {
 	}
 }
 
+// Format pretty prints source in two passes: token-by-token emission with lazily scheduled line breaks (see
+// linebreak/blankLine/emit), followed by alignScannerRules, which pads scanner rule ":" columns using the marks
+// collected during the first pass.
 func (f *Formatter) Format(source []byte, filePath string) []byte {
 	f.indentLevel = 0
 	f.indentNext = true
 	f.pendingLinebreak = false
+	f.pendingBlankLine = false
 	f.emitTight = false
 	f.context = f.context[:0]
 	f.explicitBlankLine = false
 	f.explicitNewline = false
+	f.explicitComment = false
 	f.lastScannerIdentifierLen = 0
 	f.scannerRuleGroups = [][]scannerRuleRHS{nil}
 
 	f.output = bytes.NewBuffer(make([]byte, 0, len(source)))
 	f.scanner = golrparser.NewScanner(source, filePath)
 	for f.scanner.Next() {
+		// explicitComment must be reset before every token, not just at the bottom of the loop like
+		// explicitBlankLine/explicitNewline, so it reflects only the token from the immediately preceding
+		// iteration; TokenWhitespace below still needs that old value, so grab a copy first.
+		explicitComment := f.explicitComment
+		f.explicitComment = false
+
 		//nolint:exhaustive // We are only interested in a few special tokens
 		switch f.scanner.Token() {
 		case golrparser.TokenWhitespace:
@@ -87,6 +107,11 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 			}
 			if newlines >= 2 {
 				f.explicitBlankLine = true
+				if explicitComment {
+					// The user separated the comment we just emitted from what follows with a blank line;
+					// keep it instead of collapsing the comment onto the next token.
+					f.blankLine()
+				}
 				if f.currentContext() == golrparser.TokenScanner {
 					// Start a new alignment group. It stays empty if no rule follows before the next blank
 					// line, which is harmless.
@@ -100,15 +125,26 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 			switch {
 			case f.explicitNewline:
 				// The comment starts on its own line rather than trailing the previous token.
-				f.pendingLinebreak = false
-				f.linebreak()
+				if f.explicitBlankLine {
+					// The user separated the comment from the previous content with a blank line; keep it.
+					// blankLine is idempotent, so this composes correctly with automatic spacing (e.g. between
+					// top-level parser rules) that may already have scheduled the same blank line.
+					f.blankLine()
+				} else if !f.pendingLinebreak {
+					// Only schedule if nothing is pending yet: linebreak writes immediately when a linebreak is
+					// already pending, which would add an unwanted extra "\n" here.
+					f.linebreak()
+				}
 				f.emit(f.scanner.Lexeme())
 			case f.pendingLinebreak:
-				// The comment trails the previous token, but a linebreak is already scheduled to run after that
-				// token. Emit the comment before that linebreak instead of flushing it early.
+				// The comment trails the previous token, but a linebreak (and possibly a blank line) is already
+				// scheduled to run after that token. Emit the comment before that instead of flushing it early.
+				hadBlankLine := f.pendingBlankLine
 				f.pendingLinebreak = false
+				f.pendingBlankLine = false
 				f.emit(f.scanner.Lexeme())
 				f.pendingLinebreak = true
+				f.pendingBlankLine = hadBlankLine
 			default:
 				f.emit(f.scanner.Lexeme())
 			}
@@ -116,6 +152,8 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 				// Anything after "//" on the same line would otherwise be swallowed into the comment.
 				f.linebreak()
 			}
+			// Read by the top of the loop on the next token, to detect a blank line right after this comment.
+			f.explicitComment = true
 
 		case golrparser.TokenColon:
 			switch f.currentContext() {
@@ -131,6 +169,7 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 				f.emitTight = true
 				f.emit(f.scanner.Lexeme())
 			case golrparser.TokenParser:
+				// Indent the alternatives under the rule name; matching indentDec runs at the rule's ";".
 				f.indentInc()
 				f.linebreak()
 				f.emit(f.scanner.Lexeme())
@@ -141,6 +180,7 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 
 		case golrparser.TokenPipe:
 			if !f.pendingLinebreak {
+				// Only schedule if nothing is pending yet; see the same guard in TokenComment for why.
 				f.linebreak()
 			}
 			f.emit(f.scanner.Lexeme())
@@ -151,8 +191,9 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 				f.linebreak()
 				f.emit(f.scanner.Lexeme())
 				f.indentDec()
-				f.linebreak()
-				f.linebreak()
+				// Separate top-level rules with a blank line; idempotent, so it composes with a blank line a
+				// trailing comment on the next rule also wants (see the TokenComment case).
+				f.blankLine()
 			default:
 				f.emitTight = true
 				f.emit(f.scanner.Lexeme())
@@ -167,6 +208,8 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 		case golrparser.TokenRbrace:
 			f.indentLevel = max(f.indentLevel-1, 0)
 			if !f.indentNext {
+				// Skip if we're already at the start of a fresh line (e.g. an empty "{}" block), otherwise this
+				// would add a spurious blank line before "}".
 				f.linebreak()
 			}
 			f.emit(f.scanner.Lexeme())
@@ -200,22 +243,19 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 				// that follows right after.
 				f.lastScannerIdentifierLen = len(f.scanner.Lexeme())
 				if f.explicitBlankLine {
-					// As the user did provide explicit blank lines to separate scanner rules,
-					// we emit a linebreak as well.
+					// Preserve the user's blank line between scanner rules.
 					f.linebreak()
 				}
 			}
 			f.emit(f.scanner.Lexeme())
 
 		case golrparser.TokenScanner:
-			// When we see a @scanner token, we note it down in our context. Expecting a { } block next.
-			// On the next } we remove the @scanner token again from our context.
+			// Track that we're inside @scanner; popped again on the matching "}".
 			f.emit(f.scanner.Lexeme())
 			f.pushContext(golrparser.TokenScanner)
 
 		case golrparser.TokenParser:
-			// When we see a @parser token, we note it down in our context. Expecting a { } block next.
-			// On the next } we remove the @parser token again from our context.
+			// Track that we're inside @parser; popped again on the matching "}".
 			f.emit(f.scanner.Lexeme())
 			f.pushContext(golrparser.TokenParser)
 
@@ -225,6 +265,7 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 
 		f.explicitBlankLine = false
 		f.explicitNewline = false
+		// explicitComment is intentionally not reset here; see the reset at the top of the loop.
 	}
 	f.linebreak()
 	return f.alignScannerRules(f.output.Bytes())
@@ -249,11 +290,26 @@ func (f *Formatter) linebreak() {
 	f.indentNext = true
 }
 
+// blankLine requests a blank line before the next emitted content. Like linebreak, it is lazy: the actual "\n\n" is
+// written by emit. It is idempotent, so a second, independent reason to want a blank line (e.g. automatic spacing
+// between rules and a user's own blank line around a comment coinciding) does not stack into two.
+func (f *Formatter) blankLine() {
+	f.pendingLinebreak = true
+	f.pendingBlankLine = true
+	f.indentNext = true
+}
+
+// emit flushes any pending linebreak or blank line, indents if needed, and writes data.
 func (f *Formatter) emit(data []byte) {
-	if f.pendingLinebreak {
+	switch {
+	case f.pendingBlankLine:
+		// A pending blank line implies a pending linebreak too (see blankLine), so check it first.
+		f.output.Write([]byte("\n\n"))
+	case f.pendingLinebreak:
 		f.output.Write([]byte("\n"))
-		f.pendingLinebreak = false
 	}
+	f.pendingLinebreak = false
+	f.pendingBlankLine = false
 	if f.indentNext {
 		for range f.indentLevel {
 			f.output.Write([]byte(f.config.Indentation))
