@@ -22,6 +22,10 @@ type Formatter struct {
 	// context is a stack which describes the current nesting
 	context []golrparser.Token
 
+	// explicitBlankLine reports if the whitespace just consumed contained a blank line, i.e. the user separated the
+	// surrounding tokens by an empty line of their own.
+	explicitBlankLine bool
+
 	output *bytes.Buffer
 }
 
@@ -36,6 +40,7 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 	f.indentNext = true
 	f.emitTight = false
 	f.context = f.context[:0]
+	f.explicitBlankLine = false
 
 	f.output = bytes.NewBuffer(make([]byte, 0, len(source)))
 	f.scanner = golrparser.NewScanner(source, filePath)
@@ -43,7 +48,15 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 		//nolint:exhaustive // We are only interested in a few special tokens
 		switch f.scanner.Token() {
 		case golrparser.TokenWhitespace:
+			// We are looking for explicit blank lines by the user.
+			if bytes.Count(f.scanner.Lexeme(), []byte("\n")) >= 2 {
+				f.explicitBlankLine = true
+			}
+			continue
+
 		case golrparser.TokenComment:
+			continue
+
 		case golrparser.TokenColon:
 			switch f.currentContext() {
 			case golrparser.TokenParser:
@@ -106,6 +119,14 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 			f.emitTight = true
 			f.emit(f.scanner.Lexeme())
 
+		case golrparser.TokenIdentifier:
+			if f.explicitBlankLine && f.currentContext() == golrparser.TokenScanner {
+				// As the user did provide explicit blank lines to separate scanner rules,
+				// we emit a linebreak as well.
+				f.linebreak()
+			}
+			f.emit(f.scanner.Lexeme())
+
 		case golrparser.TokenScanner:
 			// When we see a @scanner token, we note it down in our context. Expecting a { } block next.
 			// On the next } we remove the @scanner token again from our context.
@@ -121,6 +142,8 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 		default:
 			f.emit(f.scanner.Lexeme())
 		}
+
+		f.explicitBlankLine = false
 	}
 	return f.output.Bytes()
 }
