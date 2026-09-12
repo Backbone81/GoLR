@@ -37,10 +37,3 @@
 
 - Allow scanner to parse case independent (accept lower case and upper case characters if specified in one case only)
 - Introduce a test harness to test drive all generated scanners in their native language.
-
-## Formater
-
-- The GoLR formater should retain comments. Right now, comments are dropped because we parse the grammar file into
-  a context-free grammar and regular expressions, then write those out again. As parsing the context-free grammar drops
-  all comments, they are lost for writing out again. We need to look into mechanics to pass on dropped comments to the
-  output.

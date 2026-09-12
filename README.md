@@ -150,17 +150,13 @@ Flags:
 The `fmt` sub-command allows to pretty print GoLR grammar files:
 
 ```text
-Pretty prints GoLR grammar files. All comments will be removed.
-
+Pretty prints GoLR grammar files.
 Usage:
   golr fmt [file...] [flags]
 
 Flags:
   -h, --help   help for fmt
 ```
-
-Note that due to limitations in the current implementation, the pretty printer for GoLR grammar files currently drops
-all comments from the file. This will be fixed in the future.
 
 The `convert` sub-command converts GNU Bison grammar files to GoLR grammar files:
 

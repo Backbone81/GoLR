@@ -34,6 +34,7 @@ prepare: generate
 	mkdir -p ~/.cache/golangci-lint
 	go mod tidy
 	go fmt $(PACKAGE)
+	find . -name '*.golr' -not -path './ide/*' -exec go run ./cmd/golr fmt {} +
 	go vet $(PACKAGE)
 	docker run \
 		--tty \

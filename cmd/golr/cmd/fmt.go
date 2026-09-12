@@ -9,7 +9,7 @@ import (
 var fmtCmd = &cobra.Command{
 	Use:          "fmt [file...]",
 	Short:        "Pretty prints GoLR grammar files.",
-	Long:         `Pretty prints GoLR grammar files. All comments will be removed.`,
+	Long:         `Pretty prints GoLR grammar files.`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		for _, filePath := range args {

@@ -9,12 +9,10 @@ import (
 	"path/filepath"
 	"runtime/trace"
 	"strings"
-
-	"github.com/backbone81/golr/internal/parsergen/frontend/golr"
-	golrparser "github.com/backbone81/golr/internal/parsergen/frontend/golr/parser"
 )
 
-// GoLR parses the GoLR grammar from the given reader and writes the formatted version to the given writer.
+// GoLR reformats the GoLR grammar text from the given reader into canonical layout and writes it to the given
+// writer.
 func GoLR(reader io.Reader, writer io.Writer, filePath string) error {
 	defer trace.StartRegion(context.TODO(), "GoLR: Format: GoLR").End()
 
@@ -23,28 +21,16 @@ func GoLR(reader io.Reader, writer io.Writer, filePath string) error {
 		return err
 	}
 
-	scanner := golrparser.NewTokenSkipper(
-		golrparser.NewScanner(data, filePath),
-	)
-
-	parser := golrparser.NewParser()
-	rootNode, err := parser.Parse(scanner)
-	if err != nil {
+	data = NewFormatter().Format(data, filePath)
+	if _, err := writer.Write(data); err != nil {
 		return err
 	}
-
-	walker := golr.NewTreeWalker()
-	rules, grammar, err := walker.BuildGrammar(rootNode)
-	if err != nil {
-		return err
-	}
-
-	return golr.FromGrammar(writer, rules, grammar)
+	return nil
 }
 
-// GoLRFile parses the GoLR grammar from the given input file path and writes the formatted version to the given output
-// file path. Input and output file path can be the same. A temporary file is used to ensure that any parsing errors
-// do not lead to an empty input file.
+// GoLRFile reformats the GoLR grammar from the given input file path and writes the result to the given output file
+// path. Input and output file path can be the same. A temporary file is used so that an error partway through does
+// not leave an empty or truncated output file.
 func GoLRFile(inputFilePath string, outputFilePath string) (err error) {
 	//nolint:gosec // It is the responsibility of the caller to make sure that the path is safe.
 	input, err := os.Open(inputFilePath)
@@ -107,7 +93,7 @@ func formatToTempFile(reader io.Reader, filePath string, dir string) (tempPath s
 	return tempFile.Name(), nil
 }
 
-// GoLRString parses the GoLR grammar from the given string and returns the formatted version.
+// GoLRString reformats the GoLR grammar from the given string and returns the result.
 func GoLRString(input string) (string, error) {
 	var builder strings.Builder
 	if err := GoLR(strings.NewReader(input), &builder, "in-memory"); err != nil {

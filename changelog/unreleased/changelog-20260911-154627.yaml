@@ -1,0 +1,3 @@
+description: Fixed golr fmt discarding all comments from GoLR grammar files. It now
+  preserves comments and blank lines, and no longer fails on a grammar file with broken
+  syntax.
