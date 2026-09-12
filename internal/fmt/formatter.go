@@ -15,6 +15,10 @@ type Formatter struct {
 	// indentNext reports if the next output needs to be indented or not.
 	indentNext bool
 
+	// pendingLinebreak reports if a linebreak was requested but not yet written to the output. Requesting a
+	// linebreak is lazy so that a same-line trailing comment can still be emitted before it.
+	pendingLinebreak bool
+
 	// emitTight reports if the next emit should not write a whitespace to separate the previous token from the next
 	// one.
 	emitTight bool
@@ -25,6 +29,10 @@ type Formatter struct {
 	// explicitBlankLine reports if the whitespace just consumed contained a blank line, i.e. the user separated the
 	// surrounding tokens by an empty line of their own.
 	explicitBlankLine bool
+
+	// explicitNewline reports if the whitespace just consumed contained a linebreak, i.e. the next token starts on a
+	// new source line instead of trailing the previous token.
+	explicitNewline bool
 
 	output *bytes.Buffer
 }
@@ -38,9 +46,11 @@ func NewFormatter() *Formatter {
 func (f *Formatter) Format(source []byte, filePath string) []byte {
 	f.indentLevel = 0
 	f.indentNext = true
+	f.pendingLinebreak = false
 	f.emitTight = false
 	f.context = f.context[:0]
 	f.explicitBlankLine = false
+	f.explicitNewline = false
 
 	f.output = bytes.NewBuffer(make([]byte, 0, len(source)))
 	f.scanner = golrparser.NewScanner(source, filePath)
@@ -48,14 +58,37 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 		//nolint:exhaustive // We are only interested in a few special tokens
 		switch f.scanner.Token() {
 		case golrparser.TokenWhitespace:
-			// We are looking for explicit blank lines by the user.
-			if bytes.Count(f.scanner.Lexeme(), []byte("\n")) >= 2 {
+			// We are looking for linebreaks and explicit blank lines by the user.
+			newlines := bytes.Count(f.scanner.Lexeme(), []byte("\n"))
+			if newlines >= 1 {
+				f.explicitNewline = true
+			}
+			if newlines >= 2 {
 				f.explicitBlankLine = true
 			}
 			continue
 
 		case golrparser.TokenComment:
-			continue
+			isLineComment := bytes.HasPrefix(f.scanner.Lexeme(), []byte("//"))
+			switch {
+			case f.explicitNewline:
+				// The comment starts on its own line rather than trailing the previous token.
+				f.pendingLinebreak = false
+				f.linebreak()
+				f.emit(f.scanner.Lexeme())
+			case f.pendingLinebreak:
+				// The comment trails the previous token, but a linebreak is already scheduled to run after that
+				// token. Emit the comment before that linebreak instead of flushing it early.
+				f.pendingLinebreak = false
+				f.emit(f.scanner.Lexeme())
+				f.pendingLinebreak = true
+			default:
+				f.emit(f.scanner.Lexeme())
+			}
+			if isLineComment {
+				// Anything after "//" on the same line would otherwise be swallowed into the comment.
+				f.linebreak()
+			}
 
 		case golrparser.TokenColon:
 			switch f.currentContext() {
@@ -69,7 +102,9 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 			}
 
 		case golrparser.TokenPipe:
-			f.linebreak()
+			if !f.pendingLinebreak {
+				f.linebreak()
+			}
 			f.emit(f.scanner.Lexeme())
 
 		case golrparser.TokenSemi:
@@ -144,7 +179,9 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 		}
 
 		f.explicitBlankLine = false
+		f.explicitNewline = false
 	}
+	f.linebreak()
 	return f.output.Bytes()
 }
 
@@ -156,12 +193,22 @@ func (f *Formatter) indentDec() {
 	f.indentLevel = max(f.indentLevel-1, 0)
 }
 
+// linebreak requests a linebreak before the next emitted content. It is lazy: the actual "\n" is written by emit,
+// so that a same-line trailing comment can still be inserted before it. If a linebreak is already pending, this one
+// is written immediately, keeping the pending flag around for the one emit will still owe.
 func (f *Formatter) linebreak() {
-	f.output.Write([]byte("\n"))
+	if f.pendingLinebreak {
+		f.output.Write([]byte("\n"))
+	}
+	f.pendingLinebreak = true
 	f.indentNext = true
 }
 
 func (f *Formatter) emit(data []byte) {
+	if f.pendingLinebreak {
+		f.output.Write([]byte("\n"))
+		f.pendingLinebreak = false
+	}
 	if f.indentNext {
 		for range f.indentLevel {
 			f.output.Write([]byte(f.config.Indentation))
