@@ -1,35 +1,39 @@
+// This GoLR grammar describes how GoLR files are tokenized and parsed.
+
 @scanner {
-    NEWLINE: /\n|\r\n/ @fragment;
+    NEWLINE:               /\n|\r\n/ @fragment;
     HORIZONTAL_WHITESPACE: /[ \t\f\v]/ @fragment;
-    WHITESPACE: /({NEWLINE}|{HORIZONTAL_WHITESPACE})+/ @skip;
+    WHITESPACE:            /({NEWLINE}|{HORIZONTAL_WHITESPACE})+/ @skip;
 
     MULTILINE_COMMENT: /\/\*([^\*]|(\*+[^\*\/]))*\*+\// @fragment;
-    LINE_COMMENT: /\/\/.*/ @fragment;
-    COMMENT: /{MULTILINE_COMMENT}|{LINE_COMMENT}/ @skip;
+    LINE_COMMENT:      /\/\/.*/ @fragment;
+    COMMENT:           /{MULTILINE_COMMENT}|{LINE_COMMENT}/ @skip;
 
-    SCANNER: "@scanner";
-    PARSER: "@parser";
+    SCANNER:    "@scanner";
+    PARSER:     "@parser";
     PRECEDENCE: "@precedence";
-    NAME: "@name";
-    START: "@start";
-    LEFT: "@left";
-    RIGHT: "@right";
-    NONE: "@none";
-    SKIP: "@skip";
-    EMPTY: "@empty";
-    ERROR: "@error";
-    FRAGMENT: "@fragment";
-    LBRACE: "{";
-    RBRACE: "}";
-    LPAREN: "(";
-    RPAREN: ")";
-    COLON: ":";
-    SEMI: ";";
-    PIPE: "|";
-    COMMA: ",";
+    NAME:       "@name";
+    START:      "@start";
+    LEFT:       "@left";
+    RIGHT:      "@right";
+    NONE:       "@none";
+    SKIP:       "@skip";
+    EMPTY:      "@empty";
+    ERROR:      "@error";
+    FRAGMENT:   "@fragment";
+    LBRACE:     "{";
+    RBRACE:     "}";
+    LPAREN:     "(";
+    RPAREN:     ")";
+    COLON:      ":";
+    SEMI:       ";";
+    PIPE:       "|";
+    COMMA:      ",";
 
     IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/;
-    REGEX: /\/([^\n\/]|\\\/)*\//;
+    // A regex or string literal stays on one line: excluding the newline keeps a missing
+    // closing delimiter from swallowing the rest of the file.
+    REGEX:  /\/([^\n\/]|\\\/)*\//;
     STRING: /"([^\n"]|\\")*"/;
 }
 
@@ -38,8 +42,13 @@
         : scanner_section parser_section @name(file)
         ;
 
+    // ================================================================================
+    // Scanner section
+    // ================================================================================
+
     scanner_section
         : "@scanner" "{" scanner_decl_list "}" @name(scanner_section)
+        // a broken tail or a missing ";" resyncs at the closing brace
         | "@scanner" "{" scanner_decl_list @error "}" @name(scanner_section_broken)
         ;
 
@@ -50,7 +59,9 @@
 
     scanner_decl
         : IDENTIFIER ":" scanner_decl_rhs ";" @name(scanner_decl)
+        // keep the terminal name, skip a broken right hand side up to the ";"
         | IDENTIFIER ":" @error ";" @name(scanner_decl_broken_rhs)
+        // the "IDENTIFIER :" itself is broken, skip the whole declaration
         | @error ";" @name(scanner_decl_broken)
         ;
 
@@ -74,20 +85,27 @@
         | "@fragment" @name(scanner_annotation_fragment)
         ;
 
+    // ================================================================================
+    // Parser section
+    // ================================================================================
+
     parser_section
         : "@parser" "{" start_decl precedence_section rule_decl_list "}" @name(parser_section)
+        // a broken tail or a missing ";" resyncs at the closing brace
         | "@parser" "{" start_decl precedence_section rule_decl_list @error "}" @name(parser_section_broken)
         ;
 
     start_decl
         : @empty @name(start_decl_absent)
         | "@start" ":" IDENTIFIER ";" @name(start_decl)
+        // a half typed @start must not take the whole parser section with it
         | "@start" @error ";" @name(start_decl_broken)
         ;
 
     precedence_section
         : @empty @name(precedence_section_absent)
         | "@precedence" "{" precedence_decl_list "}" @name(precedence_section)
+        // a broken tail or a missing ";" resyncs at the closing brace
         | "@precedence" "{" precedence_decl_list @error "}" @name(precedence_section_broken)
         ;
 
@@ -98,7 +116,9 @@
 
     precedence_decl
         : associativity ":" symbol_list ";" @name(precedence_decl)
+        // keep the associativity, skip a broken symbol list up to the ";"
         | associativity ":" @error ";" @name(precedence_decl_broken_rhs)
+        // the "associativity :" itself is broken, skip the whole declaration
         | @error ";" @name(precedence_decl_broken)
         ;
 
@@ -116,7 +136,9 @@
 
     production_decl
         : IDENTIFIER ":" alternative_list ";" @name(production_decl)
+        // keep the nonterminal name while its body is being typed, skip up to the ";"
         | IDENTIFIER ":" @error ";" @name(production_decl_broken_rhs)
+        // the "IDENTIFIER :" itself is broken, skip the whole declaration
         | @error ";" @name(production_decl_broken)
         ;
 
@@ -150,5 +172,4 @@
         | STRING @name(symbol_literal)
         | "@error" @name(symbol_error)
         ;
-
 }
