@@ -36,4 +36,3 @@
 ## Scanner Generator
 
 - Allow scanner to parse case independent (accept lower case and upper case characters if specified in one case only)
-- Introduce a test harness to test drive all generated scanners in their native language.
