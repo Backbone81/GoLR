@@ -138,8 +138,20 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 		f.explicitNewline = false
 		// explicitComment is intentionally not reset here; see the reset at the top of the loop.
 	}
-	f.linebreak()
+	f.ensureTrailingNewline()
 	return f.alignScannerRules(f.output.Bytes())
+}
+
+// ensureTrailingNewline guarantees that non-empty output ends with exactly one "\n", regardless of which
+// token ended the input (a well-formed "}" leaves a blank line pending that would otherwise contribute a
+// second, unwanted trailing "\n", while a file that just stops mid-rule leaves nothing pending at all).
+func (f *Formatter) ensureTrailingNewline() {
+	if f.output.Len() == 0 {
+		return
+	}
+	if f.output.Bytes()[f.output.Len()-1] != '\n' {
+		f.output.WriteByte('\n')
+	}
 }
 
 func (f *Formatter) onTokenWhitespace(explicitComment bool) {
@@ -191,8 +203,10 @@ func (f *Formatter) onTokenComment() {
 	default:
 		f.emit(f.scanner.Lexeme())
 	}
-	if isLineComment {
-		// Anything after "//" on the same line would otherwise be swallowed into the comment.
+	if isLineComment || f.explicitNewline {
+		// Anything after "//" on the same line would otherwise be swallowed into the comment. A comment
+		// that started on its own line must not have the following content glued onto it either, even
+		// for a block comment which doesn't force this lexically.
 		f.linebreak()
 	}
 	// Read by the top of the loop on the next token, to detect a blank line right after this comment.

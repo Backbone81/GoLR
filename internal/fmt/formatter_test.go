@@ -149,7 +149,6 @@ file:scanner_section parser_section @name ( file );
 
         // explains the next alternative
         | b
-
         | c
         ;
 }
