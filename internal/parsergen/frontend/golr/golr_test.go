@@ -8,17 +8,18 @@ import (
 
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	"github.com/backbone81/golr/internal/parsergen/frontend/golr"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 var _ = Describe("GoLR Grammar Files", func() {
 	It("should correctly parse the most minimal grammar", func() {
-		source := `
+		source := utils.HereDoc(`
 			@scanner {
 			}
 			@parser {
 				file: @empty;
 			}
-		`
+		`)
 		_, grammar, err := golr.GrammarFromString(source)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(grammar).To(Equal(frontend.Grammar{
@@ -39,26 +40,26 @@ var _ = Describe("GoLR Grammar Files", func() {
 	})
 
 	It("should reject a grammar without productions", func() {
-		source := `
+		source := utils.HereDoc(`
 			@scanner {
 			}
 			@parser {
 			}
-		`
+		`)
 		_, _, err := golr.GrammarFromString(source)
 		Expect(err).To(HaveOccurred())
 	})
 
 	Context("Tokens", func() {
 		It("should accept a token with a regular expression", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: /foo/;
 				}
 				@parser {
 					file: @empty;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -83,14 +84,14 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should accept a token with a string literal", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: "foo";
 				}
 				@parser {
 					file: @empty;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -116,14 +117,14 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should accept an empty token", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: @empty;
 				}
 				@parser {
 					file: @empty;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -148,7 +149,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should accept multiple tokens", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: /foo/;
 					BAR: "bar";
@@ -157,7 +158,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				@parser {
 					file: @empty;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -189,7 +190,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should reject duplicate token declarations", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: /foo/;
 					FOO: "bar";
@@ -197,13 +198,13 @@ var _ = Describe("GoLR Grammar Files", func() {
 				@parser {
 					file: @empty;
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("should reject duplicate token aliases", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: "baz";
 					BAR: "baz";
@@ -211,20 +212,20 @@ var _ = Describe("GoLR Grammar Files", func() {
 				@parser {
 					file: @empty;
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("should reject a token with an invalid regular expression", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: /[unclosed/;
 				}
 				@parser {
 					file: @empty;
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
@@ -232,7 +233,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 
 	Context("Associativity and Precedence of Tokens", func() {
 		It("should correctly set associativity and precedence", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: @empty;
 					BAR: @empty;
@@ -248,7 +249,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					}
 					file: @empty;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -289,7 +290,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should support multiple tokens on the same precedence", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: @empty;
 					BAR: "bar";
@@ -301,7 +302,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					}
 					file: @empty;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -339,7 +340,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should reject unknown terminals in precedence", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 				}
 				@parser {
@@ -348,7 +349,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					}
 					file: @empty;
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
@@ -356,7 +357,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 
 	Context("Fragments", func() {
 		It("should exclude a fragment token from grammar terminals", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					DIGIT: /[0-9]/ @fragment;
 					NUMBER: /{DIGIT}+/;
@@ -364,7 +365,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				@parser {
 					file: NUMBER;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals).To(HaveLen(1))
@@ -372,7 +373,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should accept a token with a regex referencing a string-literal fragment", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					KW_IF: "if" @fragment;
 					IF: /{KW_IF}/ ;
@@ -380,7 +381,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				@parser {
 					file: IF;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals).To(HaveLen(1))
@@ -388,7 +389,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should accept a token with a regex referencing an @empty fragment", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					NOTHING: @empty @fragment;
 					FOO: /{NOTHING}/;
@@ -396,7 +397,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				@parser {
 					file: FOO;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals).To(HaveLen(1))
@@ -404,7 +405,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should accept a token referencing a nested fragment", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					DIGIT: /[0-9]/ @fragment;
 					HEX_DIGIT: /[a-f]{DIGIT}/ @fragment;
@@ -413,7 +414,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				@parser {
 					file: HEX;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals).To(HaveLen(1))
@@ -421,7 +422,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should accept multiple tokens referencing the same fragment", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					DIGIT: /[0-9]/ @fragment;
 					DEC: /{DIGIT}+/;
@@ -430,14 +431,14 @@ var _ = Describe("GoLR Grammar Files", func() {
 				@parser {
 					file: DEC | OCT;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals).To(HaveLen(2))
 		})
 
 		It("should reject a duplicate fragment declaration", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					DIGIT: /[0-9]/ @fragment;
 					DIGIT: /[0-9]/ @fragment;
@@ -445,13 +446,13 @@ var _ = Describe("GoLR Grammar Files", func() {
 				@parser {
 					file: @empty;
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("should reject a fragment name that collides with a token name", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					DIGIT: /[0-9]/;
 					DIGIT: /[0-9]/ @fragment;
@@ -459,26 +460,26 @@ var _ = Describe("GoLR Grammar Files", func() {
 				@parser {
 					file: DIGIT;
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("should reject a token referencing an unknown fragment", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					NUMBER: /{DIGIT}+/;
 				}
 				@parser {
 					file: NUMBER;
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("should reject a cyclic fragment reference", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					A: /{B}/ @fragment;
 					B: /{A}/ @fragment;
@@ -487,7 +488,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				@parser {
 					file: TOKEN;
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
@@ -495,14 +496,14 @@ var _ = Describe("GoLR Grammar Files", func() {
 
 	Context("Error recovery", func() {
 		It("should not add the error symbol to a grammar which does not reference it", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: /foo/;
 				}
 				@parser {
 					file: FOO;
 				}
-			`
+			`)
 			rules, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			for _, terminal := range grammar.Terminals {
@@ -514,7 +515,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should add the error symbol as a terminal without a scanner rule when @error is referenced", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					SEMI: ";";
 				}
@@ -524,7 +525,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 						| @error ";"
 						;
 				}
-			`
+			`)
 			rules, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals).To(HaveLen(2))
@@ -542,7 +543,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should add the error symbol only once when @error is referenced repeatedly", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					SEMI: ";";
 				}
@@ -552,7 +553,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 						| file @error ";"
 						;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals).To(HaveLen(2))
@@ -561,7 +562,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		It("should accept @error in a precedence declaration", func() {
 			// GNU Bison permits giving the error token a precedence and grammars in the wild rely on it, so GoLR has to
 			// be able to express it as well.
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: /foo/;
 				}
@@ -571,7 +572,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					}
 					file: FOO;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals[1].Name).To(Equal(frontend.SymbolError.Name))
@@ -581,14 +582,14 @@ var _ = Describe("GoLR Grammar Files", func() {
 		It("should not let a scanner section declare a terminal which collides with the error symbol", func() {
 			// The reserved name carries a leading dollar sign, which the IDENTIFIER pattern does not allow, so a collision
 			// can only be attempted and never succeed.
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					$error: /foo/;
 				}
 				@parser {
 					file: @empty;
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
@@ -596,7 +597,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 
 	Context("Productions", func() {
 		It("should accept tokens with regex, literal string and empty on the right hand side", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: /foo/;
 					BAR: "bar";
@@ -605,7 +606,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				@parser {
 					file: FOO "bar" BAZ;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -641,14 +642,14 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should accept nonterminals on the right hand side", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 				}
 				@parser {
 					file: content;
 					content: @empty;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -678,7 +679,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should accept a mix of terminals and nonterminals on the right hand side", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: @empty;
 				}
@@ -686,7 +687,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: content FOO;
 					content: @empty;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -721,38 +722,38 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should reject production with a terminal name", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: @empty;
 				}
 				@parser {
 					FOO: @empty;
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("should reject production with undeclared nonterminal", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 				}
 				@parser {
 					file: content;
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("should reject production with undeclared terminal", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 				}
 				@parser {
 					file: "foo";
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
@@ -760,7 +761,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 
 	Context("Precedence of Productions", func() {
 		It("should accept precedence on the right hand side", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: /foo/;
 					BAR: "bar";
@@ -776,7 +777,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					content: line @precedence("bar");
 					line: BAZ @precedence(BAZ);
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			ptrTo0 := 0
@@ -840,7 +841,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should accept precedence on an empty alternative", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: @empty;
 				}
@@ -850,7 +851,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					}
 					file: FOO | @empty @precedence(FOO);
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			ptrTo0 := 0
@@ -885,7 +886,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should accept multiple alternatives", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: @empty;
 					BAR: @empty;
@@ -893,7 +894,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				@parser {
 					file: FOO | BAR;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -929,14 +930,14 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should accept an empty alternative", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: @empty;
 				}
 				@parser {
 					file: FOO | @empty;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -967,7 +968,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should accept multiple alternatives as separate rules", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: @empty;
 					BAR: @empty;
@@ -976,7 +977,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: FOO;
 					file: BAR;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -1012,14 +1013,14 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should reject production precedence with undeclared terminal", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: "foo";
 				}
 				@parser {
 					file: "foo" @precedence(BAR);
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})
@@ -1027,21 +1028,21 @@ var _ = Describe("GoLR Grammar Files", func() {
 
 	Context("Names of Productions", func() {
 		It("should set the explicit name of a production from an @name annotation", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: "foo";
 				}
 				@parser {
 					file: FOO @name(my_rule);
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Productions[0].Name).To(HaveValue(Equal("my_rule")))
 		})
 
 		It("should name each alternative independently", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: "foo";
 					BAR: "bar";
@@ -1052,7 +1053,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 						| BAR @name(from_bar)
 						;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Productions[0].Name).To(HaveValue(Equal("from_foo")))
@@ -1060,21 +1061,21 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should leave a production without an @name annotation unnamed", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: "foo";
 				}
 				@parser {
 					file: FOO;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Productions[0].Name).To(BeNil())
 		})
 
 		It("should accept @name next to @precedence on the same alternative", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: "foo";
 				}
@@ -1084,7 +1085,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					}
 					file: FOO @name(my_rule) @precedence(FOO);
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Productions[0].Name).To(HaveValue(Equal("my_rule")))
@@ -1092,7 +1093,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should reject two productions asking for the same name", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: "foo";
 					BAR: "bar";
@@ -1101,21 +1102,21 @@ var _ = Describe("GoLR Grammar Files", func() {
 					file: FOO @name(dup);
 					other: BAR @name(dup);
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring(`"dup"`))
 		})
 
 		It("should round trip an @name annotation through the GoLR writer", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 					FOO: "foo";
 				}
 				@parser {
 					file: FOO @name(my_rule);
 				}
-			`
+			`)
 			rules, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -1131,7 +1132,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 
 	Context("Start", func() {
 		It("should respect a starting nonterminal", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 				}
 				@parser {
@@ -1140,7 +1141,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 					content: @empty;
 					file: @empty;
 				}
-			`
+			`)
 			_, grammar, err := golr.GrammarFromString(source)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -1168,14 +1169,14 @@ var _ = Describe("GoLR Grammar Files", func() {
 		})
 
 		It("should reject nonexisting start nonterminal", func() {
-			source := `
+			source := utils.HereDoc(`
 				@scanner {
 				}
 				@parser {
 					@start: content;
 					file: @empty;
 				}
-			`
+			`)
 			_, _, err := golr.GrammarFromString(source)
 			Expect(err).To(HaveOccurred())
 		})

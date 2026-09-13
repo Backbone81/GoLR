@@ -9,16 +9,17 @@ import (
 
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	"github.com/backbone81/golr/internal/parsergen/frontend/bison"
+	"github.com/backbone81/golr/internal/utils"
 	bisonfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/bison"
 	"github.com/backbone81/golr/testdata"
 )
 
 var _ = Describe("Bison Grammar Files", func() {
 	It("should correctly parse the most minimal grammar", func() {
-		bisonGrammar := `
+		bisonGrammar := utils.HereDoc(`
 			%%
 			s:
-		`
+		`)
 		grammar, err := bison.GrammarFromString(bisonGrammar)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(grammar).To(Equal(frontend.Grammar{
@@ -44,11 +45,11 @@ var _ = Describe("Bison Grammar Files", func() {
 
 	Context("error recovery", func() {
 		It("should read the error token as the reserved error symbol", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token SEMI
 				%%
 				s: SEMI | error SEMI
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals[0].Name).To(Equal(frontend.SymbolError.Name))
@@ -61,12 +62,12 @@ var _ = Describe("Bison Grammar Files", func() {
 			// GNU Bison predefines the error token, so it must not be declared as a token and has to be spelled without
 			// the leading dollar sign of the reserved GoLR name. Writing it any other way produces a grammar file GNU
 			// Bison rejects, which is what the Bison backed parser cores feed it.
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token SEMI
 				%left error
 				%%
 				s: SEMI | error SEMI
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -79,10 +80,10 @@ var _ = Describe("Bison Grammar Files", func() {
 	})
 
 	It("should accept %empty", func() {
-		bisonGrammar := `
+		bisonGrammar := utils.HereDoc(`
 			%%
 			s: %empty
-		`
+		`)
 		grammar, err := bison.GrammarFromString(bisonGrammar)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(grammar).To(Equal(frontend.Grammar{
@@ -108,11 +109,11 @@ var _ = Describe("Bison Grammar Files", func() {
 
 	Context("%token", func() {
 		It("should accept single %token", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -140,11 +141,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept single %token with string alias", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO "foo"
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -173,11 +174,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept single %token with tstring alias", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO _("foo")
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -206,13 +207,13 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept multiple %token", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO
 				%token BAR
 				%token BAZ
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -246,13 +247,13 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept multiple %token with string alias", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO "foo"
 				%token BAR "bar"
 				%token BAZ "baz"
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -289,13 +290,13 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept multiple %token with tstring alias", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO _("foo")
 				%token BAR _("bar")
 				%token BAZ _("baz")
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -332,11 +333,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept single %token with multiple values", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO BAR BAZ
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -370,11 +371,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept single %token with multiple values with string aliases", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO "foo" BAR "bar" BAZ "baz"
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -411,11 +412,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept single %token with multiple values with tstring aliases", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO _("foo") BAR _("bar") BAZ _("baz")
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -454,11 +455,11 @@ var _ = Describe("Bison Grammar Files", func() {
 
 	Context("%left", func() {
 		It("should accept single %left with one token", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%left FOO
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -483,11 +484,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept single %left with multiple tokens", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%left FOO BAR BAZ
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -522,13 +523,13 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should assign increasing precedence levels across multiple %left declarations", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%left FOO
 				%left BAR
 				%left BAZ
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -563,12 +564,12 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should update associativity and precedence when terminal is already declared via %token", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO
 				%left FOO
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -595,11 +596,11 @@ var _ = Describe("Bison Grammar Files", func() {
 
 	Context("%right", func() {
 		It("should accept single %right with one token", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%right FOO
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -624,11 +625,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept single %right with multiple tokens", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%right FOO BAR BAZ
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -663,13 +664,13 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should assign increasing precedence levels across multiple %right declarations", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%right FOO
 				%right BAR
 				%right BAZ
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -704,12 +705,12 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should update associativity and precedence when terminal is already declared via %token", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO
 				%right FOO
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -736,11 +737,11 @@ var _ = Describe("Bison Grammar Files", func() {
 
 	Context("%nonassoc", func() {
 		It("should accept single %nonassoc with one token", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%nonassoc FOO
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -765,11 +766,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept single %nonassoc with multiple tokens", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%nonassoc FOO BAR BAZ
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -804,13 +805,13 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should assign increasing precedence levels across multiple %nonassoc declarations", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%nonassoc FOO
 				%nonassoc BAR
 				%nonassoc BAZ
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -845,12 +846,12 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should update associativity and precedence when terminal is already declared via %token", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO
 				%nonassoc FOO
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -877,11 +878,11 @@ var _ = Describe("Bison Grammar Files", func() {
 
 	Context("%precedence", func() {
 		It("should accept single %precedence with one token", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%precedence FOO
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -906,11 +907,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept single %precedence with multiple tokens", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%precedence FOO BAR BAZ
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -945,13 +946,13 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should assign increasing precedence levels across multiple %precedence declarations", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%precedence FOO
 				%precedence BAR
 				%precedence BAZ
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -986,12 +987,12 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should update associativity and precedence when terminal is already declared via %token", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO
 				%precedence FOO
 				%%
 				s:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -1018,11 +1019,11 @@ var _ = Describe("Bison Grammar Files", func() {
 
 	Context("rules", func() {
 		It("should accept a single terminal", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO
 				%%
 				s: FOO
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -1052,10 +1053,10 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept a single nonterminal", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%%
 				s: foo
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -1085,11 +1086,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept a mix of terminals and nonterminals", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO BAR
 				%%
 				s: FOO baz BAR bat
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -1131,10 +1132,10 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept multiple alternatives", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%%
 				s: foo | bar | baz
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -1182,10 +1183,10 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept %empty as one alternatives", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%%
 				s: %empty | foo | bar
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -1228,12 +1229,12 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should accept multiple alternatives as separate rules", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%%
 				s: foo
 				s: bar
 				s: baz
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -1281,11 +1282,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should correctly map string aliases", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO "foo"
 				%%
 				s: bar "foo" baz
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -1326,11 +1327,11 @@ var _ = Describe("Bison Grammar Files", func() {
 
 	Context("%prec", func() {
 		It("should set PrecedenceTerminalIdx on a production", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO
 				%%
 				s: FOO %prec FOO
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			precedenceTerminalIdx := 1
@@ -1362,11 +1363,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should set PrecedenceTerminalIdx only on the production it appears in", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO BAR
 				%%
 				s: FOO %prec FOO | BAR
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			precedenceTerminalIdx := 1
@@ -1407,11 +1408,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should allow %prec to reference a terminal not used in the production", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token FOO BAR
 				%%
 				s: FOO %prec BAR
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			precedenceTerminalIdx := 2
@@ -1446,12 +1447,12 @@ var _ = Describe("Bison Grammar Files", func() {
 
 	Context("%start", func() {
 		It("should set StartNonterminalIdx to the declared start nonterminal", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%start b
 				%%
 				a:
 				b:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -1477,12 +1478,12 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should set StartNonterminalIdx when specified in the grammar declaration", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%%
 				a:
 				b:
 				%start b;
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -1504,13 +1505,13 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should use the first %start when multiple are declared", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%start b
 				%start a
 				%%
 				a:
 				b:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -1532,11 +1533,11 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should default to the first nonterminal when no %start is declared", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%%
 				a:
 				b:
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar).To(Equal(frontend.Grammar{
@@ -1560,11 +1561,11 @@ var _ = Describe("Bison Grammar Files", func() {
 
 	Context("char literals", func() {
 		It("should resolve different spellings of the same character to the same terminal", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token <id> '\13' "vertical tab"
 				%%
 				s: '\v'
-			`
+			`)
 			grammar, err := bison.GrammarFromString(bisonGrammar)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals).To(HaveLen(2))
@@ -1573,28 +1574,28 @@ var _ = Describe("Bison Grammar Files", func() {
 		})
 
 		It("should return an error for a char literal with more than one character", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%token <id> 'ab'
 				%%
 				s: 'ab'
-			`
+			`)
 			Expect(bison.GrammarFromString(bisonGrammar)).Error().To(HaveOccurred())
 		})
 
 		It("should return an error for a char literal with an unknown escape sequence", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%%
 				s: '\z'
-			`
+			`)
 			Expect(bison.GrammarFromString(bisonGrammar)).Error().To(HaveOccurred())
 		})
 
 		It("should return an error for an empty char literal", func() {
-			bisonGrammar := `
+			bisonGrammar := utils.HereDoc(`
 				%left ''
 				%%
 				s: %empty
-			`
+			`)
 			Expect(bison.GrammarFromString(bisonGrammar)).Error().To(HaveOccurred())
 		})
 	})
