@@ -75,6 +75,8 @@ func NewFormatter() *Formatter {
 // Format pretty prints source in two passes: token-by-token emission with lazily scheduled line breaks (see
 // linebreak/blankLine/emit), followed by alignScannerRules, which pads scanner rule ":" columns using the marks
 // collected during the first pass.
+//
+//nolint:gocognit,gocyclo,cyclop,funlen,maintidx // we keep a flat structure for this method
 func (f *Formatter) Format(source []byte, filePath string) []byte {
 	f.indentLevel = 0
 	f.indentNext = true
@@ -216,17 +218,19 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 				f.linebreak()
 			}
 			f.emit(f.scanner.Lexeme())
-			f.linebreak()
-			switch f.currentContext() {
-			case golrparser.TokenScanner:
-				// We need an additional linebreak between @scanner and @parser section.
-				f.linebreak()
-			}
+			f.blankLine()
 
 			// We remove any context we did push onto the context stack.
 			f.popContext()
 
 		case golrparser.TokenLparen:
+			if f.currentContext() == golrparser.TokenPrecedence {
+				// "@precedence" is ambiguous: "@precedence { ... }" opens a block, but "@precedence(...)" is
+				// an inline alternative annotation with no matching "}". TokenPrecedence below pushes eagerly
+				// as if it were the block form; seeing a "(" instead of a "{" proves it wasn't, so undo it.
+				f.popContext()
+			}
+
 			// Left parenthesis always sit close to the previous token.
 			f.emitTight = true
 			f.emit(f.scanner.Lexeme())
@@ -240,6 +244,7 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 			f.emit(f.scanner.Lexeme())
 
 		case golrparser.TokenIdentifier:
+			//nolint:gocritic // we keep context checks as switches
 			switch f.currentContext() {
 			case golrparser.TokenScanner:
 				// This identifier is the left hand side of a scanner rule; remember its length for the ":"
@@ -261,6 +266,12 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 			// Track that we're inside @parser; popped again on the matching "}".
 			f.emit(f.scanner.Lexeme())
 			f.pushContext(golrparser.TokenParser)
+
+		case golrparser.TokenPrecedence:
+			// Pushed eagerly as if opening a "@precedence { ... }" block; TokenLparen above repairs this if
+			// it turns out to be the inline "@precedence(...)" annotation instead.
+			f.emit(f.scanner.Lexeme())
+			f.pushContext(golrparser.TokenPrecedence)
 
 		default:
 			f.emit(f.scanner.Lexeme())
