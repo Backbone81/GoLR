@@ -157,12 +157,15 @@ goos: linux
 goarch: amd64
 pkg: github.com/backbone81/golr/internal/parsergen/backend/json
 cpu: Intel(R) Core(TM) i9-14900K
-BenchmarkFromParser/GNU_Bison_3.8.2-32              1255            885990 ns/op          146567 B/op       3529 allocs/op
-BenchmarkFromParser/GCC_2.95.3_C-32                  141           8097676 ns/op         2442451 B/op      37033 allocs/op
-BenchmarkFromParser/GCC_2.95.3_Objective_C-32        100          11209389 ns/op         3296190 B/op      53183 allocs/op
-BenchmarkFromParser/GCC_3.3.6_C++-32                  25          47505688 ns/op        18384436 B/op     249642 allocs/op
-BenchmarkFromParser/GCC_4.2.4_Java-32                 81          14199372 ns/op         5174323 B/op      70614 allocs/op
-BenchmarkFromParser/Go_1.5.4-32                      114           9586628 ns/op         2973308 B/op      45364 allocs/op
+BenchmarkFromParser/GNU_Bison_3.8.2-32              1608            687661 ns/op          111014 B/op       3073 allocs/op
+BenchmarkFromParser/GCC_2.95.3_C-32                  169           6211822 ns/op         1333793 B/op      24759 allocs/op
+BenchmarkFromParser/GCC_2.95.3_Objective_C-32        147           7582221 ns/op         2101428 B/op      35826 allocs/op
+BenchmarkFromParser/GCC_3.3.6_C++-32                  42          27222768 ns/op         8313694 B/op     124965 allocs/op
+BenchmarkFromParser/GCC_4.2.4_Java-32                147           7962243 ns/op         2376128 B/op      38587 allocs/op
+BenchmarkFromParser/Go_1.5.4-32                      183           6430090 ns/op         1638429 B/op      29809 allocs/op
+BenchmarkFromParser/PHP_8.6.7-32                      46          24310522 ns/op         8139051 B/op     111328 allocs/op
+BenchmarkFromParser/PostgreSQL_18.4-32                 3         411708596 ns/op        172058906 B/op   2044996 allocs/op
+BenchmarkFromParser/Ruby_3.2.11-32                    50          23489561 ns/op         7495097 B/op     116584 allocs/op
 PASS
-ok      github.com/backbone81/golr/internal/parsergen/backend/json      7.661s
+ok      github.com/backbone81/golr/internal/parsergen/backend/json      11.116s
 ```

@@ -41,3 +41,23 @@ golr parser \
   --backend-c-prefix calculator \
   --backend-file-path parser/parser.h
 ```
+
+## Benchmarks
+
+```text
+goos: linux
+goarch: amd64
+pkg: github.com/backbone81/golr/internal/parsergen/backend/c
+cpu: Intel(R) Core(TM) i9-14900K
+BenchmarkFromParser/GNU_Bison_3.8.2-32               344           3599985 ns/op          825261 B/op      16574 allocs/op
+BenchmarkFromParser/GCC_2.95.3_C-32                   92          14771900 ns/op         3312553 B/op      44254 allocs/op
+BenchmarkFromParser/GCC_2.95.3_Objective_C-32         91          17980560 ns/op         4925801 B/op      59409 allocs/op
+BenchmarkFromParser/GCC_3.3.6_C++-32                  34          34266507 ns/op        12126923 B/op     109336 allocs/op
+BenchmarkFromParser/GCC_4.2.4_Java-32                 62          19235984 ns/op         5007819 B/op      63749 allocs/op
+BenchmarkFromParser/Go_1.5.4-32                      100          12390941 ns/op         2950595 B/op      42776 allocs/op
+BenchmarkFromParser/PHP_8.6.7-32                      87          23623036 ns/op         9467267 B/op      82761 allocs/op
+BenchmarkFromParser/PostgreSQL_18.4-32                 3         469236588 ns/op        141876658 B/op    585185 allocs/op
+BenchmarkFromParser/Ruby_3.2.11-32                    60          22309519 ns/op        10237888 B/op      86184 allocs/op
+PASS
+ok      github.com/backbone81/golr/internal/parsergen/backend/c 13.606s
+```

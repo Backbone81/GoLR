@@ -14,14 +14,15 @@ goos: linux
 goarch: amd64
 pkg: github.com/backbone81/golr/internal/parsergen/core/lalr1/bison
 cpu: Intel(R) Core(TM) i9-14900K
-BenchmarkGrammarToParser/GNU_Bison_3.8.2-32                   22      46,951,635 ns/op     1,984,004 B/op       46,349 allocs/op
-BenchmarkGrammarToParser/GCC_2.95.3_C-32                      10     102,373,566 ns/op    12,799,727 B/op      311,503 allocs/op
-BenchmarkGrammarToParser/GCC_2.95.3_Objective_C-32             9     118,005,471 ns/op    18,151,924 B/op      441,627 allocs/op
-BenchmarkGrammarToParser/GCC_3.3.6_C++-32                      4     271,169,122 ns/op    73,834,662 B/op    1,795,396 allocs/op
-BenchmarkGrammarToParser/GCC_4.2.4_Java-32                     8     138,376,020 ns/op    21,745,520 B/op      527,624 allocs/op
-BenchmarkGrammarToParser/Go_1.5.4-32                          10     101,787,070 ns/op    14,537,484 B/op      351,286 allocs/op
-BenchmarkGrammarToParser/PHP_8.6.7-32                          5     231,060,138 ns/op    53,766,534 B/op    1,286,441 allocs/op
-BenchmarkGrammarToParser/PostgreSQL_18.4-32                    1   1,972,647,684 ns/op   817,989,984 B/op   19,732,074 allocs/op
+BenchmarkGrammarToParser/GNU_Bison_3.8.2-32                   26          45171778 ns/op         2021140 B/op      46347 allocs/op
+BenchmarkGrammarToParser/GCC_2.95.3_C-32                      10         103851683 ns/op        12930591 B/op     311504 allocs/op
+BenchmarkGrammarToParser/GCC_2.95.3_Objective_C-32             9         138734468 ns/op        18282704 B/op     441626 allocs/op
+BenchmarkGrammarToParser/GCC_3.3.6_C++-32                      4         272628536 ns/op        74146460 B/op    1795395 allocs/op
+BenchmarkGrammarToParser/GCC_4.2.4_Java-32                     8         140266836 ns/op        21877251 B/op     527625 allocs/op
+BenchmarkGrammarToParser/Go_1.5.4-32                          10         113088494 ns/op        14636024 B/op     351287 allocs/op
+BenchmarkGrammarToParser/PHP_8.6.7-32                          5         244593421 ns/op        53931297 B/op    1286690 allocs/op
+BenchmarkGrammarToParser/PostgreSQL_18.4-32                    1        2070072536 ns/op        819238632 B/op  19733198 allocs/op
+BenchmarkGrammarToParser/Ruby_3.2.11-32                        4         252278171 ns/op        58845542 B/op    1426598 allocs/op
 PASS
-ok      github.com/backbone81/golr/internal/parsergen/core/lalr1/bison  9.498s
+ok      github.com/backbone81/golr/internal/parsergen/core/lalr1/bison  11.146s
 ```

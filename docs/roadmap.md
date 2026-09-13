@@ -2,8 +2,6 @@
 
 ## General Topics
 
-- Extend the documentation.
-- Add benchmarks to all documentation.
 - Add a benchmark mode which runs with the garbage collector disabled, by setting `GOGC=off` together with a
   `GOMEMLIMIT` high enough that it never triggers, as a make target next to the normal one. Measured on the Go grammar,
   a parse takes 8.9 ms with the collector on and 2.0 ms with it off, so roughly three quarters of the runtime is

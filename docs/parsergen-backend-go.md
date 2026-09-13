@@ -42,3 +42,23 @@ golr parser \
   --backend go \
   --backend-file-path parser/parser.go
 ```
+
+## Benchmarks
+
+```text
+goos: linux
+goarch: amd64
+pkg: github.com/backbone81/golr/internal/parsergen/backend/golang
+cpu: Intel(R) Core(TM) i9-14900K
+BenchmarkFromParser/GNU_Bison_3.8.2-32               140           8792898 ns/op         1740183 B/op      25582 allocs/op
+BenchmarkFromParser/GCC_2.95.3_C-32                   38          30271635 ns/op         6980064 B/op      86356 allocs/op
+BenchmarkFromParser/GCC_2.95.3_Objective_C-32         30          33932609 ns/op        10406859 B/op     121466 allocs/op
+BenchmarkFromParser/GCC_3.3.6_C++-32                  18          61846396 ns/op        25532936 B/op     256425 allocs/op
+BenchmarkFromParser/GCC_4.2.4_Java-32                 62          32371588 ns/op        12057729 B/op     132929 allocs/op
+BenchmarkFromParser/Go_1.5.4-32                       58          24625770 ns/op         6648402 B/op      80470 allocs/op
+BenchmarkFromParser/PHP_8.6.7-32                      25          49095633 ns/op        20530715 B/op     209148 allocs/op
+BenchmarkFromParser/PostgreSQL_18.4-32                 2         668769280 ns/op        259272740 B/op   1812616 allocs/op
+BenchmarkFromParser/Ruby_3.2.11-32                    19          57069744 ns/op        23384700 B/op     235858 allocs/op
+PASS
+ok      github.com/backbone81/golr/internal/parsergen/backend/golang    12.503s
+```

@@ -34,3 +34,23 @@ golr parser \
   --backend javascript \
   --backend-file-path parser/parser.js
 ```
+
+## Benchmarks
+
+```text
+goos: linux
+goarch: amd64
+pkg: github.com/backbone81/golr/internal/parsergen/backend/javascript
+cpu: Intel(R) Core(TM) i9-14900K
+BenchmarkFromParser/GNU_Bison_3.8.2-32               577           2256082 ns/op          589185 B/op       8455 allocs/op
+BenchmarkFromParser/GCC_2.95.3_C-32                  100          11798187 ns/op         2877714 B/op      29694 allocs/op
+BenchmarkFromParser/GCC_2.95.3_Objective_C-32        100          15603573 ns/op         4417709 B/op      41289 allocs/op
+BenchmarkFromParser/GCC_3.3.6_C++-32                  42          28147108 ns/op        11264495 B/op      81516 allocs/op
+BenchmarkFromParser/GCC_4.2.4_Java-32                100          15583191 ns/op         4440177 B/op      44309 allocs/op
+BenchmarkFromParser/Go_1.5.4-32                      134           8789713 ns/op         2795912 B/op      28760 allocs/op
+BenchmarkFromParser/PHP_8.6.7-32                      64          18788274 ns/op         8718679 B/op      60501 allocs/op
+BenchmarkFromParser/PostgreSQL_18.4-32                 3         462877746 ns/op        139600541 B/op    490375 allocs/op
+BenchmarkFromParser/Ruby_3.2.11-32                    55          20867320 ns/op         9515545 B/op      62724 allocs/op
+PASS
+ok      github.com/backbone81/golr/internal/parsergen/backend/javascript        12.652s
+```

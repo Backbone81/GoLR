@@ -36,3 +36,23 @@ golr parser \
   --backend rust \
   --backend-file-path src/parser/parser.rs
 ```
+
+## Benchmarks
+
+```text
+goos: linux
+goarch: amd64
+pkg: github.com/backbone81/golr/internal/parsergen/backend/rust
+cpu: Intel(R) Core(TM) i9-14900K
+BenchmarkFromParser/GNU_Bison_3.8.2-32               586           2062307 ns/op          579541 B/op      11067 allocs/op
+BenchmarkFromParser/GCC_2.95.3_C-32                   91          12383959 ns/op         2900584 B/op      37462 allocs/op
+BenchmarkFromParser/GCC_2.95.3_Objective_C-32        100          16510180 ns/op         4758329 B/op      51931 allocs/op
+BenchmarkFromParser/GCC_3.3.6_C++-32                  39          29595849 ns/op        11909840 B/op     101335 allocs/op
+BenchmarkFromParser/GCC_4.2.4_Java-32                 93          16654309 ns/op         4824823 B/op      56982 allocs/op
+BenchmarkFromParser/Go_1.5.4-32                      100          10524181 ns/op         2807951 B/op      36065 allocs/op
+BenchmarkFromParser/PHP_8.6.7-32                      79          21461977 ns/op         9269092 B/op      75141 allocs/op
+BenchmarkFromParser/PostgreSQL_18.4-32                 3         485172606 ns/op        139005538 B/op    568489 allocs/op
+BenchmarkFromParser/Ruby_3.2.11-32                    50          24349272 ns/op        10063868 B/op      77754 allocs/op
+PASS
+ok      github.com/backbone81/golr/internal/parsergen/backend/rust      13.097s
+```

@@ -64,12 +64,15 @@ goos: linux
 goarch: amd64
 pkg: github.com/backbone81/golr/internal/parsergen/frontend/yaml
 cpu: Intel(R) Core(TM) i9-14900K
-BenchmarkToGrammar/GNU_Bison_3.8.2-32                 22          52785697 ns/op        43458478 B/op     70649 allocs/op
-BenchmarkToGrammar/GCC_2.95.3_C-32                     2        1226356110 ns/op       783261032 B/op    329970 allocs/op
-BenchmarkToGrammar/GCC_2.95.3_Objective_C-32           1        2093521358 ns/op      1022589232 B/op    431555 allocs/op
-BenchmarkToGrammar/GCC_3.3.6_C++-32                    1        5743500257 ns/op      3785791800 B/op    932319 allocs/op
-BenchmarkToGrammar/GCC_4.2.4_Java-32                   1        2466666292 ns/op      1105932032 B/op    462939 allocs/op
-BenchmarkToGrammar/Go_1.5.4-32                         1        1413885689 ns/op       701657528 B/op    297750 allocs/op
+BenchmarkToGrammar/GNU_Bison_3.8.2-32                 13         127159859 ns/op        43480624 B/op      71008 allocs/op
+BenchmarkToGrammar/GCC_2.95.3_C-32                     1        1661144907 ns/op        783196248 B/op    330789 allocs/op
+BenchmarkToGrammar/GCC_2.95.3_Objective_C-32           1        2195132424 ns/op        1022467160 B/op   432960 allocs/op
+BenchmarkToGrammar/GCC_3.3.6_C++-32                    1        4900333068 ns/op        3785718672 B/op   934715 allocs/op
+BenchmarkToGrammar/GCC_4.2.4_Java-32                   1        2460520581 ns/op        1106144848 B/op   464361 allocs/op
+BenchmarkToGrammar/Go_1.5.4-32                         1        1624526628 ns/op        701544384 B/op    298087 allocs/op
+BenchmarkToGrammar/PHP_8.6.7-32                        1        4084674560 ns/op        2466333696 B/op   631357 allocs/op
+BenchmarkToGrammar/PostgreSQL_18.4-32                  1        37437390394 ns/op       59118112624 B/op         6949441 allocs/op
+BenchmarkToGrammar/Ruby_3.2.11-32                      1        4263318820 ns/op        2778751224 B/op   708313 allocs/op
 PASS
-ok      github.com/backbone81/golr/internal/parsergen/frontend/yaml     15.611s
+ok      github.com/backbone81/golr/internal/parsergen/frontend/yaml     60.916s
 ```

@@ -35,3 +35,23 @@ golr parser \
   --backend-python-scanner-module .scanner \
   --backend-file-path parser/parser.py
 ```
+
+## Benchmarks
+
+```text
+goos: linux
+goarch: amd64
+pkg: github.com/backbone81/golr/internal/parsergen/backend/python
+cpu: Intel(R) Core(TM) i9-14900K
+BenchmarkFromParser/GNU_Bison_3.8.2-32               771           2136063 ns/op          542901 B/op       9218 allocs/op
+BenchmarkFromParser/GCC_2.95.3_C-32                  102          10953807 ns/op         2785500 B/op      31730 allocs/op
+BenchmarkFromParser/GCC_2.95.3_Objective_C-32         62          16643639 ns/op         4599285 B/op      44064 allocs/op
+BenchmarkFromParser/GCC_3.3.6_C++-32                  45          27918389 ns/op        11627543 B/op      86601 allocs/op
+BenchmarkFromParser/GCC_4.2.4_Java-32                 82          12407483 ns/op         4649517 B/op      47749 allocs/op
+BenchmarkFromParser/Go_1.5.4-32                      123           9915116 ns/op         2701164 B/op      30663 allocs/op
+BenchmarkFromParser/PHP_8.6.7-32                      62          19431101 ns/op         8541590 B/op      64467 allocs/op
+BenchmarkFromParser/PostgreSQL_18.4-32                 3         486181994 ns/op        138037496 B/op    509326 allocs/op
+BenchmarkFromParser/Ruby_3.2.11-32                    66          22212942 ns/op         9312261 B/op      66405 allocs/op
+PASS
+ok      github.com/backbone81/golr/internal/parsergen/backend/python    12.356s
+```
