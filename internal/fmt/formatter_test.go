@@ -124,6 +124,24 @@ var _ = Describe("GoLR formatting", func() {
 			`)
 			Expect(golrfmt.GoLRString(input)).To(Equal(expected))
 		})
+
+		It("does not invent a blank line inside an empty scanner block", func() {
+			// The "}" arrives right after "{" with nothing in between, so it is already at the start of a
+			// fresh, indented line; it must not schedule a linebreak of its own on top of that.
+			expected := utils.HereDoc(`
+				@scanner {
+				}
+			`)
+			Expect(golrfmt.GoLRString("@scanner{}")).To(Equal(expected))
+		})
+
+		It("does not invent a blank line inside an empty parser block", func() {
+			expected := utils.HereDoc(`
+				@parser {
+				}
+			`)
+			Expect(golrfmt.GoLRString("@parser{}")).To(Equal(expected))
+		})
 	})
 
 	Context("comments", func() {
@@ -188,6 +206,42 @@ var _ = Describe("GoLR formatting", func() {
 			`)
 			Expect(golrfmt.GoLRString(input)).To(Equal(input))
 		})
+
+		It("keeps a comment trailing a scanner rule on the same line, without an extra blank line after it", func() {
+			// Regression test: a trailing comment used to leave a linebreak pending for the token after it
+			// (here ";"), which the "}" then scheduled a second one on top of, producing a spurious blank
+			// line. It also used to misuse the pending indent as the separator before "//", widening a single
+			// space into a full indentation string.
+			input := utils.HereDoc(`
+				@scanner {
+				    PLUS: "+"; // marks the plus operator
+				}
+			`)
+			Expect(golrfmt.GoLRString(input)).To(Equal(input))
+		})
+
+		It("keeps a comment trailing the opening brace of a section on the same line", func() {
+			input := utils.HereDoc(`
+				@scanner { // arithmetic operators
+				    PLUS: "+";
+				}
+			`)
+			Expect(golrfmt.GoLRString(input)).To(Equal(input))
+		})
+
+		It("keeps a comment trailing one alternative on the same line, without an extra blank line before the ';'", func() {
+			// Regression test: the same spurious-blank-line bug as above, but reached through onTokenSemi's
+			// parser-rule branch instead of onTokenRbrace, and with a fresh indent level in between.
+			input := utils.HereDoc(`
+				@parser {
+				    e
+				        : a
+				        | b // choose a or b
+				        ;
+				}
+			`)
+			Expect(golrfmt.GoLRString(input)).To(Equal(input))
+		})
 	})
 
 	Context("malformed input", func() {
@@ -224,6 +278,18 @@ var _ = Describe("GoLR formatting", func() {
 				    partial
 			`)
 			Expect(golrfmt.GoLRString(input)).To(Equal(expected))
+		})
+
+		It("closes the block right after a rule missing its terminating ';'", func() {
+			// The identifier's own emit leaves indentNext false (no linebreak was scheduled after it, since
+			// the ';' that would normally do so is missing); the closing "}" must still start its own line
+			// instead of trailing "PLUS" on the same one.
+			expected := utils.HereDoc(`
+				@scanner {
+				    PLUS
+				}
+			`)
+			Expect(golrfmt.GoLRString("@scanner{PLUS}")).To(Equal(expected))
 		})
 	})
 

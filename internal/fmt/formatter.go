@@ -182,24 +182,25 @@ func (f *Formatter) onTokenComment() {
 		// The comment starts on its own line rather than trailing the previous token.
 		if f.explicitBlankLine {
 			// The user separated the comment from the previous content with a blank line; keep it.
-			// blankLine is idempotent, so this composes correctly with automatic spacing (e.g. between
-			// top-level parser rules) that may already have scheduled the same blank line.
 			f.blankLine()
-		} else if !f.pendingLinebreak {
-			// Only schedule if nothing is pending yet: linebreak writes immediately when a linebreak is
-			// already pending, which would add an unwanted extra "\n" here.
+		} else {
 			f.linebreak()
 		}
 		f.emit(f.scanner.Lexeme())
 	case f.pendingLinebreak:
 		// The comment trails the previous token, but a linebreak (and possibly a blank line) is already
 		// scheduled to run after that token. Emit the comment before that instead of flushing it early.
+		// indentNext is forced false for the emit: it is only true here because the scheduled linebreak
+		// hasn't fired yet, and leaving it true would make emit treat the comment as opening a fresh
+		// indented line (writing the indent string as a separator) instead of trailing the current one.
 		hadBlankLine := f.pendingBlankLine
 		f.pendingLinebreak = false
 		f.pendingBlankLine = false
+		f.indentNext = false
 		f.emit(f.scanner.Lexeme())
 		f.pendingLinebreak = true
 		f.pendingBlankLine = hadBlankLine
+		f.indentNext = true
 	default:
 		f.emit(f.scanner.Lexeme())
 	}
@@ -239,10 +240,7 @@ func (f *Formatter) onTokenColon() {
 }
 
 func (f *Formatter) onTokenPipe() {
-	if !f.pendingLinebreak {
-		// Only schedule if nothing is pending yet; see the same guard in TokenComment for why.
-		f.linebreak()
-	}
+	f.linebreak()
 	f.emit(f.scanner.Lexeme())
 }
 
@@ -323,7 +321,7 @@ func (f *Formatter) onTokenIdentifier() {
 		f.lastScannerIdentifierLen = len(f.scanner.Lexeme())
 		if f.explicitBlankLine {
 			// Preserve the user's blank line between scanner rules.
-			f.linebreak()
+			f.blankLine()
 		}
 	}
 	f.emit(f.scanner.Lexeme())
@@ -363,13 +361,11 @@ func (f *Formatter) indentDec() {
 	f.indentLevel = max(f.indentLevel-1, 0)
 }
 
-// linebreak requests a linebreak before the next emitted content. It is lazy: the actual "\n" is written by emit,
-// so that a same-line trailing comment can still be inserted before it. If a linebreak is already pending, this one
-// is written immediately, keeping the pending flag around for the one emit will still owe.
+// linebreak requests a linebreak before the next emitted content. Like blankLine, it is lazy (the actual "\n" is
+// written by emit, so that a same-line trailing comment can still be inserted before it) and idempotent, so a
+// second, independent reason to want one (e.g. a trailing comment already scheduling one, followed by a token
+// that unconditionally wants one too) does not stack into an unwanted blank line.
 func (f *Formatter) linebreak() {
-	if f.pendingLinebreak {
-		f.output.Write([]byte("\n"))
-	}
 	f.pendingLinebreak = true
 	f.indentNext = true
 }
