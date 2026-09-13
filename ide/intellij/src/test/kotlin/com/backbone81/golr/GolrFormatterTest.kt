@@ -1,139 +1,400 @@
 package com.backbone81.golr
 
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import java.io.File
+import junit.framework.TestCase
 
-// Unit tests for the pure formatting logic in GolrFormatter. Runs inside a platform fixture
-// because GolrFormatter reuses GolrLexer, whose IElementType tokens require the platform.
-class GolrFormatterTest : BasePlatformTestCase() {
+// Mechanical port of internal/fmt/formatter_test.go, kept as close as possible to that file's
+// Describe/Context/It structure (each test method here corresponds 1:1 to one Go "It", named and
+// grouped the same way) and to its fixtures (each utils.HereDoc(`...`) call becomes a
+// hereDoc("""...""") call on the same content) so that a new Go test case has an obvious,
+// same-named place to add here too. GolrFormatter no longer touches any IntelliJ platform types
+// (Formatter drives the generated Scanner directly), so this no longer needs the heavy
+// BasePlatformTestCase fixture the old item-model formatter's GolrLexer dependency required - a
+// plain JUnit3-style TestCase is enough, and considerably faster.
+class GolrFormatterTest : TestCase() {
 
     private fun assertFormatted(input: String, expected: String) {
-        assertEquals(expected, GolrFormatter.format(input.trimIndent()))
+        assertEquals(expected, GolrFormatter.format(input))
     }
 
-    // Scanner bodies are column-aligned to one space past the longest "name:" in the group.
-    fun testScannerBodiesAreColumnAligned() {
+    // --- Context("basic layout") ---
+
+    // It("returns empty output for empty input")
+    fun testBasicLayoutReturnsEmptyOutputForEmptyInput() {
+        assertEquals("", GolrFormatter.format(""))
+    }
+
+    // It("returns empty output for whitespace-only input")
+    fun testBasicLayoutReturnsEmptyOutputForWhitespaceOnlyInput() {
+        assertEquals("", GolrFormatter.format("   \n  \n"))
+    }
+
+    // It("column-aligns a messy scanner section")
+    fun testBasicLayoutColumnAlignsMessyScannerSection() {
         assertFormatted(
-            """
-            @scanner {
-            horizontal_whitespace: /[ \t]/ @fragment;
-            vertical_whitespace: /[\r\n]/ @fragment;
-            whitespace: /x/ @skip;
-            }
-            """,
-            "@scanner {\n" +
-                "    horizontal_whitespace: /[ \\t]/ @fragment;\n" +
-                "    vertical_whitespace:   /[\\r\\n]/ @fragment;\n" +
-                "    whitespace:            /x/ @skip;\n" +
-                "}\n",
+            hereDoc(
+                """
+                @scanner{
+                PLUS:"+";
+                INTEGER:/[0-9]+/;
+                }
+                """,
+            ),
+            hereDoc(
+                """
+                @scanner {
+                    PLUS:    "+";
+                    INTEGER: /[0-9]+/;
+                }
+                """,
+            ),
         )
     }
 
-    // A blank line starts a new alignment group, so the two groups align independently.
-    fun testBlankLineSeparatesAlignmentGroups() {
+    // It("puts one parser alternative per line, led by ':' and '|', with ';' on its own line")
+    fun testBasicLayoutOneAlternativePerLine() {
         assertFormatted(
-            """
-            @scanner {
-            add: "+";
-            sub: "-";
-
-            shift_left: "<<";
-            and: "&";
-            }
-            """,
-            "@scanner {\n" +
-                "    add: \"+\";\n" +
-                "    sub: \"-\";\n" +
-                "\n" +
-                "    shift_left: \"<<\";\n" +
-                "    and:        \"&\";\n" +
-                "}\n",
+            hereDoc(
+                """
+                @parser{
+                expression:term "+" term|term;
+                }
+                """,
+            ),
+            hereDoc(
+                """
+                @parser {
+                    expression
+                        : term "+" term
+                        | term
+                        ;
+                }
+                """,
+            ),
         )
     }
 
-    // Messy whitespace and a single-line rule are reflowed: name on its own line, one
-    // alternative per line, ";" on its own line, all indented with 4 spaces.
-    fun testParserRuleIsExpandedToMultiline() {
+    // It("keeps control directives single-line and tightens inline @precedence")
+    fun testBasicLayoutControlDirectivesSingleLineAndTightensPrecedence() {
         assertFormatted(
-            """
-            @parser {
-            Operand : Literal | OperandName | "(" Expression ")" ;
-            }
-            """,
-            "@parser {\n" +
-                "    Operand\n" +
-                "        : Literal\n" +
-                "        | OperandName\n" +
-                "        | \"(\" Expression \")\"\n" +
-                "        ;\n" +
-                "}\n",
+            hereDoc(
+                """
+                @parser{
+                @start:Program;
+                e:e "+" e @precedence ( PLUS );
+                }
+                """,
+            ),
+            hereDoc(
+                """
+                @parser {
+                    @start: Program;
+
+                    e
+                        : e "+" e @precedence(PLUS)
+                        ;
+                }
+                """,
+            ),
         )
     }
 
-    // @start and @precedence directives stay single-line; the @precedence block nests one level.
-    fun testControlDirectivesAndPrecedenceBlock() {
+    // It("collapses multiple blank lines between items to at most one")
+    fun testBasicLayoutCollapsesMultipleBlankLinesToAtMostOne() {
         assertFormatted(
-            """
-            @parser {
-            @start : SourceFiles ;
-            @precedence {
-            @left : "*" "/" ;
-            @left : "+" "-" ;
-            }
-            }
-            """,
-            "@parser {\n" +
-                "    @start: SourceFiles;\n" +
-                "    @precedence {\n" +
-                "        @left: \"*\" \"/\";\n" +
-                "        @left: \"+\" \"-\";\n" +
-                "    }\n" +
-                "}\n",
+            hereDoc(
+                """
+                @scanner {
+                A: "a";
+
+
+
+                B: "b";
+                }
+                """,
+            ),
+            hereDoc(
+                """
+                @scanner {
+                    A: "a";
+
+                    B: "b";
+                }
+                """,
+            ),
         )
     }
 
-    // Comments are preserved, re-indented to their context, and keep an attached rule together
-    // while a preceding blank line is kept (collapsed to a single blank).
-    fun testCommentsArePreservedAndReindented() {
-        assertFormatted(
+    // It("is idempotent")
+    fun testBasicLayoutIsIdempotent() {
+        val input = hereDoc(
             """
-            @parser {
-
-
-
-            // leading comment
-            Foo : bar ;
+            @parser{
+            expression:term "+" term|term;
+            term:INTEGER;
             }
             """,
-            "@parser {\n" +
-                "    // leading comment\n" +
-                "    Foo\n" +
-                "        : bar\n" +
-                "        ;\n" +
-                "}\n",
         )
-    }
-
-    // Formatting is idempotent: formatting already-formatted text changes nothing.
-    fun testFormattingIsIdempotent() {
-        val golang = golangGrammarOrNull() ?: return
-        val once = GolrFormatter.format(golang)
+        val once = GolrFormatter.format(input)
         val twice = GolrFormatter.format(once)
         assertEquals(once, twice)
     }
 
-    // The reference grammar is already in canonical form, so formatting it is a no-op. This is
-    // the strongest guarantee that the formatter reproduces the intended layout exactly.
-    fun testReferenceGrammarIsUnchanged() {
-        val golang = golangGrammarOrNull() ?: return
-        assertEquals(golang, GolrFormatter.format(golang))
+    // It("tightens an inline @name(...) annotation the same way it tightens @precedence(...)")
+    fun testBasicLayoutTightensNameAnnotationLikePrecedence() {
+        assertFormatted(
+            hereDoc(
+                """
+                @parser{
+                file:scanner_section parser_section @name ( file );
+                }
+                """,
+            ),
+            hereDoc(
+                """
+                @parser {
+                    file
+                        : scanner_section parser_section @name(file)
+                        ;
+                }
+                """,
+            ),
+        )
     }
 
-    // Loads examples/golang/spec/golang.golr, or returns null (skipping) if the submodule with
-    // the example grammars has not been checked out.
-    private fun golangGrammarOrNull(): String? =
-        listOf(
-            File("../../examples/golang/spec/golang.golr"),
-            File("examples/golang/spec/golang.golr"),
-        ).firstOrNull { it.exists() }?.readText()
+    // It("does not invent a blank line inside an empty scanner block")
+    fun testBasicLayoutDoesNotInventBlankLineInsideEmptyScannerBlock() {
+        assertEquals(
+            hereDoc(
+                """
+                @scanner {
+                }
+                """,
+            ),
+            GolrFormatter.format("@scanner{}"),
+        )
+    }
+
+    // It("does not invent a blank line inside an empty parser block")
+    fun testBasicLayoutDoesNotInventBlankLineInsideEmptyParserBlock() {
+        assertEquals(
+            hereDoc(
+                """
+                @parser {
+                }
+                """,
+            ),
+            GolrFormatter.format("@parser{}"),
+        )
+    }
+
+    // --- Context("comments") ---
+
+    // It("preserves a leading top-level comment and the blank line after it")
+    fun testCommentsPreservesLeadingTopLevelCommentAndBlankLineAfterIt() {
+        val input = hereDoc(
+            """
+            // file header
+
+            @scanner {
+                PLUS: "+";
+            }
+            """,
+        )
+        assertEquals(input, GolrFormatter.format(input))
+    }
+
+    // It("preserves a line comment immediately before a scanner rule")
+    fun testCommentsPreservesLineCommentImmediatelyBeforeScannerRule() {
+        val input = hereDoc(
+            """
+            @scanner {
+                // marks the arithmetic operators
+                PLUS: "+";
+            }
+            """,
+        )
+        assertEquals(input, GolrFormatter.format(input))
+    }
+
+    // It("preserves a block comment on its own line inside a parser section")
+    fun testCommentsPreservesBlockCommentOnOwnLineInsideParserSection() {
+        val input = hereDoc(
+            """
+            @parser {
+                /* entry point */
+                file
+                    : @empty
+                    ;
+            }
+            """,
+        )
+        assertEquals(input, GolrFormatter.format(input))
+    }
+
+    // It("keeps a comment documenting one alternative on its own line, not run onto the previous one")
+    fun testCommentsKeepsCommentDocumentingAlternativeOnOwnLine() {
+        val input = hereDoc(
+            """
+            @parser {
+                expression
+                    : a
+
+                    // explains the next alternative
+                    | b
+                    | c
+                    ;
+            }
+            """,
+        )
+        assertEquals(input, GolrFormatter.format(input))
+    }
+
+    // It("preserves a trailing comment before a closing brace, along with its blank line")
+    fun testCommentsPreservesTrailingCommentBeforeClosingBrace() {
+        val input = hereDoc(
+            """
+            @scanner {
+                PLUS: "+";
+
+                // trailing note
+            }
+            """,
+        )
+        assertEquals(input, GolrFormatter.format(input))
+    }
+
+    // It("keeps a comment trailing a scanner rule on the same line, without an extra blank line after it")
+    fun testCommentsKeepsCommentTrailingScannerRuleOnSameLine() {
+        val input = hereDoc(
+            """
+            @scanner {
+                PLUS: "+"; // marks the plus operator
+            }
+            """,
+        )
+        assertEquals(input, GolrFormatter.format(input))
+    }
+
+    // It("keeps a comment trailing the opening brace of a section on the same line")
+    fun testCommentsKeepsCommentTrailingOpeningBraceOnSameLine() {
+        val input = hereDoc(
+            """
+            @scanner { // arithmetic operators
+                PLUS: "+";
+            }
+            """,
+        )
+        assertEquals(input, GolrFormatter.format(input))
+    }
+
+    // It("keeps a comment trailing one alternative on the same line, without an extra blank line before the ';'")
+    fun testCommentsKeepsCommentTrailingAlternativeOnSameLine() {
+        val input = hereDoc(
+            """
+            @parser {
+                e
+                    : a
+                    | b // choose a or b
+                    ;
+            }
+            """,
+        )
+        assertEquals(input, GolrFormatter.format(input))
+    }
+
+    // --- Context("malformed input") ---
+
+    // It("does not fail on an unterminated block comment and keeps its bytes")
+    fun testMalformedInputUnterminatedBlockCommentKeepsBytes() {
+        // The input deliberately ends without a trailing newline: it represents a source cut off
+        // mid-comment, and closing the raw string on its own line would put a newline into the
+        // string that was never there.
+        val input = hereDoc(
+            """
+            @scanner {
+                PLUS: "+"; /* unterminated""",
+        )
+        val output = GolrFormatter.format(input)
+        assertTrue(output.contains("PLUS"))
+        assertTrue(output.contains("unterminated"))
+    }
+
+    // It("keeps a rule name whose body is still being typed, without inventing the ';' or '}' it doesn't have yet")
+    fun testMalformedInputKeepsPartialRuleNameWithoutInventingStructure() {
+        // The input deliberately ends without a trailing newline: it represents a file still
+        // being typed, and closing the raw string on its own line would put a newline into the
+        // string that was never there.
+        val input = hereDoc(
+            """
+            @parser {
+                file
+                    : @empty
+                    ;
+
+                partial""",
+        )
+        val expected = hereDoc(
+            """
+            @parser {
+                file
+                    : @empty
+                    ;
+
+                partial
+            """,
+        )
+        assertEquals(expected, GolrFormatter.format(input))
+    }
+
+    // It("closes the block right after a rule missing its terminating ';'")
+    fun testMalformedInputClosesBlockRightAfterRuleMissingSemicolon() {
+        assertEquals(
+            hereDoc(
+                """
+                @scanner {
+                    PLUS
+                }
+                """,
+            ),
+            GolrFormatter.format("@scanner{PLUS}"),
+        )
+    }
+
+    // --- Context("real grammar files") ---
+
+    // It("keeps every canonical .golr file in the repository unchanged")
+    //
+    // Go's version relies on "go test"'s cwd always being the package directory ("../.." from
+    // internal/fmt is the repo root, deterministically). Gradle/IntelliJ test runners don't
+    // guarantee a cwd relationship to the repo root the same way, so this walks upward from the
+    // cwd looking for go.mod instead - a mechanical adaptation of "repoRoot", not a behavioral one.
+    fun testRealGrammarFilesKeepsEveryCanonicalGolrFileUnchanged() {
+        val repoRoot = findRepoRoot() ?: return
+
+        val paths = mutableListOf<File>()
+        repoRoot.walkTopDown()
+            .onEnter { it.name != "ide" }
+            .filterTo(paths) { it.isFile && it.extension == "golr" }
+        assertTrue("expected to find at least one .golr file under $repoRoot", paths.isNotEmpty())
+
+        for (path in paths) {
+            val data = path.readText()
+            assertEquals(path.toString(), data, GolrFormatter.format(data))
+        }
+    }
+
+    // Walks upward from the current working directory looking for go.mod, the repo root's marker
+    // file. Returns null (skipping the test) rather than failing outright if it can't be found,
+    // since that would be an environment problem rather than a formatting one.
+    private fun findRepoRoot(): File? {
+        var dir: File? = File(".").absoluteFile
+        while (dir != null) {
+            if (File(dir, "go.mod").isFile) {
+                return dir
+            }
+            dir = dir.parentFile
+        }
+        return null
+    }
 }
