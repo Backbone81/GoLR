@@ -23,49 +23,70 @@ var _ = Describe("GoLR formatting", func() {
 		})
 
 		It("column-aligns a messy scanner section", func() {
-			input := "@scanner{\nPLUS:\"+\";\nINTEGER:/[0-9]+/;\n}"
-			expected := "@scanner {\n" +
-				"    PLUS:    \"+\";\n" +
-				"    INTEGER: /[0-9]+/;\n" +
-				"}\n"
+			input := `@scanner{
+PLUS:"+";
+INTEGER:/[0-9]+/;
+}`
+			expected := `@scanner {
+    PLUS:    "+";
+    INTEGER: /[0-9]+/;
+}
+`
 			Expect(golrfmt.GoLRString(input)).To(Equal(expected))
 		})
 
 		It("puts one parser alternative per line, led by ':' and '|', with ';' on its own line", func() {
-			input := "@parser{\nexpression:term \"+\" term|term;\n}"
-			expected := "@parser {\n" +
-				"    expression\n" +
-				"        : term \"+\" term\n" +
-				"        | term\n" +
-				"        ;\n" +
-				"}\n"
+			input := `@parser{
+expression:term "+" term|term;
+}`
+			expected := `@parser {
+    expression
+        : term "+" term
+        | term
+        ;
+}
+`
 			Expect(golrfmt.GoLRString(input)).To(Equal(expected))
 		})
 
 		It("keeps control directives single-line and tightens inline @precedence", func() {
-			input := "@parser{\n@start:Program;\ne:e \"+\" e @precedence ( PLUS );\n}"
-			expected := "@parser {\n" +
-				"    @start: Program;\n" +
-				"\n" +
-				"    e\n" +
-				"        : e \"+\" e @precedence(PLUS)\n" +
-				"        ;\n" +
-				"}\n"
+			input := `@parser{
+@start:Program;
+e:e "+" e @precedence ( PLUS );
+}`
+			expected := `@parser {
+    @start: Program;
+
+    e
+        : e "+" e @precedence(PLUS)
+        ;
+}
+`
 			Expect(golrfmt.GoLRString(input)).To(Equal(expected))
 		})
 
 		It("collapses multiple blank lines between items to at most one", func() {
-			input := "@scanner {\nA: \"a\";\n\n\n\nB: \"b\";\n}"
-			expected := "@scanner {\n" +
-				"    A: \"a\";\n" +
-				"\n" +
-				"    B: \"b\";\n" +
-				"}\n"
+			input := `@scanner {
+A: "a";
+
+
+
+B: "b";
+}`
+			expected := `@scanner {
+    A: "a";
+
+    B: "b";
+}
+`
 			Expect(golrfmt.GoLRString(input)).To(Equal(expected))
 		})
 
 		It("is idempotent", func() {
-			input := "@parser{\nexpression:term \"+\" term|term;\nterm:INTEGER;\n}"
+			input := `@parser{
+expression:term "+" term|term;
+term:INTEGER;
+}`
 			once, err := golrfmt.GoLRString(input)
 			Expect(err).ToNot(HaveOccurred())
 			twice, err := golrfmt.GoLRString(once)
@@ -74,29 +95,47 @@ var _ = Describe("GoLR formatting", func() {
 		})
 
 		It("tightens an inline @name(...) annotation the same way it tightens @precedence(...)", func() {
-			input := "@parser{\nfile:scanner_section parser_section @name ( file );\n}"
-			expected := "@parser {\n" +
-				"    file\n" +
-				"        : scanner_section parser_section @name(file)\n" +
-				"        ;\n" +
-				"}\n"
+			input := `@parser{
+file:scanner_section parser_section @name ( file );
+}`
+			expected := `@parser {
+    file
+        : scanner_section parser_section @name(file)
+        ;
+}
+`
 			Expect(golrfmt.GoLRString(input)).To(Equal(expected))
 		})
 	})
 
 	Context("comments", func() {
 		It("preserves a leading top-level comment and the blank line after it", func() {
-			input := "// file header\n\n@scanner {\n    PLUS: \"+\";\n}\n"
+			input := `// file header
+
+@scanner {
+    PLUS: "+";
+}
+`
 			Expect(golrfmt.GoLRString(input)).To(Equal(input))
 		})
 
 		It("preserves a line comment immediately before a scanner rule", func() {
-			input := "@scanner {\n    // marks the arithmetic operators\n    PLUS: \"+\";\n}\n"
+			input := `@scanner {
+    // marks the arithmetic operators
+    PLUS: "+";
+}
+`
 			Expect(golrfmt.GoLRString(input)).To(Equal(input))
 		})
 
 		It("preserves a block comment on its own line inside a parser section", func() {
-			input := "@parser {\n    /* entry point */\n    file\n        : @empty\n        ;\n}\n"
+			input := `@parser {
+    /* entry point */
+    file
+        : @empty
+        ;
+}
+`
 			Expect(golrfmt.GoLRString(input)).To(Equal(input))
 		})
 
@@ -104,28 +143,35 @@ var _ = Describe("GoLR formatting", func() {
 			// This is the idiom the project's own bootstrap grammar (golr.golr) uses to document individual
 			// error-recovery alternatives. A comment between two "|" alternatives must stay on its own line
 			// rather than being swept into the token stream of the alternative before it.
-			input := "@parser {\n" +
-				"    expression\n" +
-				"        : a\n" +
-				"\n" +
-				"        // explains the next alternative\n" +
-				"        | b\n" +
-				"\n" +
-				"        | c\n" +
-				"        ;\n" +
-				"}\n"
+			input := `@parser {
+    expression
+        : a
+
+        // explains the next alternative
+        | b
+
+        | c
+        ;
+}
+`
 			Expect(golrfmt.GoLRString(input)).To(Equal(input))
 		})
 
 		It("preserves a trailing comment before a closing brace, along with its blank line", func() {
-			input := "@scanner {\n    PLUS: \"+\";\n\n    // trailing note\n}\n"
+			input := `@scanner {
+    PLUS: "+";
+
+    // trailing note
+}
+`
 			Expect(golrfmt.GoLRString(input)).To(Equal(input))
 		})
 	})
 
 	Context("malformed input", func() {
 		It("does not fail on an unterminated block comment and keeps its bytes", func() {
-			input := "@scanner {\n    PLUS: \"+\"; /* unterminated"
+			input := `@scanner {
+    PLUS: "+"; /* unterminated`
 			output, err := golrfmt.GoLRString(input)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(output).To(ContainSubstring("PLUS"))
@@ -135,13 +181,19 @@ var _ = Describe("GoLR formatting", func() {
 		It("keeps a rule name whose body is still being typed, without inventing the ';' or '}' it doesn't have yet", func() {
 			// A formatter repositions whitespace around the tokens that exist; it must not invent a closing
 			// '}' (or ':'/';') the source never had, even to keep the output superficially well-formed.
-			input := "@parser {\n    file\n        : @empty\n        ;\n\n    partial"
-			expected := "@parser {\n" +
-				"    file\n" +
-				"        : @empty\n" +
-				"        ;\n" +
-				"\n" +
-				"    partial\n"
+			input := `@parser {
+    file
+        : @empty
+        ;
+
+    partial`
+			expected := `@parser {
+    file
+        : @empty
+        ;
+
+    partial
+`
 			Expect(golrfmt.GoLRString(input)).To(Equal(expected))
 		})
 	})
