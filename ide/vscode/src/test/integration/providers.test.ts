@@ -178,6 +178,7 @@ suite("GoLR language features (integration)", () => {
         : term "+" term
         | term
         ;
+
     term
         : INTEGER
         ;
