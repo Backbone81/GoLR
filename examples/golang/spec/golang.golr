@@ -197,10 +197,12 @@
         | "@TestDecl" TopLevelDecl
         | @empty
         ;
+
     ZeroOrMoreImportDeclSemicolon
         : ZeroOrMoreImportDeclSemicolon ImportDecl ";"
         | @empty
         ;
+
     OneOrMoreTopLevelDeclSemicolon
         : TopLevelDecl ";"
         | OneOrMoreTopLevelDeclSemicolon TopLevelDecl ";"
@@ -216,11 +218,13 @@
         : "import" ImportSpec
         | "import" "(" ZeroOrMoreImportSpecSemicolon ")"
         ;
+
     ImportSpec
         : string_lit
         | "." string_lit
         | identifier string_lit
         ;
+
     ZeroOrMoreImportSpecSemicolon
         : ZeroOrMoreImportSpecSemicolon ImportSpec ";"
         | @empty
@@ -237,11 +241,13 @@
         | OperandName
         | "(" Expression ")"
         ;
+
     Literal
         : BasicLit
         | CompositeLit
         | FunctionLit
         ;
+
     BasicLit
         : int_lit
         | float_lit
@@ -249,6 +255,7 @@
         | rune_lit
         | string_lit
         ;
+
     OperandName
         : identifier
         ;
@@ -263,6 +270,7 @@
         : LiteralType LiteralValue
         | PrimaryExpr LiteralValue
         ;
+
     LiteralType
         : StructType
         | ArrayType
@@ -270,23 +278,28 @@
         | SliceType
         | MapType
         ;
+
     LiteralValue
         : "{" "}"
         | "{" ElementList "}"
         | "{" ElementList "," "}"
         ;
+
     ElementList
         : KeyedElement
         | ElementList "," KeyedElement
         ;
+
     KeyedElement
         : Element
         | Key ":" Element
         ;
+
     Key
         : Expression
         | LiteralValue
         ;
+
     Element
         : Expression
         | LiteralValue
@@ -311,10 +324,12 @@
     Selector
         : "." identifier
         ;
+
     Index
         : "[" IndexElemList "]"
         | "[" IndexElemList "," "]"
         ;
+
     // Each element of a generic instantiation argument list is independently either an expression (ordinary index,
     // or a type that is also an expression such as a name or "*name") or an ArgumentType (a non-expression type such
     // as "[]int32"), so forms like "foo[bar, []int32]" parse with the type in any position. ArgumentType is used
@@ -325,10 +340,12 @@
         : IndexElem
         | IndexElemList "," IndexElem
         ;
+
     IndexElem
         : Expression
         | ArgumentType
         ;
+
     Slice
         : "[" ":" "]"
         | "[" Expression ":" "]"
@@ -337,9 +354,11 @@
         | "[" ":" Expression ":" Expression "]"
         | "[" Expression ":" Expression ":" Expression "]"
         ;
+
     TypeAssertion
         : "." "(" Type ")"
         ;
+
     // The optional leading type covers calls to built-ins such as "make([]T, n)" whose first argument is a type. It is
     // an ArgumentType rather than a full Type: the TypeName and "TypeName TypeArgs" forms are already reachable through
     // ExpressionList (a name is an expression), and the "*name" form overlaps the dereference operator, so admitting
@@ -360,6 +379,7 @@
         | "(" ArgumentType "," ExpressionList "," ")"
         | "(" ArgumentType "," ExpressionList "..." "," ")"
         ;
+
     ArgumentType
         : ArrayType
         | SliceType
@@ -370,6 +390,7 @@
         | FunctionType
         | "*" ArgumentType
         ;
+
     ExpressionList
         : Expression
         | ExpressionList "," Expression
@@ -398,6 +419,7 @@
         | Expression "&" Expression
         | Expression "&^" Expression
         ;
+
     UnaryExpr
         : PrimaryExpr
         | "+" UnaryExpr
@@ -428,6 +450,7 @@
         | "(" ConversionType ")" "(" Expression ")"
         | "(" ConversionType ")" "(" Expression "," ")"
         ;
+
     // The inner type of a parenthesized conversion such as "(*[4]byte)(x)" or "(<-chan int)(c)".
     // It is restricted to the types which are not also expressions, so that "(" ConversionType ")"
     // does not overlap a parenthesized expression "(" Expression ")". The named-type and "*name" /
@@ -454,24 +477,29 @@
         | TypeLit
         | "(" Type ")"
         ;
+
     TypeNoChanReceive
         : TypeName
         | TypeName TypeArgs
         | TypeLitNoChanReceive
         | "(" Type ")"
         ;
+
     TypeName
         : identifier
         | QualifiedIdent
         ;
+
     TypeArgs
         : "[" TypeList "]"
         ;
+
     TypeList
         : Type
         | Type ","
         | Type "," TypeList
         ;
+
     TypeLit
         : ArrayType
         | StructType
@@ -482,6 +510,7 @@
         | MapType
         | ChannelType
         ;
+
     TypeLitNoChanReceive
         : ArrayType
         | StructType
@@ -507,6 +536,7 @@
     StructType
         : "struct" "{" ZeroOrMoreFieldDecl "}"
         ;
+
     FieldDecl
         : identifier "," IdentifierList Type OptTag
         | identifier TypeNoLeadingBracket OptTag
@@ -515,14 +545,17 @@
         | identifier "." identifier OptTypeArgs OptTag
         | "*" TypeName OptTypeArgs OptTag
         ;
+
     OptTag
         : @empty
         | string_lit
         ;
+
     OptTypeArgs
         : @empty
         | TypeArgs
         ;
+
     // The part following the leading identifier of a field that begins with "[". It unifies the
     // slice/array element types with the generic type-argument list so that the array-versus-
     // instantiation choice can be deferred to a single lookahead after the closing "]".
@@ -531,10 +564,12 @@
         | "[" BracketList "]"
         | "[" BracketList "]" Type
         ;
+
     BracketList
         : BracketElem
         | BracketList "," BracketElem
         ;
+
     BracketElem
         : Expression
         | StructType
@@ -545,6 +580,7 @@
         | SliceType
         | ArrayType
         ;
+
     TypeNoLeadingBracket
         : TypeName
         | TypeName TypeArgs
@@ -556,10 +592,12 @@
         | ChannelType
         | "(" Type ")"
         ;
+
     ZeroOrMoreFieldDecl
         : ZeroOrMoreFieldDeclSemicolon
         | ZeroOrMoreFieldDeclSemicolon FieldDecl
         ;
+
     ZeroOrMoreFieldDeclSemicolon
         : ZeroOrMoreFieldDeclSemicolon FieldDecl ";"
         | @empty
@@ -574,28 +612,34 @@
     FunctionType
         : "func" Signature
         ;
+
     Signature
         : Parameters
         | Parameters Result
         ;
+
     Result
         : Parameters
         | TypeNoParen
         ;
+
     TypeNoParen
         : TypeName
         | TypeName TypeArgs
         | TypeLit
         ;
+
     Parameters
         : "(" ")"
         | "(" ParameterList ")"
         | "(" ParameterList "," ")"
         ;
+
     ParameterList
         : ParameterDecl
         | ParameterList "," ParameterDecl
         ;
+
     ParameterDecl
         : identifier
         | identifier "." identifier OptTypeArgs
@@ -612,24 +656,30 @@
         : "interface" "{" "}"
         | "interface" "{" OneOrMoreInterfaceElem "}"
         ;
+
     InterfaceElem
         : MethodElem
         | TypeElem
         ;
+
     MethodElem
         : identifier Signature
         ;
+
     TypeElem
         : TypeTerm
         | TypeElem "|" TypeTerm
         ;
+
     TypeTerm
         : Type
         | UnderlyingType
         ;
+
     UnderlyingType
         : "~" Type
         ;
+
     OneOrMoreInterfaceElem
         : InterfaceElem
         | InterfaceElem ";"
@@ -647,6 +697,7 @@
         | "chan" "<-" Type
         | "<-" "chan" Type
         ;
+
     ChannelTypeNoChanReceive
         : "chan" TypeNoChanReceive
         | "chan" "<-" Type
@@ -656,6 +707,7 @@
     Block
         : "{" StatementList "}"
         ;
+
     StatementList
         : Statement
         | StatementList ";" Statement
@@ -755,6 +807,7 @@
         | ExpressionNoBrace "&" ExpressionNoBrace
         | ExpressionNoBrace "&^" ExpressionNoBrace
         ;
+
     UnaryExprNoBrace
         : PrimaryExprNoBrace
         | "+" UnaryExprNoBrace
@@ -765,6 +818,7 @@
         | "&" UnaryExprNoBrace
         | "<-" UnaryExprNoBrace
         ;
+
     PrimaryExprNoBrace
         : OperandNoBrace
         | Conversion
@@ -774,23 +828,28 @@
         | PrimaryExprNoBrace TypeAssertion
         | PrimaryExprNoBrace Arguments
         ;
+
     OperandNoBrace
         : LiteralNoBrace
         | OperandName
         | "(" Expression ")"
         ;
+
     LiteralNoBrace
         : BasicLit
         | CompositeLitNoBrace
         | FunctionLit
         ;
+
     CompositeLitNoBrace
         : LiteralType LiteralValue
         ;
+
     ExpressionListNoBrace
         : ExpressionNoBrace
         | ExpressionListNoBrace "," ExpressionNoBrace
         ;
+
     SimpleStmtNoBrace
         : @empty
         | ExpressionNoBrace
@@ -799,13 +858,16 @@
         | AssignmentNoBrace
         | ShortVarDeclNoBrace
         ;
+
     SendStmtNoBrace
         : ExpressionNoBrace "<-" ExpressionNoBrace
         ;
+
     IncDecStmtNoBrace
         : ExpressionNoBrace "++"
         | ExpressionNoBrace "--"
         ;
+
     AssignmentNoBrace
         : ExpressionListNoBrace "=" ExpressionListNoBrace
         | ExpressionListNoBrace "+=" ExpressionListNoBrace
@@ -820,6 +882,7 @@
         | ExpressionListNoBrace "&=" ExpressionListNoBrace
         | ExpressionListNoBrace "&^=" ExpressionListNoBrace
         ;
+
     ShortVarDeclNoBrace
         : ExpressionListNoBrace ":=" ExpressionListNoBrace
         ;
@@ -831,6 +894,7 @@
         | "if" SimpleStmtNoBrace ";" ExpressionNoBrace Block
         | "if" SimpleStmtNoBrace ";" ExpressionNoBrace Block "else" IfStmtOrBlock
         ;
+
     IfStmtOrBlock
         : IfStmt
         | Block
@@ -849,13 +913,16 @@
         | "switch" SimpleStmtNoBrace ";" "{" ZeroOrMoreExprCaseClause "}"
         | "switch" SimpleStmtNoBrace ";" ExpressionNoBrace "{" ZeroOrMoreExprCaseClause "}"
         ;
+
     ExprCaseClause
         : ExprSwitchCase ":" StatementList
         ;
+
     ExprSwitchCase
         : "case" ExpressionList
         | "default"
         ;
+
     ZeroOrMoreExprCaseClause
         : ZeroOrMoreExprCaseClause ExprCaseClause
         | @empty
@@ -866,6 +933,7 @@
         : "switch" TypeSwitchGuard "{" ZeroOrMoreTypeCaseClause "}"
         | "switch" SimpleStmtNoBrace ";" TypeSwitchGuard "{" ZeroOrMoreTypeCaseClause "}"
         ;
+
     // The declaring form of a type switch guard ("x := y.(type)") shares its "ExpressionListNoBrace :=" prefix with a
     // short variable declaration used as the switch init statement ("switch x := y; ..."). Parsing the left-hand side
     // as an ExpressionListNoBrace (rather than a bare identifier) keeps the leading name reducing the same way for both,
@@ -876,13 +944,16 @@
         : PrimaryExprNoBrace "." "(" "type" ")"
         | ExpressionListNoBrace ":=" PrimaryExprNoBrace "." "(" "type" ")"
         ;
+
     TypeCaseClause
         : TypeSwitchCase ":" StatementList
         ;
+
     TypeSwitchCase
         : "case" TypeList
         | "default"
         ;
+
     ZeroOrMoreTypeCaseClause
         : ZeroOrMoreTypeCaseClause TypeCaseClause
         | @empty
@@ -918,19 +989,23 @@
     SelectStmt
         : "select" "{" ZeroOrMoreCommClause "}"
         ;
+
     CommClause
         : CommCase ":" StatementList
         ;
+
     CommCase
         : "case" SendStmt
         | "case" RecvStmt
         | "default"
         ;
+
     RecvStmt
         : Expression
         | ExpressionList "=" Expression
         | ExpressionList ":=" Expression
         ;
+
     ZeroOrMoreCommClause
         : ZeroOrMoreCommClause CommClause
         | @empty
@@ -975,6 +1050,7 @@
         | TypeDecl
         | VarDecl
         ;
+
     TopLevelDecl
         : Declaration
         | FunctionDecl
@@ -986,11 +1062,13 @@
         : "const" ConstSpec
         | "const" "(" ZeroOrMoreConstSpec ")"
         ;
+
     ConstSpec
         : IdentifierList
         | IdentifierList "=" ExpressionList
         | IdentifierList Type "=" ExpressionList
         ;
+
     ZeroOrMoreConstSpec
         : ZeroOrMoreConstSpec ConstSpec ";"
         | @empty
@@ -1002,6 +1080,7 @@
         | "type" TypeDef
         | "type" "(" ZeroOrMoreTypeSpecSemicolon ")"
         ;
+
     ZeroOrMoreTypeSpecSemicolon
         : ZeroOrMoreTypeSpecSemicolon AliasDecl ";"
         | ZeroOrMoreTypeSpecSemicolon TypeDef ";"
@@ -1024,15 +1103,18 @@
     TypeParameters
         : "[" TypeParamList "]"
         ;
+
     TypeParamList
         : TypeParamDecl
         | TypeParamDecl ","
         | TypeParamDecl "," TypeParamList
         ;
+
     TypeParamDecl
         : ExpressionList TypeElem
         | PrimaryExpr "[" "]" Type ZeroOrMoreUnionTypeTerm
         ;
+
     ZeroOrMoreUnionTypeTerm
         : @empty
         | ZeroOrMoreUnionTypeTerm "|" TypeTerm
@@ -1047,11 +1129,13 @@
     FuncTypeParameters
         : "[" FuncTypeParamList "]"
         ;
+
     FuncTypeParamList
         : FuncTypeParamDecl
         | FuncTypeParamDecl ","
         | FuncTypeParamDecl "," FuncTypeParamList
         ;
+
     FuncTypeParamDecl
         : IdentifierList TypeElem
         ;
@@ -1061,11 +1145,13 @@
         : "var" VarSpec
         | "var" "(" ZeroOrMoreVarSpecSemicolon ")"
         ;
+
     VarSpec
         : IdentifierList Type
         | IdentifierList Type "=" ExpressionList
         | IdentifierList "=" ExpressionList
         ;
+
     ZeroOrMoreVarSpecSemicolon
         : ZeroOrMoreVarSpecSemicolon VarSpec ";"
         | @empty
@@ -1089,5 +1175,4 @@
         : "func" Parameters identifier Signature
         | "func" Parameters identifier Signature Block
         ;
-
 }

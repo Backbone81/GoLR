@@ -48,7 +48,6 @@
         // @precedence(UMINUS) tells the parser to treat this production as if it
         // had the precedence of UMINUS, resolving the ambiguity with binary minus.
         | "-" expression @precedence(UMINUS)
-
         | "(" expression ")"
         ;
 }
