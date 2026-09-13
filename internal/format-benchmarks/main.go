@@ -49,6 +49,7 @@ func run(dir string) error {
 }
 
 func processFile(path string) (bool, error) {
+	//nolint:gosec // the path needs to be user provided
 	original, err := os.ReadFile(path)
 	if err != nil {
 		return false, err
@@ -63,6 +64,8 @@ func processFile(path string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	//nolint:gosec // the path needs to be user provided
 	if err := os.WriteFile(path, []byte(formatted), info.Mode()); err != nil {
 		return false, err
 	}
@@ -131,7 +134,7 @@ func formatBenchmarkBlock(lines []string) []string {
 
 	// formattedCols[col][rowPos] holds the aligned cell for rows[rowPos], for the rows that have that column.
 	formattedCols := make([][]string, maxCols)
-	for col := 0; col < maxCols; col++ {
+	for col := range maxCols {
 		formattedCols[col] = formatColumn(rows, col)
 	}
 
@@ -163,6 +166,8 @@ func isUnitColumn(col int) bool {
 
 // formatColumn aligns a single column across the given rows: numeric columns are right-aligned with thousands
 // separators and aligned decimal points, other columns keep their original left alignment.
+//
+//nolint:gocognit,cyclop,funlen // this is only a helper function, no need to get excessive with keeping things tight
 func formatColumn(rows []benchmarkRow, col int) []string {
 	cells := make([]string, len(rows))
 
@@ -230,7 +235,7 @@ func formatColumn(rows []benchmarkRow, col int) []string {
 func addThousandsSeparators(digits string) string {
 	var b strings.Builder
 	n := len(digits)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if i > 0 && (n-i)%3 == 0 {
 			b.WriteByte(',')
 		}

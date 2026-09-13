@@ -125,6 +125,9 @@ linters:
         linters:
           - forbidigo
           - gochecknoinits
+      - path: ^internal/format-benchmarks/
+        linters:
+          - forbidigo
       - path: ^examples/
         linters:
           - forbidigo
