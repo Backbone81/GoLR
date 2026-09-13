@@ -46,6 +46,7 @@ var _ = Describe("GoLR formatting", func() {
 			input := "@parser{\n@start:Program;\ne:e \"+\" e @precedence ( PLUS );\n}"
 			expected := "@parser {\n" +
 				"    @start: Program;\n" +
+				"\n" +
 				"    e\n" +
 				"        : e \"+\" e @precedence(PLUS)\n" +
 				"        ;\n" +
