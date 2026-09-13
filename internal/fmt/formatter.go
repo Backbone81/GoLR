@@ -126,6 +126,8 @@ func (f *Formatter) Format(source []byte, filePath string) []byte {
 			f.onTokenScanner()
 		case golrparser.TokenParser:
 			f.onTokenParser()
+		case golrparser.TokenStart:
+			f.onTokenStart()
 		case golrparser.TokenPrecedence:
 			f.onTokenPrecedence()
 		default:
@@ -240,6 +242,12 @@ func (f *Formatter) onTokenSemi() {
 		// Separate top-level rules with a blank line; idempotent, so it composes with a blank line a
 		// trailing comment on the next rule also wants (see the TokenComment case).
 		f.blankLine()
+	case golrparser.TokenStart:
+		// "@start: X;" stays on one line rather than being spread out like a regular rule.
+		f.emitTight = true
+		f.emit(f.scanner.Lexeme())
+		f.popContext()
+		f.blankLine()
 	default:
 		f.emitTight = true
 		f.emit(f.scanner.Lexeme())
@@ -317,6 +325,13 @@ func (f *Formatter) onTokenParser() {
 	// Track that we're inside @parser; popped again on the matching "}".
 	f.emit(f.scanner.Lexeme())
 	f.pushContext(golrparser.TokenParser)
+}
+
+func (f *Formatter) onTokenStart() {
+	// Track that we're inside "@start ... ;"; popped again on the matching ";" so the colon and
+	// semicolon are formatted inline instead of like a regular rule's.
+	f.emit(f.scanner.Lexeme())
+	f.pushContext(golrparser.TokenStart)
 }
 
 func (f *Formatter) onTokenPrecedence() {
