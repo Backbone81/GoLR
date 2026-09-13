@@ -157,15 +157,15 @@ goos: linux
 goarch: amd64
 pkg: github.com/backbone81/golr/internal/parsergen/backend/json
 cpu: Intel(R) Core(TM) i9-14900K
-BenchmarkFromParser/GNU_Bison_3.8.2-32              1608            687661 ns/op          111014 B/op       3073 allocs/op
-BenchmarkFromParser/GCC_2.95.3_C-32                  169           6211822 ns/op         1333793 B/op      24759 allocs/op
-BenchmarkFromParser/GCC_2.95.3_Objective_C-32        147           7582221 ns/op         2101428 B/op      35826 allocs/op
-BenchmarkFromParser/GCC_3.3.6_C++-32                  42          27222768 ns/op         8313694 B/op     124965 allocs/op
-BenchmarkFromParser/GCC_4.2.4_Java-32                147           7962243 ns/op         2376128 B/op      38587 allocs/op
-BenchmarkFromParser/Go_1.5.4-32                      183           6430090 ns/op         1638429 B/op      29809 allocs/op
-BenchmarkFromParser/PHP_8.6.7-32                      46          24310522 ns/op         8139051 B/op     111328 allocs/op
-BenchmarkFromParser/PostgreSQL_18.4-32                 3         411708596 ns/op        172058906 B/op   2044996 allocs/op
-BenchmarkFromParser/Ruby_3.2.11-32                    50          23489561 ns/op         7495097 B/op     116584 allocs/op
+BenchmarkFromParser/GNU_Bison_3.8.2-32          1,608       687,661 ns/op       111,014 B/op       3,073 allocs/op
+BenchmarkFromParser/GCC_2.95.3_C-32               169     6,211,822 ns/op     1,333,793 B/op      24,759 allocs/op
+BenchmarkFromParser/GCC_2.95.3_Objective_C-32     147     7,582,221 ns/op     2,101,428 B/op      35,826 allocs/op
+BenchmarkFromParser/GCC_3.3.6_C++-32               42    27,222,768 ns/op     8,313,694 B/op     124,965 allocs/op
+BenchmarkFromParser/GCC_4.2.4_Java-32             147     7,962,243 ns/op     2,376,128 B/op      38,587 allocs/op
+BenchmarkFromParser/Go_1.5.4-32                   183     6,430,090 ns/op     1,638,429 B/op      29,809 allocs/op
+BenchmarkFromParser/PHP_8.6.7-32                   46    24,310,522 ns/op     8,139,051 B/op     111,328 allocs/op
+BenchmarkFromParser/PostgreSQL_18.4-32              3   411,708,596 ns/op   172,058,906 B/op   2,044,996 allocs/op
+BenchmarkFromParser/Ruby_3.2.11-32                 50    23,489,561 ns/op     7,495,097 B/op     116,584 allocs/op
 PASS
 ok      github.com/backbone81/golr/internal/parsergen/backend/json      11.116s
 ```

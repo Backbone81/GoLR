@@ -14,9 +14,9 @@ goos: linux
 goarch: amd64
 pkg: github.com/backbone81/golr/internal/parsergen/core/lr1/bison
 cpu: Intel(R) Core(TM) i9-14900K
-BenchmarkGrammarToParser/GNU_Bison_3.8.2-32                   15          73295579 ns/op         9116248 B/op     218631 allocs/op
-BenchmarkGrammarToParser/GCC_2.95.3_C-32                       3         403481799 ns/op        79153216 B/op    1941993 allocs/op
-BenchmarkGrammarToParser/GCC_2.95.3_Objective_C-32             2         797633046 ns/op        126031980 B/op   3042134 allocs/op
+BenchmarkGrammarToParser/GNU_Bison_3.8.2-32          15       73,295,579 ns/op       9,116,248 B/op      218,631 allocs/op
+BenchmarkGrammarToParser/GCC_2.95.3_C-32              3      403,481,799 ns/op      79,153,216 B/op    1,941,993 allocs/op
+BenchmarkGrammarToParser/GCC_2.95.3_Objective_C-32    2      797,633,046 ns/op     126,031,980 B/op    3,042,134 allocs/op
 --- FAIL: BenchmarkGrammarToParser/GCC_3.3.6_C++
     lr1_test.go:46: executing bison: signal: killed
         
@@ -24,9 +24,9 @@ BenchmarkGrammarToParser/GCC_2.95.3_Objective_C-32             2         7976330
         /tmp/golr-lr1-420347516.y: warning: 87 reduce/reduce conflicts [-Wconflicts-rr]
         /tmp/golr-lr1-420347516.y: note: rerun with option '-Wcounterexamples' to generate conflict counterexamples
         
-BenchmarkGrammarToParser/GCC_4.2.4_Java-32                     1        3471241783 ns/op        250731248 B/op   6123496 allocs/op
-BenchmarkGrammarToParser/Go_1.5.4-32                           1        1290377839 ns/op        202733176 B/op   4944552 allocs/op
-BenchmarkGrammarToParser/PHP_8.6.7-32                          1        57038746138 ns/op       1505382432 B/op 35940118 allocs/op
+BenchmarkGrammarToParser/GCC_4.2.4_Java-32            1    3,471,241,783 ns/op     250,731,248 B/op    6,123,496 allocs/op
+BenchmarkGrammarToParser/Go_1.5.4-32                  1    1,290,377,839 ns/op     202,733,176 B/op    4,944,552 allocs/op
+BenchmarkGrammarToParser/PHP_8.6.7-32                 1   57,038,746,138 ns/op   1,505,382,432 B/op   35,940,118 allocs/op
 --- FAIL: BenchmarkGrammarToParser/PostgreSQL_18.4
     lr1_test.go:46: executing bison: signal: killed
         

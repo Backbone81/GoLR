@@ -35,6 +35,7 @@ prepare: generate
 	go mod tidy
 	go fmt $(PACKAGE)
 	find . -name '*.golr' -not -path './ide/*' -exec go run ./cmd/golr fmt {} +
+	go run ./internal/format-benchmarks
 	go vet $(PACKAGE)
 	docker run \
 		--tty \

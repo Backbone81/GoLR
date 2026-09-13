@@ -64,15 +64,15 @@ goos: linux
 goarch: amd64
 pkg: github.com/backbone81/golr/internal/parsergen/frontend/yaml
 cpu: Intel(R) Core(TM) i9-14900K
-BenchmarkToGrammar/GNU_Bison_3.8.2-32                 13         127159859 ns/op        43480624 B/op      71008 allocs/op
-BenchmarkToGrammar/GCC_2.95.3_C-32                     1        1661144907 ns/op        783196248 B/op    330789 allocs/op
-BenchmarkToGrammar/GCC_2.95.3_Objective_C-32           1        2195132424 ns/op        1022467160 B/op   432960 allocs/op
-BenchmarkToGrammar/GCC_3.3.6_C++-32                    1        4900333068 ns/op        3785718672 B/op   934715 allocs/op
-BenchmarkToGrammar/GCC_4.2.4_Java-32                   1        2460520581 ns/op        1106144848 B/op   464361 allocs/op
-BenchmarkToGrammar/Go_1.5.4-32                         1        1624526628 ns/op        701544384 B/op    298087 allocs/op
-BenchmarkToGrammar/PHP_8.6.7-32                        1        4084674560 ns/op        2466333696 B/op   631357 allocs/op
-BenchmarkToGrammar/PostgreSQL_18.4-32                  1        37437390394 ns/op       59118112624 B/op         6949441 allocs/op
-BenchmarkToGrammar/Ruby_3.2.11-32                      1        4263318820 ns/op        2778751224 B/op   708313 allocs/op
+BenchmarkToGrammar/GNU_Bison_3.8.2-32          13      127,159,859 ns/op       43,480,624 B/op      71,008 allocs/op
+BenchmarkToGrammar/GCC_2.95.3_C-32              1    1,661,144,907 ns/op      783,196,248 B/op     330,789 allocs/op
+BenchmarkToGrammar/GCC_2.95.3_Objective_C-32    1    2,195,132,424 ns/op    1,022,467,160 B/op     432,960 allocs/op
+BenchmarkToGrammar/GCC_3.3.6_C++-32             1    4,900,333,068 ns/op    3,785,718,672 B/op     934,715 allocs/op
+BenchmarkToGrammar/GCC_4.2.4_Java-32            1    2,460,520,581 ns/op    1,106,144,848 B/op     464,361 allocs/op
+BenchmarkToGrammar/Go_1.5.4-32                  1    1,624,526,628 ns/op      701,544,384 B/op     298,087 allocs/op
+BenchmarkToGrammar/PHP_8.6.7-32                 1    4,084,674,560 ns/op    2,466,333,696 B/op     631,357 allocs/op
+BenchmarkToGrammar/PostgreSQL_18.4-32           1   37,437,390,394 ns/op   59,118,112,624 B/op   6,949,441 allocs/op
+BenchmarkToGrammar/Ruby_3.2.11-32               1    4,263,318,820 ns/op    2,778,751,224 B/op     708,313 allocs/op
 PASS
 ok      github.com/backbone81/golr/internal/parsergen/frontend/yaml     60.916s
 ```

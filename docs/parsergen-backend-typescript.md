@@ -42,15 +42,15 @@ goos: linux
 goarch: amd64
 pkg: github.com/backbone81/golr/internal/parsergen/backend/typescript
 cpu: Intel(R) Core(TM) i9-14900K
-BenchmarkFromParser/GNU_Bison_3.8.2-32               553           2137336 ns/op          589144 B/op       8454 allocs/op
-BenchmarkFromParser/GCC_2.95.3_C-32                  100          11374236 ns/op         2877677 B/op      29693 allocs/op
-BenchmarkFromParser/GCC_2.95.3_Objective_C-32         79          13731932 ns/op         4417846 B/op      41288 allocs/op
-BenchmarkFromParser/GCC_3.3.6_C++-32                  45          28399160 ns/op        11262482 B/op      81515 allocs/op
-BenchmarkFromParser/GCC_4.2.4_Java-32                 76          16142749 ns/op         4440372 B/op      44307 allocs/op
-BenchmarkFromParser/Go_1.5.4-32                       81          13501300 ns/op         2795913 B/op      28759 allocs/op
-BenchmarkFromParser/PHP_8.6.7-32                      85          18883853 ns/op         8717857 B/op      60500 allocs/op
-BenchmarkFromParser/PostgreSQL_18.4-32                 3         460461592 ns/op        139612834 B/op    490375 allocs/op
-BenchmarkFromParser/Ruby_3.2.11-32                    54          21939080 ns/op         9515399 B/op      62723 allocs/op
+BenchmarkFromParser/GNU_Bison_3.8.2-32          553     2,137,336 ns/op       589,144 B/op     8,454 allocs/op
+BenchmarkFromParser/GCC_2.95.3_C-32             100    11,374,236 ns/op     2,877,677 B/op    29,693 allocs/op
+BenchmarkFromParser/GCC_2.95.3_Objective_C-32    79    13,731,932 ns/op     4,417,846 B/op    41,288 allocs/op
+BenchmarkFromParser/GCC_3.3.6_C++-32             45    28,399,160 ns/op    11,262,482 B/op    81,515 allocs/op
+BenchmarkFromParser/GCC_4.2.4_Java-32            76    16,142,749 ns/op     4,440,372 B/op    44,307 allocs/op
+BenchmarkFromParser/Go_1.5.4-32                  81    13,501,300 ns/op     2,795,913 B/op    28,759 allocs/op
+BenchmarkFromParser/PHP_8.6.7-32                 85    18,883,853 ns/op     8,717,857 B/op    60,500 allocs/op
+BenchmarkFromParser/PostgreSQL_18.4-32            3   460,461,592 ns/op   139,612,834 B/op   490,375 allocs/op
+BenchmarkFromParser/Ruby_3.2.11-32               54    21,939,080 ns/op     9,515,399 B/op    62,723 allocs/op
 PASS
 ok      github.com/backbone81/golr/internal/parsergen/backend/typescript        12.108s
 ```
