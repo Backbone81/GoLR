@@ -26,3 +26,13 @@ builds:
 
 archives:
   - formats: ["binary"]
+
+dockers_v2:
+  - images:
+      - backbone81/golr
+    tags:
+      - "v{{ .Version }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64

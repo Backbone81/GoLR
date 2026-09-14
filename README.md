@@ -22,19 +22,36 @@ details about how GoLR makes sure that the generated parser tables are right, se
 
 ## Getting Started
 
-Install the GoLR binary either with your Go toolchain:
+Download a prebuilt binary from the [Releases](https://github.com/Backbone81/GoLR/releases) section and make it
+available in your shell.
+
+Or run it as container without installing anything locally:
+
+```shell
+docker run --rm backbone81/golr:latest --help
+```
+
+Or install the binary with your Go toolchain:
 
 ```shell
 go install github.com/backbone81/golr/cmd/golr@latest
 ```
-
-Or download a prebuilt binary from the releases section and make it available in your shell.
 
 This example assumes a context free grammar in a GNU Bison grammar file `grammar.y`. Run GoLR to generate a Go parser
 from it:
 
 ```sh
 golr parser \
+  --frontend bison \
+  --frontend-file-path grammar.y \
+  --backend-file-path parser/parser.go
+```
+
+The same command works through Docker by mounting the current directory into the container, so both the grammar file
+and the generated output are visible on the host:
+
+```shell
+docker run --rm -v "$(pwd):/work" -w /work backbone81/golr:latest parser \
   --frontend bison \
   --frontend-file-path grammar.y \
   --backend-file-path parser/parser.go
