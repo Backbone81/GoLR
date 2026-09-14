@@ -33,5 +33,5 @@ execute() {
 
     dotnet msbuild runner.csproj -restore -target:Build -nologo -verbosity:quiet -consoleLoggerParameters:NoSummary
 
-    exec dotnet bin/Debug/net10.0/runner.dll input.txt
+    exec dotnet bin/Debug/net11.0/runner.dll input.txt
 }
