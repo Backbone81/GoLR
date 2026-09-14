@@ -10,7 +10,7 @@ split into a frontend which reads the input, a core which builds the parser or s
 out. The supported frontends, cores and backends are listed in the [parser generator](#parser-generator) and
 [scanner generator](#scanner-generator) sections below.
 
-Generated parsers build a parse tree and do not execute semantic actions. Users walk the tree themselves.
+Generated parsers build a parse tree which users can then walk.
 
 See [correctness](docs/correctness.md) for how the IELR(1) core is verified.
 
