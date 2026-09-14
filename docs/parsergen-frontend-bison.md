@@ -13,7 +13,8 @@ The following functionality is currently supported:
 - %prec
 - %start
 
-Any not supported functionality is ignored.
+Any not supported functionality is ignored. This includes semantic actions: the generated parser builds a parse tree
+instead, so the logic of the actions has to be moved into code which walks that tree.
 
 The GNU Bison grammar parser is tested against a set of well known GNU Bison grammar files for several programming
 languages, to make sure that it works correctly. The well known grammar files include GNU Bison, GCC C, GCC

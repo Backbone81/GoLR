@@ -1,24 +1,18 @@
 # GoLR
 
-GoLR is a modern tool for generating high-performance parsers based on LR(1) grammars. It combines the expressive power
-of full LR(1) parsing with the efficiency of modern algorithms like
-[IELR(1)](https://doi.org/10.1016/j.scico.2009.08.001), making it ideal for both interactive and production use.
+GoLR is a modern tool for generating parsers based on LR(1) grammars. It combines the expressive power of full LR(1)
+parsing with the compact tables of [IELR(1)](https://doi.org/10.1016/j.scico.2009.08.001) by Joel E. Denny and Brian A.
+Malloy. The tables accept the same language and produce the same parses as canonical LR(1), but states are split only
+where merging them would change the parser's behavior. For an LALR(1) grammar the result is the LALR(1) table.
 
-For years, LR(1) grammars were seen as too resource-intensive compared to simpler LALR(1) approaches. However,
-advancements like [IELR(1)](https://doi.org/10.1016/j.scico.2009.08.001) have changed the game, offering LALR(1)-like
-performance without sacrificing the richness of LR(1). This tool brings those benefits to you in a highly modular and
-extensible way.
+GoLR also includes a scanner generator for regular expressions. The parser generator and the scanner generator are each
+split into a frontend which reads the input, a core which builds the parser or scanner, and a backend which writes it
+out. The supported frontends, cores and backends are listed in the [parser generator](#parser-generator) and
+[scanner generator](#scanner-generator) sections below.
 
-The architecture of GoLR separates the frontend from the core and the backend. The frontend is responsible for reading
-the context free grammar from different input formats. The core constructs the LR(1) parser from the grammar. The
-backend finally outputs the parser into different output formats.
+Generated parsers build a parse tree and do not execute semantic actions. Users walk the tree themselves.
 
-The generated parser constructs a parse tree which you can then walk and execute semantic actions
-accordingly.
-
-For more details about how this project came to be, see the documentation about [motivation](docs/motivation.md). For
-details about how GoLR makes sure that the generated parser tables are right, see the documentation about
-[correctness](docs/correctness.md).
+See [correctness](docs/correctness.md) for how the IELR(1) core is verified.
 
 ## Getting Started
 
