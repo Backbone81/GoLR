@@ -330,10 +330,6 @@ on that guarantee, in overlapping layers:
 The [correctness](docs/correctness.md) documentation describes each layer in detail, including what these checks
 deliberately do not cover.
 
-## Roadmap
-
-See the [roadmap](docs/roadmap.md) for topics which will be addressed in the future.
-
 ## License
 
 GoLR is licensed under the [Apache License, Version 2.0](LICENSE).
