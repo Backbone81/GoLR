@@ -24,8 +24,9 @@ type earliestProductionPolicy struct{}
 // earliestProductionPolicy implements Policy.
 var _ Policy = (*earliestProductionPolicy)(nil)
 
-// Resolve removes every reduction but the one on the production with the lowest production index.
-func (p *earliestProductionPolicy) Resolve(terminalIdx int, candidates ContributionSet) ContributionSet {
+// Resolve removes every reduction but the one on the production with the lowest production index, and reports it when
+// it did.
+func (p *earliestProductionPolicy) Resolve(terminalIdx int, candidates ContributionSet) (ContributionSet, bool) {
 	var result ContributionSet
 	earliestFound := false
 	for _, candidate := range candidates.All() {
@@ -41,7 +42,7 @@ func (p *earliestProductionPolicy) Resolve(terminalIdx int, candidates Contribut
 		result.Add(candidate)
 		earliestFound = true
 	}
-	return result
+	return result, result.Length() < candidates.Length()
 }
 
 // ContributeSplitStability defers the narrowing to Resolve and only decides whether that narrowing is split-stable.
@@ -52,7 +53,7 @@ func (p *earliestProductionPolicy) Resolve(terminalIdx int, candidates Contribut
 // potential, an isocore which does not make it reduces on a later production instead, or does not reduce at all, so the
 // dominant contribution changes.
 func (p *earliestProductionPolicy) ContributeSplitStability(terminalIdx int, splitStability *SplitStability) {
-	splitStability.remaining = p.Resolve(terminalIdx, splitStability.remaining)
+	splitStability.remaining, _ = p.Resolve(terminalIdx, splitStability.remaining)
 	for _, contribution := range splitStability.remaining.All() {
 		if contribution.IsReduceAction() && !splitStability.isAlways(contribution) {
 			splitStability.markUnstable()

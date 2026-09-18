@@ -40,15 +40,18 @@ type compoundPolicy []Policy
 var _ Policy = (compoundPolicy)(nil)
 
 // Resolve applies the policies of the compound policy in order, and stops as soon as a single contribution is left or
-// every contribution was removed.
-func (p compoundPolicy) Resolve(terminalIdx int, candidates ContributionSet) ContributionSet {
+// every contribution was removed. The conflict is reported when any of the policies reported its narrowing.
+func (p compoundPolicy) Resolve(terminalIdx int, candidates ContributionSet) (ContributionSet, bool) {
 	result := candidates
+	report := false
 	for _, policy := range p {
 		if result.Length() <= 1 {
 			// The conflict is decided, so there is nothing left for the remaining policies to decide.
-			return result
+			return result, report
 		}
-		result = policy.Resolve(terminalIdx, result)
+		var policyReport bool
+		result, policyReport = policy.Resolve(terminalIdx, result)
+		report = report || policyReport
 		utils.DebugAssert(func() error {
 			if result.Length() > candidates.Length() {
 				return errors.New("a policy is expected to narrow down the candidates, not to add to them")
@@ -56,7 +59,7 @@ func (p compoundPolicy) Resolve(terminalIdx int, candidates ContributionSet) Con
 			return nil
 		})
 	}
-	return result
+	return result, report
 }
 
 // ContributeSplitStability lets each policy of the compound narrow the same bookkeeping in order. That shared

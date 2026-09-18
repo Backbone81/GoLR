@@ -20,8 +20,13 @@ import (
 // bookkeeping keeps replaying every policy on whatever remains, see CompoundPolicy. A Resolve which narrowed a decided
 // conflict further would make the bookkeeping diverge from what Resolve actually decides, and the split stability
 // verdict would be about a decision the policies never make.
+//
+// Resolve also reports whether its narrowing is to be reported to the grammar author. A rule of last resort reports
+// true when it removed a candidate, because the author did not decide the conflict. A rule the grammar declares, like
+// precedence and associativity, reports false, because the author decided the conflict on purpose. A Resolve which
+// removed nothing reports false.
 type Policy interface {
-	Resolve(terminalIdx int, candidates ContributionSet) ContributionSet
+	Resolve(terminalIdx int, candidates ContributionSet) (remaining ContributionSet, report bool)
 
 	// ContributeSplitStability narrows the split stability bookkeeping the same way Resolve narrows its candidates, and
 	// records in the bookkeeping whether any narrowing it made depended on a potential contribution being present. It is

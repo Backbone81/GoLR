@@ -23,15 +23,15 @@ type shiftOverReducePolicy struct{}
 // shiftOverReducePolicy implements Policy.
 var _ Policy = (*shiftOverReducePolicy)(nil)
 
-// Resolve removes every reduction from the candidates when a shift is among them.
-func (p *shiftOverReducePolicy) Resolve(terminalIdx int, candidates ContributionSet) ContributionSet {
+// Resolve removes every reduction from the candidates when a shift is among them, and reports it when it did.
+func (p *shiftOverReducePolicy) Resolve(terminalIdx int, candidates ContributionSet) (ContributionSet, bool) {
 	shift := NewShiftContribution()
 	if !candidates.Contains(shift) {
 		// There is no shift which could win, so this is a conflict between reductions only, which this policy has
 		// nothing to say about.
-		return candidates
+		return candidates, false
 	}
-	return NewContributionSet(shift)
+	return NewContributionSet(shift), candidates.Length() > 1
 }
 
 // ContributeSplitStability defers the narrowing to Resolve and only decides whether that narrowing is split-stable.
@@ -46,5 +46,5 @@ func (p *shiftOverReducePolicy) ContributeSplitStability(terminalIdx int, splitS
 	if splitStability.remaining.Contains(shift) && !splitStability.isAlways(shift) {
 		splitStability.markUnstable()
 	}
-	splitStability.remaining = p.Resolve(terminalIdx, splitStability.remaining)
+	splitStability.remaining, _ = p.Resolve(terminalIdx, splitStability.remaining)
 }

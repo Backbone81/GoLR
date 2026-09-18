@@ -14,20 +14,23 @@ package conflict
 // the decision reports it as unresolved together with the contributions which are left. Phase 3 of IELR(1) only ever
 // compares decisions with each other, and an unresolved decision takes part in that comparison like any other: it is
 // equal exactly to an unresolved decision whose conflict was left with the same contributions.
-func DominantContribution(policy Policy, terminalIdx int, contributions ContributionSet) Decision {
+//
+// The second return value reports whether the policy reported its decision, see Policy. Only the conflict resolution
+// needs it, phase 3 of IELR(1) only compares the decisions.
+func DominantContribution(policy Policy, terminalIdx int, contributions ContributionSet) (Decision, bool) {
 	if contributions.IsEmpty() {
 		// There is no contribution to decide about, so there is no dominant contribution.
-		return NewUndefinedDecision()
+		return NewUndefinedDecision(), false
 	}
 
-	remaining := policy.Resolve(terminalIdx, contributions)
+	remaining, report := policy.Resolve(terminalIdx, contributions)
 	if remaining.IsEmpty() {
 		// A policy removed every action on purpose, so the parser rejects the terminal in this state.
-		return NewErrorDecision()
+		return NewErrorDecision(), report
 	}
 	if remaining.Length() > 1 {
 		// The policy could not narrow the conflict down to a single contribution, so the conflict stands.
-		return NewUnresolvedDecision(remaining)
+		return NewUnresolvedDecision(remaining), report
 	}
-	return NewDominantDecision(remaining.GetByIndex(0))
+	return NewDominantDecision(remaining.GetByIndex(0)), report
 }

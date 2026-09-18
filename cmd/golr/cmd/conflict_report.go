@@ -13,9 +13,9 @@ import (
 // carry the serialized parser of a backend, and mixing the report into that output would corrupt it.
 //
 // Conflicts the policy could not decide are always reported in full: the grammar author has to act on them, and the
-// parser cannot be generated while they stand. Conflicts the policy resolved on its own are expected for a grammar which
-// leans on precedence declarations, and a large grammar can have hundreds of them, so they are only summarized by
-// default and listed in full when verbose is set.
+// parser cannot be generated while they stand. Conflicts the policy resolved on its own, by shift over reduce or by the
+// earliest production, can run into the hundreds for a large grammar, so they are only summarized by default and listed
+// in full when verbose is set. Conflicts decided by precedence declarations are not reported at all.
 func printConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []conflict.Conflict, verbose bool) {
 	// The unresolved conflicts are always reported in full.
 	for _, c := range conflicts {

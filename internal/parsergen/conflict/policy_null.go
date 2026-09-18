@@ -29,9 +29,9 @@ type nullPolicy struct{}
 // nullPolicy implements Policy.
 var _ Policy = (*nullPolicy)(nil)
 
-// Resolve returns the candidates unchanged, so no contribution ever wins a conflict.
-func (p *nullPolicy) Resolve(terminalIdx int, candidates ContributionSet) ContributionSet {
-	return candidates
+// Resolve returns the candidates unchanged, so no contribution ever wins a conflict and nothing is reported.
+func (p *nullPolicy) Resolve(terminalIdx int, candidates ContributionSet) (ContributionSet, bool) {
+	return candidates, false
 }
 
 // ContributeSplitStability leaves the bookkeeping alone, because a policy which narrows nothing cannot narrow anything

@@ -455,7 +455,8 @@ func (b *SplitStatesBuilder) dominantContribution(
 		}
 		return nil
 	})
-	return conflict.DominantContribution(b.policy, terminalIdx, madeContributions)
+	decision, _ := conflict.DominantContribution(b.policy, terminalIdx, madeContributions)
+	return decision
 }
 
 // transitionSymbolRefs returns the symbols the transitions of a state happen on, in the order of the transition action

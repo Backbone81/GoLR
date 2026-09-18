@@ -61,7 +61,9 @@ var _ Policy = (*precedencePolicy)(nil)
 // reduction which beat the shift, or several candidates which the policies behind this one have to decide between. As
 // soon as one reduction asks for the terminal to be rejected, the whole conflict is decided that way, because a
 // rejected terminal leaves no action for any other reduction to win.
-func (p *precedencePolicy) Resolve(terminalIdx int, candidates ContributionSet) ContributionSet {
+//
+// The narrowing is never reported, because the grammar author declared the precedence and associativity it decides by.
+func (p *precedencePolicy) Resolve(terminalIdx int, candidates ContributionSet) (ContributionSet, bool) {
 	// The reasons of any earlier Resolve are reset to zero length, so that they hold the reasons of this call only while
 	// reusing the memory the earlier call already allocated.
 	p.lastResolveRejecters = p.lastResolveRejecters[:0]
@@ -70,12 +72,12 @@ func (p *precedencePolicy) Resolve(terminalIdx int, candidates ContributionSet) 
 	shift := NewShiftContribution()
 	if !candidates.Contains(shift) {
 		// This is a conflict between reductions only, which precedence declarations cannot express.
-		return candidates
+		return candidates, false
 	}
 	terminal := p.augmentedGrammar.Terminals[terminalIdx]
 	if IsNoPrecedence(terminal.Precedence) {
 		// The terminal has no precedence declared, so there is nothing to compare the productions against.
-		return candidates
+		return candidates, false
 	}
 
 	shiftRemoved := false
@@ -108,12 +110,12 @@ func (p *precedencePolicy) Resolve(terminalIdx int, candidates ContributionSet) 
 
 	if len(p.lastResolveRejecters) > 0 {
 		// The terminal is rejected in this state, so every action for it is removed.
-		return ContributionSet{}
+		return ContributionSet{}, false
 	}
 	if !shiftRemoved {
 		result.Add(shift)
 	}
-	return result
+	return result, false
 }
 
 // ContributeSplitStability resolves the conflict through Resolve, which both narrows the bookkeeping and records why it
@@ -141,7 +143,7 @@ func (p *precedencePolicy) Resolve(terminalIdx int, candidates ContributionSet) 
 func (p *precedencePolicy) ContributeSplitStability(terminalIdx int, splitStability *SplitStability) {
 	// Resolve narrows the candidates and fills lastResolveRejecters and lastResolveShiftBeaters, which are read right
 	// after with no other Resolve call in between.
-	splitStability.remaining = p.Resolve(terminalIdx, splitStability.remaining)
+	splitStability.remaining, _ = p.Resolve(terminalIdx, splitStability.remaining)
 	switch {
 	case len(p.lastResolveRejecters) > 0:
 		if !splitStability.anyAlways(p.lastResolveRejecters) {

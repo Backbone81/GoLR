@@ -254,5 +254,6 @@ func dominantContributionOfSubset(
 			candidates.Add(contribution)
 		}
 	}
-	return conflict.DominantContribution(policy, terminalIdx, candidates)
+	decision, _ := conflict.DominantContribution(policy, terminalIdx, candidates)
+	return decision
 }

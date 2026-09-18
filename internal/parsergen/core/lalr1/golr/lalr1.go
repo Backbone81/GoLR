@@ -21,11 +21,12 @@ import (
 // The policy factory decides the conflicts, see conflict.PolicyFactory. Pass conflict.DefaultPolicy to decide them
 // the way GNU Bison and Yacc do.
 //
-// Every conflict which was found is returned, whether it was decided or not, because a parser generator reports the
-// conflicts of a grammar to the user even when it decided them on its own. The error reports the conflicts which were
-// left undecided, one conflict.UnresolvedConflictError each; no parser can be generated from such a grammar, so the
-// parser tables come back empty then and the conflicts are all there is left to report. The construction also gives up
-// with backend.ErrStateLimitExceeded on a grammar which needs more states than a parser table can address.
+// The returned conflicts are those the grammar author has to know about: those a rule of last resort decided, and those
+// which were left undecided. A conflict decided by a precedence declaration is not returned, see conflict.Resolve. The
+// error reports the conflicts which were left undecided, one conflict.UnresolvedConflictError each; no parser can be
+// generated from such a grammar, so the parser tables come back empty then and the conflicts are all there is left to
+// report. The construction also gives up with backend.ErrStateLimitExceeded on a grammar which needs more states than a
+// parser table can address.
 func GrammarToParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,

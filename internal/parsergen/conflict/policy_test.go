@@ -14,7 +14,7 @@ var _ = Describe("Policies", func() {
 		func(terminalIdx int, contributions conflict.ContributionSet, wantDecision conflict.Decision) {
 			policy := conflict.DefaultPolicy(conflict.PrecedenceTestGrammar)
 
-			decision := conflict.DominantContribution(policy, terminalIdx, contributions)
+			decision, _ := conflict.DominantContribution(policy, terminalIdx, contributions)
 
 			Expect(decision).To(
 				Equal(wantDecision),
@@ -160,7 +160,7 @@ var _ = Describe("Policies", func() {
 
 			for terminalIdx := range conflict.PrecedenceTestGrammar.Terminals {
 				for _, contributions := range allPossibleContributionSets() {
-					remaining := policy.Resolve(terminalIdx, contributions)
+					remaining, _ := policy.Resolve(terminalIdx, contributions)
 
 					Expect(remaining.Length()).To(
 						BeNumerically("<=", 1),
@@ -184,7 +184,7 @@ var _ = Describe("Policies", func() {
 				conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxTimes),
 			)
 
-			decision := conflict.DominantContribution(
+			decision, _ := conflict.DominantContribution(
 				policy,
 				conflict.PrecedenceTestGrammarTerminalIdxPlus,
 				contributions,
@@ -207,7 +207,7 @@ var _ = Describe("Policies", func() {
 				conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxIdentity),
 			)
 
-			decision := conflict.DominantContribution(
+			decision, _ := conflict.DominantContribution(
 				policy,
 				conflict.PrecedenceTestGrammarTerminalIdxTimes,
 				contributions,
@@ -228,7 +228,7 @@ var _ = Describe("Policies", func() {
 				conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxIdentity),
 			)
 
-			decision := conflict.DominantContribution(
+			decision, _ := conflict.DominantContribution(
 				policy,
 				conflict.PrecedenceTestGrammarTerminalIdxTimes,
 				contributions,

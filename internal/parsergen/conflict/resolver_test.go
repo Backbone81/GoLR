@@ -29,9 +29,10 @@ var _ = Describe("Resolve", func() {
 
 		// The conflicts are resolved in the parser tables we passed in. The policy is total, so it decides every
 		// conflict, no conflict is left unresolved to error about, and no terminal is left with more than one action for
-		// the parser to choose between.
+		// the parser to choose between. The precedence declarations decide every conflict of the grammar, so none is
+		// reported.
 		Expect(err).ToNot(HaveOccurred())
-		Expect(conflicts).ToNot(BeEmpty())
+		Expect(conflicts).To(BeEmpty())
 		Expect(conflictedTerminals(parser)).To(BeEmpty())
 	})
 
@@ -42,23 +43,21 @@ var _ = Describe("Resolve", func() {
 		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 
-		conflicts, err := conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
-
-		// A terminal which is rejected is a conflict the policy decided, so it is no reason to error.
-		Expect(err).ToNot(HaveOccurred())
-
-		var errorConflicts []conflict.Conflict
-		for _, c := range conflicts {
-			if c.Decision.Kind == conflict.DecisionError {
-				errorConflicts = append(errorConflicts, c)
-			}
-		}
-		Expect(errorConflicts).ToNot(
+		// The rejected conflicts are found before resolving, because a conflict decided by precedence is not reported.
+		rejectedConflicts := conflictsRejectedByDefaultPolicy(parser)
+		Expect(rejectedConflicts).ToNot(
 			BeEmpty(),
 			"the nonassociative terminal of the test grammar is expected to be rejected somewhere",
 		)
 
-		for _, c := range errorConflicts {
+		conflicts, err := conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
+
+		// A terminal which is rejected is a conflict the policy decided, so it is no reason to error. The grammar
+		// declared the rejection, so it is not reported either.
+		Expect(err).ToNot(HaveOccurred())
+		Expect(conflicts).To(BeEmpty())
+
+		for _, c := range rejectedConflicts {
 			// The conflict names a terminal of the augmented grammar, so it is checked by name rather than against the
 			// index constants of PrecedenceTestGrammar, which are the indexes before augmenting shifted them.
 			Expect(parser.Grammar.Terminals[c.TerminalIdx].Name).To(Equal("<"))
@@ -81,19 +80,18 @@ var _ = Describe("Resolve", func() {
 		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 
-		conflicts, err := conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
-		Expect(err).ToNot(HaveOccurred())
-
+		// The rejected conflicts are found before resolving, because a conflict decided by precedence is not reported.
 		var rejectedStateIdxs []int
-		for _, c := range conflicts {
-			if c.Decision.Kind == conflict.DecisionError {
-				rejectedStateIdxs = append(rejectedStateIdxs, c.StateIdx)
-			}
+		for _, c := range conflictsRejectedByDefaultPolicy(parser) {
+			rejectedStateIdxs = append(rejectedStateIdxs, c.StateIdx)
 		}
 		Expect(rejectedStateIdxs).ToNot(
 			BeEmpty(),
 			"the nonassociative terminal of the test grammar is expected to be rejected somewhere",
 		)
+
+		_, err = conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
+		Expect(err).ToNot(HaveOccurred())
 
 		backend.ApplyDefaultReductions(&parser)
 
@@ -184,6 +182,38 @@ var _ = Describe("Resolve", func() {
 		}
 		Expect(conflictedTerminals(parser)).To(BeEmpty())
 	})
+
+	// A conflict decided by a precedence declaration was decided by the grammar author on purpose, so only a conflict
+	// which a rule of last resort decided is reported.
+	It("should only report the conflicts which a rule of last resort decided", func() {
+		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.MultiRejecterTestGrammar, conflict.DefaultPolicy)
+		Expect(err).ToNot(HaveOccurred())
+
+		// The shift of "~" and the reduction of E -> E ~ E have the same precedence level, and "~" declares no
+		// associativity to decide with, so shift over reduce decides those conflicts. Precedence decides every other
+		// conflict of the grammar.
+		detectedConflicts := conflict.Detect(parser)
+		var wantConflicts []conflict.Conflict
+		for _, c := range detectedConflicts {
+			if parser.Grammar.Terminals[c.TerminalIdx].Name == "~" && reducesProductionWithTerminal(parser, c, "~") {
+				wantConflicts = append(wantConflicts, c)
+			}
+		}
+		Expect(wantConflicts).ToNot(BeEmpty(), "the test grammar is expected to have conflicts precedence leaves open")
+		Expect(len(detectedConflicts)).To(
+			BeNumerically(">", len(wantConflicts)),
+			"the test grammar is expected to have conflicts precedence decides",
+		)
+
+		conflicts, err := conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
+		Expect(err).ToNot(HaveOccurred())
+
+		for i := range conflicts {
+			Expect(conflicts[i].Decision).To(Equal(conflict.NewDominantDecision(conflict.NewShiftContribution())))
+			conflicts[i].Decision = conflict.Decision{}
+		}
+		Expect(conflicts).To(Equal(wantConflicts))
+	})
 })
 
 var _ = Describe("Detect", func() {
@@ -213,7 +243,10 @@ var _ = Describe("Detect", func() {
 			"detecting the conflicts is expected to leave the parser tables alone",
 		)
 
-		resolvedConflicts, err := conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
+		// Resolve only reports what a rule of last resort decided, so the policy is made of those rules alone, which
+		// makes Resolve report every conflict.
+		lastResortPolicy := conflict.CompoundPolicy(conflict.ShiftOverReducePolicy, conflict.EarliestProductionPolicy)
+		resolvedConflicts, err := conflict.Resolve(&parser, lastResortPolicy(parser.Grammar))
 		Expect(err).ToNot(HaveOccurred())
 
 		// The decision is the one thing which sets the two apart, so it is dropped before comparing what is left: the
@@ -256,6 +289,36 @@ func conflictedTerminals(parser backend.Parser) map[int][]int {
 		}
 	}
 	return result
+}
+
+// conflictsRejectedByDefaultPolicy returns the conflicts of the unresolved parser tables which the default policy
+// decides by rejecting the terminal. Resolve does not report them, because the grammar declared the rejection.
+func conflictsRejectedByDefaultPolicy(parser backend.Parser) []conflict.Conflict {
+	policy := conflict.DefaultPolicy(parser.Grammar)
+	var result []conflict.Conflict
+	for _, c := range conflict.Detect(parser) {
+		decision, _ := conflict.DominantContribution(policy, c.TerminalIdx, c.Contributions)
+		if decision.Kind == conflict.DecisionError {
+			result = append(result, c)
+		}
+	}
+	return result
+}
+
+// reducesProductionWithTerminal reports if one of the reductions competing in the conflict is on a production whose
+// right hand side holds the terminal with the given name.
+func reducesProductionWithTerminal(parser backend.Parser, c conflict.Conflict, terminalName string) bool {
+	for _, contribution := range c.Contributions.All() {
+		if contribution.IsShiftAction() {
+			continue
+		}
+		for _, symbolRef := range parser.Grammar.Productions[contribution.ProductionIdx()].SymbolRefs {
+			if symbolRef.IsTerminal() && parser.Grammar.Terminals[symbolRef.Idx()].Name == terminalName {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // actionCount returns the number of actions the state has on the terminal. It counts the actions of the state directly,

@@ -30,10 +30,10 @@ var _ = Describe("Merge stability", func() {
 
 		for terminalIdx := range conflict.PrecedenceTestGrammar.Terminals {
 			for _, contributionsOfFirstState := range contributionSets {
-				decisionOfFirstState := conflict.DominantContribution(policy, terminalIdx, contributionsOfFirstState)
+				decisionOfFirstState, _ := conflict.DominantContribution(policy, terminalIdx, contributionsOfFirstState)
 
 				for _, contributionsOfSecondState := range contributionSets {
-					decisionOfSecondState := conflict.DominantContribution(
+					decisionOfSecondState, _ := conflict.DominantContribution(
 						policy,
 						terminalIdx,
 						contributionsOfSecondState,
@@ -51,7 +51,7 @@ var _ = Describe("Merge stability", func() {
 					contributionsOfMergedState := contributionsOfFirstState.Clone()
 					contributionsOfMergedState.Merge(&contributionsOfSecondState)
 
-					decisionOfMergedState := conflict.DominantContribution(
+					decisionOfMergedState, _ := conflict.DominantContribution(
 						policy,
 						terminalIdx,
 						contributionsOfMergedState,

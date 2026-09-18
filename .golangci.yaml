@@ -121,6 +121,7 @@ linters:
           - gocognit
           - goconst
           - gosec
+          - prealloc
       - path: ^cmd/
         linters:
           - forbidigo

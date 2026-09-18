@@ -37,9 +37,10 @@ type Conflict struct {
 // Everything the caller needs to know about the conflicts is in the conflicts which are returned, including the actions
 // which competed before the policy removed any of them.
 //
-// Every conflict is returned, whether it was resolved or not, because a parser generator reports the conflicts of a
-// grammar to the user even when it decided them on its own. When a single contribution wins, the losing actions are
-// removed, and when the terminal is rejected, every action is removed.
+// Only the conflicts the grammar author has to know about are returned: those the policy reported, because a rule of
+// last resort decided them, and those the policy left unresolved. A conflict decided by a rule the grammar declares,
+// like precedence and associativity, is not returned, see Policy. Either way, when a single contribution wins, the
+// losing actions are removed, and when the terminal is rejected, every action is removed.
 //
 // The error reports the conflicts which the policies did not decide, joined into a single error, one
 // UnresolvedConflictError per conflict, see there. Those conflicts keep the actions of the contributions they were left
@@ -56,7 +57,7 @@ func Resolve(parser *backend.Parser, policy Policy) ([]Conflict, error) {
 		// The conflicts of the state are collected before any action is removed from it, because removing the actions
 		// which lost is what makes the state stop being conflicted.
 		stateConflicts := getConflicts(&scanner, &parser.States[stateIdx], stateIdx)
-		resolveState(&parser.States[stateIdx], stateConflicts, policy)
+		stateConflicts = resolveState(&parser.States[stateIdx], stateConflicts, policy)
 
 		for _, stateConflict := range stateConflicts {
 			if stateConflict.Decision.Kind != DecisionUnresolved {
@@ -72,13 +73,14 @@ func Resolve(parser *backend.Parser, policy Policy) ([]Conflict, error) {
 	return conflicts, errors.Join(errs...)
 }
 
-// Detect returns every conflict of the parser tables, in the same order Resolve reports them, without applying a policy
-// and without modifying the tables.
+// Detect returns every conflict of the parser tables, in the order Resolve looks at them, without applying a policy and
+// without modifying the tables.
 //
 // This is what Resolve looks at before it decides anything, so the Decision of every returned conflict is
-// DecisionUndefined. It is meant for callers which built their tables with one of the GrammarToUnresolvedParser
-// functions of the cores and want the conflict list which GrammarToParser would have returned, and for anyone who wants
-// to know whether tables hold a conflict at all without giving up the conflicting actions to a policy.
+// DecisionUndefined. Unlike Resolve, it also returns the conflicts a precedence declaration would decide. It is meant
+// for callers which built their tables with one of the GrammarToUnresolvedParser functions of the cores and want to
+// know every conflict the tables hold, and for anyone who wants to know whether tables hold a conflict at all without
+// giving up the conflicting actions to a policy.
 func Detect(parser backend.Parser) []Conflict {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Conflict: Detect").End()
 
@@ -113,10 +115,20 @@ func getConflicts(scanner *Scanner, state *backend.State, stateIdx int) []Confli
 }
 
 // resolveState asks the policy about every conflict of the state and removes the losing actions from the state. The
-// decision of every conflict is filled in along the way.
-func resolveState(state *backend.State, conflicts []Conflict, policy Policy) {
+// decision of every conflict is filled in along the way. It returns the conflicts to report, which are those the policy
+// reported and those it left unresolved.
+func resolveState(state *backend.State, conflicts []Conflict, policy Policy) []Conflict {
+	var reported []Conflict
 	for i := range conflicts {
-		conflicts[i].Decision = DominantContribution(policy, conflicts[i].TerminalIdx, conflicts[i].Contributions)
+		var report bool
+		conflicts[i].Decision, report = DominantContribution(
+			policy,
+			conflicts[i].TerminalIdx,
+			conflicts[i].Contributions,
+		)
+		if report || conflicts[i].Decision.Kind == DecisionUnresolved {
+			reported = append(reported, conflicts[i])
+		}
 
 		if conflicts[i].Decision.Kind == DecisionError {
 			// Removing every action for the terminal is not enough to make the parser reject it, because a state which
@@ -139,6 +151,7 @@ func resolveState(state *backend.State, conflicts []Conflict, policy Policy) {
 			removeContribution(state, contribution, conflicts[i].TerminalIdx)
 		}
 	}
+	return reported
 }
 
 // removeContribution removes the action which the contribution describes from the state, so that the state can no
