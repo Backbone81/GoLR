@@ -28,3 +28,5 @@ exit status 1
 FAIL    github.com/backbone81/golr/internal/parsergen/core/lr1/golr     14.791s
 FAIL
 ```
+
+**NOTE:** The failures in benchmarks are expected. These grammars produce more parser states than is supported by GoLR.

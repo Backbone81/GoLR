@@ -27,3 +27,7 @@ BenchmarkGrammarToParser/Ruby_3.2.11-32               4     263,386,593 ns/op   
 PASS
 ok      github.com/backbone81/golr/internal/parsergen/core/ielr1/bison  11.949s
 ```
+
+**NOTE:** This benchmark includes writing out the grammar as GNU Bison grammar file, executing the GNU Bison executable
+on that file and then loading the XML report to construct the parser tables. This means that these numbers cannot be
+directly compared with the GoLR core, as that can execute the core directly in-memory in the same process.

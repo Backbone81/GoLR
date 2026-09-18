@@ -41,3 +41,10 @@ exit status 1
 FAIL    github.com/backbone81/golr/internal/parsergen/core/lr1/bison    245.914s
 FAIL
 ```
+
+**NOTE:** The failures in benchmarks are expected. These grammars take more than 60 seconds to process and are then
+canceled by GoLR.
+
+**NOTE:** This benchmark includes writing out the grammar as GNU Bison grammar file, executing the GNU Bison executable
+on that file and then loading the XML report to construct the parser tables. This means that these numbers cannot be
+directly compared with the GoLR core, as that can execute the core directly in-memory in the same process.
