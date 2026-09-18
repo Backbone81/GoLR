@@ -11,6 +11,9 @@ type (
 	// Contribution is a single action which a state can take on a terminal. When a state has more than one contribution
 	// for the same terminal, those contributions are in conflict with each other.
 	Contribution = intconflict.Contribution
+	// ContributionSet is the set of contributions which compete for the same terminal, which is what a conflict is made
+	// of.
+	ContributionSet = intconflict.ContributionSet
 
 	// Decision is what the policy decided about a set of contributions.
 	Decision = intconflict.Decision

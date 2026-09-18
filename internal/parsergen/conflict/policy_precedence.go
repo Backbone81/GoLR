@@ -63,7 +63,7 @@ var _ Policy = (*precedencePolicy)(nil)
 // rejected terminal leaves no action for any other reduction to win.
 //
 // The narrowing is never reported, because the grammar author declared the precedence and associativity it decides by.
-func (p *precedencePolicy) Resolve(terminalIdx int, candidates ContributionSet) (ContributionSet, bool) {
+func (p *precedencePolicy) Resolve(terminalIdx int, candidates ContributionSet) (ContributionSet, ContributionSet) {
 	// The reasons of any earlier Resolve are reset to zero length, so that they hold the reasons of this call only while
 	// reusing the memory the earlier call already allocated.
 	p.lastResolveRejecters = p.lastResolveRejecters[:0]
@@ -72,12 +72,12 @@ func (p *precedencePolicy) Resolve(terminalIdx int, candidates ContributionSet) 
 	shift := NewShiftContribution()
 	if !candidates.Contains(shift) {
 		// This is a conflict between reductions only, which precedence declarations cannot express.
-		return candidates, false
+		return candidates, ContributionSet{}
 	}
 	terminal := p.augmentedGrammar.Terminals[terminalIdx]
 	if IsNoPrecedence(terminal.Precedence) {
 		// The terminal has no precedence declared, so there is nothing to compare the productions against.
-		return candidates, false
+		return candidates, ContributionSet{}
 	}
 
 	shiftRemoved := false
@@ -110,12 +110,12 @@ func (p *precedencePolicy) Resolve(terminalIdx int, candidates ContributionSet) 
 
 	if len(p.lastResolveRejecters) > 0 {
 		// The terminal is rejected in this state, so every action for it is removed.
-		return ContributionSet{}, false
+		return ContributionSet{}, ContributionSet{}
 	}
 	if !shiftRemoved {
 		result.Add(shift)
 	}
-	return result, false
+	return result, ContributionSet{}
 }
 
 // ContributeSplitStability resolves the conflict through Resolve, which both narrows the bookkeeping and records why it

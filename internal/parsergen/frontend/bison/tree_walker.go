@@ -620,6 +620,14 @@ func (w *TreeWalker) getSymbolId(node *parser.Node) (string, error) {
 	}
 
 	if id, err := w.getStringAsID(node); err == nil {
+		// String literals are always terminals, like char literals. One which was not declared as the alias of a token
+		// is a token of its own, named like visitTokenDeclForPrec names it.
+		if _, ok := w.terminalIdxByName[id]; !ok {
+			w.grammar.Terminals = append(w.grammar.Terminals, frontend.Symbol{
+				Name: id,
+			})
+			w.terminalIdxByName[id] = len(w.grammar.Terminals) - 1
+		}
 		return id, nil
 	}
 

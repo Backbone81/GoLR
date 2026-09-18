@@ -24,14 +24,21 @@ type shiftOverReducePolicy struct{}
 var _ Policy = (*shiftOverReducePolicy)(nil)
 
 // Resolve removes every reduction from the candidates when a shift is among them, and reports it when it did.
-func (p *shiftOverReducePolicy) Resolve(terminalIdx int, candidates ContributionSet) (ContributionSet, bool) {
+func (p *shiftOverReducePolicy) Resolve(
+	terminalIdx int,
+	candidates ContributionSet,
+) (ContributionSet, ContributionSet) {
 	shift := NewShiftContribution()
 	if !candidates.Contains(shift) {
 		// There is no shift which could win, so this is a conflict between reductions only, which this policy has
 		// nothing to say about.
-		return candidates, false
+		return candidates, ContributionSet{}
 	}
-	return NewContributionSet(shift), candidates.Length() > 1
+	if candidates.Length() <= 1 {
+		// The shift is the only candidate, so there is nothing this policy removed.
+		return candidates, ContributionSet{}
+	}
+	return NewContributionSet(shift), candidates
 }
 
 // ContributeSplitStability defers the narrowing to Resolve and only decides whether that narrowing is split-stable.

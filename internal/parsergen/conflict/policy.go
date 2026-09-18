@@ -21,12 +21,16 @@ import (
 // conflict further would make the bookkeeping diverge from what Resolve actually decides, and the split stability
 // verdict would be about a decision the policies never make.
 //
-// Resolve also reports whether its narrowing is to be reported to the grammar author. A rule of last resort reports
-// true when it removed a candidate, because the author did not decide the conflict. A rule the grammar declares, like
-// precedence and associativity, reports false, because the author decided the conflict on purpose. A Resolve which
-// removed nothing reports false.
+// Resolve also reports whether its narrowing is to be reported to the grammar author, by returning the candidates it
+// was handed as undeclared. A rule of last resort returns them when it removed a candidate, because the author did not
+// decide between them. A rule the grammar declares, like precedence and associativity, returns an empty set, because
+// the author decided the conflict on purpose. A Resolve which removed nothing returns an empty set as well.
+//
+// The undeclared candidates are what tells the kind of a conflict apart as the grammar author sees it: a shift/reduce
+// conflict whose shift precedence removed is a conflict between reductions by the time a rule of last resort decides
+// it.
 type Policy interface {
-	Resolve(terminalIdx int, candidates ContributionSet) (remaining ContributionSet, report bool)
+	Resolve(terminalIdx int, candidates ContributionSet) (remaining ContributionSet, undeclared ContributionSet)
 
 	// ContributeSplitStability narrows the split stability bookkeeping the same way Resolve narrows its candidates, and
 	// records in the bookkeeping whether any narrowing it made depended on a potential contribution being present. It is

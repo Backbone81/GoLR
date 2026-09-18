@@ -25,6 +25,12 @@ type Conflict struct {
 
 	// Decision is what the policy decided about the conflict.
 	Decision Decision
+
+	// Undeclared are the contributions the declarations of the grammar left competing: those a rule of last resort
+	// decided between, or those the policy left unresolved. Precedence can remove the shift of a conflict and leave two
+	// reductions, so this, and not Contributions, tells whether the grammar author faces a shift/reduce or a
+	// reduce/reduce conflict. It is empty for the conflicts Detect returns, because no policy was applied to them.
+	Undeclared ContributionSet
 }
 
 // Resolve applies the policy to every conflict of the parser tables, removes the losing actions from them, and returns
@@ -120,13 +126,16 @@ func getConflicts(scanner *Scanner, state *backend.State, stateIdx int) []Confli
 func resolveState(state *backend.State, conflicts []Conflict, policy Policy) []Conflict {
 	var reported []Conflict
 	for i := range conflicts {
-		var report bool
-		conflicts[i].Decision, report = DominantContribution(
+		conflicts[i].Decision, conflicts[i].Undeclared = DominantContribution(
 			policy,
 			conflicts[i].TerminalIdx,
 			conflicts[i].Contributions,
 		)
-		if report || conflicts[i].Decision.Kind == DecisionUnresolved {
+		if conflicts[i].Decision.Kind == DecisionUnresolved && conflicts[i].Undeclared.IsEmpty() {
+			// No rule of last resort got to the conflict, so what stands is what the declarations left competing.
+			conflicts[i].Undeclared = conflicts[i].Decision.Unresolved
+		}
+		if !conflicts[i].Undeclared.IsEmpty() {
 			reported = append(reported, conflicts[i])
 		}
 

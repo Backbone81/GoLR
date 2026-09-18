@@ -210,7 +210,10 @@ var _ = Describe("Resolve", func() {
 
 		for i := range conflicts {
 			Expect(conflicts[i].Decision).To(Equal(conflict.NewDominantDecision(conflict.NewShiftContribution())))
+			// Precedence ruled out nothing, so the shift over reduce policy decided between every contribution.
+			Expect(conflicts[i].Undeclared).To(Equal(conflicts[i].Contributions))
 			conflicts[i].Decision = conflict.Decision{}
+			conflicts[i].Undeclared = conflict.ContributionSet{}
 		}
 		Expect(conflicts).To(Equal(wantConflicts))
 	})
@@ -249,10 +252,12 @@ var _ = Describe("Detect", func() {
 		resolvedConflicts, err := conflict.Resolve(&parser, lastResortPolicy(parser.Grammar))
 		Expect(err).ToNot(HaveOccurred())
 
-		// The decision is the one thing which sets the two apart, so it is dropped before comparing what is left: the
-		// same conflicted terminals, in the same order, with the same contributions competing for them.
+		// The decision and the undeclared contributions are what sets the two apart, so they are dropped before
+		// comparing what is left: the same conflicted terminals, in the same order, with the same contributions
+		// competing for them.
 		for i := range resolvedConflicts {
 			resolvedConflicts[i].Decision = conflict.Decision{}
+			resolvedConflicts[i].Undeclared = conflict.ContributionSet{}
 		}
 		Expect(detectedConflicts).To(Equal(resolvedConflicts))
 	})

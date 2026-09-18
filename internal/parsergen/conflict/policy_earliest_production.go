@@ -26,7 +26,10 @@ var _ Policy = (*earliestProductionPolicy)(nil)
 
 // Resolve removes every reduction but the one on the production with the lowest production index, and reports it when
 // it did.
-func (p *earliestProductionPolicy) Resolve(terminalIdx int, candidates ContributionSet) (ContributionSet, bool) {
+func (p *earliestProductionPolicy) Resolve(
+	terminalIdx int,
+	candidates ContributionSet,
+) (ContributionSet, ContributionSet) {
 	var result ContributionSet
 	earliestFound := false
 	for _, candidate := range candidates.All() {
@@ -42,7 +45,11 @@ func (p *earliestProductionPolicy) Resolve(terminalIdx int, candidates Contribut
 		result.Add(candidate)
 		earliestFound = true
 	}
-	return result, result.Length() < candidates.Length()
+	if result.Length() == candidates.Length() {
+		// No reduction was removed, so there is nothing to report.
+		return result, ContributionSet{}
+	}
+	return result, candidates
 }
 
 // ContributeSplitStability defers the narrowing to Resolve and only decides whether that narrowing is split-stable.

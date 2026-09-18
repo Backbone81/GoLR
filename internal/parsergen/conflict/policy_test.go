@@ -240,4 +240,53 @@ var _ = Describe("Policies", func() {
 			))))
 		})
 	})
+
+	// The undeclared contributions are what the grammar author is told about, so they have to be exactly what the
+	// declarations left competing, and nothing when the declarations decided the conflict.
+	Describe("the undeclared contributions", func() {
+		DescribeTable("should hold what precedence left for a rule of last resort",
+			func(terminalIdx int, contributions conflict.ContributionSet, wantUndeclared conflict.ContributionSet) {
+				policy := conflict.DefaultPolicy(conflict.PrecedenceTestGrammar)
+
+				_, undeclared := conflict.DominantContribution(policy, terminalIdx, contributions)
+
+				Expect(undeclared).To(Equal(wantUndeclared))
+			},
+			Entry("nothing, when precedence decides the conflict",
+				conflict.PrecedenceTestGrammarTerminalIdxPlus,
+				conflict.NewContributionSet(
+					conflict.NewShiftContribution(),
+					conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxTimes),
+				),
+				conflict.ContributionSet{},
+			),
+			// "E -> E * E" beats the shift of "+", which leaves a reduce/reduce conflict with the identity production.
+			Entry("the reductions, when precedence removes the shift",
+				conflict.PrecedenceTestGrammarTerminalIdxPlus,
+				conflict.NewContributionSet(
+					conflict.NewShiftContribution(),
+					conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxTimes),
+					conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxIdentity),
+				),
+				conflict.NewContributionSet(
+					conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxTimes),
+					conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxIdentity),
+				),
+			),
+			// "E -> E + E" loses against the shift of "*", which leaves a shift/reduce conflict with the identity
+			// production.
+			Entry("the shift and a reduction, when precedence removes the other reduction",
+				conflict.PrecedenceTestGrammarTerminalIdxTimes,
+				conflict.NewContributionSet(
+					conflict.NewShiftContribution(),
+					conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxPlus),
+					conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxIdentity),
+				),
+				conflict.NewContributionSet(
+					conflict.NewShiftContribution(),
+					conflict.NewReduceContribution(conflict.PrecedenceTestGrammarProductionIdxIdentity),
+				),
+			),
+		)
+	})
 })

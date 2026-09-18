@@ -1323,6 +1323,51 @@ var _ = Describe("Bison Grammar Files", func() {
 				StartNonterminalIdx: 0,
 			}))
 		})
+
+		It("should read an undeclared string literal as a terminal", func() {
+			bisonGrammar := utils.HereDoc(`
+				%token N
+				%%
+				e: e "+" e | N
+			`)
+			grammar, err := bison.GrammarFromString(bisonGrammar)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(grammar).To(Equal(frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{
+						Name: "$error",
+					},
+					{
+						Name: "N",
+					},
+					{
+						Name: `"+"`,
+					},
+				},
+				Nonterminals: []frontend.Symbol{
+					{
+						Name: "e",
+					},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(0),
+							frontend.NewTerminalRef(2),
+							frontend.NewNonterminalRef(0),
+						},
+					},
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewTerminalRef(1),
+						},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}))
+		})
 	})
 
 	Context("%prec", func() {

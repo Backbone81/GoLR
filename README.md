@@ -132,7 +132,7 @@ Flags:
       --frontend string                            The frontend to use for reading the context free grammar. One of: bison, golr, json, yaml. (default "golr")
       --frontend-file-path string                  The file path to read the context free grammar from. Can be '-' to read from stdin.
   -h, --help                                       help for parser
-  -v, --verbose                                    List every conflict the parser generator resolved on its own, instead of only summarizing them.
+  -v, --verbose                                    List every conflict the parser generator resolved on its own.
 ```
 
 The `scanner` sub-command allows for selecting frontend, core and backend for the scanner:

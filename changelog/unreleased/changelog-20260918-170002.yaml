@@ -1,0 +1,3 @@
+description: Fixed the Bison frontend reading a string literal which was not declared
+  as a token alias, like "+", as a nonterminal without productions instead of as a
+  terminal.
