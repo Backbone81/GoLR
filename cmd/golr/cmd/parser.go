@@ -100,7 +100,7 @@ var parserCmd = &cobra.Command{
 // reportUnresolvedConflicts writes the report of every unresolved conflict the error holds to stderr, and returns an
 // error which only counts them, so they are not printed a second time. Any other error is returned unchanged.
 func reportUnresolvedConflicts(err error, config conflict.ReportConfig) error {
-	unresolvedConflictErrors := collectUnresolvedConflictErrors(err)
+	unresolvedConflictErrors := conflict.UnresolvedConflictErrors(err)
 	if len(unresolvedConflictErrors) == 0 {
 		return err
 	}
@@ -116,28 +116,14 @@ func reportUnresolvedConflicts(err error, config conflict.ReportConfig) error {
 			return err
 		}
 	}
+	// The error which follows is separated from the last report by an empty line, so it does not read as part of it.
+	if _, err := io.WriteString(os.Stderr, "\n"); err != nil {
+		return err
+	}
 	if len(unresolvedConflictErrors) == 1 {
 		return errors.New("1 unresolved conflict")
 	}
 	return fmt.Errorf("%d unresolved conflicts", len(unresolvedConflictErrors))
-}
-
-// collectUnresolvedConflictErrors returns every unresolved conflict error in the error tree. errors.As is no help here,
-// because it stops at the first match, while a core joins one error per unresolved conflict.
-func collectUnresolvedConflictErrors(err error) []conflict.UnresolvedConflictError {
-	switch typedErr := err.(type) {
-	case conflict.UnresolvedConflictError:
-		return []conflict.UnresolvedConflictError{typedErr}
-	case interface{ Unwrap() []error }:
-		var result []conflict.UnresolvedConflictError
-		for _, wrappedErr := range typedErr.Unwrap() {
-			result = append(result, collectUnresolvedConflictErrors(wrappedErr)...)
-		}
-		return result
-	case interface{ Unwrap() error }:
-		return collectUnresolvedConflictErrors(typedErr.Unwrap())
-	}
-	return nil
 }
 
 func executeParserFrontend() (frontend.Grammar, error) {

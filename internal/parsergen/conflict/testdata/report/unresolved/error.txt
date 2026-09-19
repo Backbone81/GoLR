@@ -4,8 +4,8 @@ state:
   expression -> expression . "+" expression
 
   shift/reduce conflict on terminal "+":
-    reduce: expression -> expression "+" expression
     shift
+    reduce: expression -> expression "+" expression
 
 state:
   expression -> expression "+" expression .
@@ -13,8 +13,8 @@ state:
   expression -> expression . "+" expression
 
   shift/reduce conflict on terminal "*":
-    reduce: expression -> expression "+" expression
     shift
+    reduce: expression -> expression "+" expression
 
 state:
   expression -> expression "*" expression .
@@ -22,8 +22,8 @@ state:
   expression -> expression . "+" expression
 
   shift/reduce conflict on terminal "+":
-    reduce: expression -> expression "*" expression
     shift
+    reduce: expression -> expression "*" expression
 
 state:
   expression -> expression "*" expression .
@@ -31,13 +31,13 @@ state:
   expression -> expression . "+" expression
 
   shift/reduce conflict on terminal "*":
-    reduce: expression -> expression "*" expression
     shift
+    reduce: expression -> expression "*" expression
 
 state:
   statement -> "if" expression "then" statement .
   statement -> "if" expression "then" statement . "else" statement
 
   shift/reduce conflict on terminal "else":
-    reduce: statement -> "if" expression "then" statement
     shift
+    reduce: statement -> "if" expression "then" statement

@@ -133,6 +133,7 @@ Flags:
       --frontend-file-path string                  The file path to read the context free grammar from. Can be '-' to read from stdin.
   -h, --help                                       help for parser
   -v, --verbose                                    List every conflict the parser generator resolved on its own.
+      --with-state-number                          Output the state number with every conflicted state.
 ```
 
 The `scanner` sub-command allows for selecting frontend, core and backend for the scanner:

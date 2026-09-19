@@ -258,7 +258,7 @@ func buildConflictReportEntry(grammar frontend.Grammar, c Conflict) ConflictRepo
 	for _, contribution := range c.Undeclared.All() {
 		entry.Contributions = append(entry.Contributions, formatContribution(grammar, contribution))
 	}
-	slices.Sort(entry.Contributions)
+	slices.SortFunc(entry.Contributions, compareContributions)
 	return entry
 }
 
@@ -344,7 +344,7 @@ func formatDecision(grammar frontend.Grammar, decision Decision) (string, []stri
 		for _, contribution := range decision.Unresolved.All() {
 			contributions = append(contributions, formatContribution(grammar, contribution))
 		}
-		slices.Sort(contributions)
+		slices.SortFunc(contributions, compareContributions)
 		return "unresolved between:", contributions
 	case DecisionUndefined:
 		return "no action to decide about", nil
@@ -352,11 +352,25 @@ func formatDecision(grammar frontend.Grammar, decision Decision) (string, []stri
 	return "unknown decision", nil
 }
 
+// shiftText is how a shift is rendered in the report.
+const shiftText = "shift"
+
+// compareContributions orders the rendered actions lexically, except that a shift comes first.
+func compareContributions(a string, b string) int {
+	if (a == shiftText) != (b == shiftText) {
+		if a == shiftText {
+			return -1
+		}
+		return 1
+	}
+	return strings.Compare(a, b)
+}
+
 // formatContribution renders a single competing action of a conflict. A shift is just a shift, and a reduction is
 // spelled out with the production it reduces, because a production index changes with unrelated grammar edits.
 func formatContribution(grammar frontend.Grammar, contribution Contribution) string {
 	if contribution.IsShiftAction() {
-		return "shift"
+		return shiftText
 	}
 	return "reduce: " + formatProduction(grammar, contribution.ProductionIdx())
 }

@@ -34,3 +34,23 @@ func (e UnresolvedConflictError) Error() string {
 	_ = e.Report.Write(&builder, ReportConfig{})
 	return builder.String()
 }
+
+// UnresolvedConflictErrors returns every UnresolvedConflictError in the error tree, in the order they were joined.
+// errors.As is no help here, because it stops at the first match, while Resolve joins one error per unresolved
+// conflict.
+func UnresolvedConflictErrors(err error) []UnresolvedConflictError {
+	//nolint:errorlint // errors.As stops at the first match, but every error of a join is needed. The recursion unwraps.
+	switch typedErr := err.(type) {
+	case UnresolvedConflictError:
+		return []UnresolvedConflictError{typedErr}
+	case interface{ Unwrap() []error }:
+		var result []UnresolvedConflictError
+		for _, wrappedErr := range typedErr.Unwrap() {
+			result = append(result, UnresolvedConflictErrors(wrappedErr)...)
+		}
+		return result
+	case interface{ Unwrap() error }:
+		return UnresolvedConflictErrors(typedErr.Unwrap())
+	}
+	return nil
+}

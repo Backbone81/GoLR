@@ -55,6 +55,10 @@ const (
 	DecisionUnresolved = intconflict.DecisionUnresolved
 )
 
+// UnresolvedConflictErrors returns every UnresolvedConflictError in the error tree, in the order they were joined. A
+// core joins one of them per unresolved conflict into the error it returns.
+var UnresolvedConflictErrors = intconflict.UnresolvedConflictErrors
+
 // WriteConflictReport writes a report of the given conflicts to w. Conflicts the policy resolved on its own are
 // summarized and listed in full only with ReportConfig.Verbose. Conflicts decided by precedence declarations are not
 // reported, and conflicts the policy could not decide are reported by their UnresolvedConflictError.

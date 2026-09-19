@@ -5,8 +5,8 @@ state:
   statement -> "if" expression "then" statement . "else" statement
 
   shift/reduce conflict on terminal "else":
-    reduce: statement -> "if" expression "then" statement
     shift
+    reduce: statement -> "if" expression "then" statement
     resolved in favor of:
       shift
 
@@ -16,14 +16,14 @@ state:
   expression -> expression . "+" expression
 
   shift/reduce conflict on terminal "*":
-    reduce: expression -> expression "*" expression
     shift
+    reduce: expression -> expression "*" expression
     resolved in favor of:
       shift
 
   shift/reduce conflict on terminal "+":
-    reduce: expression -> expression "*" expression
     shift
+    reduce: expression -> expression "*" expression
     resolved in favor of:
       shift
 
@@ -33,13 +33,13 @@ state:
   expression -> expression . "+" expression
 
   shift/reduce conflict on terminal "*":
-    reduce: expression -> expression "+" expression
     shift
+    reduce: expression -> expression "+" expression
     resolved in favor of:
       shift
 
   shift/reduce conflict on terminal "+":
-    reduce: expression -> expression "+" expression
     shift
+    reduce: expression -> expression "+" expression
     resolved in favor of:
       shift
