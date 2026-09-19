@@ -185,17 +185,11 @@ func buildConflictReports(grammar frontend.Grammar, conflicts []Conflict) []Conf
 	return reports
 }
 
-// compareConflictReports orders the reports by the number of kernel items, then by the kernel items, then by the
-// reductions, then by the terminals of the entries. The state index is the final tie-breaker, so the order is total
-// even when the state numbers are written.
+// compareConflictReports orders the reports lexically by their kernel items, which puts them in the order of the first
+// line of every state, then lexically by the reductions, then by the terminals of the entries. The state index is the
+// final tie-breaker, so the order is total even when the state numbers are written.
 func compareConflictReports(a ConflictReport, b ConflictReport) int {
-	if result := cmp.Compare(len(a.KernelItems), len(b.KernelItems)); result != 0 {
-		return result
-	}
 	if result := slices.Compare(a.KernelItems, b.KernelItems); result != 0 {
-		return result
-	}
-	if result := cmp.Compare(len(a.Reductions), len(b.Reductions)); result != 0 {
 		return result
 	}
 	if result := slices.CompareFunc(a.Reductions, b.Reductions, compareReductions); result != 0 {
@@ -210,12 +204,9 @@ func compareConflictReports(a ConflictReport, b ConflictReport) int {
 	return cmp.Compare(a.StateIdx, b.StateIdx)
 }
 
-// compareReductions orders two reductions by the item, then by the number of their lookaheads, then by the lookaheads.
+// compareReductions orders two reductions lexically by the item, then by the lookaheads.
 func compareReductions(a ConflictReportReduction, b ConflictReportReduction) int {
 	if result := strings.Compare(a.Item, b.Item); result != 0 {
-		return result
-	}
-	if result := cmp.Compare(len(a.Lookaheads), len(b.Lookaheads)); result != 0 {
 		return result
 	}
 	return slices.Compare(a.Lookaheads, b.Lookaheads)
@@ -499,12 +490,7 @@ func formatContribution(grammar frontend.Grammar, contribution Contribution) str
 // formatProduction renders a production with the names of its symbols instead of their indexes, which is what makes the
 // report readable next to the grammar file the author wrote.
 func formatProduction(grammar frontend.Grammar, productionIdx int) string {
-	production := grammar.Productions[productionIdx]
-	if len(production.SymbolRefs) == 0 {
-		// An empty right hand side reduces on the empty string, which is easy to miss without a hint.
-		return grammar.Nonterminals[production.NonterminalIdx].String() + " -> (empty)"
-	}
-	return formatSymbols(grammar, production, -1)
+	return formatSymbols(grammar, grammar.Productions[productionIdx], -1)
 }
 
 // formatKernelItem renders a kernel item as its production with a dot at the position of the item.
@@ -514,11 +500,16 @@ func formatKernelItem(grammar frontend.Grammar, core backend.Core) string {
 
 // formatSymbols renders the production with the names of its symbols, and with a dot in front of the symbol at the
 // given position. A position past the last symbol puts the dot at the end, a negative position omits it. The dot is a
-// bullet, so it cannot be mistaken for a terminal like '.'.
+// bullet, so it cannot be mistaken for a terminal like '.'. An empty right hand side is written as (empty), so that a
+// production reads the same with and without a dot.
 func formatSymbols(grammar frontend.Grammar, production frontend.Production, dotPosition int) string {
 	var builder strings.Builder
 	builder.WriteString(grammar.Nonterminals[production.NonterminalIdx].String())
 	builder.WriteString(" ->")
+	if len(production.SymbolRefs) == 0 {
+		// An empty right hand side reduces on the empty string, which is easy to miss without a hint.
+		builder.WriteString(" (empty)")
+	}
 	for position, symbolRef := range production.SymbolRefs {
 		if position == dotPosition {
 			builder.WriteString(" " + itemDot)

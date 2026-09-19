@@ -6,7 +6,7 @@ state:
   y -> "c" •
   distinguished by lookaheads:
     v -> "c" •  {"e"}
-    z -> •  {}
+    z -> (empty) •  {}
 
   reduce/reduce conflict on terminal "f":
     reduce: y -> "c"
@@ -18,7 +18,7 @@ state:
   y -> "c" •
   distinguished by lookaheads:
     v -> "c" •  {"g"}
-    z -> •  {"e"}
+    z -> (empty) •  {"e"}
 
   reduce/reduce conflict on terminal "f":
     reduce: y -> "c"

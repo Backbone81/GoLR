@@ -1,14 +1,6 @@
 5 shift/reduce conflicts resolved
 
 state:
-  statement -> "if" expression "then" statement •
-  statement -> "if" expression "then" statement • "else" statement
-
-  shift/reduce conflict on terminal "else":
-    shift (chosen)
-    reduce: statement -> "if" expression "then" statement
-
-state:
   expression -> expression "*" expression •
   expression -> expression • "*" expression
   expression -> expression • "+" expression
@@ -33,3 +25,11 @@ state:
   shift/reduce conflict on terminal "+":
     shift (chosen)
     reduce: expression -> expression "+" expression
+
+state:
+  statement -> "if" expression "then" statement •
+  statement -> "if" expression "then" statement • "else" statement
+
+  shift/reduce conflict on terminal "else":
+    shift (chosen)
+    reduce: statement -> "if" expression "then" statement
