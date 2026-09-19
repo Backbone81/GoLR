@@ -1,27 +1,23 @@
 2 reduce/reduce conflicts resolved
 
 state:
-  x -> "c" .
-  y -> "c" .
+  x -> "c" •
+  y -> "c" •
   distinguished by lookaheads:
-    x -> "c" .  {"d", "f"}
-    y -> "c" .  {"e", "f"}
+    x -> "c" •  {"d", "f"}
+    y -> "c" •  {"e", "f"}
 
   reduce/reduce conflict on terminal "f":
-    reduce: x -> "c"
+    reduce: x -> "c" (chosen)
     reduce: y -> "c"
-    resolved in favor of:
-      reduce: x -> "c"
 
 state:
-  x -> "c" .
-  y -> "c" .
+  x -> "c" •
+  y -> "c" •
   distinguished by lookaheads:
-    x -> "c" .  {"e", "g"}
-    y -> "c" .  {"d", "g"}
+    x -> "c" •  {"e", "g"}
+    y -> "c" •  {"d", "g"}
 
   reduce/reduce conflict on terminal "g":
-    reduce: x -> "c"
+    reduce: x -> "c" (chosen)
     reduce: y -> "c"
-    resolved in favor of:
-      reduce: x -> "c"

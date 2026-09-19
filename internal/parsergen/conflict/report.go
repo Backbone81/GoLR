@@ -108,16 +108,21 @@ type ConflictReportEntry struct {
 	// Contributions are the actions the declarations of the grammar left competing for the terminal.
 	Contributions []string
 
-	// Decision is what the policy decided about the conflict.
+	// Chosen is the action which won the conflict, marked among the contributions. It is empty when no single action
+	// won.
+	Chosen string
+
+	// Decision is what the policy decided about a conflict no single action won. It is empty when an action was chosen.
 	Decision string
 
-	// DecisionContributions are the actions the decision is about: the one which won, or those an unresolved conflict
-	// was left with. It is empty for a decision which is not about a particular action.
+	// DecisionContributions are the actions the decision is about, which are those an unresolved conflict was left with.
+	// It is empty for a decision which is not about a particular action.
 	DecisionContributions []string
 }
 
 // Write writes the report of the state: the kernel items which name the state, followed by one indented block per
-// conflicted terminal, all separated by an empty line. The report ends with a single newline, so a caller which writes
+// conflicted terminal, all separated by an empty line. The action which won a conflict is marked in place, so the
+// decision does not repeat it. The report ends with a single newline, so a caller which writes
 // several reports separates them by an empty line of its own.
 func (r ConflictReport) Write(w io.Writer, config ReportConfig) error {
 	var builder strings.Builder
@@ -138,7 +143,14 @@ func (r ConflictReport) Write(w io.Writer, config ReportConfig) error {
 	for _, entry := range r.Entries {
 		fmt.Fprintf(&builder, "\n  %s on terminal %s:\n", entry.Kind, entry.Terminal)
 		for _, contribution := range entry.Contributions {
+			if contribution == entry.Chosen {
+				fmt.Fprintf(&builder, "    %s%s\n", contribution, chosenMarker)
+				continue
+			}
 			fmt.Fprintf(&builder, "    %s\n", contribution)
+		}
+		if entry.Decision == "" {
+			continue
 		}
 		if slices.Equal(entry.DecisionContributions, entry.Contributions) {
 			// A decision which leaves every competing action standing is an unresolved conflict nothing was narrowed
@@ -356,7 +368,7 @@ func buildConflictReportEntry(grammar frontend.Grammar, c Conflict) ConflictRepo
 		Terminal: grammar.Terminals[c.TerminalIdx].String(),
 		Kind:     conflictKind(c),
 	}
-	entry.Decision, entry.DecisionContributions = formatDecision(grammar, c.Decision)
+	entry.Chosen, entry.Decision, entry.DecisionContributions = formatDecision(grammar, c.Decision)
 	for _, contribution := range c.Undeclared.All() {
 		entry.Contributions = append(entry.Contributions, formatContribution(grammar, contribution))
 	}
@@ -434,25 +446,32 @@ func countContributions(contributions ContributionSet) (bool, int) {
 }
 
 // formatDecision renders what the policy decided about a conflict in a way a grammar author can read without knowing
-// the internals of the resolution. It returns the decision and the sorted actions the decision is about.
-func formatDecision(grammar frontend.Grammar, decision Decision) (string, []string) {
+// the internals of the resolution. It returns the action which won, or else the decision and the sorted actions the
+// decision is about.
+func formatDecision(grammar frontend.Grammar, decision Decision) (string, string, []string) {
 	switch decision.Kind {
 	case DecisionDominant:
-		return "resolved in favor of:", []string{formatContribution(grammar, decision.Dominant)}
+		return formatContribution(grammar, decision.Dominant), "", nil
 	case DecisionError:
-		return "resolved by rejecting the terminal, so the parser reports a syntax error on it", nil
+		return "", "resolved by rejecting the terminal, so the parser reports a syntax error on it", nil
 	case DecisionUnresolved:
 		var contributions []string
 		for _, contribution := range decision.Unresolved.All() {
 			contributions = append(contributions, formatContribution(grammar, contribution))
 		}
 		slices.SortFunc(contributions, compareContributions)
-		return "unresolved between:", contributions
+		return "", "unresolved between:", contributions
 	case DecisionUndefined:
-		return "no action to decide about", nil
+		return "", "no action to decide about", nil
 	}
-	return "unknown decision", nil
+	return "", "unknown decision", nil
 }
+
+// chosenMarker follows the action which won a conflict.
+const chosenMarker = " (chosen)"
+
+// itemDot marks the position of an item.
+const itemDot = "•"
 
 // shiftText is how a shift is rendered in the report.
 const shiftText = "shift"
@@ -494,14 +513,15 @@ func formatKernelItem(grammar frontend.Grammar, core backend.Core) string {
 }
 
 // formatSymbols renders the production with the names of its symbols, and with a dot in front of the symbol at the
-// given position. A position past the last symbol puts the dot at the end, a negative position omits it.
+// given position. A position past the last symbol puts the dot at the end, a negative position omits it. The dot is a
+// bullet, so it cannot be mistaken for a terminal like '.'.
 func formatSymbols(grammar frontend.Grammar, production frontend.Production, dotPosition int) string {
 	var builder strings.Builder
 	builder.WriteString(grammar.Nonterminals[production.NonterminalIdx].String())
 	builder.WriteString(" ->")
 	for position, symbolRef := range production.SymbolRefs {
 		if position == dotPosition {
-			builder.WriteString(" .")
+			builder.WriteString(" " + itemDot)
 		}
 		builder.WriteString(" ")
 		if symbolRef.IsTerminal() {
@@ -511,7 +531,7 @@ func formatSymbols(grammar frontend.Grammar, production frontend.Production, dot
 		}
 	}
 	if dotPosition == len(production.SymbolRefs) {
-		builder.WriteString(" .")
+		builder.WriteString(" " + itemDot)
 	}
 	return builder.String()
 }

@@ -1,29 +1,25 @@
 2 reduce/reduce conflicts resolved
 
 state:
-  v -> "c" .
-  x -> "c" . z
-  y -> "c" .
+  v -> "c" •
+  x -> "c" • z
+  y -> "c" •
   distinguished by lookaheads:
-    v -> "c" .  {"e"}
-    z -> .  {}
+    v -> "c" •  {"e"}
+    z -> •  {}
 
   reduce/reduce conflict on terminal "f":
     reduce: y -> "c"
-    reduce: z -> (empty)
-    resolved in favor of:
-      reduce: z -> (empty)
+    reduce: z -> (empty) (chosen)
 
 state:
-  v -> "c" .
-  x -> "c" . z
-  y -> "c" .
+  v -> "c" •
+  x -> "c" • z
+  y -> "c" •
   distinguished by lookaheads:
-    v -> "c" .  {"g"}
-    z -> .  {"e"}
+    v -> "c" •  {"g"}
+    z -> •  {"e"}
 
   reduce/reduce conflict on terminal "f":
     reduce: y -> "c"
-    reduce: z -> (empty)
-    resolved in favor of:
-      reduce: z -> (empty)
+    reduce: z -> (empty) (chosen)
