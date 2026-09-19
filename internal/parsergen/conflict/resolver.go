@@ -90,7 +90,7 @@ func newUnresolvedConflictErrors(grammar frontend.Grammar, conflicts []Conflict)
 	for _, c := range unresolved {
 		reports = append(reports, buildConflictReports(grammar, []Conflict{c})[0])
 	}
-	removeUnambiguousLookaheads(reports)
+	keepDistinguishingLookaheads(reports)
 
 	errs := make([]error, 0, len(unresolved))
 	for i, c := range unresolved {

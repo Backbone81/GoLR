@@ -1,0 +1,43 @@
+// A grammar whose split states have the same kernel items and differ in the lookaheads of an empty production, which
+// the closure of the states adds. On "e", only v reduces after "a" "c" and only z after "b" "c", so merging the two
+// states would add a reduce/reduce conflict on "e" which neither has, and IELR(1) splits them. Both keep the conflict on
+// "f" between y and z.
+// The reduction of y has the same lookaheads in both, and z reduces on no terminal after "a" "c" which it does not
+// reduce on after "b" "c" as well.
+@scanner {
+    WHITESPACE: /[ \t\r\n]+/ @skip;
+    A:          "a";
+    B:          "b";
+    C:          "c";
+    E:          "e";
+    F:          "f";
+    G:          "g";
+}
+
+@parser {
+    start
+        : "a" x "f"
+        | "b" x "e"
+        | "b" x "f"
+        | "a" y "f"
+        | "b" y "f"
+        | "a" v "e"
+        | "b" v "g"
+        ;
+
+    x
+        : "c" z
+        ;
+
+    z
+        : @empty
+        ;
+
+    y
+        : "c"
+        ;
+
+    v
+        : "c"
+        ;
+}

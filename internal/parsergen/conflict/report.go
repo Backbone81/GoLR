@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"fmt"
 	"io"
+	"maps"
 	"slices"
 	"strings"
 
@@ -45,7 +46,7 @@ func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []Conf
 	}
 
 	reports := buildConflictReports(grammar, resolved)
-	removeUnambiguousLookaheads(reports)
+	keepDistinguishingLookaheads(reports)
 	// The reports are sorted by their content instead of by the state index, so the report does not change when an
 	// unrelated grammar edit renumbers the states.
 	slices.SortFunc(reports, compareConflictReports)
@@ -70,21 +71,29 @@ type ConflictReport struct {
 	// StateIdx is the state index of the conflicted state.
 	StateIdx int
 
-	// KernelItems are the kernel items of the conflicted state, which name the state independently of its index.
-	KernelItems []ConflictReportKernelItem
+	// KernelItems are the kernel items of the conflicted state with a dot at their position, which name the state
+	// independently of its index.
+	KernelItems []string
+
+	// Reductions tell the state apart from the other states of the same report which have the same kernel items, as
+	// IELR(1) splits states by their lookaheads. It is empty unless there are such states, see
+	// keepDistinguishingLookaheads.
+	Reductions []ConflictReportReduction
 
 	// Entries are the conflicted terminals of the state.
 	Entries []ConflictReportEntry
 }
 
-// ConflictReportKernelItem is a single kernel item of a conflicted state.
-type ConflictReportKernelItem struct {
-	// Item is the kernel item with a dot at its position.
+// ConflictReportReduction is a reduction of a conflicted state together with the lookaheads which tell the state apart
+// from the other states with the same kernel items.
+type ConflictReportReduction struct {
+	// Item is the completed item of the reduction, with the dot at its end. It is a kernel item, or an item of an empty
+	// production which the closure of the state added.
 	Item string
 
-	// Lookaheads are the names of the terminals the completed item reduces on, before any conflict was resolved. They are
-	// removed unless another state of the same report has the same kernel items, because the lookaheads are what tells
-	// those states apart, and they change far more often with unrelated grammar edits than the kernel items do.
+	// Lookaheads are the names of the terminals the reduction has in this state, before any conflict was resolved, but
+	// only those which not every state with the same kernel items reduces on. It is empty when this state reduces on no
+	// terminal the others do not reduce on as well.
 	Lookaheads []string
 }
 
@@ -118,11 +127,13 @@ func (r ConflictReport) Write(w io.Writer, config ReportConfig) error {
 		builder.WriteString("state:\n")
 	}
 	for _, kernelItem := range r.KernelItems {
-		if len(kernelItem.Lookaheads) == 0 {
-			fmt.Fprintf(&builder, "  %s\n", kernelItem.Item)
-			continue
+		fmt.Fprintf(&builder, "  %s\n", kernelItem)
+	}
+	if len(r.Reductions) > 0 {
+		builder.WriteString("  distinguished by lookaheads:\n")
+		for _, reduction := range r.Reductions {
+			fmt.Fprintf(&builder, "    %s  {%s}\n", reduction.Item, strings.Join(reduction.Lookaheads, ", "))
 		}
-		fmt.Fprintf(&builder, "  %s  {%s}\n", kernelItem.Item, strings.Join(kernelItem.Lookaheads, ", "))
 	}
 	for _, entry := range r.Entries {
 		fmt.Fprintf(&builder, "\n  %s on terminal %s:\n", entry.Kind, entry.Terminal)
@@ -163,21 +174,22 @@ func buildConflictReports(grammar frontend.Grammar, conflicts []Conflict) []Conf
 }
 
 // compareConflictReports orders the reports by the number of kernel items, then by the kernel items, then by the
-// terminals of the entries. The state index is the final tie-breaker, so the order is total even when the state numbers
-// are written.
+// reductions, then by the terminals of the entries. The state index is the final tie-breaker, so the order is total
+// even when the state numbers are written.
 func compareConflictReports(a ConflictReport, b ConflictReport) int {
 	if result := cmp.Compare(len(a.KernelItems), len(b.KernelItems)); result != 0 {
 		return result
 	}
-	result := slices.CompareFunc(a.KernelItems, b.KernelItems, compareKernelItems)
-	if result != 0 {
+	if result := slices.Compare(a.KernelItems, b.KernelItems); result != 0 {
 		return result
 	}
-	result = slices.CompareFunc(a.KernelItems, b.KernelItems, compareLookaheads)
-	if result != 0 {
+	if result := cmp.Compare(len(a.Reductions), len(b.Reductions)); result != 0 {
 		return result
 	}
-	result = slices.CompareFunc(a.Entries, b.Entries, func(a ConflictReportEntry, b ConflictReportEntry) int {
+	if result := slices.CompareFunc(a.Reductions, b.Reductions, compareReductions); result != 0 {
+		return result
+	}
+	result := slices.CompareFunc(a.Entries, b.Entries, func(a ConflictReportEntry, b ConflictReportEntry) int {
 		return strings.Compare(a.Terminal, b.Terminal)
 	})
 	if result != 0 {
@@ -186,64 +198,154 @@ func compareConflictReports(a ConflictReport, b ConflictReport) int {
 	return cmp.Compare(a.StateIdx, b.StateIdx)
 }
 
-// compareKernelItems orders two kernel items by the item alone, which is unique within a state.
-func compareKernelItems(a ConflictReportKernelItem, b ConflictReportKernelItem) int {
-	return strings.Compare(a.Item, b.Item)
-}
-
-// compareLookaheads orders two kernel items by the number of their lookaheads, then by the lookaheads.
-func compareLookaheads(a ConflictReportKernelItem, b ConflictReportKernelItem) int {
+// compareReductions orders two reductions by the item, then by the number of their lookaheads, then by the lookaheads.
+func compareReductions(a ConflictReportReduction, b ConflictReportReduction) int {
+	if result := strings.Compare(a.Item, b.Item); result != 0 {
+		return result
+	}
 	if result := cmp.Compare(len(a.Lookaheads), len(b.Lookaheads)); result != 0 {
 		return result
 	}
 	return slices.Compare(a.Lookaheads, b.Lookaheads)
 }
 
-// removeUnambiguousLookaheads removes the lookaheads from every report whose kernel items no report of another state
-// shares. A state is then already told apart by its kernel items, and leaving the lookaheads out keeps the report
-// stable when an unrelated grammar edit changes them. Several reports can belong to the same state, which does not
-// make their kernel items ambiguous.
-func removeUnambiguousLookaheads(reports []ConflictReport) {
-	stateIdxsByKernel := make(map[string]map[int]struct{})
+// keepDistinguishingLookaheads reduces the reductions of every report to what tells its state apart from the other
+// states of the reports with the same kernel items. Lookahead sets on real grammars run to dozens of terminals and
+// change with unrelated grammar edits, so only the difference is written:
+//
+//   - A state whose kernel items no other state shares is already told apart by them and keeps no reductions.
+//   - A reduction every state of the group has loses the lookaheads all of them share. It is dropped when that leaves
+//     nothing in any of the states, and otherwise kept in every state, even with an empty set, so that a missing line
+//     never reads as a missing reduction.
+//   - A reduction only some states of the group have keeps its full set, because having it at all tells them apart.
+//
+// Several reports can belong to the same state, which does not make their kernel items shared.
+func keepDistinguishingLookaheads(reports []ConflictReport) {
+	reductionsByStateIdxByKernel := make(map[string]map[int][]ConflictReportReduction)
 	for _, report := range reports {
-		kernel := report.kernel()
-		if stateIdxsByKernel[kernel] == nil {
-			stateIdxsByKernel[kernel] = make(map[int]struct{})
+		kernel := strings.Join(report.KernelItems, "\n")
+		if reductionsByStateIdxByKernel[kernel] == nil {
+			reductionsByStateIdxByKernel[kernel] = make(map[int][]ConflictReportReduction)
 		}
-		stateIdxsByKernel[kernel][report.StateIdx] = struct{}{}
+		reductionsByStateIdxByKernel[kernel][report.StateIdx] = report.Reductions
 	}
 
-	for _, report := range reports {
-		if len(stateIdxsByKernel[report.kernel()]) > 1 {
+	distinguishingByStateIdx := make(map[int][]ConflictReportReduction)
+	for _, reductionsByStateIdx := range reductionsByStateIdxByKernel {
+		if len(reductionsByStateIdx) < 2 {
 			continue
 		}
-		for i := range report.KernelItems {
-			report.KernelItems[i].Lookaheads = nil
+		maps.Copy(distinguishingByStateIdx, distinguishingReductions(reductionsByStateIdx))
+	}
+
+	for i := range reports {
+		reports[i].Reductions = distinguishingByStateIdx[reports[i].StateIdx]
+	}
+}
+
+// distinguishingReductions returns the reductions of every state of a group with the same kernel items, reduced to the
+// lookaheads which tell the states apart, see keepDistinguishingLookaheads.
+func distinguishingReductions(
+	reductionsByStateIdx map[int][]ConflictReportReduction,
+) map[int][]ConflictReportReduction {
+	// The lookaheads every state of the group shares for a reduction, present only for reductions every state has.
+	shared := make(map[string][]string)
+	stateCountByItem := make(map[string]int)
+	for _, reductions := range reductionsByStateIdx {
+		for _, reduction := range reductions {
+			stateCountByItem[reduction.Item]++
 		}
 	}
-}
-
-// kernel returns the kernel items of the report as a single string, which identifies the kernel in a map.
-func (r ConflictReport) kernel() string {
-	items := make([]string, 0, len(r.KernelItems))
-	for _, kernelItem := range r.KernelItems {
-		items = append(items, kernelItem.Item)
+	for _, reductions := range reductionsByStateIdx {
+		for _, reduction := range reductions {
+			if stateCountByItem[reduction.Item] != len(reductionsByStateIdx) {
+				continue
+			}
+			if lookaheads, found := shared[reduction.Item]; found {
+				shared[reduction.Item] = intersectSorted(lookaheads, reduction.Lookaheads)
+			} else {
+				shared[reduction.Item] = reduction.Lookaheads
+			}
+		}
 	}
-	return strings.Join(items, "\n")
+
+	// A reduction is dropped when it has the same lookaheads in every state, which means nothing is left of it anywhere.
+	distinguishing := make(map[string]bool)
+	for _, reductions := range reductionsByStateIdx {
+		for _, reduction := range reductions {
+			lookaheads, found := shared[reduction.Item]
+			if !found || len(lookaheads) != len(reduction.Lookaheads) {
+				distinguishing[reduction.Item] = true
+			}
+		}
+	}
+
+	result := make(map[int][]ConflictReportReduction, len(reductionsByStateIdx))
+	for stateIdx, reductions := range reductionsByStateIdx {
+		var kept []ConflictReportReduction
+		for _, reduction := range reductions {
+			if !distinguishing[reduction.Item] {
+				continue
+			}
+			kept = append(kept, ConflictReportReduction{
+				Item:       reduction.Item,
+				Lookaheads: subtractSorted(reduction.Lookaheads, shared[reduction.Item]),
+			})
+		}
+		result[stateIdx] = kept
+	}
+	return result
 }
 
-// buildConflictReport builds the report of the state of the conflict, without any entry yet.
+// intersectSorted returns the elements of the sorted slice a which the sorted slice b holds as well.
+func intersectSorted(a []string, b []string) []string {
+	var result []string
+	for _, element := range a {
+		if _, found := slices.BinarySearch(b, element); found {
+			result = append(result, element)
+		}
+	}
+	return result
+}
+
+// subtractSorted returns the elements of the sorted slice a which the sorted slice b does not hold.
+func subtractSorted(a []string, b []string) []string {
+	var result []string
+	for _, element := range a {
+		if _, found := slices.BinarySearch(b, element); !found {
+			result = append(result, element)
+		}
+	}
+	return result
+}
+
+// buildConflictReport builds the report of the state of the conflict, without any entry yet. It holds every reduction
+// of the state with its complete lookaheads, which keepDistinguishingLookaheads reduces to what is needed.
 func buildConflictReport(grammar frontend.Grammar, c Conflict) ConflictReport {
 	report := ConflictReport{
 		StateIdx: c.StateIdx,
 	}
 	for _, core := range c.KernelItems.All() {
-		report.KernelItems = append(report.KernelItems, ConflictReportKernelItem{
-			Item:       formatKernelItem(grammar, core),
-			Lookaheads: formatKernelItemLookaheads(grammar, c.ReduceActions, core),
+		report.KernelItems = append(report.KernelItems, formatKernelItem(grammar, core))
+	}
+	slices.Sort(report.KernelItems)
+
+	lookaheadsByItem := make(map[string][]string)
+	for _, reduceAction := range c.ReduceActions.All() {
+		production := grammar.Productions[reduceAction.ProductionIdx]
+		item := formatSymbols(grammar, production, len(production.SymbolRefs))
+		for terminalIdx := range reduceAction.LookaheadSet.All() {
+			lookaheadsByItem[item] = append(lookaheadsByItem[item], grammar.Terminals[terminalIdx].String())
+		}
+	}
+	for item, lookaheads := range lookaheadsByItem {
+		slices.Sort(lookaheads)
+		report.Reductions = append(report.Reductions, ConflictReportReduction{
+			Item:       item,
+			Lookaheads: slices.Compact(lookaheads),
 		})
 	}
-	slices.SortFunc(report.KernelItems, compareKernelItems)
+	slices.SortFunc(report.Reductions, compareReductions)
 	return report
 }
 
@@ -389,30 +491,6 @@ func formatProduction(grammar frontend.Grammar, productionIdx int) string {
 // formatKernelItem renders a kernel item as its production with a dot at the position of the item.
 func formatKernelItem(grammar frontend.Grammar, core backend.Core) string {
 	return formatSymbols(grammar, grammar.Productions[core.ProductionIdx()], core.Position())
-}
-
-// formatKernelItemLookaheads returns the sorted names of the terminals the kernel item reduces on, or nil when the item
-// is not completed and so does not reduce.
-func formatKernelItemLookaheads(
-	grammar frontend.Grammar,
-	reduceActions backend.ReduceActionSet,
-	core backend.Core,
-) []string {
-	if core.Position() != len(grammar.Productions[core.ProductionIdx()].SymbolRefs) {
-		return nil
-	}
-
-	var result []string
-	for _, reduceAction := range reduceActions.All() {
-		if reduceAction.ProductionIdx != core.ProductionIdx() {
-			continue
-		}
-		for terminalIdx := range reduceAction.LookaheadSet.All() {
-			result = append(result, grammar.Terminals[terminalIdx].String())
-		}
-	}
-	slices.Sort(result)
-	return result
 }
 
 // formatSymbols renders the production with the names of its symbols, and with a dot in front of the symbol at the

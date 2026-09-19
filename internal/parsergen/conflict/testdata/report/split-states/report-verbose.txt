@@ -1,8 +1,11 @@
 2 reduce/reduce conflicts resolved
 
 state:
-  x -> "c" .  {"d", "f"}
-  y -> "c" .  {"e", "f"}
+  x -> "c" .
+  y -> "c" .
+  distinguished by lookaheads:
+    x -> "c" .  {"d", "f"}
+    y -> "c" .  {"e", "f"}
 
   reduce/reduce conflict on terminal "f":
     reduce: x -> "c"
@@ -11,8 +14,11 @@ state:
       reduce: x -> "c"
 
 state:
-  x -> "c" .  {"e", "g"}
-  y -> "c" .  {"d", "g"}
+  x -> "c" .
+  y -> "c" .
+  distinguished by lookaheads:
+    x -> "c" .  {"e", "g"}
+    y -> "c" .  {"d", "g"}
 
   reduce/reduce conflict on terminal "g":
     reduce: x -> "c"

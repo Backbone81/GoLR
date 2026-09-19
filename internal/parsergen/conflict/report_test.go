@@ -70,6 +70,11 @@ var _ = Describe("WriteConflictReport", func() {
 		Entry("with reduce/reduce conflicts", "reduce-reduce", conflict.PolicyFactory(conflict.DefaultPolicy)),
 		Entry("with conflicts decided by precedence", "precedence", conflict.PolicyFactory(conflict.DefaultPolicy)),
 		Entry("with split states sharing their kernel items", "split-states", conflict.PolicyFactory(conflict.DefaultPolicy)),
+		Entry(
+			"with split states told apart by an empty production",
+			"split-states-empty-production",
+			conflict.PolicyFactory(conflict.DefaultPolicy),
+		),
 		Entry("with unresolved conflicts", "unresolved", conflict.PolicyFactory(conflict.PrecedencePolicy)),
 		Entry(
 			"with unresolved conflicts in split states sharing their kernel items",
