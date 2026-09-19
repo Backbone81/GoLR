@@ -1,0 +1,38 @@
+1:1     0+71    program => program statement
+1:1     0+63      program => program statement
+1:1     0+50        program => program statement
+1:1     0+42          program => program statement
+1:1     0+30            program => program statement
+1:1     0+19              program => program statement
+1:1     0+8                 program => statement
+1:1     0+8                   statement => ALPHA NUMBER SEMICOLON
+1:1     0+5                     ALPHA "alpha"
+1:7     6+1                     NUMBER "1"
+1:8     7+1                     SEMICOLON ";"
+1:10    9+10                statement => BRAVO NAME SEMICOLON
+1:10    9+5                   BRAVO "bravo"
+1:16    15+3                  NAME "two"
+1:19    18+1                  SEMICOLON ";"
+1:21    20+10             statement => CHARLIE NUMBER SEMICOLON
+1:21    20+7                CHARLIE "charlie"
+1:29    28+1                NUMBER "3"
+1:30    29+1                SEMICOLON ";"
+1:32    31+11           statement => DELTA NAME SEMICOLON
+1:32    31+5              DELTA "delta"
+1:38    37+4              NAME "four"
+1:42    41+1              SEMICOLON ";"
+1:44    43+7          statement => ECHO value SEMICOLON
+1:44    43+4            ECHO "echo"
+1:49    48+1            value => NUMBER
+1:49    48+1              NUMBER "5"
+1:50    49+1            SEMICOLON ";"
+1:52    51+12       statement => FOXTROT value SEMICOLON
+1:52    51+7          FOXTROT "foxtrot"
+1:60    59+3          value => NAME
+1:60    59+3            NAME "six"
+1:63    62+1          SEMICOLON ";"
+1:65    64+7      statement => GOLF value SEMICOLON
+1:65    64+4        GOLF "golf"
+1:70    69+1        value => NUMBER
+1:70    69+1          NUMBER "7"
+1:71    70+1        SEMICOLON ";"

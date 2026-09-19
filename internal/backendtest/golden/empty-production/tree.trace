@@ -1,0 +1,10 @@
+1:1     0+5     list => items
+1:1     0+5       items => items item
+1:1     0+2         items => items item
+1:1     0+0           items => ε
+1:1     0+2           item => ITEM SEMICOLON
+1:1     0+1             ITEM "i"
+1:2     1+1             SEMICOLON ";"
+1:4     3+2         item => ITEM SEMICOLON
+1:4     3+1           ITEM "i"
+1:5     4+1           SEMICOLON ";"

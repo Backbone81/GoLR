@@ -1,0 +1,14 @@
+1:1     SHIFT   NUMBER "1"
+1:2     SHIFT   SEMICOLON ";"
+2:1     REDUCE  item => NUMBER SEMICOLON
+2:1     REDUCE  list => item
+2:1     SHIFT   NUMBER "2"
+2:2     SHIFT   SEMICOLON ";"
+2:4     REDUCE  item => NUMBER SEMICOLON
+2:4     REDUCE  list => list item
+2:4     SHIFT   NUMBER "3"
+2:5     SHIFT   SEMICOLON ";"
+3:1     REDUCE  item => NUMBER SEMICOLON
+3:1     REDUCE  list => list item
+3:1     SHIFT   $end ""
+3:1     ACCEPT

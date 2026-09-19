@@ -1,6 +1,7 @@
 package interpreter
 
 import (
+	"slices"
 	"sort"
 
 	"github.com/backbone81/golr/internal/backendtest"
@@ -74,12 +75,49 @@ const (
 	nodeKindErrorSymbol
 )
 
-// node mirrors one entry of a generated parser's node stack, carrying only what a trace line needs.
+// node mirrors one entry of a generated parser's node stack. It carries what a trace line needs, the span of the input
+// it covers, and the nodes it was built from, so the node stack holds the parse tree built so far and the node left on
+// it at the end is the tree of the whole parse.
 type node struct {
 	kind nodeKind
 
 	// name is what the trace calls the symbol: a scanner rule, a nonterminal, or errorSymbolName.
 	name string
+
+	// byteOffset and byteLength are the span of the input the node covers, following the span rules of the tree
+	// trace.
+	byteOffset int
+	byteLength int
+
+	// children are the nodes a reduction replaced with this one, left to right. A terminal and an error node have
+	// none.
+	children []node
+}
+
+// span returns the span covering the given nodes, which is the start of the first one covering anything up to the end
+// of the last one, and a zero length span at fallbackOffset when none of them covers anything.
+//
+// Nodes covering nothing are left out rather than taken as points the span has to reach, which is what keeps a
+// nonterminal with an ε-child from covering the whitespace in front of it. The nodes need not be in the order of the
+// input: a recovery round drops the token it discarded before the nodes it pops, and those come off the stack from
+// right to left.
+func span(nodes []node, fallbackOffset int) (int, int) {
+	start, end := -1, -1
+	for _, current := range nodes {
+		if current.byteLength == 0 {
+			continue
+		}
+		if start == -1 {
+			start, end = current.byteOffset, current.byteOffset+current.byteLength
+			continue
+		}
+		start = min(start, current.byteOffset)
+		end = max(end, current.byteOffset+current.byteLength)
+	}
+	if start == -1 {
+		return fallbackOffset, 0
+	}
+	return start, end - start
 }
 
 // Parser is the reference parser of the backend test harness. It reads the compressed tables the way a generated table
@@ -120,6 +158,10 @@ type Parser struct {
 
 	// trace collects the events in the order they happened. It is the whole output of a parse.
 	trace backendtest.Trace
+
+	// tree is the parse tree an accepted parse built, and nil while the parse runs and for a parse which was given
+	// up. A parse which fails builds no tree, the same way a generated parser returns none.
+	tree *node
 }
 
 // NewParser creates a parser for the given parser tables which takes its tokens from the given scanner. It compresses
@@ -201,6 +243,10 @@ func (p *Parser) Parse() backendtest.Trace {
 		case parsertable.ActionKindAccept:
 			line, column := lineCol(p.lineStarts, p.token.start)
 			p.trace = append(p.trace, backendtest.Accept{Line: line, Column: column})
+			// The stack carries the start symbol with the end of input symbol shifted on top of it, so the
+			// tree of the parse is the node at the bottom.
+			root := p.nodeStack[0]
+			p.tree = &root
 			return p.trace
 		case parsertable.ActionKindError:
 			if !p.recoverFromError() {
@@ -236,7 +282,12 @@ func (p *Parser) shift(stateIdx int) {
 		Lexeme:       string(p.scanner.source[p.token.start:p.token.end]),
 	})
 
-	p.nodeStack = append(p.nodeStack, node{kind: nodeKindTerminal, name: p.token.name})
+	p.nodeStack = append(p.nodeStack, node{
+		kind:       nodeKindTerminal,
+		name:       p.token.name,
+		byteOffset: p.token.start,
+		byteLength: p.token.end - p.token.start,
+	})
 	p.stateStack = append(p.stateStack, stateIdx)
 	p.advanceToken()
 
@@ -254,8 +305,9 @@ func (p *Parser) reduce(productionIdx int) {
 	popCount := len(production.SymbolRefs)
 	leftHandSide := p.parser.Grammar.Nonterminals[production.NonterminalIdx].Name
 
+	children := slices.Clone(p.nodeStack[len(p.nodeStack)-popCount:])
 	rightHandSide := make([]string, popCount)
-	for i, child := range p.nodeStack[len(p.nodeStack)-popCount:] {
+	for i, child := range children {
 		rightHandSide[i] = child.name
 	}
 	line, column := lineCol(p.lineStarts, p.token.start)
@@ -266,9 +318,15 @@ func (p *Parser) reduce(productionIdx int) {
 		RightHandSide: rightHandSide,
 	})
 
+	// A production whose right hand side covers nothing is placed where the parser stands, which is the start of the
+	// token it is looking at.
+	byteOffset, byteLength := span(children, p.token.start)
 	p.nodeStack = append(p.nodeStack[:len(p.nodeStack)-popCount], node{
-		kind: nodeKindNonterminal,
-		name: leftHandSide,
+		kind:       nodeKindNonterminal,
+		name:       leftHandSide,
+		byteOffset: byteOffset,
+		byteLength: byteLength,
+		children:   children,
 	})
 
 	p.stateStack = p.stateStack[:len(p.stateStack)-popCount]
@@ -298,6 +356,8 @@ func (p *Parser) recoverFromError() bool {
 		Suppressed: p.errorRecoveryShiftsRemaining != 0,
 	})
 
+	// Everything this round drops is what the error node it ends with stands for, so it is collected as it goes.
+	var dropped []node
 	if p.errorRecoveryShiftsRemaining == errorRecoveryShifts {
 		// Nothing was shifted since the last error, so the parser is failing on the token it already failed on and
 		// keeping it would only lead here again.
@@ -312,23 +372,41 @@ func (p *Parser) recoverFromError() bool {
 			TerminalName: p.token.name,
 			Lexeme:       string(p.scanner.source[p.token.start:p.token.end]),
 		})
+		dropped = append(dropped, node{
+			kind:       nodeKindTerminal,
+			name:       p.token.name,
+			byteOffset: p.token.start,
+			byteLength: p.token.end - p.token.start,
+		})
 		p.advanceToken()
 	}
 	p.errorRecoveryShiftsRemaining = errorRecoveryShifts
 
-	return p.popToErrorState()
+	return p.popToErrorState(dropped)
 }
 
 // popToErrorState drops states off the stack until one of them can shift the error symbol, and shifts it there,
 // reporting whether it found such a state. A grammar which marks no place to resume at unwinds the whole stack here.
-func (p *Parser) popToErrorState() bool {
+//
+// dropped is what the round already threw away before it got here, which is the token it discarded, if any. The nodes
+// popped along the way join it, and the error symbol shifted at the end covers them all: an error node stands for the
+// part of the input the recovery gave up on. A node popped here may well be an error node of an earlier round, which
+// brings what that round dropped along.
+func (p *Parser) popToErrorState(dropped []node) bool {
 	for {
 		line, column := lineCol(p.lineStarts, p.token.start)
 		if stateIdx, ok := p.compressed.ErrorShiftStateIdx(p.stateStack[len(p.stateStack)-1]); ok {
 			p.trace = append(p.trace, backendtest.Resync{Line: line, Column: column})
-			// Shift the error symbol. Its node stands for the part of the input which was dropped.
+			// Shift the error symbol. Its node stands for the part of the input which was dropped, and covers
+			// nothing at the position the parser resumes at when the round dropped nothing at all.
+			byteOffset, byteLength := span(dropped, p.token.start)
 			p.stateStack = append(p.stateStack, stateIdx)
-			p.nodeStack = append(p.nodeStack, node{kind: nodeKindErrorSymbol, name: errorSymbolName})
+			p.nodeStack = append(p.nodeStack, node{
+				kind:       nodeKindErrorSymbol,
+				name:       errorSymbolName,
+				byteOffset: byteOffset,
+				byteLength: byteLength,
+			})
 			return true
 		}
 		if len(p.stateStack) == 1 {
@@ -343,6 +421,7 @@ func (p *Parser) popToErrorState() bool {
 			Column:     column,
 			SymbolName: p.nodeStack[len(p.nodeStack)-1].name,
 		})
+		dropped = append(dropped, p.nodeStack[len(p.nodeStack)-1])
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 	}
@@ -401,8 +480,72 @@ func (p *Parser) advanceToken() {
 	}
 }
 
+// TreeTrace returns the canonical trace of the parse tree, one line per node in pre-order. A parse which was given up
+// built no tree, and produces an empty trace. It has to be called after Parse.
+func (p *Parser) TreeTrace() backendtest.Trace {
+	if p.tree == nil {
+		return nil
+	}
+	return p.appendNode(nil, *p.tree, 0)
+}
+
+// appendNode appends the line of the given node and the lines of everything below it to the trace, which is the
+// pre-order the tree trace is read in: a node, then what it was built from.
+func (p *Parser) appendNode(trace backendtest.Trace, current node, depth int) backendtest.Trace {
+	line, column := lineCol(p.lineStarts, current.byteOffset)
+	switch current.kind {
+	case nodeKindTerminal:
+		trace = append(trace, backendtest.TreeTerminal{
+			Line:         line,
+			Column:       column,
+			ByteOffset:   current.byteOffset,
+			ByteLength:   current.byteLength,
+			Depth:        depth,
+			TerminalName: current.name,
+			// The text is read off the source through the span and never carried along from the token, which is
+			// what makes the trace state that the span is right.
+			Text: string(p.scanner.source[current.byteOffset : current.byteOffset+current.byteLength]),
+		})
+	case nodeKindNonterminal:
+		rightHandSide := make([]string, len(current.children))
+		for i, child := range current.children {
+			rightHandSide[i] = child.name
+		}
+		trace = append(trace, backendtest.TreeNonterminal{
+			Line:          line,
+			Column:        column,
+			ByteOffset:    current.byteOffset,
+			ByteLength:    current.byteLength,
+			Depth:         depth,
+			LeftHandSide:  current.name,
+			RightHandSide: rightHandSide,
+		})
+	case nodeKindErrorSymbol:
+		trace = append(trace, backendtest.TreeErrorNode{
+			Line:       line,
+			Column:     column,
+			ByteOffset: current.byteOffset,
+			ByteLength: current.byteLength,
+			Depth:      depth,
+		})
+	}
+
+	for _, child := range current.children {
+		trace = p.appendNode(trace, child, depth+1)
+	}
+	return trace
+}
+
 // ParseTrace scans and parses the whole input and returns the canonical trace of the parse. This is one corpus case end
 // to end: a grammar and an input go in, and the trace every backend has to reproduce comes out.
 func ParseTrace(parser parserbackend.Parser, dfa scannerbackend.DFA, source []byte) backendtest.Trace {
 	return NewParser(parser, NewScanner(dfa, source)).Parse()
+}
+
+// TreeTrace scans and parses the whole input and returns the canonical trace of the parse tree. It parses a second
+// time rather than returning both traces at once, so that a case is a grammar and an input for this trace as well.
+func TreeTrace(parser parserbackend.Parser, dfa scannerbackend.DFA, source []byte) backendtest.Trace {
+	result := NewParser(parser, NewScanner(dfa, source))
+	result.Parse()
+	return result.TreeTrace()
 }

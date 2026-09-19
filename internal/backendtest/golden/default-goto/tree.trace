@@ -1,0 +1,27 @@
+1:1     0+23    groups => groups group
+1:1     0+15      groups => groups group
+1:1     0+7         groups => group
+1:1     0+7           group => LPAREN sum RPAREN
+1:1     0+1             LPAREN "("
+1:2     1+5             sum => sum PLUS NUMBER
+1:2     1+1               sum => NUMBER
+1:2     1+1                 NUMBER "1"
+1:4     3+1               PLUS "+"
+1:6     5+1               NUMBER "2"
+1:7     6+1             RPAREN ")"
+1:9     8+7         group => LBRACKET sum RBRACKET
+1:9     8+1           LBRACKET "["
+1:10    9+5           sum => sum PLUS NUMBER
+1:10    9+1             sum => NUMBER
+1:10    9+1               NUMBER "3"
+1:12    11+1            PLUS "+"
+1:14    13+1            NUMBER "4"
+1:15    14+1          RBRACKET "]"
+1:17    16+7      group => LBRACE sum RBRACE
+1:17    16+1        LBRACE "{"
+1:18    17+5        sum => sum PLUS NUMBER
+1:18    17+1          sum => NUMBER
+1:18    17+1            NUMBER "5"
+1:20    19+1          PLUS "+"
+1:22    21+1          NUMBER "6"
+1:23    22+1        RBRACE "}"

@@ -1,0 +1,14 @@
+1:1     SHIFT   LEFTBRACE "{"
+2:3     REDUCE  items => ε
+2:3     SHIFT   NUMBER "1"
+2:4     SHIFT   SEMICOLON ";"
+3:3     REDUCE  item => NUMBER SEMICOLON
+3:3     REDUCE  items => items item
+3:3     SHIFT   NUMBER "22"
+3:5     SHIFT   SEMICOLON ";"
+4:1     REDUCE  item => NUMBER SEMICOLON
+4:1     REDUCE  items => items item
+4:1     SHIFT   RIGHTBRACE "}"
+5:1     REDUCE  block => LEFTBRACE items RIGHTBRACE
+5:1     SHIFT   $end ""
+5:1     ACCEPT

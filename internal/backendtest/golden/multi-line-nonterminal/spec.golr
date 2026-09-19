@@ -1,0 +1,33 @@
+// A nonterminal whose span covers several lines, which is the shape a diagnostic about a whole block reports. The
+// braces sit on lines of their own, so the block begins on the first line and ends on the last one, and the position a
+// tree trace prints for it is that of its first byte rather than of the line the reduction happened on.
+//
+// Every other case of the corpus is a single line of input, so this is also where a trace states that a position is
+// computed from the whole input and not from what is left of it: the items inside the block are on the lines between
+// the braces and their columns start counting again after every line feed.
+//
+// The scanner is not what this case is about, so its rules are single characters and runs of digits.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NUMBER:     /[0-9]+/;
+    LEFTBRACE:  "{";
+    RIGHTBRACE: "}";
+    SEMICOLON:  ";";
+}
+
+@parser {
+    block
+        : "{" items "}"
+        ;
+
+    items
+        : items item
+        | @empty
+        ;
+
+    item
+        : NUMBER ";"
+        ;
+}

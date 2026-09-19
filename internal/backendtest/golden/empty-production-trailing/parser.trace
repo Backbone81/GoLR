@@ -1,0 +1,15 @@
+1:1     SHIFT   ITEM "i"
+1:3     REDUCE  terminator => ε
+1:3     REDUCE  item => ITEM terminator
+1:3     REDUCE  list => item
+1:3     SHIFT   ITEM "i"
+1:4     SHIFT   SEMICOLON ";"
+1:6     REDUCE  terminator => SEMICOLON
+1:6     REDUCE  item => ITEM terminator
+1:6     REDUCE  list => list item
+1:6     SHIFT   ITEM "i"
+2:1     REDUCE  terminator => ε
+2:1     REDUCE  item => ITEM terminator
+2:1     REDUCE  list => list item
+2:1     SHIFT   $end ""
+2:1     ACCEPT

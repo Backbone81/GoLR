@@ -1,0 +1,36 @@
+// An empty production at the end of what it is part of. This is where the span of a node is decided by what it leaves
+// out: a terminator is a semicolon or nothing at all, and an item whose terminator is missing ends at its own last
+// byte. The ε-node sits where the parser stands when it reduces, which is the start of the token it is looking at, so
+// the whitespace between two items belongs to neither of them.
+//
+// Both places a trailing ε-node can sit are in the input: the first item is followed by another one, so its ε-node
+// sits at the start of that item, and the last item is followed by the end of the input, so its ε-node sits one past
+// the last byte. Neither widens the item it belongs to.
+//
+// The other end of this is covered by empty-production, where the ε-node is the first child of its production and the
+// parse opens with a reduction before anything at all has been shifted.
+//
+// The scanner is not what this case is about, so its rules are single characters.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    ITEM:      "i";
+    SEMICOLON: ";";
+}
+
+@parser {
+    list
+        : list item
+        | item
+        ;
+
+    item
+        : ITEM terminator
+        ;
+
+    terminator
+        : SEMICOLON
+        | @empty
+        ;
+}

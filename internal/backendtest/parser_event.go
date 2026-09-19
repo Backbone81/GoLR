@@ -38,16 +38,16 @@ type Reduce struct {
 
 // String returns the canonical trace line for the event, without the terminating newline.
 func (r Reduce) String() string {
-	payload := r.LeftHandSide + " =>"
-	if len(r.RightHandSide) == 0 {
-		payload += " ε"
+	return traceLine(r.Line, r.Column, "REDUCE", productionText(r.LeftHandSide, r.RightHandSide))
+}
+
+// productionText names a production as "lhs => rhs", or as "lhs => ε" for an empty right hand side. A reduce event of
+// a parser trace and a nonterminal node of a tree trace stand for the same production and name it the same way.
+func productionText(leftHandSide string, rightHandSide []string) string {
+	if len(rightHandSide) == 0 {
+		return leftHandSide + " => ε"
 	}
-	var payloadSb44 strings.Builder
-	for _, name := range r.RightHandSide {
-		payloadSb44.WriteString(" " + name)
-	}
-	payload += payloadSb44.String()
-	return traceLine(r.Line, r.Column, "REDUCE", payload)
+	return leftHandSide + " => " + strings.Join(rightHandSide, " ")
 }
 
 // ParserError reports a syntax error at the current lookahead. Suppressed marks an error the parser hits while still

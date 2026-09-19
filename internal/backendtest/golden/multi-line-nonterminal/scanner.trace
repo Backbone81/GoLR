@@ -1,0 +1,11 @@
+1:1     TOKEN   LEFTBRACE "{"
+1:2     TOKEN   WHITESPACE "\n  "
+2:3     TOKEN   NUMBER "1"
+2:4     TOKEN   SEMICOLON ";"
+2:5     TOKEN   WHITESPACE "\n  "
+3:3     TOKEN   NUMBER "22"
+3:5     TOKEN   SEMICOLON ";"
+3:6     TOKEN   WHITESPACE "\n"
+4:1     TOKEN   RIGHTBRACE "}"
+4:2     TOKEN   WHITESPACE "\n"
+5:1     EOF

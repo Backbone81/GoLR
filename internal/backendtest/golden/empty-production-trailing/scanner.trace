@@ -1,0 +1,8 @@
+1:1     TOKEN   ITEM "i"
+1:2     TOKEN   WHITESPACE " "
+1:3     TOKEN   ITEM "i"
+1:4     TOKEN   SEMICOLON ";"
+1:5     TOKEN   WHITESPACE " "
+1:6     TOKEN   ITEM "i"
+1:7     TOKEN   WHITESPACE "\n"
+2:1     EOF

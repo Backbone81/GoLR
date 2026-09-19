@@ -1,0 +1,30 @@
+// Windows line endings. Only the line feed starts a new line, so the carriage return of a CRLF pair is the last byte of
+// the line it ends and the token after the pair stands in column 1 of the next line. A lone carriage return breaks
+// nothing: the second line of the input carries one in the middle, and the columns after it keep counting from the
+// start of that line.
+//
+// A backend which takes the carriage return for a line break, or which strips it before it counts, produces different
+// columns here and nowhere else in the corpus. The spans are untouched by any of it, because a span is counted in
+// bytes and a line ending is bytes like any other.
+//
+// The scanner is not what this case is about, so its rules are single characters and runs of digits. Its whitespace
+// rule has to accept the carriage return, or the input would be a scanner error instead of the line endings it is
+// about.
+
+@scanner {
+    WHITESPACE: /[ \t\r\n]+/ @skip;
+
+    NUMBER:    /[0-9]+/;
+    SEMICOLON: ";";
+}
+
+@parser {
+    list
+        : list item
+        | item
+        ;
+
+    item
+        : NUMBER ";"
+        ;
+}

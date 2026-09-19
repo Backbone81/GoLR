@@ -16,7 +16,7 @@ import (
 )
 
 // The corpus is a directory per case, and every file in it has a fixed name. A case is therefore fully described by the
-// three or four files sitting next to each other, which is what makes reviewing the committed trace a single glance
+// four files sitting next to each other, which is what makes reviewing the committed trace a single glance
 // instead of a hunt through parallel directory trees.
 const (
 	// goldenRootPath is the directory holding one directory per case.
@@ -35,6 +35,10 @@ const (
 
 	// parserTraceFileName is the trace every backend has to reproduce for the parser.
 	parserTraceFileName = "parser.trace"
+
+	// treeTraceFileName is the parse tree every backend has to reproduce, one line per node. It is empty for a case
+	// whose parse is given up, because a parse which fails builds no tree.
+	treeTraceFileName = "tree.trace"
 )
 
 // updateGoldenEnvVar makes a run rewrite the committed traces instead of comparing against them. Reviewing the diff it
@@ -98,6 +102,13 @@ var _ = Describe("Golden corpus", func() {
 			expectGolden(
 				filepath.Join(casePath, parserTraceFileName),
 				interpreter.ParseTrace(parser, dfa, source).String(),
+			)
+
+			// The tree is what a parse is for, and its committed trace is where the span every node covers is
+			// pinned down. The language backends are held to it from the release which gives their nodes a span.
+			expectGolden(
+				filepath.Join(casePath, treeTraceFileName),
+				interpreter.TreeTrace(parser, dfa, source).String(),
 			)
 		})
 	}

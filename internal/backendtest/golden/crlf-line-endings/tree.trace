@@ -1,0 +1,12 @@
+1:1     0+9     list => list item
+1:1     0+6       list => list item
+1:1     0+2         list => item
+1:1     0+2           item => NUMBER SEMICOLON
+1:1     0+1             NUMBER "1"
+1:2     1+1             SEMICOLON ";"
+2:1     4+2         item => NUMBER SEMICOLON
+2:1     4+1           NUMBER "2"
+2:2     5+1           SEMICOLON ";"
+2:4     7+2       item => NUMBER SEMICOLON
+2:4     7+1         NUMBER "3"
+2:5     8+1         SEMICOLON ";"
