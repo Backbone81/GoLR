@@ -20,8 +20,19 @@ type (
 	// Decision is what the policy decided about a set of contributions.
 	Decision = intconflict.Decision
 
-	// ReportConfig controls what WriteConflictReport writes.
+	// ReportConfig controls what WriteConflictReport and ConflictReport.Write write.
 	ReportConfig = intconflict.ReportConfig
+
+	// ConflictReport is the report of the conflicts of a single state, rendered with the names of the grammar symbols
+	// so it can be written without the grammar at hand.
+	ConflictReport = intconflict.ConflictReport
+
+	// ConflictReportEntry is the report of a single conflicted terminal of a state.
+	ConflictReportEntry = intconflict.ConflictReportEntry
+
+	// UnresolvedConflictError reports a conflict which the policies did not decide. A core joins one of them per
+	// unresolved conflict into the error it returns.
+	UnresolvedConflictError = intconflict.UnresolvedConflictError
 )
 
 const (
@@ -40,7 +51,7 @@ const (
 	DecisionUnresolved = intconflict.DecisionUnresolved
 )
 
-// WriteConflictReport writes a report of the given conflicts to w. Conflicts the policy could not decide are always
-// reported in full, conflicts it resolved on its own are summarized and listed in full only with ReportConfig.Verbose,
-// and conflicts decided by precedence declarations are not reported.
+// WriteConflictReport writes a report of the given conflicts to w. Conflicts the policy resolved on its own are
+// summarized and listed in full only with ReportConfig.Verbose. Conflicts decided by precedence declarations are not
+// reported, and conflicts the policy could not decide are reported by their UnresolvedConflictError.
 var WriteConflictReport = intconflict.WriteConflictReport

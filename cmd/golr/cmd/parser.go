@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	ielr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/bison"
@@ -70,17 +72,19 @@ var parserCmd = &cobra.Command{
 			return err
 		}
 
-		parser, conflicts, err := executeParserCore(grammar)
-		if err != nil {
-			return err
-		}
-
 		// The conflicts are reported to stderr so they do not corrupt a backend which writes its output to stdout. The
 		// conflicts the policy resolved on its own are only summarized unless --verbose also asks for the full listing, so
 		// the report stays readable for a large grammar.
-		if err := conflict.WriteConflictReport(os.Stderr, parser.Grammar, conflicts, conflict.ReportConfig{
+		reportConfig := conflict.ReportConfig{
 			Verbose: parserVerbose,
-		}); err != nil {
+		}
+
+		parser, conflicts, err := executeParserCore(grammar)
+		if err != nil {
+			return reportUnresolvedConflicts(err, reportConfig)
+		}
+
+		if err := conflict.WriteConflictReport(os.Stderr, parser.Grammar, conflicts, reportConfig); err != nil {
 			return err
 		}
 
@@ -89,6 +93,49 @@ var parserCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+// reportUnresolvedConflicts writes the report of every unresolved conflict the error holds to stderr, and returns an
+// error which only counts them, so they are not printed a second time. Any other error is returned unchanged.
+func reportUnresolvedConflicts(err error, config conflict.ReportConfig) error {
+	unresolvedConflictErrors := collectUnresolvedConflictErrors(err)
+	if len(unresolvedConflictErrors) == 0 {
+		return err
+	}
+
+	for i, unresolvedConflictError := range unresolvedConflictErrors {
+		// The reports are separated by an empty line, the same way the conflict report separates them.
+		if i > 0 {
+			if _, err := io.WriteString(os.Stderr, "\n"); err != nil {
+				return err
+			}
+		}
+		if err := unresolvedConflictError.Report.Write(os.Stderr, config); err != nil {
+			return err
+		}
+	}
+	if len(unresolvedConflictErrors) == 1 {
+		return errors.New("1 unresolved conflict")
+	}
+	return fmt.Errorf("%d unresolved conflicts", len(unresolvedConflictErrors))
+}
+
+// collectUnresolvedConflictErrors returns every unresolved conflict error in the error tree. errors.As is no help here,
+// because it stops at the first match, while a core joins one error per unresolved conflict.
+func collectUnresolvedConflictErrors(err error) []conflict.UnresolvedConflictError {
+	switch typedErr := err.(type) {
+	case conflict.UnresolvedConflictError:
+		return []conflict.UnresolvedConflictError{typedErr}
+	case interface{ Unwrap() []error }:
+		var result []conflict.UnresolvedConflictError
+		for _, wrappedErr := range typedErr.Unwrap() {
+			result = append(result, collectUnresolvedConflictErrors(wrappedErr)...)
+		}
+		return result
+	case interface{ Unwrap() error }:
+		return collectUnresolvedConflictErrors(typedErr.Unwrap())
+	}
+	return nil
 }
 
 func executeParserFrontend() (frontend.Grammar, error) {

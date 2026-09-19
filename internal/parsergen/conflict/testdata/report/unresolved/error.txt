@@ -22,4 +22,3 @@ shift/reduce conflict in state 21 on terminal "else"
     shift
     reduce production 1  (statement -> "if" expression "then" statement)
   unresolved, still undecided between shift, reduce production 1  (statement -> "if" expression "then" statement)
-

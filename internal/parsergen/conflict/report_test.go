@@ -16,12 +16,13 @@ import (
 )
 
 // The report cases are a directory per case under reportRootPath, holding the grammar and the report it is expected to
-// produce, once summarized and once in full.
+// produce, once summarized and once in full, or the error it is expected to fail with.
 const (
 	reportRootPath            = "testdata/report"
 	reportSpecFileName        = "spec.golr"
 	reportFileName            = "report.txt"
 	reportVerboseFileName     = "report-verbose.txt"
+	reportErrorFileName       = "error.txt"
 	updateGoldenReportsEnvVar = "UPDATE_GOLDEN"
 )
 
@@ -52,15 +53,16 @@ var _ = Describe("WriteConflictReport", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// The core is named explicitly, so the reports do not change underneath the cases when the default core
-			// changes. An unresolved conflict makes the core fail, but it still returns every conflict it found.
-			_, conflicts, _ := ielr1golr.GrammarToParser(grammar, policyFactory)
+			// changes.
+			parser, conflicts, err := ielr1golr.GrammarToParser(grammar, policyFactory)
+			if err != nil {
+				// An unresolved conflict makes the core fail, and the error is what reports the conflict then.
+				expectGoldenFile(filepath.Join(casePath, reportErrorFileName), err.Error())
+				return
+			}
 
-			// The conflicts refer to the augmented grammar. The core does not return it when a conflict is left unresolved,
-			// so the grammar is augmented here the same way the core does it.
-			grammar = frontend.AugmentGrammar(grammar)
-
-			expectGoldenReport(filepath.Join(casePath, reportFileName), grammar, conflicts, conflict.ReportConfig{})
-			expectGoldenReport(filepath.Join(casePath, reportVerboseFileName), grammar, conflicts, conflict.ReportConfig{
+			expectGoldenReport(filepath.Join(casePath, reportFileName), parser.Grammar, conflicts, conflict.ReportConfig{})
+			expectGoldenReport(filepath.Join(casePath, reportVerboseFileName), parser.Grammar, conflicts, conflict.ReportConfig{
 				Verbose: true,
 			})
 		},
@@ -71,8 +73,7 @@ var _ = Describe("WriteConflictReport", func() {
 	)
 })
 
-// expectGoldenReport compares the report against the committed one, or rewrites the committed one when the update
-// environment variable is set.
+// expectGoldenReport compares the report against the committed one, see expectGoldenFile.
 func expectGoldenReport(
 	goldenPath string,
 	grammar frontend.Grammar,
@@ -81,13 +82,18 @@ func expectGoldenReport(
 ) {
 	var builder strings.Builder
 	Expect(conflict.WriteConflictReport(&builder, grammar, conflicts, config)).To(Succeed())
+	expectGoldenFile(goldenPath, builder.String())
+}
 
+// expectGoldenFile compares the content against the committed file, or rewrites the committed file when the update
+// environment variable is set.
+func expectGoldenFile(goldenPath string, content string) {
 	if updatingGoldenReports() {
-		Expect(os.WriteFile(goldenPath, []byte(builder.String()), 0o644)).To(Succeed())
+		Expect(os.WriteFile(goldenPath, []byte(content), 0o644)).To(Succeed())
 		return
 	}
 
 	expected, err := os.ReadFile(goldenPath)
-	Expect(err).ToNot(HaveOccurred(), "run the suite with %s=1 to create the missing report", updateGoldenReportsEnvVar)
-	Expect(builder.String()).To(Equal(string(expected)))
+	Expect(err).ToNot(HaveOccurred(), "run the suite with %s=1 to create the missing file", updateGoldenReportsEnvVar)
+	Expect(content).To(Equal(string(expected)))
 }

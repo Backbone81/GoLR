@@ -9,4 +9,3 @@ reduce/reduce conflict in state 1 on terminal "b"
     reduce production 3  (first -> "a")
     reduce production 5  (second -> "a")
   resolved in favor of reduce production 3  (first -> "a")
-

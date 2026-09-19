@@ -18,31 +18,31 @@ type ReportConfig struct {
 // WriteConflictReport writes a report of the given conflicts to w. A caller which writes a serialized parser to stdout
 // should give it os.Stderr, because mixing the report into that output would corrupt it.
 //
-// Conflicts the policy could not decide are always reported in full: the grammar author has to act on them, and the
-// parser cannot be generated while they stand. Conflicts the policy resolved on its own, by shift over reduce or by the
-// earliest production, can run into the hundreds for a large grammar, so they are only summarized by default and listed
-// in full after the summary when verbose is set. Conflicts decided by precedence declarations are not reported at all.
+// Only the conflicts the policy resolved on its own, by shift over reduce or by the earliest production, are reported.
+// They can run into the hundreds for a large grammar, so they are only summarized by default and listed in full after
+// the summary when verbose is set. Conflicts decided by precedence declarations are not reported at all, and conflicts
+// the policy could not decide are reported by the UnresolvedConflictError of each.
 func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []Conflict, config ReportConfig) error {
 	var builder strings.Builder
 
-	// The summary always comes first, so that it sits at the same place in every report.
-	writeResolvedConflictSummary(&builder, conflicts)
-
-	// The unresolved conflicts are always reported in full.
-	unresolved := slices.DeleteFunc(slices.Clone(conflicts), func(c Conflict) bool {
-		return c.Decision.Kind != DecisionUnresolved
+	resolved := slices.DeleteFunc(slices.Clone(conflicts), func(c Conflict) bool {
+		return c.Decision.Kind == DecisionUnresolved
 	})
-	reports := buildConflictReports(grammar, unresolved)
+
+	// The summary always comes first, so that it sits at the same place in every report.
+	writeResolvedConflictSummary(&builder, resolved)
 
 	// The resolved conflicts are listed in full only when asked for.
-	if config.Verbose {
-		resolved := slices.DeleteFunc(slices.Clone(conflicts), func(c Conflict) bool {
-			return c.Decision.Kind == DecisionUnresolved
-		})
-		reports = append(reports, buildConflictReports(grammar, resolved)...)
+	if !config.Verbose {
+		_, err := io.WriteString(w, builder.String())
+		return err
 	}
 
-	for _, report := range reports {
+	for _, report := range buildConflictReports(grammar, resolved) {
+		// The summary and the reports of the states are separated by an empty line.
+		if builder.Len() > 0 {
+			builder.WriteString("\n")
+		}
 		if err := report.Write(&builder, config); err != nil {
 			return err
 		}
@@ -77,15 +77,19 @@ type ConflictReportEntry struct {
 	Decision string
 }
 
-// Write writes the report of the state, one block per conflicted terminal.
+// Write writes the report of the state, one block per conflicted terminal, separated by an empty line. The report ends
+// with a single newline, so a caller which writes several reports separates them by an empty line of its own.
 func (r ConflictReport) Write(w io.Writer, _ ReportConfig) error {
 	var builder strings.Builder
-	for _, entry := range r.Entries {
+	for i, entry := range r.Entries {
+		if i > 0 {
+			builder.WriteString("\n")
+		}
 		fmt.Fprintf(&builder, "%s in state %d on terminal %s\n", entry.Kind, r.StateIdx, entry.Terminal)
 		for _, contribution := range entry.Contributions {
 			fmt.Fprintf(&builder, "    %s\n", contribution)
 		}
-		fmt.Fprintf(&builder, "  %s\n\n", entry.Decision)
+		fmt.Fprintf(&builder, "  %s\n", entry.Decision)
 	}
 	_, err := io.WriteString(w, builder.String())
 	return err
@@ -128,9 +132,6 @@ func buildConflictReportEntry(grammar frontend.Grammar, c Conflict) ConflictRepo
 func writeResolvedConflictSummary(builder *strings.Builder, conflicts []Conflict) {
 	var shiftReduce, reduceReduce int
 	for _, c := range conflicts {
-		if c.Decision.Kind == DecisionUnresolved {
-			continue
-		}
 		shift, reduces := countContributions(c.Undeclared)
 		if shift && reduces > 0 {
 			shiftReduce++
@@ -145,7 +146,6 @@ func writeResolvedConflictSummary(builder *strings.Builder, conflicts []Conflict
 	}
 	writeConflictCount(builder, shiftReduce, "shift/reduce")
 	writeConflictCount(builder, reduceReduce, "reduce/reduce")
-	builder.WriteString("\n")
 }
 
 // writeConflictCount writes the summary line for the conflicts of one kind, or nothing when there are none.

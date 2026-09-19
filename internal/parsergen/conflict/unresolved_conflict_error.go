@@ -1,7 +1,7 @@
 package conflict
 
 import (
-	"fmt"
+	"strings"
 )
 
 // UnresolvedConflictError reports a conflict which the policies did not decide, so the state is left with more than one
@@ -17,20 +17,20 @@ type UnresolvedConflictError struct {
 	// left undecided between.
 	Conflict Conflict
 
-	// TerminalName is the name of the conflicted terminal, so that the error can be read without having the grammar at
-	// hand.
-	TerminalName string
+	// Report is the rendered report of the conflict, holding the single conflicted terminal. It can be written without
+	// the grammar at hand, which the caller does not get back when a conflict is left unresolved.
+	Report ConflictReport
 }
 
 // UnresolvedConflictError implements error.
 var _ error = (*UnresolvedConflictError)(nil)
 
-// Error returns the error message.
+// Error returns the error message, which is the report of the conflict written with the default configuration. It is
+// multi-line and ends with a newline, so the errors.Join of several of them separates the conflicts by an empty line,
+// the same way the report does.
 func (e UnresolvedConflictError) Error() string {
-	return fmt.Sprintf(
-		"state %d is undecided between %s on terminal %s",
-		e.Conflict.StateIdx,
-		e.Conflict.Decision.Unresolved.String(),
-		e.TerminalName,
-	)
+	var builder strings.Builder
+	// Writing to a strings.Builder does not fail.
+	_ = e.Report.Write(&builder, ReportConfig{})
+	return builder.String()
 }
