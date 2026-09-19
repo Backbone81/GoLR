@@ -1,7 +1,9 @@
 // Package conflict provides the public API re-exports for the conflicts a parser core reports.
 package conflict
 
-import intconflict "github.com/backbone81/golr/internal/parsergen/conflict"
+import (
+	intconflict "github.com/backbone81/golr/internal/parsergen/conflict"
+)
 
 type (
 	// Conflict describes a single conflicted terminal of a state, together with what the policy decided about it. This
@@ -17,6 +19,9 @@ type (
 
 	// Decision is what the policy decided about a set of contributions.
 	Decision = intconflict.Decision
+
+	// ReportConfig controls what WriteConflictReport writes.
+	ReportConfig = intconflict.ReportConfig
 )
 
 const (
@@ -34,3 +39,8 @@ const (
 	// conflict stands.
 	DecisionUnresolved = intconflict.DecisionUnresolved
 )
+
+// WriteConflictReport writes a report of the given conflicts to w. Conflicts the policy could not decide are always
+// reported in full, conflicts it resolved on its own are summarized and listed in full only with ReportConfig.Verbose,
+// and conflicts decided by precedence declarations are not reported.
+var WriteConflictReport = intconflict.WriteConflictReport

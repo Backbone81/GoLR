@@ -1,52 +1,62 @@
-package cmd
+package conflict
 
 import (
 	"fmt"
 	"io"
 	"strings"
 
-	"github.com/backbone81/golr/pkg/parsergen/conflict"
-	"github.com/backbone81/golr/pkg/parsergen/frontend"
+	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
 
-// printConflictReport writes a report of the given conflicts to w. It is meant to be given os.Stderr, because stdout can
-// carry the serialized parser of a backend, and mixing the report into that output would corrupt it.
+// ReportConfig controls what WriteConflictReport writes.
+type ReportConfig struct {
+	// Verbose lists every conflict the policy resolved on its own in full, instead of only summarizing them.
+	Verbose bool
+}
+
+// WriteConflictReport writes a report of the given conflicts to w. A caller which writes a serialized parser to stdout
+// should give it os.Stderr, because mixing the report into that output would corrupt it.
 //
 // Conflicts the policy could not decide are always reported in full: the grammar author has to act on them, and the
 // parser cannot be generated while they stand. Conflicts the policy resolved on its own, by shift over reduce or by the
 // earliest production, can run into the hundreds for a large grammar, so they are only summarized by default and listed
 // in full after the summary when verbose is set. Conflicts decided by precedence declarations are not reported at all.
-func printConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []conflict.Conflict, verbose bool) {
+func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []Conflict, config ReportConfig) error {
+	var builder strings.Builder
+
 	// The summary always comes first, so that it sits at the same place in every report.
-	printResolvedConflictSummary(w, conflicts)
+	writeResolvedConflictSummary(&builder, conflicts)
 
 	// The unresolved conflicts are always reported in full.
 	for _, c := range conflicts {
-		if c.Decision.Kind == conflict.DecisionUnresolved {
-			printConflictDetail(w, grammar, c)
+		if c.Decision.Kind == DecisionUnresolved {
+			writeConflictDetail(&builder, grammar, c)
 		}
 	}
 
 	// The resolved conflicts are listed in full only when asked for.
-	if verbose {
+	if config.Verbose {
 		for _, c := range conflicts {
-			if c.Decision.Kind != conflict.DecisionUnresolved {
-				printConflictDetail(w, grammar, c)
+			if c.Decision.Kind != DecisionUnresolved {
+				writeConflictDetail(&builder, grammar, c)
 			}
 		}
 	}
+
+	_, err := io.WriteString(w, builder.String())
+	return err
 }
 
-// printResolvedConflictSummary writes the summary of the conflicts the policy resolved, one line per kind with
+// writeResolvedConflictSummary writes the summary of the conflicts the policy resolved, one line per kind with
 // shift/reduce before reduce/reduce, so that a diff of two reports shows which kind changed.
 //
 // The conflicts are counted the way GNU Bison counts them, so the numbers can be compared with each other: a terminal
 // on which a shift competes with reductions counts as one shift/reduce conflict, and every reduction beyond the first
 // on a terminal counts as one reduce/reduce conflict. A terminal can count as both.
-func printResolvedConflictSummary(w io.Writer, conflicts []conflict.Conflict) {
+func writeResolvedConflictSummary(builder *strings.Builder, conflicts []Conflict) {
 	var shiftReduce, reduceReduce int
 	for _, c := range conflicts {
-		if c.Decision.Kind == conflict.DecisionUnresolved {
+		if c.Decision.Kind == DecisionUnresolved {
 			continue
 		}
 		shift, reduces := countContributions(c.Undeclared)
@@ -61,13 +71,13 @@ func printResolvedConflictSummary(w io.Writer, conflicts []conflict.Conflict) {
 	if shiftReduce == 0 && reduceReduce == 0 {
 		return
 	}
-	printConflictCount(w, shiftReduce, "shift/reduce")
-	printConflictCount(w, reduceReduce, "reduce/reduce")
-	fmt.Fprintln(w)
+	writeConflictCount(builder, shiftReduce, "shift/reduce")
+	writeConflictCount(builder, reduceReduce, "reduce/reduce")
+	builder.WriteString("\n")
 }
 
-// printConflictCount writes the summary line for the conflicts of one kind, or nothing when there are none.
-func printConflictCount(w io.Writer, count int, kind string) {
+// writeConflictCount writes the summary line for the conflicts of one kind, or nothing when there are none.
+func writeConflictCount(builder *strings.Builder, count int, kind string) {
 	if count == 0 {
 		return
 	}
@@ -75,22 +85,22 @@ func printConflictCount(w io.Writer, count int, kind string) {
 	if count == 1 {
 		noun = "conflict"
 	}
-	fmt.Fprintf(w, "%d %s %s resolved\n", count, kind, noun)
+	fmt.Fprintf(builder, "%d %s %s resolved\n", count, kind, noun)
 }
 
-// printConflictDetail writes the full report of a single conflict: the state and the terminal it occurred on, the
+// writeConflictDetail writes the full report of a single conflict: the state and the terminal it occurred on, the
 // actions which competed for that terminal once precedence and associativity had decided what they could, and what
 // the policy decided about them.
-func printConflictDetail(w io.Writer, grammar frontend.Grammar, c conflict.Conflict) {
-	fmt.Fprintf(w, "%s in state %d on terminal %s\n",
+func writeConflictDetail(builder *strings.Builder, grammar frontend.Grammar, c Conflict) {
+	fmt.Fprintf(builder, "%s in state %d on terminal %s\n",
 		conflictKind(c),
 		c.StateIdx,
 		grammar.Terminals[c.TerminalIdx],
 	)
 	for _, contribution := range c.Undeclared.All() {
-		fmt.Fprintf(w, "    %s\n", formatContribution(grammar, contribution))
+		fmt.Fprintf(builder, "    %s\n", formatContribution(grammar, contribution))
 	}
-	fmt.Fprintf(w, "  %s\n\n", formatDecision(grammar, c.Decision))
+	fmt.Fprintf(builder, "  %s\n\n", formatDecision(grammar, c.Decision))
 }
 
 // conflictKind classifies the conflict as a shift/reduce or a reduce/reduce conflict, which is the wording a grammar
@@ -98,7 +108,7 @@ func printConflictDetail(w io.Writer, grammar frontend.Grammar, c conflict.Confl
 // competing, because a shift which precedence removed is no part of the conflict the author has to deal with. A
 // conflict which mixes a shift with more than one reduction is reported as a shift/reduce conflict, because the
 // competing shift is the part the author usually reasons about first.
-func conflictKind(c conflict.Conflict) string {
+func conflictKind(c Conflict) string {
 	shift, reduces := countContributions(c.Undeclared)
 	switch {
 	case shift && reduces > 0:
@@ -112,7 +122,7 @@ func conflictKind(c conflict.Conflict) string {
 }
 
 // countContributions reports whether the contributions hold a shift, and how many reductions they hold.
-func countContributions(contributions conflict.ContributionSet) (bool, int) {
+func countContributions(contributions ContributionSet) (bool, int) {
 	var shift bool
 	var reduces int
 	for _, contribution := range contributions.All() {
@@ -127,19 +137,19 @@ func countContributions(contributions conflict.ContributionSet) (bool, int) {
 
 // formatDecision renders what the policy decided about a conflict in a way a grammar author can read without knowing
 // the internals of the resolution.
-func formatDecision(grammar frontend.Grammar, decision conflict.Decision) string {
+func formatDecision(grammar frontend.Grammar, decision Decision) string {
 	switch decision.Kind {
-	case conflict.DecisionDominant:
+	case DecisionDominant:
 		return "resolved in favor of " + formatContribution(grammar, decision.Dominant)
-	case conflict.DecisionError:
+	case DecisionError:
 		return "resolved by rejecting the terminal, so the parser reports a syntax error on it"
-	case conflict.DecisionUnresolved:
+	case DecisionUnresolved:
 		var parts []string
 		for _, contribution := range decision.Unresolved.All() {
 			parts = append(parts, formatContribution(grammar, contribution))
 		}
 		return "unresolved, still undecided between " + strings.Join(parts, ", ")
-	case conflict.DecisionUndefined:
+	case DecisionUndefined:
 		return "no action to decide about"
 	}
 	return "unknown decision"
@@ -147,7 +157,7 @@ func formatDecision(grammar frontend.Grammar, decision conflict.Decision) string
 
 // formatContribution renders a single competing action of a conflict. A shift is just a shift, and a reduction is
 // spelled out with the production it reduces so the author does not have to look the production index up.
-func formatContribution(grammar frontend.Grammar, contribution conflict.Contribution) string {
+func formatContribution(grammar frontend.Grammar, contribution Contribution) string {
 	if contribution.IsShiftAction() {
 		return "shift"
 	}

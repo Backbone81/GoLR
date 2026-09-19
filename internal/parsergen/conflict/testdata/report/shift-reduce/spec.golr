@@ -1,0 +1,28 @@
+// The dangling else and an expression grammar without precedence declarations, so every conflict is decided by shift
+// over reduce.
+@scanner {
+    WHITESPACE: /[ \t\r\n]+/ @skip;
+    INTEGER:    /[0-9]+/;
+    PLUS:       "+";
+    MULTIPLY:   "*";
+    LPAREN:     "(";
+    RPAREN:     ")";
+    IF:         "if";
+    THEN:       "then";
+    ELSE:       "else";
+}
+
+@parser {
+    statement
+        : "if" expression "then" statement
+        | "if" expression "then" statement "else" statement
+        | expression
+        ;
+
+    expression
+        : INTEGER
+        | expression "+" expression
+        | expression "*" expression
+        | "(" expression ")"
+        ;
+}

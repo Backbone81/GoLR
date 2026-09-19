@@ -1,0 +1,28 @@
+// The grammar of the shift-reduce case, resolved with precedence declarations only. It declares none, so every conflict
+// is left unresolved.
+@scanner {
+    WHITESPACE: /[ \t\r\n]+/ @skip;
+    INTEGER:    /[0-9]+/;
+    PLUS:       "+";
+    MULTIPLY:   "*";
+    LPAREN:     "(";
+    RPAREN:     ")";
+    IF:         "if";
+    THEN:       "then";
+    ELSE:       "else";
+}
+
+@parser {
+    statement
+        : "if" expression "then" statement
+        | "if" expression "then" statement "else" statement
+        | expression
+        ;
+
+    expression
+        : INTEGER
+        | expression "+" expression
+        | expression "*" expression
+        | "(" expression ")"
+        ;
+}

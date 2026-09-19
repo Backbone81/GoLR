@@ -1,0 +1,20 @@
+// An ambiguous expression grammar whose conflicts are all decided by precedence declarations, so nothing is reported.
+@scanner {
+    WHITESPACE: /[ \t\r\n]+/ @skip;
+    INTEGER:    /[0-9]+/;
+    PLUS:       "+";
+    MULTIPLY:   "*";
+}
+
+@parser {
+    @precedence {
+        @left: "*";
+        @left: "+";
+    }
+
+    expression
+        : INTEGER
+        | expression "+" expression
+        | expression "*" expression
+        ;
+}

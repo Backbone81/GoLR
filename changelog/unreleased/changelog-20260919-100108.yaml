@@ -1,0 +1,1 @@
+description: Adjusted conflict reporting to be stable. This allows conflict reports to be diffed reliably, even with the grammar being modified.

@@ -78,7 +78,11 @@ var parserCmd = &cobra.Command{
 		// The conflicts are reported to stderr so they do not corrupt a backend which writes its output to stdout. The
 		// conflicts the policy resolved on its own are only summarized unless --verbose also asks for the full listing, so
 		// the report stays readable for a large grammar.
-		printConflictReport(os.Stderr, parser.Grammar, conflicts, parserVerbose)
+		if err := conflict.WriteConflictReport(os.Stderr, parser.Grammar, conflicts, conflict.ReportConfig{
+			Verbose: parserVerbose,
+		}); err != nil {
+			return err
+		}
 
 		if err := executeParserBackend(parser); err != nil {
 			return err

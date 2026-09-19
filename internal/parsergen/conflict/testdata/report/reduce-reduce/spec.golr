@@ -1,0 +1,24 @@
+// Two nonterminals which derive the same terminal in the same context, so the conflict is decided by the earliest
+// production. The empty productions add a reduce/reduce conflict between two empty right hand sides.
+@scanner {
+    WHITESPACE: /[ \t\r\n]+/ @skip;
+    A:          "a";
+    B:          "b";
+}
+
+@parser {
+    start
+        : first "b"
+        | second "b"
+        ;
+
+    first
+        : "a"
+        | @empty
+        ;
+
+    second
+        : "a"
+        | @empty
+        ;
+}
