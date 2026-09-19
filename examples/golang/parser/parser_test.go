@@ -748,7 +748,7 @@ func BenchmarkGolangParser(b *testing.B) {
 
 	b.Run("Official Go Parser", func(b *testing.B) {
 		for b.Loop() {
-			_, err := goparser.ParseFile(gotoken.NewFileSet(), "server.go", source, 0)
+			_, err := goparser.ParseFile(gotoken.NewFileSet(), "server.go", source, goparser.SkipObjectResolution)
 			if err != nil {
 				b.Fatal(err)
 			}

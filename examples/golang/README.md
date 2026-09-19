@@ -5,7 +5,7 @@ parse tree of such code.
 
 ***IMPORTANT: The Go programming language has some ambiguities which are very hard to solve in the context of an LR(1)
 grammar. The generated parser therefore accepts a superset of valid Go code. A separate pass over the parsed syntax
-tree would need to ensure that the Go code is in fact valid Go code. That additional pass is not implemented int his
+tree would need to ensure that the Go code is in fact valid Go code. That additional pass is not implemented in this
 example.***
 
 The generated scanner produces the same tokens as the official `go/scanner`. This is validated against the full source
@@ -23,15 +23,20 @@ goos: linux
 goarch: amd64
 pkg: github.com/backbone81/golr/examples/golang/parser
 cpu: Intel(R) Core(TM) i9-14900K
-BenchmarkGolangParser/Official_Go_Parser-32          241   4,884,623 ns/op   1,145,055 B/op   29,064 allocs/op
-BenchmarkGolangParser/GoLR_Generated_Parser-32       877   1,171,167 ns/op       3,587 B/op        0 allocs/op
-BenchmarkGolangScanner/Official_Go_Scanner-32      1,741     817,354 ns/op     125,836 B/op    7,273 allocs/op
-BenchmarkGolangScanner/GoLR_Generated_Scanner-32   1,635     637,498 ns/op           0 B/op        0 allocs/op
+BenchmarkGolangParser/Official_Go_Parser-32          228   4,867,542 ns/op   887,541 B/op   25,411 allocs/op
+BenchmarkGolangParser/GoLR_Generated_Parser-32       852   1,176,418 ns/op     3,692 B/op        0 allocs/op
+BenchmarkGolangScanner/Official_Go_Scanner-32      1,564     742,033 ns/op   125,846 B/op    7,273 allocs/op
+BenchmarkGolangScanner/GoLR_Generated_Scanner-32   1,674     637,284 ns/op         0 B/op        0 allocs/op
 PASS
-ok      github.com/backbone81/golr/examples/golang/parser       4.705s
+ok      github.com/backbone81/golr/examples/golang/parser       4.353s
 ```
 
 The benchmark uses the file `net/http/server.go` from the Go standard library as input. It is about 130 KB in size.
-The generated scanner provides comparable performance to the official `go/scanner` without causing any memory
-allocations during tokenization. The generated parser is slower than the official `go/parser` but the number of
-allocations are a lot less.
+
+The generated scanner and parser are created once and reset for every iteration of the benchmark. The parser reuses
+its internal memory between runs, which is why no allocations show up in the benchmark.
+
+With that in mind, the generated scanner performs on par with the official `go/scanner`.
+
+The difference between the parsers is mostly caused by garbage collection. Most of the time of the official parser is
+spent on garbage collection triggered by its allocations, which also makes its timings vary noticeably between runs.
