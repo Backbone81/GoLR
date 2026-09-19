@@ -1,48 +1,43 @@
-state
-    expression -> expression "+" expression .
-    expression -> expression . "*" expression
-    expression -> expression . "+" expression
+state:
+  expression -> expression "+" expression .
+  expression -> expression . "*" expression
+  expression -> expression . "+" expression
 
-  shift/reduce conflict on terminal "+"
-      reduce expression -> expression "+" expression
-      shift
-    unresolved, still undecided between shift, reduce expression -> expression "+" expression
+  shift/reduce conflict on terminal "+":
+    reduce: expression -> expression "+" expression
+    shift
 
-state
-    expression -> expression "+" expression .
-    expression -> expression . "*" expression
-    expression -> expression . "+" expression
+state:
+  expression -> expression "+" expression .
+  expression -> expression . "*" expression
+  expression -> expression . "+" expression
 
-  shift/reduce conflict on terminal "*"
-      reduce expression -> expression "+" expression
-      shift
-    unresolved, still undecided between shift, reduce expression -> expression "+" expression
+  shift/reduce conflict on terminal "*":
+    reduce: expression -> expression "+" expression
+    shift
 
-state
-    expression -> expression "*" expression .
-    expression -> expression . "*" expression
-    expression -> expression . "+" expression
+state:
+  expression -> expression "*" expression .
+  expression -> expression . "*" expression
+  expression -> expression . "+" expression
 
-  shift/reduce conflict on terminal "+"
-      reduce expression -> expression "*" expression
-      shift
-    unresolved, still undecided between shift, reduce expression -> expression "*" expression
+  shift/reduce conflict on terminal "+":
+    reduce: expression -> expression "*" expression
+    shift
 
-state
-    expression -> expression "*" expression .
-    expression -> expression . "*" expression
-    expression -> expression . "+" expression
+state:
+  expression -> expression "*" expression .
+  expression -> expression . "*" expression
+  expression -> expression . "+" expression
 
-  shift/reduce conflict on terminal "*"
-      reduce expression -> expression "*" expression
-      shift
-    unresolved, still undecided between shift, reduce expression -> expression "*" expression
+  shift/reduce conflict on terminal "*":
+    reduce: expression -> expression "*" expression
+    shift
 
-state
-    statement -> "if" expression "then" statement .
-    statement -> "if" expression "then" statement . "else" statement
+state:
+  statement -> "if" expression "then" statement .
+  statement -> "if" expression "then" statement . "else" statement
 
-  shift/reduce conflict on terminal "else"
-      reduce statement -> "if" expression "then" statement
-      shift
-    unresolved, still undecided between shift, reduce statement -> "if" expression "then" statement
+  shift/reduce conflict on terminal "else":
+    reduce: statement -> "if" expression "then" statement
+    shift

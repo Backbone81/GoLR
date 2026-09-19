@@ -101,6 +101,10 @@ type ConflictReportEntry struct {
 
 	// Decision is what the policy decided about the conflict.
 	Decision string
+
+	// DecisionContributions are the actions the decision is about: the one which won, or those an unresolved conflict
+	// was left with. It is empty for a decision which is not about a particular action.
+	DecisionContributions []string
 }
 
 // Write writes the report of the state: the kernel items which name the state, followed by one indented block per
@@ -109,23 +113,31 @@ type ConflictReportEntry struct {
 func (r ConflictReport) Write(w io.Writer, config ReportConfig) error {
 	var builder strings.Builder
 	if config.WithStateNumbers {
-		fmt.Fprintf(&builder, "state %d\n", r.StateIdx)
+		fmt.Fprintf(&builder, "state %d:\n", r.StateIdx)
 	} else {
-		builder.WriteString("state\n")
+		builder.WriteString("state:\n")
 	}
 	for _, kernelItem := range r.KernelItems {
 		if len(kernelItem.Lookaheads) == 0 {
-			fmt.Fprintf(&builder, "    %s\n", kernelItem.Item)
+			fmt.Fprintf(&builder, "  %s\n", kernelItem.Item)
 			continue
 		}
-		fmt.Fprintf(&builder, "    %s  {%s}\n", kernelItem.Item, strings.Join(kernelItem.Lookaheads, ", "))
+		fmt.Fprintf(&builder, "  %s  {%s}\n", kernelItem.Item, strings.Join(kernelItem.Lookaheads, ", "))
 	}
 	for _, entry := range r.Entries {
-		fmt.Fprintf(&builder, "\n  %s on terminal %s\n", entry.Kind, entry.Terminal)
+		fmt.Fprintf(&builder, "\n  %s on terminal %s:\n", entry.Kind, entry.Terminal)
 		for _, contribution := range entry.Contributions {
-			fmt.Fprintf(&builder, "      %s\n", contribution)
+			fmt.Fprintf(&builder, "    %s\n", contribution)
+		}
+		if slices.Equal(entry.DecisionContributions, entry.Contributions) {
+			// A decision which leaves every competing action standing is an unresolved conflict nothing was narrowed
+			// down in, which the actions above already say.
+			continue
 		}
 		fmt.Fprintf(&builder, "    %s\n", entry.Decision)
+		for _, contribution := range entry.DecisionContributions {
+			fmt.Fprintf(&builder, "      %s\n", contribution)
+		}
 	}
 	_, err := io.WriteString(w, builder.String())
 	return err
@@ -241,8 +253,8 @@ func buildConflictReportEntry(grammar frontend.Grammar, c Conflict) ConflictRepo
 	entry := ConflictReportEntry{
 		Terminal: grammar.Terminals[c.TerminalIdx].String(),
 		Kind:     conflictKind(c),
-		Decision: formatDecision(grammar, c.Decision),
 	}
+	entry.Decision, entry.DecisionContributions = formatDecision(grammar, c.Decision)
 	for _, contribution := range c.Undeclared.All() {
 		entry.Contributions = append(entry.Contributions, formatContribution(grammar, contribution))
 	}
@@ -320,23 +332,24 @@ func countContributions(contributions ContributionSet) (bool, int) {
 }
 
 // formatDecision renders what the policy decided about a conflict in a way a grammar author can read without knowing
-// the internals of the resolution.
-func formatDecision(grammar frontend.Grammar, decision Decision) string {
+// the internals of the resolution. It returns the decision and the sorted actions the decision is about.
+func formatDecision(grammar frontend.Grammar, decision Decision) (string, []string) {
 	switch decision.Kind {
 	case DecisionDominant:
-		return "resolved in favor of " + formatContribution(grammar, decision.Dominant)
+		return "resolved in favor of:", []string{formatContribution(grammar, decision.Dominant)}
 	case DecisionError:
-		return "resolved by rejecting the terminal, so the parser reports a syntax error on it"
+		return "resolved by rejecting the terminal, so the parser reports a syntax error on it", nil
 	case DecisionUnresolved:
-		var parts []string
+		var contributions []string
 		for _, contribution := range decision.Unresolved.All() {
-			parts = append(parts, formatContribution(grammar, contribution))
+			contributions = append(contributions, formatContribution(grammar, contribution))
 		}
-		return "unresolved, still undecided between " + strings.Join(parts, ", ")
+		slices.Sort(contributions)
+		return "unresolved between:", contributions
 	case DecisionUndefined:
-		return "no action to decide about"
+		return "no action to decide about", nil
 	}
-	return "unknown decision"
+	return "unknown decision", nil
 }
 
 // formatContribution renders a single competing action of a conflict. A shift is just a shift, and a reduction is
@@ -345,7 +358,7 @@ func formatContribution(grammar frontend.Grammar, contribution Contribution) str
 	if contribution.IsShiftAction() {
 		return "shift"
 	}
-	return "reduce " + formatProduction(grammar, contribution.ProductionIdx())
+	return "reduce: " + formatProduction(grammar, contribution.ProductionIdx())
 }
 
 // formatProduction renders a production with the names of its symbols instead of their indexes, which is what makes the

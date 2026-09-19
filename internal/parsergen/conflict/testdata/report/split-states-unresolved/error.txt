@@ -1,17 +1,15 @@
-state
-    x -> "c" .  {"d", "f"}
-    y -> "c" .  {"e", "f"}
+state:
+  x -> "c" .  {"d", "f"}
+  y -> "c" .  {"e", "f"}
 
-  reduce/reduce conflict on terminal "f"
-      reduce x -> "c"
-      reduce y -> "c"
-    unresolved, still undecided between reduce x -> "c", reduce y -> "c"
+  reduce/reduce conflict on terminal "f":
+    reduce: x -> "c"
+    reduce: y -> "c"
 
-state
-    x -> "c" .  {"e", "g"}
-    y -> "c" .  {"d", "g"}
+state:
+  x -> "c" .  {"e", "g"}
+  y -> "c" .  {"d", "g"}
 
-  reduce/reduce conflict on terminal "g"
-      reduce x -> "c"
-      reduce y -> "c"
-    unresolved, still undecided between reduce x -> "c", reduce y -> "c"
+  reduce/reduce conflict on terminal "g":
+    reduce: x -> "c"
+    reduce: y -> "c"

@@ -1,18 +1,20 @@
 2 reduce/reduce conflicts resolved
 
-state
-    $accept -> . start $end
+state:
+  $accept -> . start $end
 
-  reduce/reduce conflict on terminal "b"
-      reduce first -> (empty)
-      reduce second -> (empty)
-    resolved in favor of reduce first -> (empty)
+  reduce/reduce conflict on terminal "b":
+    reduce: first -> (empty)
+    reduce: second -> (empty)
+    resolved in favor of:
+      reduce: first -> (empty)
 
-state
-    first -> "a" .
-    second -> "a" .
+state:
+  first -> "a" .
+  second -> "a" .
 
-  reduce/reduce conflict on terminal "b"
-      reduce first -> "a"
-      reduce second -> "a"
-    resolved in favor of reduce first -> "a"
+  reduce/reduce conflict on terminal "b":
+    reduce: first -> "a"
+    reduce: second -> "a"
+    resolved in favor of:
+      reduce: first -> "a"
