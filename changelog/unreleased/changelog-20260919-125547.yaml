@@ -1,0 +1,1 @@
+description: The conflict report of golr parser lists the lookaheads of the completed kernel items when two conflicted states have the same kernel items, which happens when IELR(1) splits a state, so those states can be told apart.

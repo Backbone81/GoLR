@@ -45,6 +45,7 @@ func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []Conf
 	}
 
 	reports := buildConflictReports(grammar, resolved)
+	removeUnambiguousLookaheads(reports)
 	// The reports are sorted by their content instead of by the state index, so the report does not change when an
 	// unrelated grammar edit renumbers the states.
 	slices.SortFunc(reports, compareConflictReports)
@@ -70,10 +71,21 @@ type ConflictReport struct {
 	StateIdx int
 
 	// KernelItems are the kernel items of the conflicted state, which name the state independently of its index.
-	KernelItems []string
+	KernelItems []ConflictReportKernelItem
 
 	// Entries are the conflicted terminals of the state.
 	Entries []ConflictReportEntry
+}
+
+// ConflictReportKernelItem is a single kernel item of a conflicted state.
+type ConflictReportKernelItem struct {
+	// Item is the kernel item with a dot at its position.
+	Item string
+
+	// Lookaheads are the names of the terminals the completed item reduces on, before any conflict was resolved. They are
+	// removed unless another state of the same report has the same kernel items, because the lookaheads are what tells
+	// those states apart, and they change far more often with unrelated grammar edits than the kernel items do.
+	Lookaheads []string
 }
 
 // ConflictReportEntry is the report of a single conflicted terminal of a state.
@@ -102,7 +114,11 @@ func (r ConflictReport) Write(w io.Writer, config ReportConfig) error {
 		builder.WriteString("state\n")
 	}
 	for _, kernelItem := range r.KernelItems {
-		fmt.Fprintf(&builder, "    %s\n", kernelItem)
+		if len(kernelItem.Lookaheads) == 0 {
+			fmt.Fprintf(&builder, "    %s\n", kernelItem.Item)
+			continue
+		}
+		fmt.Fprintf(&builder, "    %s  {%s}\n", kernelItem.Item, strings.Join(kernelItem.Lookaheads, ", "))
 	}
 	for _, entry := range r.Entries {
 		fmt.Fprintf(&builder, "\n  %s on terminal %s\n", entry.Kind, entry.Terminal)
@@ -141,10 +157,15 @@ func compareConflictReports(a ConflictReport, b ConflictReport) int {
 	if result := cmp.Compare(len(a.KernelItems), len(b.KernelItems)); result != 0 {
 		return result
 	}
-	if result := slices.Compare(a.KernelItems, b.KernelItems); result != 0 {
+	result := slices.CompareFunc(a.KernelItems, b.KernelItems, compareKernelItems)
+	if result != 0 {
 		return result
 	}
-	result := slices.CompareFunc(a.Entries, b.Entries, func(a ConflictReportEntry, b ConflictReportEntry) int {
+	result = slices.CompareFunc(a.KernelItems, b.KernelItems, compareLookaheads)
+	if result != 0 {
+		return result
+	}
+	result = slices.CompareFunc(a.Entries, b.Entries, func(a ConflictReportEntry, b ConflictReportEntry) int {
 		return strings.Compare(a.Terminal, b.Terminal)
 	})
 	if result != 0 {
@@ -153,15 +174,64 @@ func compareConflictReports(a ConflictReport, b ConflictReport) int {
 	return cmp.Compare(a.StateIdx, b.StateIdx)
 }
 
+// compareKernelItems orders two kernel items by the item alone, which is unique within a state.
+func compareKernelItems(a ConflictReportKernelItem, b ConflictReportKernelItem) int {
+	return strings.Compare(a.Item, b.Item)
+}
+
+// compareLookaheads orders two kernel items by the number of their lookaheads, then by the lookaheads.
+func compareLookaheads(a ConflictReportKernelItem, b ConflictReportKernelItem) int {
+	if result := cmp.Compare(len(a.Lookaheads), len(b.Lookaheads)); result != 0 {
+		return result
+	}
+	return slices.Compare(a.Lookaheads, b.Lookaheads)
+}
+
+// removeUnambiguousLookaheads removes the lookaheads from every report whose kernel items no report of another state
+// shares. A state is then already told apart by its kernel items, and leaving the lookaheads out keeps the report
+// stable when an unrelated grammar edit changes them. Several reports can belong to the same state, which does not
+// make their kernel items ambiguous.
+func removeUnambiguousLookaheads(reports []ConflictReport) {
+	stateIdxsByKernel := make(map[string]map[int]struct{})
+	for _, report := range reports {
+		kernel := report.kernel()
+		if stateIdxsByKernel[kernel] == nil {
+			stateIdxsByKernel[kernel] = make(map[int]struct{})
+		}
+		stateIdxsByKernel[kernel][report.StateIdx] = struct{}{}
+	}
+
+	for _, report := range reports {
+		if len(stateIdxsByKernel[report.kernel()]) > 1 {
+			continue
+		}
+		for i := range report.KernelItems {
+			report.KernelItems[i].Lookaheads = nil
+		}
+	}
+}
+
+// kernel returns the kernel items of the report as a single string, which identifies the kernel in a map.
+func (r ConflictReport) kernel() string {
+	items := make([]string, 0, len(r.KernelItems))
+	for _, kernelItem := range r.KernelItems {
+		items = append(items, kernelItem.Item)
+	}
+	return strings.Join(items, "\n")
+}
+
 // buildConflictReport builds the report of the state of the conflict, without any entry yet.
 func buildConflictReport(grammar frontend.Grammar, c Conflict) ConflictReport {
 	report := ConflictReport{
 		StateIdx: c.StateIdx,
 	}
 	for _, core := range c.KernelItems.All() {
-		report.KernelItems = append(report.KernelItems, formatKernelItem(grammar, core))
+		report.KernelItems = append(report.KernelItems, ConflictReportKernelItem{
+			Item:       formatKernelItem(grammar, core),
+			Lookaheads: formatKernelItemLookaheads(grammar, c.ReduceActions, core),
+		})
 	}
-	slices.Sort(report.KernelItems)
+	slices.SortFunc(report.KernelItems, compareKernelItems)
 	return report
 }
 
@@ -292,6 +362,30 @@ func formatProduction(grammar frontend.Grammar, productionIdx int) string {
 // formatKernelItem renders a kernel item as its production with a dot at the position of the item.
 func formatKernelItem(grammar frontend.Grammar, core backend.Core) string {
 	return formatSymbols(grammar, grammar.Productions[core.ProductionIdx()], core.Position())
+}
+
+// formatKernelItemLookaheads returns the sorted names of the terminals the kernel item reduces on, or nil when the item
+// is not completed and so does not reduce.
+func formatKernelItemLookaheads(
+	grammar frontend.Grammar,
+	reduceActions backend.ReduceActionSet,
+	core backend.Core,
+) []string {
+	if core.Position() != len(grammar.Productions[core.ProductionIdx()].SymbolRefs) {
+		return nil
+	}
+
+	var result []string
+	for _, reduceAction := range reduceActions.All() {
+		if reduceAction.ProductionIdx != core.ProductionIdx() {
+			continue
+		}
+		for terminalIdx := range reduceAction.LookaheadSet.All() {
+			result = append(result, grammar.Terminals[terminalIdx].String())
+		}
+	}
+	slices.Sort(result)
+	return result
 }
 
 // formatSymbols renders the production with the names of its symbols, and with a dot in front of the symbol at the

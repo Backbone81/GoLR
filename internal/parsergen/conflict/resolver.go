@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"runtime/trace"
+	"slices"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
@@ -19,6 +20,11 @@ type Conflict struct {
 	// KernelItems are the kernel items of the conflicted state. They name the state independently of its index, which
 	// changes with unrelated grammar edits. The set is shared with the state and with the other conflicts of the state.
 	KernelItems backend.CoreSet
+
+	// ReduceActions are the reduce actions of the conflicted state before any conflict of the state was resolved, with
+	// their complete lookahead sets. They tell apart states with the same kernel items, which IELR(1) splits by their
+	// lookaheads. The set is shared with the other conflicts of the state.
+	ReduceActions backend.ReduceActionSet
 
 	// TerminalIdx is the terminal index of the conflicted terminal.
 	TerminalIdx int
@@ -61,26 +67,39 @@ func Resolve(parser *backend.Parser, policy Policy) ([]Conflict, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Conflict: Resolve").End()
 
 	var conflicts []Conflict
-	var errs []error
 	var scanner Scanner
 	for stateIdx := range parser.States {
 		// The conflicts of the state are collected before any action is removed from it, because removing the actions
 		// which lost is what makes the state stop being conflicted.
 		stateConflicts := getConflicts(&scanner, &parser.States[stateIdx], stateIdx)
 		stateConflicts = resolveState(&parser.States[stateIdx], stateConflicts, policy)
-
-		for _, stateConflict := range stateConflicts {
-			if stateConflict.Decision.Kind != DecisionUnresolved {
-				continue
-			}
-			errs = append(errs, UnresolvedConflictError{
-				Conflict: stateConflict,
-				Report:   buildConflictReports(parser.Grammar, []Conflict{stateConflict})[0],
-			})
-		}
 		conflicts = append(conflicts, stateConflicts...)
 	}
-	return conflicts, errors.Join(errs...)
+	return conflicts, newUnresolvedConflictErrors(parser.Grammar, conflicts)
+}
+
+// newUnresolvedConflictErrors joins one UnresolvedConflictError per unresolved conflict into a single error, or returns
+// nil when every conflict was resolved.
+func newUnresolvedConflictErrors(grammar frontend.Grammar, conflicts []Conflict) error {
+	unresolved := slices.DeleteFunc(slices.Clone(conflicts), func(c Conflict) bool {
+		return c.Decision.Kind != DecisionUnresolved
+	})
+
+	// Every error gets a report of its own, so that the error can be written without the grammar at hand.
+	reports := make([]ConflictReport, 0, len(unresolved))
+	for _, c := range unresolved {
+		reports = append(reports, buildConflictReports(grammar, []Conflict{c})[0])
+	}
+	removeUnambiguousLookaheads(reports)
+
+	errs := make([]error, 0, len(unresolved))
+	for i, c := range unresolved {
+		errs = append(errs, UnresolvedConflictError{
+			Conflict: c,
+			Report:   reports[i],
+		})
+	}
+	return errors.Join(errs...)
 }
 
 // Detect returns every conflict of the parser tables, in the order Resolve looks at them, without applying a policy and
@@ -112,12 +131,20 @@ func HasConflict(parser backend.Parser) bool {
 func getConflicts(scanner *Scanner, state *backend.State, stateIdx int) []Conflict {
 	result := make([]Conflict, 0, 2)
 
+	// The reduce actions are cloned, because resolving the conflicts removes terminals from their lookahead sets in
+	// place. Only a conflicted state pays for the clone.
+	var reduceActions backend.ReduceActionSet
+
 	// The scanner reports the conflicted terminals in ascending order, because the conflicts end up in a report for the
 	// user and we want them to be stable across runs.
 	for _, conflicted := range scanner.Conflicts(state) {
+		if len(result) == 0 {
+			reduceActions = state.ReduceActions.Clone()
+		}
 		result = append(result, Conflict{
 			StateIdx:      stateIdx,
 			KernelItems:   state.KernelItems,
+			ReduceActions: reduceActions,
 			TerminalIdx:   conflicted.TerminalIdx,
 			Contributions: conflicted.Contributions,
 		})

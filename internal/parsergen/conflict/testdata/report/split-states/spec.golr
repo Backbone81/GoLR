@@ -1,0 +1,34 @@
+// The classic grammar which is LR(1) but not LALR(1): merging the two states after "c" would conflict on "d" and "e".
+// IELR(1) splits them, and the ambiguity on "f" and "g" leaves both split states conflicted, so the report holds two
+// states with the same kernel items which only their lookaheads tell apart.
+@scanner {
+    WHITESPACE: /[ \t\r\n]+/ @skip;
+    A:          "a";
+    B:          "b";
+    C:          "c";
+    D:          "d";
+    E:          "e";
+    F:          "f";
+    G:          "g";
+}
+
+@parser {
+    start
+        : "a" x "d"
+        | "a" y "e"
+        | "b" x "e"
+        | "b" y "d"
+        | "a" x "f"
+        | "a" y "f"
+        | "b" x "g"
+        | "b" y "g"
+        ;
+
+    x
+        : "c"
+        ;
+
+    y
+        : "c"
+        ;
+}

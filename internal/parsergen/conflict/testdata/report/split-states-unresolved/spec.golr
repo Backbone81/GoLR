@@ -1,0 +1,33 @@
+// The grammar of the split-states case, with a policy which leaves every conflict unresolved: the errors of the two
+// split states have the same kernel items, which only their lookaheads tell apart.
+@scanner {
+    WHITESPACE: /[ \t\r\n]+/ @skip;
+    A:          "a";
+    B:          "b";
+    C:          "c";
+    D:          "d";
+    E:          "e";
+    F:          "f";
+    G:          "g";
+}
+
+@parser {
+    start
+        : "a" x "d"
+        | "a" y "e"
+        | "b" x "e"
+        | "b" y "d"
+        | "a" x "f"
+        | "a" y "f"
+        | "b" x "g"
+        | "b" y "g"
+        ;
+
+    x
+        : "c"
+        ;
+
+    y
+        : "c"
+        ;
+}

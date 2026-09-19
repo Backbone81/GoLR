@@ -30,6 +30,10 @@ type (
 	// ConflictReportEntry is the report of a single conflicted terminal of a state.
 	ConflictReportEntry = intconflict.ConflictReportEntry
 
+	// ConflictReportKernelItem is a single kernel item of a conflicted state, with its lookaheads when they are needed
+	// to tell the state apart from another state with the same kernel items.
+	ConflictReportKernelItem = intconflict.ConflictReportKernelItem
+
 	// UnresolvedConflictError reports a conflict which the policies did not decide. A core joins one of them per
 	// unresolved conflict into the error it returns.
 	UnresolvedConflictError = intconflict.UnresolvedConflictError
