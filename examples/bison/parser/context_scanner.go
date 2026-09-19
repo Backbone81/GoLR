@@ -33,6 +33,14 @@ func (c *ContextScanner) Lexeme() []byte {
 	return c.Scanner.Lexeme()
 }
 
+func (c *ContextScanner) Position(byteOffset int) Position {
+	return c.Scanner.Position(byteOffset)
+}
+
+func (c *ContextScanner) Text(byteOffset int, byteLength int) []byte {
+	return c.Scanner.Text(byteOffset, byteLength)
+}
+
 func (c *ContextScanner) Next() bool {
 	if c.percentPercentCount == 2 {
 		c.Scanner.ReadEpilogue()

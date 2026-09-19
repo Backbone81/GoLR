@@ -40,6 +40,16 @@ func (t *TokenTransformer) Lexeme() []byte {
 	return t.tokenQueue[0].Lexeme
 }
 
+// Position and Text resolve against the source and not against the current token, so the queue of tokens read ahead
+// does not come into it.
+func (t *TokenTransformer) Position(byteOffset int) Position {
+	return t.Scanner.Position(byteOffset)
+}
+
+func (t *TokenTransformer) Text(byteOffset int, byteLength int) []byte {
+	return t.Scanner.Text(byteOffset, byteLength)
+}
+
 func (t *TokenTransformer) Next() bool {
 	// Discard the first token in our queue
 	if len(t.tokenQueue) > 0 {

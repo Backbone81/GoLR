@@ -99,6 +99,14 @@ func (s *SemicolonInserter) Lexeme() []byte {
 	return s.Scanner.Lexeme()
 }
 
+func (s *SemicolonInserter) Position(byteOffset int) Position {
+	return s.Scanner.Position(byteOffset)
+}
+
+func (s *SemicolonInserter) Text(byteOffset int, byteLength int) []byte {
+	return s.Scanner.Text(byteOffset, byteLength)
+}
+
 func (s *SemicolonInserter) FilePath() string {
 	return s.Scanner.FilePath()
 }

@@ -7,7 +7,9 @@
 package parser
 
 import (
+	"bytes"
 	"fmt"
+	"slices"
 )
 
 // Token is every terminal symbol this scanner knows.
@@ -79,6 +81,23 @@ func (t Token) IsSkipped() bool {
 	}
 }
 
+// Position is where a byte offset of the source is, in the terms a human reads: the file the scanner was given, the
+// offset itself, and the line and column it falls on.
+type Position struct {
+	// FilePath is the file path the scanner was given.
+	FilePath string
+
+	// ByteOffset is the offset this position was resolved for, in bytes from the start of the source.
+	ByteOffset int
+
+	// Line is the line the offset falls on, counted from one. Only a line feed starts a new line, so the carriage
+	// return of a CRLF pair is the last byte of the line it ends.
+	Line int
+
+	// Column is the column the offset falls on, counted from one in bytes.
+	Column int
+}
+
 // TokenSource is what a scanner offers. Both Scanner and TokenSkipper implement it.
 type TokenSource interface {
 	// Token returns the current token.
@@ -96,6 +115,15 @@ type TokenSource interface {
 
 	// Lexeme returns the bytes of the token, as a view into the source rather than a copy of it.
 	Lexeme() []byte
+
+	// Position resolves a byte offset of the source into file path, line and column. Offsets from zero up to and
+	// including the length of the source are valid, the last of them being the end of the source, and an offset
+	// outside of that is clamped into it.
+	Position(byteOffset int) Position
+
+	// Text returns the bytes the given span covers, as a view into the source rather than a copy of it. The span is
+	// clamped to the source, and a negative length is empty.
+	Text(byteOffset int, byteLength int) []byte
 
 	// FilePath returns the file path the scanner was given.
 	FilePath() string
@@ -146,6 +174,16 @@ func (s *TokenSkipper) Column() int {
 // Lexeme returns the bytes of the token, as a view into the source rather than a copy of it.
 func (s *TokenSkipper) Lexeme() []byte {
 	return s.scanner.Lexeme()
+}
+
+// Position resolves a byte offset of the source into file path, line and column.
+func (s *TokenSkipper) Position(byteOffset int) Position {
+	return s.scanner.Position(byteOffset)
+}
+
+// Text returns the bytes the given span covers, as a view into the source rather than a copy of it.
+func (s *TokenSkipper) Text(byteOffset int, byteLength int) []byte {
+	return s.scanner.Text(byteOffset, byteLength)
 }
 
 // FilePath returns the file path the scanner was given.
@@ -252,6 +290,10 @@ type Scanner struct {
 
 	// column is the column the current token starts on, counted from one.
 	column int
+
+	// lineStarts holds the byte offset every line of the source begins at. It is built on the first call to Position
+	// and emptied by Reset, which keeps its storage for the next source.
+	lineStarts []int
 }
 
 // NewScanner creates a scanner which turns the given bytes into tokens, starting at the first of them. The file path is
@@ -290,6 +332,52 @@ func (s *Scanner) Lexeme() []byte {
 	return s.source[s.lexemeStartIdx:s.lexemeEndIdx]
 }
 
+// Position resolves a byte offset of the source into file path, line and column. Offsets from zero up to and including
+// the length of the source are valid, the last of them being the end of the source, and an offset outside of that is
+// clamped into it.
+func (s *Scanner) Position(byteOffset int) Position {
+	byteOffset = min(max(byteOffset, 0), len(s.source))
+
+	if len(s.lineStarts) == 0 {
+		s.buildLineStarts()
+	}
+
+	// The search returns where the offset would be inserted, which is the number of lines in front of it. An offset
+	// which is a line start itself belongs to the line it starts.
+	line, isLineStart := slices.BinarySearch(s.lineStarts, byteOffset)
+	if isLineStart {
+		line++
+	}
+	return Position{
+		FilePath:   s.filePath,
+		ByteOffset: byteOffset,
+		Line:       line,
+		Column:     byteOffset - s.lineStarts[line-1] + 1,
+	}
+}
+
+// buildLineStarts fills in the byte offset every line of the source begins at, into the storage left over from the
+// source before. The first line begins at zero, so the result is never empty and an empty source has one line.
+func (s *Scanner) buildLineStarts() {
+	s.lineStarts = append(s.lineStarts, 0)
+	for byteOffset := 0; byteOffset < len(s.source); {
+		lineFeedIdx := bytes.IndexByte(s.source[byteOffset:], '\n')
+		if lineFeedIdx < 0 {
+			break
+		}
+		byteOffset += lineFeedIdx + 1
+		s.lineStarts = append(s.lineStarts, byteOffset)
+	}
+}
+
+// Text returns the bytes the given span covers, as a view into the source rather than a copy of it. The span is clamped
+// to the source, and a negative length is empty.
+func (s *Scanner) Text(byteOffset int, byteLength int) []byte {
+	startIdx := min(max(byteOffset, 0), len(s.source))
+	endIdx := min(max(startIdx, startIdx+byteLength), len(s.source))
+	return s.source[startIdx:endIdx]
+}
+
 // FilePath returns the file path the scanner was given.
 func (s *Scanner) FilePath() string {
 	return s.filePath
@@ -307,6 +395,9 @@ func (s *Scanner) Reset(source []byte, offset int) {
 
 	s.line = 1
 	s.column = 1
+
+	// The line starts belong to the source which was replaced here, but their storage is worth keeping.
+	s.lineStarts = s.lineStarts[:0]
 
 	s.token = InvalidToken
 }
