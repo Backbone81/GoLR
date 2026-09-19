@@ -3,6 +3,7 @@ package conflict
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/backbone81/golr/internal/parsergen/frontend"
@@ -28,23 +29,94 @@ func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []Conf
 	writeResolvedConflictSummary(&builder, conflicts)
 
 	// The unresolved conflicts are always reported in full.
-	for _, c := range conflicts {
-		if c.Decision.Kind == DecisionUnresolved {
-			writeConflictDetail(&builder, grammar, c)
-		}
-	}
+	unresolved := slices.DeleteFunc(slices.Clone(conflicts), func(c Conflict) bool {
+		return c.Decision.Kind != DecisionUnresolved
+	})
+	reports := buildConflictReports(grammar, unresolved)
 
 	// The resolved conflicts are listed in full only when asked for.
 	if config.Verbose {
-		for _, c := range conflicts {
-			if c.Decision.Kind != DecisionUnresolved {
-				writeConflictDetail(&builder, grammar, c)
-			}
+		resolved := slices.DeleteFunc(slices.Clone(conflicts), func(c Conflict) bool {
+			return c.Decision.Kind == DecisionUnresolved
+		})
+		reports = append(reports, buildConflictReports(grammar, resolved)...)
+	}
+
+	for _, report := range reports {
+		if err := report.Write(&builder, config); err != nil {
+			return err
 		}
 	}
 
 	_, err := io.WriteString(w, builder.String())
 	return err
+}
+
+// ConflictReport is the report of the conflicts of a single state, rendered with the names of the grammar symbols so it
+// can be written without the grammar at hand.
+type ConflictReport struct {
+	// StateIdx is the state index of the conflicted state.
+	StateIdx int
+
+	// Entries are the conflicted terminals of the state.
+	Entries []ConflictReportEntry
+}
+
+// ConflictReportEntry is the report of a single conflicted terminal of a state.
+type ConflictReportEntry struct {
+	// Terminal is the name of the conflicted terminal.
+	Terminal string
+
+	// Kind is the kind of the conflict, see conflictKind.
+	Kind string
+
+	// Contributions are the actions the declarations of the grammar left competing for the terminal.
+	Contributions []string
+
+	// Decision is what the policy decided about the conflict.
+	Decision string
+}
+
+// Write writes the report of the state, one block per conflicted terminal.
+func (r ConflictReport) Write(w io.Writer, _ ReportConfig) error {
+	var builder strings.Builder
+	for _, entry := range r.Entries {
+		fmt.Fprintf(&builder, "%s in state %d on terminal %s\n", entry.Kind, r.StateIdx, entry.Terminal)
+		for _, contribution := range entry.Contributions {
+			fmt.Fprintf(&builder, "    %s\n", contribution)
+		}
+		fmt.Fprintf(&builder, "  %s\n\n", entry.Decision)
+	}
+	_, err := io.WriteString(w, builder.String())
+	return err
+}
+
+// buildConflictReports builds one report per state from the conflicts. The conflicts of a state are adjacent, because
+// Resolve returns them in state order.
+func buildConflictReports(grammar frontend.Grammar, conflicts []Conflict) []ConflictReport {
+	var reports []ConflictReport
+	for _, c := range conflicts {
+		if len(reports) == 0 || reports[len(reports)-1].StateIdx != c.StateIdx {
+			reports = append(reports, ConflictReport{StateIdx: c.StateIdx})
+		}
+		last := &reports[len(reports)-1]
+		last.Entries = append(last.Entries, buildConflictReportEntry(grammar, c))
+	}
+	return reports
+}
+
+// buildConflictReportEntry renders a single conflict: the terminal it occurred on, the actions which competed for that
+// terminal once precedence and associativity had decided what they could, and what the policy decided about them.
+func buildConflictReportEntry(grammar frontend.Grammar, c Conflict) ConflictReportEntry {
+	entry := ConflictReportEntry{
+		Terminal: grammar.Terminals[c.TerminalIdx].String(),
+		Kind:     conflictKind(c),
+		Decision: formatDecision(grammar, c.Decision),
+	}
+	for _, contribution := range c.Undeclared.All() {
+		entry.Contributions = append(entry.Contributions, formatContribution(grammar, contribution))
+	}
+	return entry
 }
 
 // writeResolvedConflictSummary writes the summary of the conflicts the policy resolved, one line per kind with
@@ -86,21 +158,6 @@ func writeConflictCount(builder *strings.Builder, count int, kind string) {
 		noun = "conflict"
 	}
 	fmt.Fprintf(builder, "%d %s %s resolved\n", count, kind, noun)
-}
-
-// writeConflictDetail writes the full report of a single conflict: the state and the terminal it occurred on, the
-// actions which competed for that terminal once precedence and associativity had decided what they could, and what
-// the policy decided about them.
-func writeConflictDetail(builder *strings.Builder, grammar frontend.Grammar, c Conflict) {
-	fmt.Fprintf(builder, "%s in state %d on terminal %s\n",
-		conflictKind(c),
-		c.StateIdx,
-		grammar.Terminals[c.TerminalIdx],
-	)
-	for _, contribution := range c.Undeclared.All() {
-		fmt.Fprintf(builder, "    %s\n", formatContribution(grammar, contribution))
-	}
-	fmt.Fprintf(builder, "  %s\n\n", formatDecision(grammar, c.Decision))
 }
 
 // conflictKind classifies the conflict as a shift/reduce or a reduce/reduce conflict, which is the wording a grammar

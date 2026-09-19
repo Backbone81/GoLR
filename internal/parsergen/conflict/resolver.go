@@ -16,6 +16,10 @@ type Conflict struct {
 	// StateIdx is the state index of the conflicted state.
 	StateIdx int
 
+	// KernelItems are the kernel items of the conflicted state. They name the state independently of its index, which
+	// changes with unrelated grammar edits. The set is shared with the state and with the other conflicts of the state.
+	KernelItems backend.CoreSet
+
 	// TerminalIdx is the terminal index of the conflicted terminal.
 	TerminalIdx int
 
@@ -113,6 +117,7 @@ func getConflicts(scanner *Scanner, state *backend.State, stateIdx int) []Confli
 	for _, conflicted := range scanner.Conflicts(state) {
 		result = append(result, Conflict{
 			StateIdx:      stateIdx,
+			KernelItems:   state.KernelItems,
 			TerminalIdx:   conflicted.TerminalIdx,
 			Contributions: conflicted.Contributions,
 		})
