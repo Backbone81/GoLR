@@ -1,41 +1,41 @@
 state
-    expression -> expression . "+" expression
     expression -> expression "+" expression .
     expression -> expression . "*" expression
+    expression -> expression . "+" expression
 
   shift/reduce conflict on terminal "+"
-      shift
       reduce expression -> expression "+" expression
+      shift
     unresolved, still undecided between shift, reduce expression -> expression "+" expression
 
 state
-    expression -> expression . "+" expression
     expression -> expression "+" expression .
     expression -> expression . "*" expression
+    expression -> expression . "+" expression
 
   shift/reduce conflict on terminal "*"
-      shift
       reduce expression -> expression "+" expression
+      shift
     unresolved, still undecided between shift, reduce expression -> expression "+" expression
 
 state
-    expression -> expression . "+" expression
-    expression -> expression . "*" expression
     expression -> expression "*" expression .
+    expression -> expression . "*" expression
+    expression -> expression . "+" expression
 
   shift/reduce conflict on terminal "+"
-      shift
       reduce expression -> expression "*" expression
+      shift
     unresolved, still undecided between shift, reduce expression -> expression "*" expression
 
 state
-    expression -> expression . "+" expression
-    expression -> expression . "*" expression
     expression -> expression "*" expression .
+    expression -> expression . "*" expression
+    expression -> expression . "+" expression
 
   shift/reduce conflict on terminal "*"
-      shift
       reduce expression -> expression "*" expression
+      shift
     unresolved, still undecided between shift, reduce expression -> expression "*" expression
 
 state
@@ -43,6 +43,6 @@ state
     statement -> "if" expression "then" statement . "else" statement
 
   shift/reduce conflict on terminal "else"
-      shift
       reduce statement -> "if" expression "then" statement
+      shift
     unresolved, still undecided between shift, reduce statement -> "if" expression "then" statement

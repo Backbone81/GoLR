@@ -1,0 +1,31 @@
+// The grammar of the shift-reduce report case with edits which do not touch any conflict: an unrelated production and
+// terminal in front of everything else renumber the terminals, the productions and the states, and swapping the
+// declarations of "+" and "*" swaps the order of their states.
+@scanner {
+    WHITESPACE: /[ \t\r\n]+/ @skip;
+    PRINT:      "print";
+    INTEGER:    /[0-9]+/;
+    MULTIPLY:   "*";
+    PLUS:       "+";
+    LPAREN:     "(";
+    RPAREN:     ")";
+    IF:         "if";
+    THEN:       "then";
+    ELSE:       "else";
+}
+
+@parser {
+    statement
+        : "print" INTEGER
+        | "if" expression "then" statement
+        | "if" expression "then" statement "else" statement
+        | expression
+        ;
+
+    expression
+        : INTEGER
+        | expression "+" expression
+        | expression "*" expression
+        | "(" expression ")"
+        ;
+}

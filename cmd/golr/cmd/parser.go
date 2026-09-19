@@ -58,7 +58,8 @@ var (
 	parserBackendRustScannerModule       string
 	parserBackendTypeScriptScannerModule string
 
-	parserVerbose bool
+	parserVerbose          bool
+	parserWithStateNumbers bool
 )
 
 var parserCmd = &cobra.Command{
@@ -76,7 +77,8 @@ var parserCmd = &cobra.Command{
 		// conflicts the policy resolved on its own are only summarized unless --verbose also asks for the full listing, so
 		// the report stays readable for a large grammar.
 		reportConfig := conflict.ReportConfig{
-			Verbose: parserVerbose,
+			Verbose:          parserVerbose,
+			WithStateNumbers: parserWithStateNumbers,
 		}
 
 		parser, conflicts, err := executeParserCore(grammar)
@@ -438,5 +440,12 @@ func init() {
 		"v",
 		false,
 		"List every conflict the parser generator resolved on its own.",
+	)
+
+	parserCmd.PersistentFlags().BoolVar(
+		&parserWithStateNumbers,
+		"with-state-number",
+		false,
+		"Output the state number with every conflicted state.",
 	)
 }

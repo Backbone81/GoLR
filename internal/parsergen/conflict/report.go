@@ -1,6 +1,7 @@
 package conflict
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"slices"
@@ -14,6 +15,10 @@ import (
 type ReportConfig struct {
 	// Verbose lists every conflict the policy resolved on its own in full, instead of only summarizing them.
 	Verbose bool
+
+	// WithStateNumbers adds the state index to every state. It changes with unrelated grammar edits, so it is only a
+	// handle to look the state up in a dump of the parser tables from the same run.
+	WithStateNumbers bool
 }
 
 // WriteConflictReport writes a report of the given conflicts to w. A caller which writes a serialized parser to stdout
@@ -39,7 +44,12 @@ func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []Conf
 		return err
 	}
 
-	for _, report := range buildConflictReports(grammar, resolved) {
+	reports := buildConflictReports(grammar, resolved)
+	// The reports are sorted by their content instead of by the state index, so the report does not change when an
+	// unrelated grammar edit renumbers the states.
+	slices.SortFunc(reports, compareConflictReports)
+
+	for _, report := range reports {
 		// The summary and the reports of the states are separated by an empty line.
 		if builder.Len() > 0 {
 			builder.WriteString("\n")
@@ -84,9 +94,13 @@ type ConflictReportEntry struct {
 // Write writes the report of the state: the kernel items which name the state, followed by one indented block per
 // conflicted terminal, all separated by an empty line. The report ends with a single newline, so a caller which writes
 // several reports separates them by an empty line of its own.
-func (r ConflictReport) Write(w io.Writer, _ ReportConfig) error {
+func (r ConflictReport) Write(w io.Writer, config ReportConfig) error {
 	var builder strings.Builder
-	builder.WriteString("state\n")
+	if config.WithStateNumbers {
+		fmt.Fprintf(&builder, "state %d\n", r.StateIdx)
+	} else {
+		builder.WriteString("state\n")
+	}
 	for _, kernelItem := range r.KernelItems {
 		fmt.Fprintf(&builder, "    %s\n", kernelItem)
 	}
@@ -112,7 +126,31 @@ func buildConflictReports(grammar frontend.Grammar, conflicts []Conflict) []Conf
 		last := &reports[len(reports)-1]
 		last.Entries = append(last.Entries, buildConflictReportEntry(grammar, c))
 	}
+	for _, report := range reports {
+		slices.SortFunc(report.Entries, func(a ConflictReportEntry, b ConflictReportEntry) int {
+			return strings.Compare(a.Terminal, b.Terminal)
+		})
+	}
 	return reports
+}
+
+// compareConflictReports orders the reports by the number of kernel items, then by the kernel items, then by the
+// terminals of the entries. The state index is the final tie-breaker, so the order is total even when the state numbers
+// are written.
+func compareConflictReports(a ConflictReport, b ConflictReport) int {
+	if result := cmp.Compare(len(a.KernelItems), len(b.KernelItems)); result != 0 {
+		return result
+	}
+	if result := slices.Compare(a.KernelItems, b.KernelItems); result != 0 {
+		return result
+	}
+	result := slices.CompareFunc(a.Entries, b.Entries, func(a ConflictReportEntry, b ConflictReportEntry) int {
+		return strings.Compare(a.Terminal, b.Terminal)
+	})
+	if result != 0 {
+		return result
+	}
+	return cmp.Compare(a.StateIdx, b.StateIdx)
 }
 
 // buildConflictReport builds the report of the state of the conflict, without any entry yet.
@@ -123,6 +161,7 @@ func buildConflictReport(grammar frontend.Grammar, c Conflict) ConflictReport {
 	for _, core := range c.KernelItems.All() {
 		report.KernelItems = append(report.KernelItems, formatKernelItem(grammar, core))
 	}
+	slices.Sort(report.KernelItems)
 	return report
 }
 
@@ -137,6 +176,7 @@ func buildConflictReportEntry(grammar frontend.Grammar, c Conflict) ConflictRepo
 	for _, contribution := range c.Undeclared.All() {
 		entry.Contributions = append(entry.Contributions, formatContribution(grammar, contribution))
 	}
+	slices.Sort(entry.Contributions)
 	return entry
 }
 

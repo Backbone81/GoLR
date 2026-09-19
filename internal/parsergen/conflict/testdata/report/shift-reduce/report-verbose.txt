@@ -1,40 +1,40 @@
 5 shift/reduce conflicts resolved
 
 state
-    expression -> expression . "+" expression
-    expression -> expression "+" expression .
-    expression -> expression . "*" expression
-
-  shift/reduce conflict on terminal "+"
-      shift
-      reduce expression -> expression "+" expression
-    resolved in favor of shift
-
-  shift/reduce conflict on terminal "*"
-      shift
-      reduce expression -> expression "+" expression
-    resolved in favor of shift
-
-state
-    expression -> expression . "+" expression
-    expression -> expression . "*" expression
-    expression -> expression "*" expression .
-
-  shift/reduce conflict on terminal "+"
-      shift
-      reduce expression -> expression "*" expression
-    resolved in favor of shift
-
-  shift/reduce conflict on terminal "*"
-      shift
-      reduce expression -> expression "*" expression
-    resolved in favor of shift
-
-state
     statement -> "if" expression "then" statement .
     statement -> "if" expression "then" statement . "else" statement
 
   shift/reduce conflict on terminal "else"
-      shift
       reduce statement -> "if" expression "then" statement
+      shift
+    resolved in favor of shift
+
+state
+    expression -> expression "*" expression .
+    expression -> expression . "*" expression
+    expression -> expression . "+" expression
+
+  shift/reduce conflict on terminal "*"
+      reduce expression -> expression "*" expression
+      shift
+    resolved in favor of shift
+
+  shift/reduce conflict on terminal "+"
+      reduce expression -> expression "*" expression
+      shift
+    resolved in favor of shift
+
+state
+    expression -> expression "+" expression .
+    expression -> expression . "*" expression
+    expression -> expression . "+" expression
+
+  shift/reduce conflict on terminal "*"
+      reduce expression -> expression "+" expression
+      shift
+    resolved in favor of shift
+
+  shift/reduce conflict on terminal "+"
+      reduce expression -> expression "+" expression
+      shift
     resolved in favor of shift
