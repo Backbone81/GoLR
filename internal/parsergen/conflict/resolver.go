@@ -75,10 +75,7 @@ func Resolve(parser *backend.Parser, policy Policy) ([]Conflict, error) {
 			}
 			errs = append(errs, UnresolvedConflictError{
 				Conflict: stateConflict,
-				Report: ConflictReport{
-					StateIdx: stateConflict.StateIdx,
-					Entries:  []ConflictReportEntry{buildConflictReportEntry(parser.Grammar, stateConflict)},
-				},
+				Report:   buildConflictReports(parser.Grammar, []Conflict{stateConflict})[0],
 			})
 		}
 		conflicts = append(conflicts, stateConflicts...)

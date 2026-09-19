@@ -1,24 +1,48 @@
-shift/reduce conflict in state 13 on terminal "+"
-    shift
-    reduce production 5  (expression -> expression "+" expression)
-  unresolved, still undecided between shift, reduce production 5  (expression -> expression "+" expression)
+state
+    expression -> expression . "+" expression
+    expression -> expression "+" expression .
+    expression -> expression . "*" expression
 
-shift/reduce conflict in state 13 on terminal "*"
-    shift
-    reduce production 5  (expression -> expression "+" expression)
-  unresolved, still undecided between shift, reduce production 5  (expression -> expression "+" expression)
+  shift/reduce conflict on terminal "+"
+      shift
+      reduce expression -> expression "+" expression
+    unresolved, still undecided between shift, reduce expression -> expression "+" expression
 
-shift/reduce conflict in state 14 on terminal "+"
-    shift
-    reduce production 6  (expression -> expression "*" expression)
-  unresolved, still undecided between shift, reduce production 6  (expression -> expression "*" expression)
+state
+    expression -> expression . "+" expression
+    expression -> expression "+" expression .
+    expression -> expression . "*" expression
 
-shift/reduce conflict in state 14 on terminal "*"
-    shift
-    reduce production 6  (expression -> expression "*" expression)
-  unresolved, still undecided between shift, reduce production 6  (expression -> expression "*" expression)
+  shift/reduce conflict on terminal "*"
+      shift
+      reduce expression -> expression "+" expression
+    unresolved, still undecided between shift, reduce expression -> expression "+" expression
 
-shift/reduce conflict in state 21 on terminal "else"
-    shift
-    reduce production 1  (statement -> "if" expression "then" statement)
-  unresolved, still undecided between shift, reduce production 1  (statement -> "if" expression "then" statement)
+state
+    expression -> expression . "+" expression
+    expression -> expression . "*" expression
+    expression -> expression "*" expression .
+
+  shift/reduce conflict on terminal "+"
+      shift
+      reduce expression -> expression "*" expression
+    unresolved, still undecided between shift, reduce expression -> expression "*" expression
+
+state
+    expression -> expression . "+" expression
+    expression -> expression . "*" expression
+    expression -> expression "*" expression .
+
+  shift/reduce conflict on terminal "*"
+      shift
+      reduce expression -> expression "*" expression
+    unresolved, still undecided between shift, reduce expression -> expression "*" expression
+
+state
+    statement -> "if" expression "then" statement .
+    statement -> "if" expression "then" statement . "else" statement
+
+  shift/reduce conflict on terminal "else"
+      shift
+      reduce statement -> "if" expression "then" statement
+    unresolved, still undecided between shift, reduce statement -> "if" expression "then" statement

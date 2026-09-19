@@ -1,11 +1,18 @@
 2 reduce/reduce conflicts resolved
 
-reduce/reduce conflict in state 0 on terminal "b"
-    reduce production 4  (first -> (empty))
-    reduce production 6  (second -> (empty))
-  resolved in favor of reduce production 4  (first -> (empty))
+state
+    $accept -> . start $end
 
-reduce/reduce conflict in state 1 on terminal "b"
-    reduce production 3  (first -> "a")
-    reduce production 5  (second -> "a")
-  resolved in favor of reduce production 3  (first -> "a")
+  reduce/reduce conflict on terminal "b"
+      reduce first -> (empty)
+      reduce second -> (empty)
+    resolved in favor of reduce first -> (empty)
+
+state
+    first -> "a" .
+    second -> "a" .
+
+  reduce/reduce conflict on terminal "b"
+      reduce first -> "a"
+      reduce second -> "a"
+    resolved in favor of reduce first -> "a"

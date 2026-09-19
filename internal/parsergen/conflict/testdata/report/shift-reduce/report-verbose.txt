@@ -1,26 +1,40 @@
 5 shift/reduce conflicts resolved
 
-shift/reduce conflict in state 13 on terminal "+"
-    shift
-    reduce production 5  (expression -> expression "+" expression)
-  resolved in favor of shift
+state
+    expression -> expression . "+" expression
+    expression -> expression "+" expression .
+    expression -> expression . "*" expression
 
-shift/reduce conflict in state 13 on terminal "*"
-    shift
-    reduce production 5  (expression -> expression "+" expression)
-  resolved in favor of shift
+  shift/reduce conflict on terminal "+"
+      shift
+      reduce expression -> expression "+" expression
+    resolved in favor of shift
 
-shift/reduce conflict in state 14 on terminal "+"
-    shift
-    reduce production 6  (expression -> expression "*" expression)
-  resolved in favor of shift
+  shift/reduce conflict on terminal "*"
+      shift
+      reduce expression -> expression "+" expression
+    resolved in favor of shift
 
-shift/reduce conflict in state 14 on terminal "*"
-    shift
-    reduce production 6  (expression -> expression "*" expression)
-  resolved in favor of shift
+state
+    expression -> expression . "+" expression
+    expression -> expression . "*" expression
+    expression -> expression "*" expression .
 
-shift/reduce conflict in state 15 on terminal "else"
-    shift
-    reduce production 1  (statement -> "if" expression "then" statement)
-  resolved in favor of shift
+  shift/reduce conflict on terminal "+"
+      shift
+      reduce expression -> expression "*" expression
+    resolved in favor of shift
+
+  shift/reduce conflict on terminal "*"
+      shift
+      reduce expression -> expression "*" expression
+    resolved in favor of shift
+
+state
+    statement -> "if" expression "then" statement .
+    statement -> "if" expression "then" statement . "else" statement
+
+  shift/reduce conflict on terminal "else"
+      shift
+      reduce statement -> "if" expression "then" statement
+    resolved in favor of shift

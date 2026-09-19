@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
 
@@ -58,6 +59,9 @@ type ConflictReport struct {
 	// StateIdx is the state index of the conflicted state.
 	StateIdx int
 
+	// KernelItems are the kernel items of the conflicted state, which name the state independently of its index.
+	KernelItems []string
+
 	// Entries are the conflicted terminals of the state.
 	Entries []ConflictReportEntry
 }
@@ -77,19 +81,21 @@ type ConflictReportEntry struct {
 	Decision string
 }
 
-// Write writes the report of the state, one block per conflicted terminal, separated by an empty line. The report ends
-// with a single newline, so a caller which writes several reports separates them by an empty line of its own.
+// Write writes the report of the state: the kernel items which name the state, followed by one indented block per
+// conflicted terminal, all separated by an empty line. The report ends with a single newline, so a caller which writes
+// several reports separates them by an empty line of its own.
 func (r ConflictReport) Write(w io.Writer, _ ReportConfig) error {
 	var builder strings.Builder
-	for i, entry := range r.Entries {
-		if i > 0 {
-			builder.WriteString("\n")
-		}
-		fmt.Fprintf(&builder, "%s in state %d on terminal %s\n", entry.Kind, r.StateIdx, entry.Terminal)
+	builder.WriteString("state\n")
+	for _, kernelItem := range r.KernelItems {
+		fmt.Fprintf(&builder, "    %s\n", kernelItem)
+	}
+	for _, entry := range r.Entries {
+		fmt.Fprintf(&builder, "\n  %s on terminal %s\n", entry.Kind, entry.Terminal)
 		for _, contribution := range entry.Contributions {
-			fmt.Fprintf(&builder, "    %s\n", contribution)
+			fmt.Fprintf(&builder, "      %s\n", contribution)
 		}
-		fmt.Fprintf(&builder, "  %s\n", entry.Decision)
+		fmt.Fprintf(&builder, "    %s\n", entry.Decision)
 	}
 	_, err := io.WriteString(w, builder.String())
 	return err
@@ -101,12 +107,23 @@ func buildConflictReports(grammar frontend.Grammar, conflicts []Conflict) []Conf
 	var reports []ConflictReport
 	for _, c := range conflicts {
 		if len(reports) == 0 || reports[len(reports)-1].StateIdx != c.StateIdx {
-			reports = append(reports, ConflictReport{StateIdx: c.StateIdx})
+			reports = append(reports, buildConflictReport(grammar, c))
 		}
 		last := &reports[len(reports)-1]
 		last.Entries = append(last.Entries, buildConflictReportEntry(grammar, c))
 	}
 	return reports
+}
+
+// buildConflictReport builds the report of the state of the conflict, without any entry yet.
+func buildConflictReport(grammar frontend.Grammar, c Conflict) ConflictReport {
+	report := ConflictReport{
+		StateIdx: c.StateIdx,
+	}
+	for _, core := range c.KernelItems.All() {
+		report.KernelItems = append(report.KernelItems, formatKernelItem(grammar, core))
+	}
+	return report
 }
 
 // buildConflictReportEntry renders a single conflict: the terminal it occurred on, the actions which competed for that
@@ -213,38 +230,49 @@ func formatDecision(grammar frontend.Grammar, decision Decision) string {
 }
 
 // formatContribution renders a single competing action of a conflict. A shift is just a shift, and a reduction is
-// spelled out with the production it reduces so the author does not have to look the production index up.
+// spelled out with the production it reduces, because a production index changes with unrelated grammar edits.
 func formatContribution(grammar frontend.Grammar, contribution Contribution) string {
 	if contribution.IsShiftAction() {
 		return "shift"
 	}
-	return fmt.Sprintf(
-		"reduce production %d  (%s)",
-		contribution.ProductionIdx(),
-		formatProduction(grammar, contribution.ProductionIdx()),
-	)
+	return "reduce " + formatProduction(grammar, contribution.ProductionIdx())
 }
 
 // formatProduction renders a production with the names of its symbols instead of their indexes, which is what makes the
 // report readable next to the grammar file the author wrote.
 func formatProduction(grammar frontend.Grammar, productionIdx int) string {
 	production := grammar.Productions[productionIdx]
+	if len(production.SymbolRefs) == 0 {
+		// An empty right hand side reduces on the empty string, which is easy to miss without a hint.
+		return grammar.Nonterminals[production.NonterminalIdx].String() + " -> (empty)"
+	}
+	return formatSymbols(grammar, production, -1)
+}
 
+// formatKernelItem renders a kernel item as its production with a dot at the position of the item.
+func formatKernelItem(grammar frontend.Grammar, core backend.Core) string {
+	return formatSymbols(grammar, grammar.Productions[core.ProductionIdx()], core.Position())
+}
+
+// formatSymbols renders the production with the names of its symbols, and with a dot in front of the symbol at the
+// given position. A position past the last symbol puts the dot at the end, a negative position omits it.
+func formatSymbols(grammar frontend.Grammar, production frontend.Production, dotPosition int) string {
 	var builder strings.Builder
 	builder.WriteString(grammar.Nonterminals[production.NonterminalIdx].String())
 	builder.WriteString(" ->")
-	if len(production.SymbolRefs) == 0 {
-		// An empty right hand side reduces on the empty string, which is easy to miss without a hint.
-		builder.WriteString(" (empty)")
-		return builder.String()
-	}
-	for _, symbolRef := range production.SymbolRefs {
+	for position, symbolRef := range production.SymbolRefs {
+		if position == dotPosition {
+			builder.WriteString(" .")
+		}
 		builder.WriteString(" ")
 		if symbolRef.IsTerminal() {
 			builder.WriteString(grammar.Terminals[symbolRef.Idx()].String())
 		} else {
 			builder.WriteString(grammar.Nonterminals[symbolRef.Idx()].String())
 		}
+	}
+	if dotPosition == len(production.SymbolRefs) {
+		builder.WriteString(" .")
 	}
 	return builder.String()
 }
