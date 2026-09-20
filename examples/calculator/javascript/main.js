@@ -18,7 +18,7 @@ export function evaluate(expression) {
     }
 
     // Traversing over the parse tree will calculate the result for us.
-    return evaluateNode(tree);
+    return evaluateNode(scanner, tree);
 }
 
 // evaluateNode recursively evaluates an expression node from the parse tree.
@@ -26,35 +26,37 @@ export function evaluate(expression) {
 //   - 1 child:  INTEGER literal
 //   - 2 children: unary minus ("-" expression)
 //   - 3 children: binary operation (expression OP expression) or grouping ("(" expression ")")
-function evaluateNode(node) {
-    // Each node has a symbol (the grammar symbol it represents), a lexeme (the raw bytes from the input, set for
-    // terminal nodes), and children (sub-nodes).
+function evaluateNode(scanner, node) {
+    // Each node has a symbol (the grammar symbol it represents), the span of the input it covers (byteOffset and
+    // byteLength, which text turns back into bytes), and children (sub-nodes).
     switch (node.children.length) {
-        case 1:
+        case 1: {
             // expression: INTEGER
-            return Number(new TextDecoder().decode(node.children[0].lexeme));
+            const integer = node.children[0];
+            return Number(new TextDecoder().decode(scanner.text(integer.byteOffset, integer.byteLength)));
+        }
         case 2:
             // expression: "-" expression
-            return -evaluateNode(node.children[1]);
+            return -evaluateNode(scanner, node.children[1]);
         case 3:
-            return evaluateThreeChildren(node);
+            return evaluateThreeChildren(scanner, node);
     }
     throw new Error("unexpected node structure");
 }
 
 // evaluateThreeChildren evaluates the two productions with three symbols on the right hand side.
-function evaluateThreeChildren(node) {
+function evaluateThreeChildren(scanner, node) {
     // In "(" expression ")", the middle child is the nonterminal expression node.
     // In "expression OP expression", the middle child is a terminal operator token.
     // We use this to distinguish the two cases.
     const operator = ParseSymbol.terminal(node.children[1].symbol);
     if (operator === null) {
         // expression: "(" expression ")"
-        return evaluateNode(node.children[1]);
+        return evaluateNode(scanner, node.children[1]);
     }
 
-    const leftValue = evaluateNode(node.children[0]);
-    const rightValue = evaluateNode(node.children[2]);
+    const leftValue = evaluateNode(scanner, node.children[0]);
+    const rightValue = evaluateNode(scanner, node.children[2]);
 
     switch (operator) {
         case Token.TokenPlus:

@@ -148,17 +148,22 @@ export function symbolToString(symbol) {
 }
 
 /**
- * A single node of the parse tree.
+ * A single node of the parse tree. It carries the span of the source it covers, which TokenSource.text turns back into
+ * bytes and TokenSource.position into a file path, a line and a column.
+ *
+ * A terminal covers its lexeme and a nonterminal covers its children. The error symbol covers what the error recovery
+ * threw away, up to the point it resumed at. A production with an empty right hand side has zero length at the end of
+ * the symbol to its left.
  */
 export class ParseNode {
     /** The terminal or nonterminal this node stands for, see ParseSymbol.terminal and ParseSymbol.nonterminal. */
     symbol;
 
-    /**
-     * The bytes of the terminal, as a view into the source rather than a copy of it. Null for a nonterminal and for the
-     * error symbol, which no input produced.
-     */
-    lexeme;
+    /** The start of the source this node covers, in bytes from the start of the source. */
+    byteOffset;
+
+    /** The number of bytes of the source this node covers. */
+    byteLength;
 
     /** The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal. */
     children;
@@ -168,13 +173,15 @@ export class ParseNode {
 
     /**
      * @param {number} symbol
-     * @param {Uint8Array|null} lexeme
+     * @param {number} byteOffset
+     * @param {number} byteLength
      * @param {ParseNode[]} children
      * @param {number|null} production
      */
-    constructor(symbol, lexeme, children, production) {
+    constructor(symbol, byteOffset, byteLength, children, production) {
         this.symbol = symbol;
-        this.lexeme = lexeme;
+        this.byteOffset = byteOffset;
+        this.byteLength = byteLength;
         this.children = children;
         this.production = production;
     }
@@ -233,12 +240,13 @@ export class ParseError {
         this.reason = reason;
         this.kind = kind;
 
+        const position = scanner.position(scanner.byteOffset());
         this.token = scanner.token();
-        this.byteOffset = scanner.byteOffset();
-        this.line = scanner.line();
-        this.column = scanner.column();
+        this.byteOffset = position.byteOffset;
+        this.line = position.line;
+        this.column = position.column;
         this.lexeme = scanner.lexeme();
-        this.filePath = scanner.filePath();
+        this.filePath = position.filePath;
     }
 
     /**
@@ -515,7 +523,9 @@ export class Parser {
                     this.#emitTrace(scanner, "SHIFT", `${terminalTraceName(terminal)} "${escapeLexeme(scanner.lexeme())}"`);
                 }
                 this.#stateStack.push(action >>> actionKindBits);
-                this.#nodeStack.push(new ParseNode(ParseSymbol.newTerminal(terminal), scanner.lexeme(), [], null));
+                this.#nodeStack.push(
+                    new ParseNode(ParseSymbol.newTerminal(terminal), scanner.byteOffset(), scanner.lexeme().length, [], null),
+                );
                 scanner.next();
                 if (this.#errorRecoveryShiftsRemaining > 0) {
                     // Getting tokens of the input shifted again is what makes the parser trust its position.
@@ -579,10 +589,29 @@ export class Parser {
         }
         this.#stateStack.push(gotoState);
 
+        // The node starts where its first child starts and ends where its last child ends.
+        let byteOffset = 0;
+        let byteLength = 0;
+        if (popCount !== 0) {
+            const lastChild = this.#nodeStack[this.#nodeStack.length - 1];
+            byteOffset = this.#nodeStack[this.#nodeStack.length - popCount].byteOffset;
+            byteLength = lastChild.byteOffset + lastChild.byteLength - byteOffset;
+        } else if (this.#nodeStack.length !== 0) {
+            // A production with an empty right hand side goes at the end of the symbol to its left, so that it lies
+            // inside the node it becomes a child of instead of at the lookahead beyond it.
+            const left = this.#nodeStack[this.#nodeStack.length - 1];
+            byteOffset = left.byteOffset + left.byteLength;
+        } else {
+            // Nothing has been parsed yet, so there is no symbol to the left of it.
+            byteOffset = scanner.byteOffset();
+        }
+
         // splice takes the right hand side off the node stack and hands it over as the children in one step. An empty
         // right hand side takes nothing and returns an empty array.
         const children = this.#nodeStack.splice(this.#nodeStack.length - popCount, popCount);
-        this.#nodeStack.push(new ParseNode(ParseSymbol.newNonterminal(nonterminal), null, children, productionIdx));
+        this.#nodeStack.push(
+            new ParseNode(ParseSymbol.newNonterminal(nonterminal), byteOffset, byteLength, children, productionIdx),
+        );
     }
 
     /**
@@ -605,6 +634,12 @@ export class Parser {
      * @returns {boolean}
      */
     #recoverFromError(scanner) {
+        // The error node this round ends with runs from the start of what the round throws away to the point where it
+        // resumes, so the span starts out empty at the token the parser stopped on and grows to the front with every
+        // node the round pops.
+        let droppedOffset = scanner.byteOffset();
+        let droppedLength = 0;
+
         if (this.#errorRecoveryShiftsRemaining === errorRecoveryShifts) {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if (scanner.token() === Token.EndToken) {
@@ -617,6 +652,8 @@ export class Parser {
             if (this.trace !== null) {
                 this.#emitTrace(scanner, "DISCARD", `${terminalTraceName(scanner.token())} "${escapeLexeme(scanner.lexeme())}"`);
             }
+            // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
+            droppedLength = scanner.lexeme().length;
             scanner.next();
         }
         this.#errorRecoveryShiftsRemaining = errorRecoveryShifts;
@@ -627,9 +664,17 @@ export class Parser {
                 if (this.trace !== null) {
                     this.#emitTrace(scanner, "RESYNC", "");
                 }
-                // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
+                if (droppedLength === 0 && this.#nodeStack.length !== 0) {
+                    // The round threw no bytes away, so its node goes at the end of the symbol to its left, where a
+                    // production with an empty right hand side goes, and not at the lookahead beyond it.
+                    const left = this.#nodeStack[this.#nodeStack.length - 1];
+                    droppedOffset = left.byteOffset + left.byteLength;
+                }
+                // Shift the error symbol. Its node covers what this round dropped.
                 this.#stateStack.push(nextState);
-                this.#nodeStack.push(new ParseNode(ParseSymbol.newTerminal(Token.ErrorToken), null, [], null));
+                this.#nodeStack.push(
+                    new ParseNode(ParseSymbol.newTerminal(Token.ErrorToken), droppedOffset, droppedLength, [], null),
+                );
                 return true;
             }
             if (this.#stateStack.length === 1) {
@@ -644,6 +689,9 @@ export class Parser {
             }
             // The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
             // node, so dropping one drops one.
+            const droppedNode = this.#nodeStack[this.#nodeStack.length - 1];
+            droppedLength = droppedOffset + droppedLength - droppedNode.byteOffset;
+            droppedOffset = droppedNode.byteOffset;
             this.#stateStack.length--;
             this.#nodeStack.length--;
         }
@@ -705,7 +753,8 @@ export class Parser {
      * @param {string} payload
      */
     #emitTrace(scanner, keyword, payload) {
-        const location = `${scanner.line()}:${scanner.column()}`.padEnd(7);
+        const position = scanner.position(scanner.byteOffset());
+        const location = `${position.line}:${position.column}`.padEnd(7);
         if (payload === "") {
             this.trace(`${location} ${keyword}`);
             return;
