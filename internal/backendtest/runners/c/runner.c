@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static const char *const SCANNER_TRACE_FILE_NAME = "scanner.actual";
 static const char *const PARSER_TRACE_FILE_NAME = "parser.actual";
@@ -59,6 +60,31 @@ static void write_escaped_lexeme(FILE *out, ParserStringView lexeme) {
     }
 }
 
+/* Holds the offset based position and text against the line, column and lexeme of the token the scanner currently sits
+   on. The two ways of asking exist side by side until the release which drops the line and the column, and the corpus
+   is where they have to agree: every case of it is far more input than a hand written test covers. */
+static void check_position(ParserScanner *scanner) {
+    size_t byte_offset = parser_scanner_byte_offset(scanner);
+    ParserPosition position = parser_scanner_position(scanner, byte_offset);
+    ParserStringView lexeme = parser_scanner_lexeme(scanner);
+    ParserStringView text;
+
+    if (position.line != parser_scanner_line(scanner) || position.column != parser_scanner_column(scanner) ||
+        strcmp(position.file_path, parser_scanner_file_path(scanner)) != 0) {
+        fprintf(stderr, "position(%zu) is %s %zu:%zu, but the scanner reports %s %zu:%zu\n", byte_offset,
+                position.file_path, position.line, position.column, parser_scanner_file_path(scanner),
+                parser_scanner_line(scanner), parser_scanner_column(scanner));
+        exit(1);
+    }
+
+    text = parser_scanner_text(scanner, byte_offset, lexeme.length);
+    if (text.length != lexeme.length || memcmp(text.data, lexeme.data, lexeme.length) != 0) {
+        fprintf(stderr, "text(%zu, %zu) is %zu bytes and differs from the lexeme\n", byte_offset, lexeme.length,
+                text.length);
+        exit(1);
+    }
+}
+
 /* Scans the whole input and writes one line per event: the position the token or the failed match starts at, a
    keyword, and for a token its rule and lexeme, for a failed match the bytes it could not match. */
 static void write_scanner_trace(FILE *out, const char *source, size_t source_length, const char *input_path) {
@@ -71,6 +97,8 @@ static void write_scanner_trace(FILE *out, const char *source, size_t source_len
 
     while (parser_scanner_next(&scanner)) {
         ParserStringView lexeme = parser_scanner_lexeme(&scanner);
+
+        check_position(&scanner);
 
         snprintf(location, sizeof(location), "%zu:%zu", parser_scanner_line(&scanner),
                  parser_scanner_column(&scanner));
@@ -88,9 +116,12 @@ static void write_scanner_trace(FILE *out, const char *source, size_t source_len
     }
 
     /* The position after the scanner ran out of input, which is one past the last byte only when it consumed
-       everything. */
+       everything. It is the offset every off by one in a line table lands on, so it is checked like a token. */
+    check_position(&scanner);
     snprintf(location, sizeof(location), "%zu:%zu", parser_scanner_line(&scanner), parser_scanner_column(&scanner));
     fprintf(out, "%-7s %s\n", location, "EOF");
+
+    parser_scanner_free(&scanner);
 }
 
 /* Writes one trace line to the file behind the context pointer. This is the parser's trace hook. */
@@ -120,6 +151,7 @@ static void write_parser_trace(FILE *out, const char *source, size_t source_leng
 
     parser_parse_result_free(&result);
     parser_parser_free(&parser);
+    parser_scanner_free(&scanner);
 }
 
 /* Opens a trace file, or reports why it could not be opened. */

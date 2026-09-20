@@ -44,6 +44,23 @@ typedef struct {{ .Type "StringView" }} {
     size_t length;
 } {{ .Type "StringView" }};
 
+/// Where a byte offset of the source is, in the terms a human reads: the file the scanner was given, the offset itself,
+/// and the line and column it falls on.
+typedef struct {{ .Type "Position" }} {
+    /// The file path the scanner was given.
+    const char *file_path;
+
+    /// The offset this position was resolved for, in bytes from the start of the source.
+    size_t byte_offset;
+
+    /// The line the offset falls on, counted from one. Only a line feed starts a new line, so the carriage return of a
+    /// CRLF pair is the last byte of the line it ends.
+    size_t line;
+
+    /// The column the offset falls on, counted from one in bytes.
+    size_t column;
+} {{ .Type "Position" }};
+
 /// Returns the name of the token, as the grammar spells it.
 const char *{{ .Func "TokenToString" }}({{ .Type "Token" }} token);
 
@@ -61,11 +78,17 @@ typedef struct {{ .Type "Scanner" }} {
     size_t lexeme_end_idx;
     size_t line;
     size_t column;
+    size_t *line_starts;
+    size_t line_starts_length;
+    size_t line_starts_capacity;
 } {{ .Type "Scanner" }};
 
 /// Prepares a scanner which turns the given bytes into tokens, starting at the first of them. The file path is used in
 /// error messages, so any string will do when the source is not a file.
 void {{ .Func "ScannerInit" }}({{ .Type "Scanner" }} *scanner, const char *source, size_t source_length, const char *file_path);
+
+/// Releases what the scanner holds. Call it once the scanner is done with.
+void {{ .Func "ScannerFree" }}({{ .Type "Scanner" }} *scanner);
 
 /// Returns the current token.
 {{ .Type "Token" }} {{ .Func "ScannerToken" }}(const {{ .Type "Scanner" }} *scanner);
@@ -82,6 +105,17 @@ size_t {{ .Func "ScannerColumn" }}(const {{ .Type "Scanner" }} *scanner);
 
 /// Returns the bytes of the token, as a range of the source rather than a copy of it.
 {{ .Type "StringView" }} {{ .Func "ScannerLexeme" }}(const {{ .Type "Scanner" }} *scanner);
+
+/// Resolves a byte offset of the source into file path, line and column. Offsets from zero up to and including the
+/// length of the source are valid, the last of them being the end of the source, and an offset outside of that is
+/// clamped into it.
+///
+/// The scanner is not const here because resolving an offset can change its internal state.
+{{ .Type "Position" }} {{ .Func "ScannerPosition" }}({{ .Type "Scanner" }} *scanner, size_t byte_offset);
+
+/// Returns the bytes the given span covers, as a range of the source rather than a copy of it. The span is clamped to
+/// the source.
+{{ .Type "StringView" }} {{ .Func "ScannerText" }}(const {{ .Type "Scanner" }} *scanner, size_t byte_offset, size_t byte_length);
 
 /// Returns the file path the scanner was given.
 const char *{{ .Func "ScannerFilePath" }}(const {{ .Type "Scanner" }} *scanner);
@@ -114,6 +148,13 @@ typedef struct {{ .Type "TokenSource" }} {
 
     /// Returns the bytes of the token.
     {{ .Type "StringView" }} (*lexeme)(const void *context);
+
+    /// Resolves a byte offset of the source into file path, line and column. The context is not const here because
+    /// resolving an offset can change the internal state of what it points at.
+    {{ .Type "Position" }} (*position)(void *context, size_t byte_offset);
+
+    /// Returns the bytes the given span covers.
+    {{ .Type "StringView" }} (*text)(const void *context, size_t byte_offset, size_t byte_length);
 
     /// Returns the file path the tokens are read from.
     const char *(*file_path)(const void *context);
@@ -154,6 +195,12 @@ size_t {{ .Func "TokenSkipperColumn" }}(const {{ .Type "TokenSkipper" }} *skippe
 /// Returns the bytes of the token, as a range of the source rather than a copy of it.
 {{ .Type "StringView" }} {{ .Func "TokenSkipperLexeme" }}(const {{ .Type "TokenSkipper" }} *skipper);
 
+/// Resolves a byte offset of the source into file path, line and column.
+{{ .Type "Position" }} {{ .Func "TokenSkipperPosition" }}({{ .Type "TokenSkipper" }} *skipper, size_t byte_offset);
+
+/// Returns the bytes the given span covers, as a range of the source rather than a copy of it.
+{{ .Type "StringView" }} {{ .Func "TokenSkipperText" }}(const {{ .Type "TokenSkipper" }} *skipper, size_t byte_offset, size_t byte_length);
+
 /// Returns the file path the scanner was given.
 const char *{{ .Func "TokenSkipperFilePath" }}(const {{ .Type "TokenSkipper" }} *skipper);
 
@@ -174,6 +221,11 @@ bool {{ .Func "TokenSkipperNext" }}({{ .Type "TokenSkipper" }} *skipper);
 #define {{ .Const "ScannerImplementationOnce" }}
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+/// The number of line starts the table behind the position holds before it has to grow.
+#define {{ .Const "InitialLineStartsCapacity" }} 64
 
 // The automaton is held in lookup tables. An input byte is mapped to its byte class, which is the column of the
 // transition table, and the rows of that table are displaced into a single array so that the entries of one row fall
@@ -237,7 +289,20 @@ bool {{ .Func "TokenIsSkipped" }}({{ .Type "Token" }} token) {
 
 void {{ .Func "ScannerInit" }}({{ .Type "Scanner" }} *scanner, const char *source, size_t source_length, const char *file_path) {
     scanner->file_path = file_path;
+
+    /* The reset empties the table but keeps its storage, so the scanner has to start out with none. */
+    scanner->line_starts = NULL;
+    scanner->line_starts_length = 0;
+    scanner->line_starts_capacity = 0;
+
     {{ .Func "ScannerReset" }}(scanner, source, source_length, 0);
+}
+
+void {{ .Func "ScannerFree" }}({{ .Type "Scanner" }} *scanner) {
+    free(scanner->line_starts);
+    scanner->line_starts = NULL;
+    scanner->line_starts_length = 0;
+    scanner->line_starts_capacity = 0;
 }
 
 {{ .Type "Token" }} {{ .Func "ScannerToken" }}(const {{ .Type "Scanner" }} *scanner) {
@@ -263,6 +328,129 @@ size_t {{ .Func "ScannerColumn" }}(const {{ .Type "Scanner" }} *scanner) {
     return lexeme;
 }
 
+/// Grows the table of line starts to hold at least the given number of entries. Returns false when the allocation
+/// failed.
+static bool {{ .Func "ScannerReserveLineStarts" }}({{ .Type "Scanner" }} *scanner, size_t count) {
+    size_t capacity;
+    size_t *line_starts;
+
+    if (count <= scanner->line_starts_capacity) {
+        return true;
+    }
+    capacity = scanner->line_starts_capacity == 0
+        ? {{ .Const "InitialLineStartsCapacity" }}
+        : scanner->line_starts_capacity * 2;
+    while (capacity < count) {
+        capacity *= 2;
+    }
+    line_starts = (size_t *)realloc(scanner->line_starts, capacity * sizeof(size_t));
+    if (line_starts == NULL) {
+        return false;
+    }
+    scanner->line_starts = line_starts;
+    scanner->line_starts_capacity = capacity;
+    return true;
+}
+
+/// Fills in the byte offset every line of the source begins at, into the storage left over from the source before. The
+/// first line begins at zero, so the result is never empty and an empty source has one line. Returns false when the
+/// table did not fit into memory, which leaves it empty.
+static bool {{ .Func "ScannerBuildLineStarts" }}({{ .Type "Scanner" }} *scanner) {
+    size_t byte_offset = 0;
+
+    for (;;) {
+        const char *line_feed;
+
+        if (!{{ .Func "ScannerReserveLineStarts" }}(scanner, scanner->line_starts_length + 1)) {
+            /* Half a table answers wrongly rather than slowly, so what was built is dropped. */
+            scanner->line_starts_length = 0;
+            return false;
+        }
+        scanner->line_starts[scanner->line_starts_length++] = byte_offset;
+
+        if (byte_offset == scanner->source_length) {
+            break;
+        }
+        line_feed = (const char *)memchr(scanner->source + byte_offset, '\n', scanner->source_length - byte_offset);
+        if (line_feed == NULL) {
+            break;
+        }
+        byte_offset = (size_t)(line_feed - scanner->source) + 1;
+    }
+    return true;
+}
+
+/// Returns the line the given offset falls on, counted from one, by searching the table of line starts. The standard
+/// library's bsearch reports only whether an element is there, never where it would go, so the search is written out:
+/// what is needed is the number of line starts at or in front of the offset.
+static size_t {{ .Func "ScannerLineOfOffset" }}(const {{ .Type "Scanner" }} *scanner, size_t byte_offset) {
+    size_t low = 0;
+    size_t high = scanner->line_starts_length;
+
+    while (low < high) {
+        size_t middle = low + (high - low) / 2;
+        if (scanner->line_starts[middle] <= byte_offset) {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    return low;
+}
+
+{{ .Type "Position" }} {{ .Func "ScannerPosition" }}({{ .Type "Scanner" }} *scanner, size_t byte_offset) {
+    {{ .Type "Position" }} position;
+    size_t line;
+
+    /* An offset is never negative here, so the end of the source is the only side to clamp. */
+    if (byte_offset > scanner->source_length) {
+        byte_offset = scanner->source_length;
+    }
+
+    /* The table is built on the first call after a reset. A built table always holds the zero entry, so being empty is
+       what says it is not there. */
+    if (scanner->line_starts_length == 0) {
+        {{ .Func "ScannerBuildLineStarts" }}(scanner);
+    }
+
+    position.file_path = scanner->file_path;
+    position.byte_offset = byte_offset;
+    if (scanner->line_starts_length == 0) {
+        /* The table did not fit into memory, so the line feeds in front of the offset are counted instead. That is
+           slower for every call, but it is the same answer. */
+        size_t idx;
+        position.line = 1;
+        position.column = 1;
+        for (idx = 0; idx < byte_offset; idx++) {
+            if (scanner->source[idx] == '\n') {
+                position.line++;
+                position.column = 1;
+            } else {
+                position.column++;
+            }
+        }
+        return position;
+    }
+
+    line = {{ .Func "ScannerLineOfOffset" }}(scanner, byte_offset);
+    position.line = line;
+    position.column = byte_offset - scanner->line_starts[line - 1] + 1;
+    return position;
+}
+
+{{ .Type "StringView" }} {{ .Func "ScannerText" }}(const {{ .Type "Scanner" }} *scanner, size_t byte_offset, size_t byte_length) {
+    {{ .Type "StringView" }} text;
+    size_t start_idx = byte_offset < scanner->source_length ? byte_offset : scanner->source_length;
+
+    text.data = scanner->source + start_idx;
+    /* Asking for the remainder of the source rather than adding the length up front, because the sum of the two can
+       wrap around where the difference cannot. */
+    text.length = scanner->source_length - start_idx < byte_length
+        ? scanner->source_length - start_idx
+        : byte_length;
+    return text;
+}
+
 const char *{{ .Func "ScannerFilePath" }}(const {{ .Type "Scanner" }} *scanner) {
     return scanner->file_path;
 }
@@ -278,6 +466,9 @@ void {{ .Func "ScannerReset" }}({{ .Type "Scanner" }} *scanner, const char *sour
 
     scanner->line = 1;
     scanner->column = 1;
+
+    /* The line starts belong to the source which was replaced here, but their storage is worth keeping. */
+    scanner->line_starts_length = 0;
 
     scanner->token = {{ .Const "TokenInvalidToken" }};
 }
@@ -374,6 +565,14 @@ size_t {{ .Func "TokenSkipperColumn" }}(const {{ .Type "TokenSkipper" }} *skippe
     return skipper->scanner.lexeme(skipper->scanner.context);
 }
 
+{{ .Type "Position" }} {{ .Func "TokenSkipperPosition" }}({{ .Type "TokenSkipper" }} *skipper, size_t byte_offset) {
+    return skipper->scanner.position(skipper->scanner.context, byte_offset);
+}
+
+{{ .Type "StringView" }} {{ .Func "TokenSkipperText" }}(const {{ .Type "TokenSkipper" }} *skipper, size_t byte_offset, size_t byte_length) {
+    return skipper->scanner.text(skipper->scanner.context, byte_offset, byte_length);
+}
+
 const char *{{ .Func "TokenSkipperFilePath" }}(const {{ .Type "TokenSkipper" }} *skipper) {
     return skipper->scanner.file_path(skipper->scanner.context);
 }
@@ -415,6 +614,14 @@ static {{ .Type "StringView" }} {{ .Func "ScannerLexemeAdapter" }}(const void *c
     return {{ .Func "ScannerLexeme" }}((const {{ .Type "Scanner" }} *)context);
 }
 
+static {{ .Type "Position" }} {{ .Func "ScannerPositionAdapter" }}(void *context, size_t byte_offset) {
+    return {{ .Func "ScannerPosition" }}(({{ .Type "Scanner" }} *)context, byte_offset);
+}
+
+static {{ .Type "StringView" }} {{ .Func "ScannerTextAdapter" }}(const void *context, size_t byte_offset, size_t byte_length) {
+    return {{ .Func "ScannerText" }}((const {{ .Type "Scanner" }} *)context, byte_offset, byte_length);
+}
+
 static const char *{{ .Func "ScannerFilePathAdapter" }}(const void *context) {
     return {{ .Func "ScannerFilePath" }}((const {{ .Type "Scanner" }} *)context);
 }
@@ -435,6 +642,8 @@ static bool {{ .Func "ScannerNextAdapter" }}(void *context) {
     result.line = {{ .Func "ScannerLineAdapter" }};
     result.column = {{ .Func "ScannerColumnAdapter" }};
     result.lexeme = {{ .Func "ScannerLexemeAdapter" }};
+    result.position = {{ .Func "ScannerPositionAdapter" }};
+    result.text = {{ .Func "ScannerTextAdapter" }};
     result.file_path = {{ .Func "ScannerFilePathAdapter" }};
     result.reset = {{ .Func "ScannerResetAdapter" }};
     result.next = {{ .Func "ScannerNextAdapter" }};
@@ -461,6 +670,14 @@ static {{ .Type "StringView" }} {{ .Func "TokenSkipperLexemeAdapter" }}(const vo
     return {{ .Func "TokenSkipperLexeme" }}((const {{ .Type "TokenSkipper" }} *)context);
 }
 
+static {{ .Type "Position" }} {{ .Func "TokenSkipperPositionAdapter" }}(void *context, size_t byte_offset) {
+    return {{ .Func "TokenSkipperPosition" }}(({{ .Type "TokenSkipper" }} *)context, byte_offset);
+}
+
+static {{ .Type "StringView" }} {{ .Func "TokenSkipperTextAdapter" }}(const void *context, size_t byte_offset, size_t byte_length) {
+    return {{ .Func "TokenSkipperText" }}((const {{ .Type "TokenSkipper" }} *)context, byte_offset, byte_length);
+}
+
 static const char *{{ .Func "TokenSkipperFilePathAdapter" }}(const void *context) {
     return {{ .Func "TokenSkipperFilePath" }}((const {{ .Type "TokenSkipper" }} *)context);
 }
@@ -481,6 +698,8 @@ static bool {{ .Func "TokenSkipperNextAdapter" }}(void *context) {
     result.line = {{ .Func "TokenSkipperLineAdapter" }};
     result.column = {{ .Func "TokenSkipperColumnAdapter" }};
     result.lexeme = {{ .Func "TokenSkipperLexemeAdapter" }};
+    result.position = {{ .Func "TokenSkipperPositionAdapter" }};
+    result.text = {{ .Func "TokenSkipperTextAdapter" }};
     result.file_path = {{ .Func "TokenSkipperFilePathAdapter" }};
     result.reset = {{ .Func "TokenSkipperResetAdapter" }};
     result.next = {{ .Func "TokenSkipperNextAdapter" }};

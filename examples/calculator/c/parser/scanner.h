@@ -51,6 +51,23 @@ typedef struct CalculatorStringView {
     size_t length;
 } CalculatorStringView;
 
+/// Where a byte offset of the source is, in the terms a human reads: the file the scanner was given, the offset itself,
+/// and the line and column it falls on.
+typedef struct CalculatorPosition {
+    /// The file path the scanner was given.
+    const char *file_path;
+
+    /// The offset this position was resolved for, in bytes from the start of the source.
+    size_t byte_offset;
+
+    /// The line the offset falls on, counted from one. Only a line feed starts a new line, so the carriage return of a
+    /// CRLF pair is the last byte of the line it ends.
+    size_t line;
+
+    /// The column the offset falls on, counted from one in bytes.
+    size_t column;
+} CalculatorPosition;
+
 /// Returns the name of the token, as the grammar spells it.
 const char *calculator_token_to_string(CalculatorToken token);
 
@@ -68,11 +85,17 @@ typedef struct CalculatorScanner {
     size_t lexeme_end_idx;
     size_t line;
     size_t column;
+    size_t *line_starts;
+    size_t line_starts_length;
+    size_t line_starts_capacity;
 } CalculatorScanner;
 
 /// Prepares a scanner which turns the given bytes into tokens, starting at the first of them. The file path is used in
 /// error messages, so any string will do when the source is not a file.
 void calculator_scanner_init(CalculatorScanner *scanner, const char *source, size_t source_length, const char *file_path);
+
+/// Releases what the scanner holds. Call it once the scanner is done with.
+void calculator_scanner_free(CalculatorScanner *scanner);
 
 /// Returns the current token.
 CalculatorToken calculator_scanner_token(const CalculatorScanner *scanner);
@@ -89,6 +112,17 @@ size_t calculator_scanner_column(const CalculatorScanner *scanner);
 
 /// Returns the bytes of the token, as a range of the source rather than a copy of it.
 CalculatorStringView calculator_scanner_lexeme(const CalculatorScanner *scanner);
+
+/// Resolves a byte offset of the source into file path, line and column. Offsets from zero up to and including the
+/// length of the source are valid, the last of them being the end of the source, and an offset outside of that is
+/// clamped into it.
+///
+/// The scanner is not const here because resolving an offset can change its internal state.
+CalculatorPosition calculator_scanner_position(CalculatorScanner *scanner, size_t byte_offset);
+
+/// Returns the bytes the given span covers, as a range of the source rather than a copy of it. The span is clamped to
+/// the source.
+CalculatorStringView calculator_scanner_text(const CalculatorScanner *scanner, size_t byte_offset, size_t byte_length);
 
 /// Returns the file path the scanner was given.
 const char *calculator_scanner_file_path(const CalculatorScanner *scanner);
@@ -121,6 +155,13 @@ typedef struct CalculatorTokenSource {
 
     /// Returns the bytes of the token.
     CalculatorStringView (*lexeme)(const void *context);
+
+    /// Resolves a byte offset of the source into file path, line and column. The context is not const here because
+    /// resolving an offset can change the internal state of what it points at.
+    CalculatorPosition (*position)(void *context, size_t byte_offset);
+
+    /// Returns the bytes the given span covers.
+    CalculatorStringView (*text)(const void *context, size_t byte_offset, size_t byte_length);
 
     /// Returns the file path the tokens are read from.
     const char *(*file_path)(const void *context);
@@ -161,6 +202,12 @@ size_t calculator_token_skipper_column(const CalculatorTokenSkipper *skipper);
 /// Returns the bytes of the token, as a range of the source rather than a copy of it.
 CalculatorStringView calculator_token_skipper_lexeme(const CalculatorTokenSkipper *skipper);
 
+/// Resolves a byte offset of the source into file path, line and column.
+CalculatorPosition calculator_token_skipper_position(CalculatorTokenSkipper *skipper, size_t byte_offset);
+
+/// Returns the bytes the given span covers, as a range of the source rather than a copy of it.
+CalculatorStringView calculator_token_skipper_text(const CalculatorTokenSkipper *skipper, size_t byte_offset, size_t byte_length);
+
 /// Returns the file path the scanner was given.
 const char *calculator_token_skipper_file_path(const CalculatorTokenSkipper *skipper);
 
@@ -181,6 +228,11 @@ CalculatorTokenSource calculator_token_skipper_as_token_source(CalculatorTokenSk
 #define CALCULATOR_SCANNER_IMPLEMENTATION_ONCE
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+/// The number of line starts the table behind the position holds before it has to grow.
+#define CALCULATOR_INITIAL_LINE_STARTS_CAPACITY 64
 
 // The automaton is held in lookup tables. An input byte is mapped to its byte class, which is the column of the
 // transition table, and the rows of that table are displaced into a single array so that the entries of one row fall
@@ -283,7 +335,20 @@ bool calculator_token_is_skipped(CalculatorToken token) {
 
 void calculator_scanner_init(CalculatorScanner *scanner, const char *source, size_t source_length, const char *file_path) {
     scanner->file_path = file_path;
+
+    /* The reset empties the table but keeps its storage, so the scanner has to start out with none. */
+    scanner->line_starts = NULL;
+    scanner->line_starts_length = 0;
+    scanner->line_starts_capacity = 0;
+
     calculator_scanner_reset(scanner, source, source_length, 0);
+}
+
+void calculator_scanner_free(CalculatorScanner *scanner) {
+    free(scanner->line_starts);
+    scanner->line_starts = NULL;
+    scanner->line_starts_length = 0;
+    scanner->line_starts_capacity = 0;
 }
 
 CalculatorToken calculator_scanner_token(const CalculatorScanner *scanner) {
@@ -309,6 +374,129 @@ CalculatorStringView calculator_scanner_lexeme(const CalculatorScanner *scanner)
     return lexeme;
 }
 
+/// Grows the table of line starts to hold at least the given number of entries. Returns false when the allocation
+/// failed.
+static bool calculator_scanner_reserve_line_starts(CalculatorScanner *scanner, size_t count) {
+    size_t capacity;
+    size_t *line_starts;
+
+    if (count <= scanner->line_starts_capacity) {
+        return true;
+    }
+    capacity = scanner->line_starts_capacity == 0
+        ? CALCULATOR_INITIAL_LINE_STARTS_CAPACITY
+        : scanner->line_starts_capacity * 2;
+    while (capacity < count) {
+        capacity *= 2;
+    }
+    line_starts = (size_t *)realloc(scanner->line_starts, capacity * sizeof(size_t));
+    if (line_starts == NULL) {
+        return false;
+    }
+    scanner->line_starts = line_starts;
+    scanner->line_starts_capacity = capacity;
+    return true;
+}
+
+/// Fills in the byte offset every line of the source begins at, into the storage left over from the source before. The
+/// first line begins at zero, so the result is never empty and an empty source has one line. Returns false when the
+/// table did not fit into memory, which leaves it empty.
+static bool calculator_scanner_build_line_starts(CalculatorScanner *scanner) {
+    size_t byte_offset = 0;
+
+    for (;;) {
+        const char *line_feed;
+
+        if (!calculator_scanner_reserve_line_starts(scanner, scanner->line_starts_length + 1)) {
+            /* Half a table answers wrongly rather than slowly, so what was built is dropped. */
+            scanner->line_starts_length = 0;
+            return false;
+        }
+        scanner->line_starts[scanner->line_starts_length++] = byte_offset;
+
+        if (byte_offset == scanner->source_length) {
+            break;
+        }
+        line_feed = (const char *)memchr(scanner->source + byte_offset, '\n', scanner->source_length - byte_offset);
+        if (line_feed == NULL) {
+            break;
+        }
+        byte_offset = (size_t)(line_feed - scanner->source) + 1;
+    }
+    return true;
+}
+
+/// Returns the line the given offset falls on, counted from one, by searching the table of line starts. The standard
+/// library's bsearch reports only whether an element is there, never where it would go, so the search is written out:
+/// what is needed is the number of line starts at or in front of the offset.
+static size_t calculator_scanner_line_of_offset(const CalculatorScanner *scanner, size_t byte_offset) {
+    size_t low = 0;
+    size_t high = scanner->line_starts_length;
+
+    while (low < high) {
+        size_t middle = low + (high - low) / 2;
+        if (scanner->line_starts[middle] <= byte_offset) {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    return low;
+}
+
+CalculatorPosition calculator_scanner_position(CalculatorScanner *scanner, size_t byte_offset) {
+    CalculatorPosition position;
+    size_t line;
+
+    /* An offset is never negative here, so the end of the source is the only side to clamp. */
+    if (byte_offset > scanner->source_length) {
+        byte_offset = scanner->source_length;
+    }
+
+    /* The table is built on the first call after a reset. A built table always holds the zero entry, so being empty is
+       what says it is not there. */
+    if (scanner->line_starts_length == 0) {
+        calculator_scanner_build_line_starts(scanner);
+    }
+
+    position.file_path = scanner->file_path;
+    position.byte_offset = byte_offset;
+    if (scanner->line_starts_length == 0) {
+        /* The table did not fit into memory, so the line feeds in front of the offset are counted instead. That is
+           slower for every call, but it is the same answer. */
+        size_t idx;
+        position.line = 1;
+        position.column = 1;
+        for (idx = 0; idx < byte_offset; idx++) {
+            if (scanner->source[idx] == '\n') {
+                position.line++;
+                position.column = 1;
+            } else {
+                position.column++;
+            }
+        }
+        return position;
+    }
+
+    line = calculator_scanner_line_of_offset(scanner, byte_offset);
+    position.line = line;
+    position.column = byte_offset - scanner->line_starts[line - 1] + 1;
+    return position;
+}
+
+CalculatorStringView calculator_scanner_text(const CalculatorScanner *scanner, size_t byte_offset, size_t byte_length) {
+    CalculatorStringView text;
+    size_t start_idx = byte_offset < scanner->source_length ? byte_offset : scanner->source_length;
+
+    text.data = scanner->source + start_idx;
+    /* Asking for the remainder of the source rather than adding the length up front, because the sum of the two can
+       wrap around where the difference cannot. */
+    text.length = scanner->source_length - start_idx < byte_length
+        ? scanner->source_length - start_idx
+        : byte_length;
+    return text;
+}
+
 const char *calculator_scanner_file_path(const CalculatorScanner *scanner) {
     return scanner->file_path;
 }
@@ -324,6 +512,9 @@ void calculator_scanner_reset(CalculatorScanner *scanner, const char *source, si
 
     scanner->line = 1;
     scanner->column = 1;
+
+    /* The line starts belong to the source which was replaced here, but their storage is worth keeping. */
+    scanner->line_starts_length = 0;
 
     scanner->token = CALCULATOR_TOKEN_INVALID_TOKEN;
 }
@@ -420,6 +611,14 @@ CalculatorStringView calculator_token_skipper_lexeme(const CalculatorTokenSkippe
     return skipper->scanner.lexeme(skipper->scanner.context);
 }
 
+CalculatorPosition calculator_token_skipper_position(CalculatorTokenSkipper *skipper, size_t byte_offset) {
+    return skipper->scanner.position(skipper->scanner.context, byte_offset);
+}
+
+CalculatorStringView calculator_token_skipper_text(const CalculatorTokenSkipper *skipper, size_t byte_offset, size_t byte_length) {
+    return skipper->scanner.text(skipper->scanner.context, byte_offset, byte_length);
+}
+
 const char *calculator_token_skipper_file_path(const CalculatorTokenSkipper *skipper) {
     return skipper->scanner.file_path(skipper->scanner.context);
 }
@@ -461,6 +660,14 @@ static CalculatorStringView calculator_scanner_lexeme_adapter(const void *contex
     return calculator_scanner_lexeme((const CalculatorScanner *)context);
 }
 
+static CalculatorPosition calculator_scanner_position_adapter(void *context, size_t byte_offset) {
+    return calculator_scanner_position((CalculatorScanner *)context, byte_offset);
+}
+
+static CalculatorStringView calculator_scanner_text_adapter(const void *context, size_t byte_offset, size_t byte_length) {
+    return calculator_scanner_text((const CalculatorScanner *)context, byte_offset, byte_length);
+}
+
 static const char *calculator_scanner_file_path_adapter(const void *context) {
     return calculator_scanner_file_path((const CalculatorScanner *)context);
 }
@@ -481,6 +688,8 @@ CalculatorTokenSource calculator_scanner_as_token_source(CalculatorScanner *scan
     result.line = calculator_scanner_line_adapter;
     result.column = calculator_scanner_column_adapter;
     result.lexeme = calculator_scanner_lexeme_adapter;
+    result.position = calculator_scanner_position_adapter;
+    result.text = calculator_scanner_text_adapter;
     result.file_path = calculator_scanner_file_path_adapter;
     result.reset = calculator_scanner_reset_adapter;
     result.next = calculator_scanner_next_adapter;
@@ -507,6 +716,14 @@ static CalculatorStringView calculator_token_skipper_lexeme_adapter(const void *
     return calculator_token_skipper_lexeme((const CalculatorTokenSkipper *)context);
 }
 
+static CalculatorPosition calculator_token_skipper_position_adapter(void *context, size_t byte_offset) {
+    return calculator_token_skipper_position((CalculatorTokenSkipper *)context, byte_offset);
+}
+
+static CalculatorStringView calculator_token_skipper_text_adapter(const void *context, size_t byte_offset, size_t byte_length) {
+    return calculator_token_skipper_text((const CalculatorTokenSkipper *)context, byte_offset, byte_length);
+}
+
 static const char *calculator_token_skipper_file_path_adapter(const void *context) {
     return calculator_token_skipper_file_path((const CalculatorTokenSkipper *)context);
 }
@@ -527,6 +744,8 @@ CalculatorTokenSource calculator_token_skipper_as_token_source(CalculatorTokenSk
     result.line = calculator_token_skipper_line_adapter;
     result.column = calculator_token_skipper_column_adapter;
     result.lexeme = calculator_token_skipper_lexeme_adapter;
+    result.position = calculator_token_skipper_position_adapter;
+    result.text = calculator_token_skipper_text_adapter;
     result.file_path = calculator_token_skipper_file_path_adapter;
     result.reset = calculator_token_skipper_reset_adapter;
     result.next = calculator_token_skipper_next_adapter;

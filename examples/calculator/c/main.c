@@ -120,12 +120,14 @@ static bool evaluate(const char *expression, size_t length, long *value, char *e
         calculator_parse_error_message(&result.errors[0], error_buffer, error_size);
         calculator_parse_result_free(&result);
         calculator_parser_free(&parser);
+        calculator_scanner_free(&scanner);
         return false;
     }
     if (result.tree == NULL) {
         snprintf(error_buffer, error_size, "the expression could not be parsed");
         calculator_parse_result_free(&result);
         calculator_parser_free(&parser);
+        calculator_scanner_free(&scanner);
         return false;
     }
 
@@ -135,9 +137,11 @@ static bool evaluate(const char *expression, size_t length, long *value, char *e
         snprintf(error_buffer, error_size, "%s", error);
     }
 
-    /* The tree belongs to the result, so it is read before the result is released. */
+    /* The tree belongs to the result, so it is read before the result is released. The scanner is released as well,
+       because it is done with. */
     calculator_parse_result_free(&result);
     calculator_parser_free(&parser);
+    calculator_scanner_free(&scanner);
     return evaluated;
 }
 
