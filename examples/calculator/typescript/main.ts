@@ -23,7 +23,7 @@ export function evaluate(expression: string): number {
     }
 
     // Traversing over the parse tree will calculate the result for us.
-    return evaluateNode(tree);
+    return evaluateNode(scanner, tree);
 }
 
 // childAt returns one child of a node.
@@ -40,29 +40,26 @@ function childAt(node: ParseNode, index: number): ParseNode {
 //   - 1 child:  INTEGER literal
 //   - 2 children: unary minus ("-" expression)
 //   - 3 children: binary operation (expression OP expression) or grouping ("(" expression ")")
-function evaluateNode(node: ParseNode): number {
-    // Each node has a symbol (the grammar symbol it represents), a lexeme (the raw bytes from the input, set for
-    // terminal nodes), and children (sub-nodes).
+function evaluateNode(scanner: TokenSkipper, node: ParseNode): number {
+    // Each node has a symbol (the grammar symbol it represents), the span of the input it covers (byteOffset and
+    // byteLength, which text turns back into bytes), and children (sub-nodes).
     switch (node.children.length) {
         case 1: {
             // expression: INTEGER
-            const lexeme = childAt(node, 0).lexeme;
-            if (lexeme === null) {
-                throw new Error("unexpected node structure");
-            }
-            return Number(new TextDecoder().decode(lexeme));
+            const integer = childAt(node, 0);
+            return Number(new TextDecoder().decode(scanner.text(integer.byteOffset, integer.byteLength)));
         }
         case 2:
             // expression: "-" expression
-            return -evaluateNode(childAt(node, 1));
+            return -evaluateNode(scanner, childAt(node, 1));
         case 3:
-            return evaluateThreeChildren(node);
+            return evaluateThreeChildren(scanner, node);
     }
     throw new Error("unexpected node structure");
 }
 
 // evaluateThreeChildren evaluates the two productions with three symbols on the right hand side.
-function evaluateThreeChildren(node: ParseNode): number {
+function evaluateThreeChildren(scanner: TokenSkipper, node: ParseNode): number {
     // In "(" expression ")", the middle child is the nonterminal expression node.
     // In "expression OP expression", the middle child is a terminal operator token.
     // We use this to distinguish the two cases.
@@ -70,11 +67,11 @@ function evaluateThreeChildren(node: ParseNode): number {
     const operator = ParseSymbol.terminal(middle.symbol);
     if (operator === null) {
         // expression: "(" expression ")"
-        return evaluateNode(middle);
+        return evaluateNode(scanner, middle);
     }
 
-    const leftValue = evaluateNode(childAt(node, 0));
-    const rightValue = evaluateNode(childAt(node, 2));
+    const leftValue = evaluateNode(scanner, childAt(node, 0));
+    const rightValue = evaluateNode(scanner, childAt(node, 2));
 
     switch (operator) {
         case Token.TokenPlus:

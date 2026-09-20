@@ -1,5 +1,6 @@
 // The TypeScript runner for the backend test corpus. It reads an input file, runs the generated scanner and the
-// generated parser over it, and writes the canonical scanner trace and parser trace the harness diffs against.
+// generated parser over it, and writes the canonical scanner trace, parser trace and tree trace the harness diffs
+// against.
 //
 // This file has no dependencies, and it must not grow any. What little of node it needs is declared in node.d.ts. It
 // runs in the image with no network, which is what proves that generated GoLR code needs nothing but the bare language.
@@ -7,10 +8,12 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
 import { Scanner, Token, TokenSkipper, tokenToString } from "./scanner.js";
-import { Parser } from "./parser.js";
+import { Parser, ParseSymbol, nonterminalToString } from "./parser.js";
+import type { Nonterminal, ParseNode } from "./parser.js";
 
 const scannerTraceFileName = "scanner.actual";
 const parserTraceFileName = "parser.actual";
+const treeTraceFileName = "tree.actual";
 
 // The bytes a trace line carries as they are. Everything outside of it is escaped.
 const printableLow = 0x20;
@@ -111,6 +114,80 @@ function appendParserTrace(lines: string[], source: Uint8Array, inputPath: strin
     parser.parse(new TokenSkipper(new Scanner(source, inputPath)));
 }
 
+// terminalTraceName names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name.
+function terminalTraceName(terminal: Token): string {
+    switch (terminal) {
+        case Token.EndToken: return "$end";
+        case Token.ErrorToken: return "$error";
+        case Token.InvalidToken: return "$invalid";
+        default: return tokenToString(terminal);
+    }
+}
+
+// symbolTraceName is the bare grammar name of a symbol, which for a nonterminal is what nonterminalToString returns and
+// for a terminal is the name the traces spell it with.
+function symbolTraceName(symbol: ParseSymbol): string {
+    const nonterminal = ParseSymbol.nonterminal(symbol);
+    if (nonterminal !== null) {
+        return nonterminalToString(nonterminal);
+    }
+    return terminalTraceName(ParseSymbol.terminal(symbol)!);
+}
+
+// reduceTracePayload renders a node as "lhs => rhs", the way the REDUCE line of a parser trace names the production it
+// was reduced from, or as "lhs => ε" for a production with an empty right hand side.
+function reduceTracePayload(lhs: Nonterminal, rhs: ParseNode[]): string {
+    let payload = `${nonterminalToString(lhs)} =>`;
+    if (rhs.length === 0) {
+        return payload + " ε";
+    }
+    for (const child of rhs) {
+        payload += ` ${symbolTraceName(child.symbol)}`;
+    }
+    return payload;
+}
+
+// appendTreeNode appends the line of the given node and the lines of everything below it, which is the pre-order the
+// tree trace is read in: a node, then what it was built from. The payload carries the indentation and the position and
+// span columns do not, so they stay in the same place however deep a node sits.
+function appendTreeNode(lines: string[], scanner: Scanner, node: ParseNode, depth: number): void {
+    const position = scanner.position(node.byteOffset);
+    const location = `${position.line}:${position.column}`.padEnd(7);
+    const span = `${node.byteOffset}+${node.byteLength}`.padEnd(7);
+
+    let payload = "  ".repeat(depth);
+    const nonterminal = ParseSymbol.nonterminal(node.symbol);
+    if (nonterminal !== null) {
+        payload += reduceTracePayload(nonterminal, node.children);
+    } else if (ParseSymbol.terminal(node.symbol) === Token.ErrorToken) {
+        // The error node stands for no token of its own, so its span is all it carries.
+        payload += terminalTraceName(Token.ErrorToken);
+    } else {
+        // The text is read off the source through the span and never carried along from the token, which is what makes
+        // the trace state that the span is right.
+        const terminal = ParseSymbol.terminal(node.symbol)!;
+        payload += `${terminalTraceName(terminal)} "${escapeLexeme(scanner.text(node.byteOffset, node.byteLength))}"`;
+    }
+
+    lines.push(`${location} ${span} ${payload}`);
+    for (const child of node.children) {
+        appendTreeNode(lines, scanner, child, depth + 1);
+    }
+}
+
+// appendTreeTrace parses the whole input and appends one line per node of the tree the parse built, in pre-order. A
+// parse which was given up builds no tree and appends nothing, which is the empty trace the harness expects for it.
+function appendTreeTrace(lines: string[], source: Uint8Array, inputPath: string): void {
+    // The scanner stays at hand after the parse, because a node carries the span of the source it covers and not the
+    // source itself, so the trace resolves every node through position and text.
+    const scanner = new Scanner(source, inputPath);
+
+    const result = new Parser().parse(new TokenSkipper(scanner));
+    if (result.tree !== null) {
+        appendTreeNode(lines, scanner, result.tree, 0);
+    }
+}
+
 // writeTrace produces one trace and writes it to its file. Whatever was produced before a throw is written all the
 // same, so a runner which breaks half way still says how far it got, and the other trace is still produced.
 function writeTrace(fileName: string, produce: (lines: string[]) => void): void {
@@ -137,3 +214,4 @@ const source = readFileSync(inputPath);
 
 writeTrace(scannerTraceFileName, (lines) => appendScannerTrace(lines, source, inputPath));
 writeTrace(parserTraceFileName, (lines) => appendParserTrace(lines, source, inputPath));
+writeTrace(treeTraceFileName, (lines) => appendTreeTrace(lines, source, inputPath));
