@@ -53,6 +53,27 @@ function escapeLexeme(lexeme: Uint8Array): string {
     return result;
 }
 
+// checkPosition holds the offset based position and text against the line, column and lexeme of the token the scanner
+// currently sits on. The two ways of asking exist side by side until the release which drops line and column, and the
+// corpus is where they have to agree: every case of it is far more input than a hand written test covers.
+function checkPosition(scanner: Scanner): void {
+    const position = scanner.position(scanner.byteOffset());
+    if (position.line !== scanner.line() || position.column !== scanner.column() ||
+        position.filePath !== scanner.filePath()) {
+        process.stderr.write(
+            `position(${scanner.byteOffset()}) is ${position.filePath} ${position.line}:${position.column}, ` +
+            `but the scanner reports ${scanner.filePath()} ${scanner.line()}:${scanner.column()}\n`);
+        process.exit(1);
+    }
+
+    const lexeme = scanner.lexeme();
+    const text = scanner.text(scanner.byteOffset(), lexeme.length);
+    if (text.length !== lexeme.length || text.some((value, idx) => value !== lexeme[idx])) {
+        process.stderr.write(`text(${scanner.byteOffset()}, ${lexeme.length}) differs from the lexeme\n`);
+        process.exit(1);
+    }
+}
+
 // appendScannerTrace scans the whole input and appends one line per event: the position the token or the failed match
 // starts at, a keyword, and for a token its rule and lexeme, for a failed match the bytes it could not match.
 function appendScannerTrace(lines: string[], source: Uint8Array, inputPath: string): void {
@@ -61,6 +82,8 @@ function appendScannerTrace(lines: string[], source: Uint8Array, inputPath: stri
     const scanner = new Scanner(source, inputPath);
 
     while (scanner.next()) {
+        checkPosition(scanner);
+
         const location = `${scanner.line()}:${scanner.column()}`.padEnd(7);
         const lexeme = escapeLexeme(scanner.lexeme());
 
@@ -72,7 +95,8 @@ function appendScannerTrace(lines: string[], source: Uint8Array, inputPath: stri
     }
 
     // The position after the scanner ran out of input, which is one past the last byte only when it consumed
-    // everything.
+    // everything. It is the offset every off by one in a line table lands on, so it is checked like a token.
+    checkPosition(scanner);
     const endLocation = `${scanner.line()}:${scanner.column()}`.padEnd(7);
     lines.push(`${endLocation} EOF`);
 }

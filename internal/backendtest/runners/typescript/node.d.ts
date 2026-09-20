@@ -18,4 +18,7 @@ declare const process: {
     readonly stderr: {
         write(message: string): void;
     };
+
+    /** Ends the run with the given status, which is how a failed cross-check stops the corpus. */
+    exit(code: number): never;
 };
