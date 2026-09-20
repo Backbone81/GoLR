@@ -10,6 +10,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 
 namespace {{ .Config.Namespace }};
 
@@ -58,6 +59,19 @@ public static class TokenExtensions
     };
 }
 
+/// <summary>
+/// Where a byte offset of the source is, in the terms a human reads: the file the scanner was given, the offset itself,
+/// and the line and column it falls on.
+/// </summary>
+/// <param name="FilePath">The file path the scanner was given.</param>
+/// <param name="ByteOffset">The offset this position was resolved for, in bytes from the start of the source.</param>
+/// <param name="Line">
+/// The line the offset falls on, counted from one. Only a line feed starts a new line, so the carriage return of a CRLF
+/// pair is the last byte of the line it ends.
+/// </param>
+/// <param name="Column">The column the offset falls on, counted from one in bytes.</param>
+public readonly record struct Position(string FilePath, int ByteOffset, int Line, int Column);
+
 /// <summary>What a scanner offers. Both <see cref="Scanner"/> and <see cref="TokenSkipper"/> implement it.</summary>
 public interface ITokenSource
 {
@@ -78,6 +92,22 @@ public interface ITokenSource
 
     /// <summary>The bytes of the token, as a view into the source rather than a copy of it.</summary>
     ReadOnlyMemory<byte> Lexeme { get; }
+
+    /// <summary>
+    /// Resolves a byte offset of the source into file path, line and column. Offsets from zero up to and including the
+    /// length of the source are valid, the last of them being the end of the source, and an offset outside of that is
+    /// clamped into it.
+    /// </summary>
+    /// <param name="byteOffset">The offset to resolve.</param>
+    Position Position(int byteOffset);
+
+    /// <summary>
+    /// Returns the bytes the given span covers, as a view into the source rather than a copy of it. The span is clamped
+    /// to the source, and a negative length is empty.
+    /// </summary>
+    /// <param name="byteOffset">The offset the span starts at.</param>
+    /// <param name="byteLength">The number of bytes the span covers.</param>
+    ReadOnlyMemory<byte> Text(int byteOffset, int byteLength);
 
     /// <summary>The file path the scanner was given.</summary>
     string FilePath { get; }
@@ -121,6 +151,12 @@ public sealed class TokenSkipper : ITokenSource
 
     /// <inheritdoc/>
     public ReadOnlyMemory<byte> Lexeme => _scanner.Lexeme;
+
+    /// <inheritdoc/>
+    public Position Position(int byteOffset) => _scanner.Position(byteOffset);
+
+    /// <inheritdoc/>
+    public ReadOnlyMemory<byte> Text(int byteOffset, int byteLength) => _scanner.Text(byteOffset, byteLength);
 
     /// <inheritdoc/>
     public string FilePath => _scanner.FilePath;
@@ -196,6 +232,12 @@ public sealed class Scanner : ITokenSource
     /// <summary>Index one past the last byte of the current token.</summary>
     private int _lexemeEndIdx;
 
+    /// <summary>
+    /// The byte offset every line of the source begins at. It is built on the first call to <see cref="Position"/> and
+    /// emptied by <see cref="Reset"/>, which keeps its storage for the next source.
+    /// </summary>
+    private readonly List<int> _lineStarts = new();
+
     /// <summary>Creates a scanner which turns the given bytes into tokens, starting at the first of them.</summary>
     /// <param name="source">The bytes to scan.</param>
     /// <param name="filePath">Used in error messages. Any string will do when the source is not a file.</param>
@@ -221,6 +263,53 @@ public sealed class Scanner : ITokenSource
     public ReadOnlyMemory<byte> Lexeme => _source[_lexemeStartIdx.._lexemeEndIdx];
 
     /// <inheritdoc/>
+    public Position Position(int byteOffset)
+    {
+        byteOffset = Math.Clamp(byteOffset, 0, _source.Length);
+
+        if (_lineStarts.Count == 0)
+        {
+            BuildLineStarts();
+        }
+
+        // The search returns where the offset sits when it is a line start itself, and the complement of where it would
+        // be inserted otherwise, which is the number of lines in front of it.
+        int found = _lineStarts.BinarySearch(byteOffset);
+        int line = found >= 0 ? found + 1 : ~found;
+        return new Position(FilePath, byteOffset, line, byteOffset - _lineStarts[line - 1] + 1);
+    }
+
+    /// <summary>
+    /// Fills in the byte offset every line of the source begins at, into the storage left over from the source before.
+    /// The first line begins at zero, so the result is never empty and an empty source has one line.
+    /// </summary>
+    private void BuildLineStarts()
+    {
+        ReadOnlySpan<byte> source = _source.Span;
+
+        _lineStarts.Add(0);
+        for (int byteOffset = 0; byteOffset < source.Length;)
+        {
+            int lineFeedIdx = source[byteOffset..].IndexOf((byte)0x0a);
+            if (lineFeedIdx < 0)
+            {
+                break;
+            }
+            byteOffset += lineFeedIdx + 1;
+            _lineStarts.Add(byteOffset);
+        }
+    }
+
+    /// <inheritdoc/>
+    public ReadOnlyMemory<byte> Text(int byteOffset, int byteLength)
+    {
+        int startIdx = Math.Clamp(byteOffset, 0, _source.Length);
+        // Clamping the length against what is left rather than the end against the source, because the two added up
+        // can overflow where the difference cannot.
+        return _source.Slice(startIdx, Math.Clamp(byteLength, 0, _source.Length - startIdx));
+    }
+
+    /// <inheritdoc/>
     public string FilePath { get; }
 
     /// <inheritdoc/>
@@ -235,6 +324,9 @@ public sealed class Scanner : ITokenSource
 
         Line = 1;
         Column = 1;
+
+        // The line starts belong to the source which was replaced here, but their storage is worth keeping.
+        _lineStarts.Clear();
 
         Token = Token.InvalidToken;
     }
