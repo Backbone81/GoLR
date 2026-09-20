@@ -103,13 +103,24 @@ ParseSymbol = TerminalSymbol | NonterminalSymbol
 
 @dataclass(slots=True)
 class ParseNode:
-    """A single node of the parse tree."""
+    """A single node of the parse tree.
+
+    It carries the span of the source it covers, which `TokenSource.text` turns back into bytes and
+    `TokenSource.position` into a file path, a line and a column.
+
+    A terminal covers its lexeme and a nonterminal covers its children. The error symbol covers what the error recovery
+    threw away, up to the point it resumed at. A production with an empty right hand side has zero length at the end of
+    the symbol to its left.
+    """
 
     symbol: ParseSymbol
     """The terminal or nonterminal this node stands for."""
 
-    lexeme: bytes = b""
-    """The bytes of the terminal. Empty for a nonterminal and for the error symbol, which no input produced."""
+    byte_offset: int = 0
+    """The start of the source this node covers, in bytes from the start of the source."""
+
+    byte_length: int = 0
+    """The number of bytes of the source this node covers."""
 
     children: list["ParseNode"] = field(default_factory=list)
     """The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal."""
@@ -203,15 +214,16 @@ class ParseError(Exception):
         :param kind: What the error is about.
         :param scanner: The scanner the token and its position are taken from.
         """
+        position = scanner.position(scanner.byte_offset)
         return cls(
             reason,
             kind,
             scanner.token,
-            scanner.byte_offset,
-            scanner.line,
-            scanner.column,
+            position.byte_offset,
+            position.line,
+            position.column,
             scanner.lexeme,
-            scanner.file_path,
+            position.file_path,
         )
 
     @property
@@ -462,7 +474,7 @@ class Parser:
             if self.trace is not None:
                 self._emit_trace(scanner, "SHIFT", f'{_terminal_trace_name(terminal)} "{_escape_lexeme(scanner.lexeme)}"')
             self._state_stack.append(action >> _ACTION_KIND_BITS)
-            self._node_stack.append(ParseNode(TerminalSymbol(terminal), scanner.lexeme))
+            self._node_stack.append(ParseNode(TerminalSymbol(terminal), scanner.byte_offset, len(scanner.lexeme)))
             scanner.next()
             if self._error_recovery_shifts_remaining > 0:
                 # Getting tokens of the input shifted again is what makes the parser trust its position.
@@ -511,12 +523,33 @@ class Parser:
             goto_state = _DEFAULT_GOTO_BY_NONTERMINAL[nonterminal]
         self._state_stack.append(goto_state)
 
-        # The right hand side comes off the node stack and is handed over as the children.
+        # The node starts where its first child starts and ends where its last child ends.
         split_idx = len(self._node_stack) - pop_count
+        byte_length = 0
+        if pop_count != 0:
+            last_child = self._node_stack[-1]
+            byte_offset = self._node_stack[split_idx].byte_offset
+            byte_length = last_child.byte_offset + last_child.byte_length - byte_offset
+        elif self._node_stack:
+            # A production with an empty right hand side goes at the end of the symbol to its left, so that it lies
+            # inside the node it becomes a child of instead of at the lookahead beyond it.
+            left = self._node_stack[-1]
+            byte_offset = left.byte_offset + left.byte_length
+        else:
+            # Nothing has been parsed yet, so there is no symbol to the left of it.
+            byte_offset = scanner.byte_offset
+
+        # The right hand side comes off the node stack and is handed over as the children.
         children = self._node_stack[split_idx:]
         del self._node_stack[split_idx:]
         self._node_stack.append(
-            ParseNode(NonterminalSymbol(Nonterminal(nonterminal)), children=children, production=Production(production_idx))
+            ParseNode(
+                NonterminalSymbol(Nonterminal(nonterminal)),
+                byte_offset,
+                byte_length,
+                children=children,
+                production=Production(production_idx),
+            )
         )
 
     def _recover_from_error(self, scanner: TokenSource) -> bool:
@@ -536,6 +569,12 @@ class Parser:
         every round of recovery either gets the parse going again or consumes one token of the input, so a parse cannot
         get stuck between the two.
         """
+        # The error node this round ends with runs from the start of what the round throws away to the point where it
+        # resumes, so the span starts out empty at the token the parser stopped on and grows to the front with every
+        # node the round pops.
+        dropped_offset = scanner.byte_offset
+        dropped_length = 0
+
         if self._error_recovery_shifts_remaining == _ERROR_RECOVERY_SHIFTS:
             # Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if scanner.token == Token.END_TOKEN:
@@ -547,6 +586,8 @@ class Parser:
                 self._emit_trace(
                     scanner, "DISCARD", f'{_terminal_trace_name(scanner.token)} "{_escape_lexeme(scanner.lexeme)}"'
                 )
+            # The discarded token is thrown away as well, so the span reaches to its end and not to its start.
+            dropped_length = len(scanner.lexeme)
             scanner.next()
         self._error_recovery_shifts_remaining = _ERROR_RECOVERY_SHIFTS
 
@@ -555,9 +596,14 @@ class Parser:
             if next_state is not None:
                 if self.trace is not None:
                     self._emit_trace(scanner, "RESYNC", "")
-                # Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
+                if dropped_length == 0 and self._node_stack:
+                    # The round threw no bytes away, so its node goes at the end of the symbol to its left, where a
+                    # production with an empty right hand side goes, and not at the lookahead beyond it.
+                    left = self._node_stack[-1]
+                    dropped_offset = left.byte_offset + left.byte_length
+                # Shift the error symbol. Its node covers what this round dropped.
                 self._state_stack.append(next_state)
-                self._node_stack.append(ParseNode(TerminalSymbol(Token.ERROR_TOKEN)))
+                self._node_stack.append(ParseNode(TerminalSymbol(Token.ERROR_TOKEN), dropped_offset, dropped_length))
                 return True
             if len(self._state_stack) == 1:
                 # Only the state the parse started in is left and it cannot shift the error symbol either.
@@ -568,6 +614,9 @@ class Parser:
                 self._emit_trace(scanner, "POP", _symbol_trace_name(self._node_stack[-1].symbol))
             # The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
             # node, so dropping one drops one.
+            dropped_node = self._node_stack[-1]
+            dropped_length = dropped_offset + dropped_length - dropped_node.byte_offset
+            dropped_offset = dropped_node.byte_offset
             self._state_stack.pop()
             self._node_stack.pop()
 
@@ -606,7 +655,8 @@ class Parser:
         """Hands one trace line to `self.trace`: the position of the current lookahead, the keyword, and an optional
         payload. The caller has already checked that `self.trace` is not `None`.
         """
-        location = f"{scanner.line}:{scanner.column}"
+        position = scanner.position(scanner.byte_offset)
+        location = f"{position.line}:{position.column}"
         if payload == "":
             self.trace(f"{location:<7} {keyword}")
             return

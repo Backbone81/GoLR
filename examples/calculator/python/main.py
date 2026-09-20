@@ -21,10 +21,10 @@ def evaluate(expression: str) -> int:
         raise ValueError("the expression could not be parsed")
 
     # Traversing over the parse tree will calculate the result for us.
-    return evaluate_node(result.tree)
+    return evaluate_node(scanner, result.tree)
 
 
-def evaluate_node(node: ParseNode) -> int:
+def evaluate_node(scanner: TokenSkipper, node: ParseNode) -> int:
     """Recursively evaluates an expression node from the parse tree.
 
     The number of children encodes which grammar production was matched:
@@ -32,21 +32,22 @@ def evaluate_node(node: ParseNode) -> int:
       - 2 children: unary minus ("-" expression)
       - 3 children: binary operation (expression OP expression) or grouping ("(" expression ")")
     """
-    # Each node has a symbol (the grammar symbol it represents), a lexeme (the raw bytes from the input, set for
-    # terminal nodes), and children (sub-nodes).
+    # Each node has a symbol (the grammar symbol it represents), the span of the input it covers (byte_offset and
+    # byte_length, which text turns back into bytes), and children (sub-nodes).
     match len(node.children):
         case 1:
             # expression: INTEGER
-            return int(node.children[0].lexeme)
+            integer = node.children[0]
+            return int(scanner.text(integer.byte_offset, integer.byte_length))
         case 2:
             # expression: "-" expression
-            return -evaluate_node(node.children[1])
+            return -evaluate_node(scanner, node.children[1])
         case 3:
-            return evaluate_three_children(node)
+            return evaluate_three_children(scanner, node)
     raise ValueError("unexpected node structure")
 
 
-def evaluate_three_children(node: ParseNode) -> int:
+def evaluate_three_children(scanner: TokenSkipper, node: ParseNode) -> int:
     """Evaluates the two productions with three symbols on the right hand side."""
     # In "(" expression ")", the middle child is the nonterminal expression node.
     # In "expression OP expression", the middle child is a terminal operator token.
@@ -54,10 +55,10 @@ def evaluate_three_children(node: ParseNode) -> int:
     middle = node.children[1]
     if not isinstance(middle.symbol, TerminalSymbol):
         # expression: "(" expression ")"
-        return evaluate_node(middle)
+        return evaluate_node(scanner, middle)
 
-    left_value = evaluate_node(node.children[0])
-    right_value = evaluate_node(node.children[2])
+    left_value = evaluate_node(scanner, node.children[0])
+    right_value = evaluate_node(scanner, node.children[2])
 
     match middle.symbol.token:
         case Token.TOKEN_PLUS:

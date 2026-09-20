@@ -1,16 +1,17 @@
 # The Python runner for the backend test corpus. It reads an input file, runs the generated scanner and the generated
-# parser over it, and writes the canonical scanner trace and parser trace the harness diffs against.
+# parser over it, and writes the canonical scanner trace, parser trace and tree trace the harness diffs against.
 #
 # This file has no dependencies, and it must not grow any. It runs in the official python image with no network, which
 # is what proves that generated GoLR code needs nothing but the bare language.
 
 import sys
 
-from parser import Parser
+from parser import NonterminalSymbol, Parser
 from scanner import Scanner, Token, TokenSkipper
 
 SCANNER_TRACE_FILE_NAME = "scanner.actual"
 PARSER_TRACE_FILE_NAME = "parser.actual"
+TREE_TRACE_FILE_NAME = "tree.actual"
 
 # The bytes a trace line carries as they are. Everything outside of it is escaped.
 PRINTABLE_LOW = 0x20
@@ -110,6 +111,79 @@ def append_parser_trace(lines, source, input_path):
     parser.parse(TokenSkipper(Scanner(source, input_path)))
 
 
+def terminal_trace_name(terminal):
+    """Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name."""
+    if terminal == Token.END_TOKEN:
+        return "$end"
+    if terminal == Token.ERROR_TOKEN:
+        return "$error"
+    if terminal == Token.INVALID_TOKEN:
+        return "$invalid"
+    return str(terminal)
+
+
+def symbol_trace_name(symbol):
+    """The bare grammar name of a symbol, without the prefix its str adds."""
+    if isinstance(symbol, NonterminalSymbol):
+        return str(symbol.nonterminal)
+    return terminal_trace_name(symbol.token)
+
+
+def reduce_trace_payload(lhs, rhs):
+    """Renders a node as "lhs => rhs", or as "lhs => ε" for a production with an empty right hand side.
+
+    That is the way the REDUCE line of a parser trace names the production it was reduced from, so the two traces of a
+    case can be read against each other.
+    """
+    payload = str(lhs) + " =>"
+    if not rhs:
+        return payload + " ε"
+    for child in rhs:
+        payload += " " + symbol_trace_name(child.symbol)
+    return payload
+
+
+def append_tree_node(lines, scanner, node, depth):
+    """Appends the line of the given node and the lines of everything below it.
+
+    That is the pre-order the tree trace is read in: a node, then what it was built from. The payload carries the
+    indentation and the position and span columns do not, so they stay in the same place however deep a node sits.
+    """
+    position = scanner.position(node.byte_offset)
+    location = f"{position.line}:{position.column}"
+    span = f"{node.byte_offset}+{node.byte_length}"
+
+    payload = "  " * depth
+    if isinstance(node.symbol, NonterminalSymbol):
+        payload += reduce_trace_payload(node.symbol.nonterminal, node.children)
+    elif node.symbol.token == Token.ERROR_TOKEN:
+        # The error node stands for no token of its own, so its span is all it carries.
+        payload += terminal_trace_name(Token.ERROR_TOKEN)
+    else:
+        # The text is read off the source through the span and never carried along from the token, which is what makes
+        # the trace state that the span is right.
+        text = escape_lexeme(scanner.text(node.byte_offset, node.byte_length))
+        payload += f'{terminal_trace_name(node.symbol.token)} "{text}"'
+
+    lines.append(f"{location:<7} {span:<7} {payload}")
+    for child in node.children:
+        append_tree_node(lines, scanner, child, depth + 1)
+
+
+def append_tree_trace(lines, source, input_path):
+    """Parses the whole input and appends one line per node of the tree the parse built, in pre-order.
+
+    A parse which was given up builds no tree and appends nothing, which is the empty trace the harness expects for it.
+    """
+    # The scanner stays at hand after the parse, because a node carries the span of the source it covers and not the
+    # source itself, so the trace resolves every node through position and text.
+    scanner = Scanner(source, input_path)
+
+    result = Parser().parse(TokenSkipper(scanner))
+    if result.tree is not None:
+        append_tree_node(lines, scanner, result.tree, 0)
+
+
 def write_trace(file_name, produce, source, input_path):
     """Produces one trace and writes it to its file.
 
@@ -127,7 +201,7 @@ def write_trace(file_name, produce, source, input_path):
 
 
 def main():
-    """Runs both traces over the input file named on the command line."""
+    """Runs all three traces over the input file named on the command line."""
     input_path = sys.argv[1]
 
     # Opened in binary mode, because the generated scanner wants the bytes of the input and not text. Handing it a str
@@ -137,6 +211,7 @@ def main():
 
     write_trace(SCANNER_TRACE_FILE_NAME, append_scanner_trace, source, input_path)
     write_trace(PARSER_TRACE_FILE_NAME, append_parser_trace, source, input_path)
+    write_trace(TREE_TRACE_FILE_NAME, append_tree_trace, source, input_path)
 
 
 if __name__ == "__main__":
