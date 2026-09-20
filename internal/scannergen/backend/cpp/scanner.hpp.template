@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace {{ .Config.Namespace }} {
 
@@ -58,6 +59,23 @@ enum class Token : {{ .Tables.TokenType }} {
     }
 }
 
+/// Where a byte offset of the source is, in the terms a human reads: the file the scanner was given, the offset itself,
+/// and the line and column it falls on.
+struct Position {
+    /// The file path the scanner was given.
+    std::string_view file_path;
+
+    /// The offset this position was resolved for, in bytes from the start of the source.
+    std::size_t byte_offset;
+
+    /// The line the offset falls on, counted from one. Only a line feed starts a new line, so the carriage return of a
+    /// CRLF pair is the last byte of the line it ends.
+    std::size_t line;
+
+    /// The column the offset falls on, counted from one in bytes.
+    std::size_t column;
+};
+
 /// Wraps a scanner and skips the tokens marked for skipping, which are usually whitespace and comments. It offers the
 /// same members as Scanner, so it goes wherever a scanner goes.
 ///
@@ -84,6 +102,14 @@ public:
 
     /// Returns the bytes of the token, as a view into the source rather than a copy of it.
     [[nodiscard]] std::string_view lexeme() const { return scanner_.lexeme(); }
+
+    /// Resolves a byte offset of the source into file path, line and column.
+    [[nodiscard]] Position position(std::size_t byte_offset) const { return scanner_.position(byte_offset); }
+
+    /// Returns the bytes the given span covers, as a view into the source rather than a copy of it.
+    [[nodiscard]] std::string_view text(std::size_t byte_offset, std::size_t byte_length) const {
+        return scanner_.text(byte_offset, byte_length);
+    }
 
     /// Returns the file path the scanner was given.
     [[nodiscard]] std::string_view file_path() const noexcept { return scanner_.file_path(); }
@@ -138,6 +164,29 @@ public:
         return source_.substr(lexeme_start_idx_, lexeme_end_idx_ - lexeme_start_idx_);
     }
 
+    /// Resolves a byte offset of the source into file path, line and column. Offsets from zero up to and including the
+    /// length of the source are valid, the last of them being the end of the source, and an offset outside of that is
+    /// clamped into it.
+    [[nodiscard]] Position position(std::size_t byte_offset) const {
+        byte_offset = std::min(byte_offset, source_.size());
+
+        if (line_starts_.empty()) {
+            build_line_starts();
+        }
+
+        // The search returns the first line start past the offset, so the number of line starts in front of it is the
+        // line it falls on, counted from one.
+        const auto line_start = std::upper_bound(line_starts_.begin(), line_starts_.end(), byte_offset);
+        const auto line = static_cast<std::size_t>(line_start - line_starts_.begin());
+        return Position{file_path_, byte_offset, line, byte_offset - line_starts_[line - 1] + 1};
+    }
+
+    /// Returns the bytes the given span covers, as a view into the source rather than a copy of it. The span is clamped
+    /// to the source.
+    [[nodiscard]] std::string_view text(std::size_t byte_offset, std::size_t byte_length) const {
+        return source_.substr(std::min(byte_offset, source_.size()), byte_length);
+    }
+
     /// Returns the file path the scanner was given.
     [[nodiscard]] std::string_view file_path() const noexcept { return file_path_; }
 
@@ -153,6 +202,9 @@ public:
 
         line_ = 1;
         column_ = 1;
+
+        // The line starts belong to the source which was replaced here, but their storage is worth keeping.
+        line_starts_.clear();
 
         token_ = Token::InvalidToken;
     }
@@ -241,6 +293,20 @@ private:
 {{- end }}
     };
 
+    /// Fills in the byte offset every line of the source begins at, into the storage left over from the source before.
+    /// The first line begins at zero, so the result is never empty and an empty source has one line.
+    void build_line_starts() const {
+        line_starts_.push_back(0);
+        for (std::size_t byte_offset = 0; byte_offset < source_.size();) {
+            const std::size_t line_feed_idx = source_.find('\n', byte_offset);
+            if (line_feed_idx == std::string_view::npos) {
+                break;
+            }
+            byte_offset = line_feed_idx + 1;
+            line_starts_.push_back(byte_offset);
+        }
+    }
+
     /// Advances the line and column counters over the bytes between the two indexes.
     void update_line_and_column(std::size_t start_idx, std::size_t end_idx) noexcept {
         for (std::size_t idx = start_idx; idx < end_idx; idx++) {
@@ -273,6 +339,12 @@ private:
 
     /// The column the current token starts on, counted from one.
     std::size_t column_;
+
+    /// The byte offset every line of the source begins at. It is built on the first call to position() and emptied by
+    /// reset(), which keeps its storage for the next source.
+    ///
+    /// Mutable because building it changes nothing the scanner reports, which is what lets position() be const.
+    mutable std::vector<std::size_t> line_starts_;
 };
 
 }  // namespace {{ .Config.Namespace }}

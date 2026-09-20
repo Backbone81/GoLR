@@ -7,6 +7,7 @@
 // The generated scanner and parser are headers, so compiling this file compiles them too and one command covers both.
 
 #include <cstdio>
+#include <cstdlib>
 #include <exception>
 #include <fstream>
 #include <iterator>
@@ -73,6 +74,28 @@ std::string pad_field(std::string field) {
     return field;
 }
 
+// check_position holds the offset based position() and text() against the line(), column() and lexeme() of the token
+// the scanner currently sits on. The two ways of asking exist side by side until the release which drops line() and
+// column(), and the corpus is where they have to agree: every case of it is far more input than a hand written test
+// covers.
+void check_position(const parser::Scanner& scanner) {
+    const parser::Position position = scanner.position(scanner.byte_offset());
+    if (position.line != scanner.line() || position.column != scanner.column() ||
+        position.file_path != scanner.file_path()) {
+        std::fprintf(stderr, "position(%zu) is %.*s %zu:%zu, but the scanner reports %.*s %zu:%zu\n",
+                     scanner.byte_offset(), static_cast<int>(position.file_path.size()), position.file_path.data(),
+                     position.line, position.column, static_cast<int>(scanner.file_path().size()),
+                     scanner.file_path().data(), scanner.line(), scanner.column());
+        std::exit(1);
+    }
+
+    const std::string_view lexeme = scanner.lexeme();
+    if (scanner.text(scanner.byte_offset(), lexeme.size()) != lexeme) {
+        std::fprintf(stderr, "text(%zu, %zu) differs from the lexeme\n", scanner.byte_offset(), lexeme.size());
+        std::exit(1);
+    }
+}
+
 // append_scanner_trace scans the whole input and appends one line per event: the position the token or the failed
 // match starts at, a keyword, and for a token its rule and lexeme, for a failed match the bytes it could not match.
 void append_scanner_trace(std::vector<std::string>& lines, std::string_view source, const std::string& input_path) {
@@ -81,6 +104,8 @@ void append_scanner_trace(std::vector<std::string>& lines, std::string_view sour
     parser::Scanner scanner(source, input_path);
 
     while (scanner.next()) {
+        check_position(scanner);
+
         const std::string location =
             pad_field(std::to_string(scanner.line()) + ":" + std::to_string(scanner.column()));
         const std::string lexeme = escape_lexeme(scanner.lexeme());
@@ -94,7 +119,8 @@ void append_scanner_trace(std::vector<std::string>& lines, std::string_view sour
     }
 
     // The position after the scanner ran out of input, which is one past the last byte only when it consumed
-    // everything.
+    // everything. It is the offset every off by one in a line table lands on, so it is checked like a token.
+    check_position(scanner);
     lines.push_back(pad_field(std::to_string(scanner.line()) + ":" + std::to_string(scanner.column())) + " EOF");
 }
 
