@@ -1,7 +1,7 @@
 mod parser;
 
 use parser::parser::{ParseNode, ParseSymbol, Parser};
-use parser::scanner::{Scanner, Token, TokenSkipper};
+use parser::scanner::{Scanner, Token, TokenSkipper, TokenSource};
 use std::process;
 
 fn main() {
@@ -41,7 +41,7 @@ fn evaluate(expression: &str) -> Result<i32, String> {
     };
 
     // Traversing over the parse tree will calculate the result for us.
-    evaluate_node(&tree)
+    evaluate_node(&scanner, &tree)
 }
 
 // evaluate_node recursively evaluates an expression node from the parse tree.
@@ -49,34 +49,34 @@ fn evaluate(expression: &str) -> Result<i32, String> {
 //   - 1 child:    INTEGER literal
 //   - 2 children: unary minus ("-" expression)
 //   - 3 children: binary operation (expression OP expression) or grouping ("(" expression ")")
-fn evaluate_node(node: &ParseNode) -> Result<i32, String> {
-    // Each node has a symbol (the grammar symbol it represents), a lexeme (the raw bytes from the input, set for
-    // terminal nodes), and children (sub-nodes).
+fn evaluate_node(scanner: &dyn TokenSource<'_>, node: &ParseNode) -> Result<i32, String> {
+    // Each node has a symbol (the grammar symbol it represents), the span of the input it covers (byte_offset and
+    // byte_length, which text turns back into bytes), and children (sub-nodes).
     match node.children.len() {
         // expression: INTEGER
-        1 => lexeme(&node.children[0])
+        1 => text(scanner, &node.children[0])
             .parse()
             .map_err(|_| "not an integer".to_string()),
         // expression: "-" expression
-        2 => Ok(-evaluate_node(&node.children[1])?),
-        3 => evaluate_three_children(node),
+        2 => Ok(-evaluate_node(scanner, &node.children[1])?),
+        3 => evaluate_three_children(scanner, node),
         _ => Err("unexpected node structure".to_string()),
     }
 }
 
 // evaluate_three_children evaluates the two productions with three symbols on the right hand side.
-fn evaluate_three_children(node: &ParseNode) -> Result<i32, String> {
+fn evaluate_three_children(scanner: &dyn TokenSource<'_>, node: &ParseNode) -> Result<i32, String> {
     // In "(" expression ")", the middle child is the nonterminal expression node.
     // In "expression OP expression", the middle child is a terminal operator token.
     // We use this to distinguish the two cases.
     let middle = &node.children[1];
     let ParseSymbol::Terminal(operator) = middle.symbol else {
         // expression: "(" expression ")"
-        return evaluate_node(middle);
+        return evaluate_node(scanner, middle);
     };
 
-    let left_value = evaluate_node(&node.children[0])?;
-    let right_value = evaluate_node(&node.children[2])?;
+    let left_value = evaluate_node(scanner, &node.children[0])?;
+    let right_value = evaluate_node(scanner, &node.children[2])?;
 
     match operator {
         // expression: expression "+" expression
@@ -96,7 +96,7 @@ fn evaluate_three_children(node: &ParseNode) -> Result<i32, String> {
     }
 }
 
-// lexeme returns the bytes a terminal node stands for as text.
-fn lexeme(node: &ParseNode) -> String {
-    String::from_utf8_lossy(node.lexeme).into_owned()
+// text returns the bytes of the source a node covers as text.
+fn text(scanner: &dyn TokenSource<'_>, node: &ParseNode) -> String {
+    String::from_utf8_lossy(scanner.text(node.byte_offset, node.byte_length)).into_owned()
 }

@@ -80,18 +80,25 @@ impl fmt::Display for ParseSymbol {
     }
 }
 
-/// A single node of the parse tree. It borrows the source it was parsed from.
+/// A single node of the parse tree. It carries the span of the source it covers, which [`TokenSource::text`] turns
+/// back into bytes and [`TokenSource::position`] into a file path, a line and a column.
+///
+/// A terminal covers its lexeme and a nonterminal covers its children. The error symbol covers what the error recovery
+/// threw away, up to the point it resumed at. A production with an empty right hand side has zero length at the end of
+/// the symbol to its left.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParseNode<'a> {
+pub struct ParseNode {
     /// The terminal or nonterminal this node stands for.
     pub symbol: ParseSymbol,
 
-    /// The bytes of the terminal, as a view into the source. Empty for a nonterminal and for the error symbol, which
-    /// no input produced.
-    pub lexeme: &'a [u8],
+    /// The start of the source this node covers, in bytes from the start of the source.
+    pub byte_offset: usize,
+
+    /// The number of bytes of the source this node covers.
+    pub byte_length: usize,
 
     /// The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal.
-    pub children: Vec<ParseNode<'a>>,
+    pub children: Vec<ParseNode>,
 
     /// The production which was reduced to this node. `None` for a terminal, which no production reduces to.
     pub production: Option<Production>,
@@ -142,15 +149,16 @@ impl<'a> ParseError<'a> {
     where
         S: TokenSource<'a> + ?Sized,
     {
+        let position = scanner.position(scanner.byte_offset());
         Self {
             reason,
             kind,
             token: scanner.token(),
-            byte_offset: scanner.byte_offset(),
-            line: scanner.line(),
-            column: scanner.column(),
+            byte_offset: position.byte_offset,
+            line: position.line,
+            column: position.column,
             lexeme: scanner.lexeme(),
-            file_path: scanner.file_path().to_owned(),
+            file_path: position.file_path.to_owned(),
         }
     }
 }
@@ -173,7 +181,7 @@ impl std::error::Error for ParseError<'_> {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseResult<'a> {
     /// The parse tree, or `None` when the parse could not be finished.
-    pub tree: Option<ParseNode<'a>>,
+    pub tree: Option<ParseNode>,
 
     /// Every error the parse reported, in the order they were found.
     pub errors: Vec<ParseError<'a>>,
@@ -353,7 +361,7 @@ struct ParseState<'a, 't> {
     state_stack: Vec<usize>,
 
     /// One node per symbol shifted or reduced so far.
-    node_stack: Vec<ParseNode<'a>>,
+    node_stack: Vec<ParseNode>,
 
     /// The errors of the running parse, which [`Parser::parse`] returns next to the tree.
     errors: Vec<ParseError<'a>>,
@@ -439,7 +447,8 @@ impl<'a, 't> ParseState<'a, 't> {
                 self.state_stack.push(action >> ACTION_KIND_BITS);
                 self.node_stack.push(ParseNode {
                     symbol: ParseSymbol::Terminal(terminal),
-                    lexeme: scanner.lexeme(),
+                    byte_offset: scanner.byte_offset(),
+                    byte_length: scanner.lexeme().len(),
                     children: Vec::new(),
                     production: None,
                 });
@@ -514,11 +523,30 @@ impl<'a, 't> ParseState<'a, 't> {
         };
         self.state_stack.push(goto_state);
 
+        // The node starts where its first child starts and ends where its last child ends.
+        let (byte_offset, byte_length) = if pop_count != 0 {
+            let right_hand_side = &self.node_stack[self.node_stack.len() - pop_count..];
+            let last_child = &right_hand_side[pop_count - 1];
+            let byte_offset = right_hand_side[0].byte_offset;
+            (
+                byte_offset,
+                last_child.byte_offset + last_child.byte_length - byte_offset,
+            )
+        } else if let Some(left) = self.node_stack.last() {
+            // A production with an empty right hand side goes at the end of the symbol to its left, so that it lies
+            // inside the node it becomes a child of instead of at the lookahead beyond it.
+            (left.byte_offset + left.byte_length, 0)
+        } else {
+            // Nothing has been parsed yet, so there is no symbol to the left of it.
+            (scanner.byte_offset(), 0)
+        };
+
         // The right hand side comes off the node stack and is handed over as the children.
         let children = self.node_stack.split_off(self.node_stack.len() - pop_count);
         self.node_stack.push(ParseNode {
             symbol: ParseSymbol::Nonterminal(NONTERMINALS[nonterminal]),
-            lexeme: &[],
+            byte_offset,
+            byte_length,
             children,
             production: Some(PRODUCTIONS[production_idx - 1]),
         });
@@ -539,6 +567,12 @@ impl<'a, 't> ParseState<'a, 't> {
     /// every round of recovery either gets the parse going again or consumes one token of the input, so a parse cannot
     /// get stuck between the two.
     fn recover_from_error<S: TokenSource<'a> + ?Sized>(&mut self, scanner: &mut S) -> bool {
+        // The error node this round ends with runs from the start of what the round throws away to the point where it
+        // resumes, so the span starts out empty at the token the parser stopped on and grows to the front with every
+        // node the round pops.
+        let mut dropped_offset = scanner.byte_offset();
+        let mut dropped_length = 0;
+
         if self.error_recovery_shifts_remaining == ERROR_RECOVERY_SHIFTS {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if scanner.token() == Token::EndToken {
@@ -556,6 +590,8 @@ impl<'a, 't> ParseState<'a, 't> {
                 );
                 self.emit_trace(scanner, "DISCARD", &payload);
             }
+            // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
+            dropped_length = scanner.lexeme().len();
             scanner.next();
         }
         self.error_recovery_shifts_remaining = ERROR_RECOVERY_SHIFTS;
@@ -565,11 +601,19 @@ impl<'a, 't> ParseState<'a, 't> {
                 if self.trace.is_some() {
                     self.emit_trace(scanner, "RESYNC", "");
                 }
-                // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
+                if dropped_length == 0 {
+                    // The round threw no bytes away, so its node goes at the end of the symbol to its left, where a
+                    // production with an empty right hand side goes, and not at the lookahead beyond it.
+                    if let Some(left) = self.node_stack.last() {
+                        dropped_offset = left.byte_offset + left.byte_length;
+                    }
+                }
+                // Shift the error symbol. Its node covers what this round dropped.
                 self.state_stack.push(next_state);
                 self.node_stack.push(ParseNode {
                     symbol: ParseSymbol::Terminal(Token::ErrorToken),
-                    lexeme: &[],
+                    byte_offset: dropped_offset,
+                    byte_length: dropped_length,
                     children: Vec::new(),
                     production: None,
                 });
@@ -590,6 +634,12 @@ impl<'a, 't> ParseState<'a, 't> {
             }
             // The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
             // node, so dropping one drops one.
+            let dropped_node = self
+                .node_stack
+                .last()
+                .expect("a node for every state above the first");
+            dropped_length = dropped_offset + dropped_length - dropped_node.byte_offset;
+            dropped_offset = dropped_node.byte_offset;
             self.state_stack.pop();
             self.node_stack.pop();
         }
@@ -632,7 +682,8 @@ impl<'a, 't> ParseState<'a, 't> {
     /// Hands one trace line to the trace hook: the position of the current lookahead, the keyword, and an optional
     /// payload. The caller has already checked that the hook is set.
     fn emit_trace<S: TokenSource<'a> + ?Sized>(&mut self, scanner: &S, keyword: &str, payload: &str) {
-        let location = format!("{}:{}", scanner.line(), scanner.column());
+        let position = scanner.position(scanner.byte_offset());
+        let location = format!("{}:{}", position.line, position.column);
         let line = if payload.is_empty() {
             format!("{location:<7} {keyword}")
         } else {
@@ -653,7 +704,7 @@ impl<'a, 't> ParseState<'a, 't> {
 }
 
 /// Renders a reduction as `lhs => rhs`, or `lhs => ε` for an empty right hand side.
-fn reduce_trace_payload(lhs: Nonterminal, rhs: &[ParseNode<'_>]) -> String {
+fn reduce_trace_payload(lhs: Nonterminal, rhs: &[ParseNode]) -> String {
     let mut payload = format!("{lhs} =>");
     if rhs.is_empty() {
         payload.push_str(" ε");

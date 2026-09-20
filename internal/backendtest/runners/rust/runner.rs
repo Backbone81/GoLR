@@ -1,5 +1,5 @@
 // The Rust runner for the backend test corpus. It reads an input file, runs the generated scanner and the generated
-// parser over it, and writes the canonical scanner trace and parser trace the harness diffs against.
+// parser over it, and writes the canonical scanner trace, parser trace and tree trace the harness diffs against.
 //
 // This file has no dependencies, and it must not grow any. It runs in the image with no network, which is what proves
 // that generated GoLR code needs nothing but the bare language.
@@ -14,11 +14,12 @@ use std::cell::RefCell;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::rc::Rc;
 
-use crate::parser::Parser;
+use crate::parser::{Nonterminal, ParseNode, ParseSymbol, Parser};
 use crate::scanner::{Scanner, Token, TokenSkipper, TokenSource};
 
 const SCANNER_TRACE_FILE_NAME: &str = "scanner.actual";
 const PARSER_TRACE_FILE_NAME: &str = "parser.actual";
+const TREE_TRACE_FILE_NAME: &str = "tree.actual";
 
 // The bytes a trace line carries as they are. Everything outside of it is escaped.
 const PRINTABLE_LOW: u8 = 0x20;
@@ -40,6 +41,9 @@ fn main() {
     });
     write_trace(PARSER_TRACE_FILE_NAME, |lines| {
         append_parser_trace(lines, &source, &input_path);
+    });
+    write_trace(TREE_TRACE_FILE_NAME, |lines| {
+        append_tree_trace(lines, &source, &input_path);
     });
 }
 
@@ -138,6 +142,90 @@ fn append_parser_trace(lines: &mut Vec<String>, source: &[u8], input_path: &str)
     // The parser held the only other owner of the cell and is gone, so the lines can be moved straight out.
     let collected = Rc::into_inner(collected).expect("the trace hook was the only other owner");
     lines.extend(collected.into_inner());
+}
+
+// terminal_trace_name names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar
+// name.
+fn terminal_trace_name(terminal: Token) -> String {
+    match terminal {
+        Token::EndToken => "$end".to_string(),
+        Token::ErrorToken => "$error".to_string(),
+        Token::InvalidToken => "$invalid".to_string(),
+        _ => terminal.to_string(),
+    }
+}
+
+// symbol_trace_name is the bare grammar name of a symbol, which for a nonterminal is what its Display writes and for a
+// terminal is the name the traces spell it with.
+fn symbol_trace_name(symbol: ParseSymbol) -> String {
+    match symbol {
+        ParseSymbol::Nonterminal(nonterminal) => nonterminal.to_string(),
+        ParseSymbol::Terminal(terminal) => terminal_trace_name(terminal),
+    }
+}
+
+// reduce_trace_payload renders a node as "lhs => rhs", the way the REDUCE line of a parser trace names the production
+// it was reduced from, or as "lhs => ε" for a production with an empty right hand side.
+fn reduce_trace_payload(lhs: Nonterminal, rhs: &[ParseNode]) -> String {
+    let mut payload = format!("{lhs} =>");
+    if rhs.is_empty() {
+        payload.push_str(" ε");
+        return payload;
+    }
+    for child in rhs {
+        payload.push(' ');
+        payload.push_str(&symbol_trace_name(child.symbol));
+    }
+    payload
+}
+
+// append_tree_node appends the line of the given node and the lines of everything below it, which is the pre-order the
+// tree trace is read in: a node, then what it was built from. The payload carries the indentation and the position and
+// span columns do not, so they stay in the same place however deep a node sits.
+fn append_tree_node(
+    lines: &mut Vec<String>,
+    scanner: &TokenSkipper<Scanner<'_>>,
+    node: &ParseNode,
+    depth: usize,
+) {
+    let position = scanner.position(node.byte_offset);
+    let location = format!("{}:{}", position.line, position.column);
+    let span = format!("{}+{}", node.byte_offset, node.byte_length);
+
+    let mut payload = "  ".repeat(depth);
+    match node.symbol {
+        ParseSymbol::Nonterminal(nonterminal) => {
+            payload.push_str(&reduce_trace_payload(nonterminal, &node.children));
+        }
+        // The error node stands for no token of its own, so its span is all it carries.
+        ParseSymbol::Terminal(Token::ErrorToken) => {
+            payload.push_str(&terminal_trace_name(Token::ErrorToken));
+        }
+        ParseSymbol::Terminal(terminal) => {
+            // The text is read off the source through the span and never carried along from the token, which is what
+            // makes the trace state that the span is right.
+            let text = escape_lexeme(scanner.text(node.byte_offset, node.byte_length));
+            payload.push_str(&format!("{} \"{text}\"", terminal_trace_name(terminal)));
+        }
+    }
+
+    lines.push(format!("{location:<7} {span:<7} {payload}"));
+    for child in &node.children {
+        append_tree_node(lines, scanner, child, depth + 1);
+    }
+}
+
+// append_tree_trace parses the whole input and appends one line per node of the tree the parse built, in pre-order. A
+// parse which was given up builds no tree and appends nothing, which is the empty trace the harness expects for it.
+fn append_tree_trace(lines: &mut Vec<String>, source: &[u8], input_path: &str) {
+    // The scanner stays at hand after the parse, because a node carries the span of the source it covers and not the
+    // source itself, so the trace resolves every node through position and text.
+    let mut scanner = TokenSkipper::new(Scanner::new(source, input_path));
+
+    let result = Parser::new().parse(&mut scanner);
+    if let Some(tree) = result.tree {
+        append_tree_node(lines, &scanner, &tree, 0);
+    }
 }
 
 // write_trace produces one trace and writes it to its file. Whatever was produced before a panic is written all the
