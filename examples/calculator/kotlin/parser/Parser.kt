@@ -68,10 +68,16 @@ data class NonterminalSymbol(val nonterminal: Nonterminal) : ParseSymbol {
 }
 
 /**
- * A single node of the parse tree.
+ * A single node of the parse tree. It carries the span of the source it covers, which [TokenSource.text] turns back
+ * into bytes and [TokenSource.position] into a file path, a line and a column.
+ *
+ * A terminal covers its lexeme and a nonterminal covers its children. The error symbol covers what the error recovery
+ * threw away, up to the point it resumed at. A production with an empty right hand side has zero length at the end of
+ * the symbol to its left.
  *
  * @property symbol the terminal or nonterminal this node stands for
- * @param lexemeBytes the bytes [lexeme] hands out views of. Pass an empty buffer for a nonterminal
+ * @property byteOffset the start of the source this node covers, in bytes from the start of the source
+ * @property byteLength the number of bytes of the source this node covers
  * @property children the nodes of the right hand side of the production which was reduced to this node. Empty for a
  *     terminal
  * @property production the production which was reduced to this node. Null for a terminal, which no production
@@ -79,20 +85,11 @@ data class NonterminalSymbol(val nonterminal: Nonterminal) : ParseSymbol {
  */
 class ParseNode(
     val symbol: ParseSymbol,
-    private val lexemeBytes: ByteBuffer,
+    val byteOffset: Int,
+    val byteLength: Int,
     val children: List<ParseNode>,
     val production: Production?,
 ) {
-    /**
-     * The bytes of the terminal, as a view into the source rather than a copy of it. Empty for a nonterminal and for
-     * the error symbol, which no input produced.
-     *
-     * A buffer carries the position it is read from, so every read hands out a view of its own, which keeps one reader
-     * from consuming the bytes for the next.
-     */
-    val lexeme: ByteBuffer
-        get() = lexemeBytes.duplicate()
-
     /** Returns what the node stands for, which is what its symbol is called. */
     override fun toString(): String = symbol.toString()
 }
@@ -139,12 +136,28 @@ class ParseError(
     constructor(reason: String, kind: ErrorKind, scanner: TokenSource) : this(
         reason,
         kind,
+        scanner,
+        scanner.position(scanner.byteOffset),
+    )
+
+    /**
+     * The constructor above delegates here, so that the position is resolved once and every field which reads it is
+     * taken from the same result.
+     *
+     * @param reason what is wrong, without the position in front of it
+     * @param kind what the error is about
+     * @param scanner the scanner the token is taken from
+     * @param position where the scanner stands
+     */
+    private constructor(reason: String, kind: ErrorKind, scanner: TokenSource, position: Position) : this(
+        reason,
+        kind,
         scanner.token,
-        scanner.byteOffset,
-        scanner.line,
-        scanner.column,
+        position.byteOffset,
+        position.line,
+        position.column,
         scanner.lexeme,
-        scanner.filePath,
+        position.filePath,
     )
 
     /**
@@ -194,9 +207,6 @@ private const val ERROR_RECOVERY_SHIFTS = 3
 
 /** How many states the stacks start with room for. They grow as a deeper parse needs them to. */
 private const val INITIAL_STACK_CAPACITY = 64
-
-/** The lexeme of a node which no input produced. */
-private val EMPTY_LEXEME: ByteBuffer = ByteBuffer.allocate(0).asReadOnlyBuffer()
 
 // The parse table is held in lookup tables. A token is translated into the column of the action table which holds the
 // decisions for it, and the rows of that table are displaced into a single array so that the entries of one row fall
@@ -392,7 +402,9 @@ class Parser {
                     emitTrace(scanner, "SHIFT", "${terminalTraceName(terminal)} \"${escapeLexeme(scanner.lexeme)}\"")
                 }
                 pushState(action shr ACTION_KIND_BITS)
-                nodeStack.add(ParseNode(TerminalSymbol(terminal), scanner.lexeme, emptyList(), null))
+                nodeStack.add(
+                    ParseNode(TerminalSymbol(terminal), scanner.byteOffset, scanner.lexeme.remaining(), emptyList(), null),
+                )
                 scanner.next()
                 if (errorRecoveryShiftsRemaining > 0) {
                     // Getting tokens of the input shifted again is what makes the parser trust its position.
@@ -464,12 +476,35 @@ class Parser {
         }
         pushState(gotoState)
 
+        // The node starts where its first child starts and ends where its last child ends.
+        var byteOffset = 0
+        var byteLength = 0
+        if (popCount != 0) {
+            val lastChild = nodeStack.last()
+            byteOffset = nodeStack[nodeStack.size - popCount].byteOffset
+            byteLength = lastChild.byteOffset + lastChild.byteLength - byteOffset
+        } else if (nodeStack.isNotEmpty()) {
+            // A production with an empty right hand side goes at the end of the symbol to its left, so that it lies
+            // inside the node it becomes a child of instead of at the lookahead beyond it.
+            val left = nodeStack.last()
+            byteOffset = left.byteOffset + left.byteLength
+        } else {
+            // Nothing has been parsed yet, so there is no symbol to the left of it.
+            byteOffset = scanner.byteOffset
+        }
+
         // The right hand side comes off the node stack and is handed over as the children.
         val rightHandSide = nodeStack.subList(nodeStack.size - popCount, nodeStack.size)
         val children = rightHandSide.toList()
         rightHandSide.clear()
         nodeStack.add(
-            ParseNode(NonterminalSymbol(Nonterminal.entries[nonterminal]), EMPTY_LEXEME, children, Production.forIdx(productionIdx)),
+            ParseNode(
+                NonterminalSymbol(Nonterminal.entries[nonterminal]),
+                byteOffset,
+                byteLength,
+                children,
+                Production.forIdx(productionIdx),
+            ),
         )
     }
 
@@ -490,6 +525,12 @@ class Parser {
      * between the two.
      */
     private fun recoverFromError(scanner: TokenSource): Boolean {
+        // The error node this round ends with runs from the start of what the round throws away to the point where it
+        // resumes, so the span starts out empty at the token the parser stopped on and grows to the front with every
+        // node the round pops.
+        var droppedOffset = scanner.byteOffset
+        var droppedLength = 0
+
         if (errorRecoveryShiftsRemaining == ERROR_RECOVERY_SHIFTS) {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if (scanner.token == Token.END_TOKEN) {
@@ -502,6 +543,8 @@ class Parser {
             if (trace != null) {
                 emitTrace(scanner, "DISCARD", "${terminalTraceName(scanner.token)} \"${escapeLexeme(scanner.lexeme)}\"")
             }
+            // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
+            droppedLength = scanner.lexeme.remaining()
             scanner.next()
         }
         errorRecoveryShiftsRemaining = ERROR_RECOVERY_SHIFTS
@@ -512,9 +555,17 @@ class Parser {
                 if (trace != null) {
                     emitTrace(scanner, "RESYNC", "")
                 }
-                // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
+                if (droppedLength == 0 && nodeStack.isNotEmpty()) {
+                    // The round threw no bytes away, so its node goes at the end of the symbol to its left, where a
+                    // production with an empty right hand side goes, and not at the lookahead beyond it.
+                    val left = nodeStack.last()
+                    droppedOffset = left.byteOffset + left.byteLength
+                }
+                // Shift the error symbol. Its node covers what this round dropped.
                 pushState(nextState)
-                nodeStack.add(ParseNode(TerminalSymbol(Token.ERROR_TOKEN), EMPTY_LEXEME, emptyList(), null))
+                nodeStack.add(
+                    ParseNode(TerminalSymbol(Token.ERROR_TOKEN), droppedOffset, droppedLength, emptyList(), null),
+                )
                 return true
             }
             if (stateStackSize == 1) {
@@ -529,6 +580,9 @@ class Parser {
             }
             // The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
             // node, so dropping one drops one.
+            val droppedNode = nodeStack.last()
+            droppedLength = droppedOffset + droppedLength - droppedNode.byteOffset
+            droppedOffset = droppedNode.byteOffset
             stateStackSize--
             nodeStack.removeAt(nodeStack.size - 1)
         }
@@ -552,7 +606,8 @@ class Parser {
      */
     private fun emitTrace(scanner: TokenSource, keyword: String, payload: String) {
         val sink = checkNotNull(trace) { "the trace hook is set" }
-        val location = "${scanner.line}:${scanner.column}"
+        val position = scanner.position(scanner.byteOffset)
+        val location = "${position.line}:${position.column}"
         if (payload.isEmpty()) {
             sink(String.format(Locale.ROOT, "%-7s %s", location, keyword))
             return

@@ -40,7 +40,7 @@ private fun evaluate(expression: String): Int {
     val tree = result.tree ?: error("the expression could not be parsed")
 
     // Traversing over the parse tree will calculate the result for us.
-    return evaluateNode(tree)
+    return evaluateNode(scanner, tree)
 }
 
 // evaluateNode recursively evaluates an expression node from the parse tree.
@@ -48,29 +48,29 @@ private fun evaluate(expression: String): Int {
 //   - 1 child:  INTEGER literal
 //   - 2 children: unary minus ("-" expression)
 //   - 3 children: binary operation (expression OP expression) or grouping ("(" expression ")")
-private fun evaluateNode(node: ParseNode): Int =
-    // Each node has a symbol (the grammar symbol it represents), a lexeme (the raw bytes from the input, set for
-    // terminal nodes), and children (sub-nodes).
+private fun evaluateNode(scanner: TokenSkipper, node: ParseNode): Int =
+    // Each node has a symbol (the grammar symbol it represents), the span of the input it covers (byteOffset and
+    // byteLength, which text turns back into bytes), and children (sub-nodes).
     when (node.children.size) {
         // expression: INTEGER
-        1 -> lexeme(node.children[0]).toInt()
+        1 -> text(scanner, node.children[0]).toInt()
         // expression: "-" expression
-        2 -> -evaluateNode(node.children[1])
-        3 -> evaluateThreeChildren(node)
+        2 -> -evaluateNode(scanner, node.children[1])
+        3 -> evaluateThreeChildren(scanner, node)
         else -> error("unexpected node structure")
     }
 
 // evaluateThreeChildren evaluates the two productions with three symbols on the right hand side.
-private fun evaluateThreeChildren(node: ParseNode): Int {
+private fun evaluateThreeChildren(scanner: TokenSkipper, node: ParseNode): Int {
     // In "(" expression ")", the middle child is the nonterminal expression node.
     // In "expression OP expression", the middle child is a terminal operator token.
     // We use this to distinguish the two cases.
     val middle = node.children[1]
     // expression: "(" expression ")"
-    val operator = middle.symbol as? TerminalSymbol ?: return evaluateNode(middle)
+    val operator = middle.symbol as? TerminalSymbol ?: return evaluateNode(scanner, middle)
 
-    val leftValue = evaluateNode(node.children[0])
-    val rightValue = evaluateNode(node.children[2])
+    val leftValue = evaluateNode(scanner, node.children[0])
+    val rightValue = evaluateNode(scanner, node.children[2])
 
     return when (operator.token) {
         // expression: expression "+" expression
@@ -90,5 +90,6 @@ private fun evaluateThreeChildren(node: ParseNode): Int {
     }
 }
 
-// lexeme returns the bytes a terminal node stands for as text.
-private fun lexeme(node: ParseNode): String = StandardCharsets.UTF_8.decode(node.lexeme).toString()
+// text returns the bytes a node covers as text.
+private fun text(scanner: TokenSkipper, node: ParseNode): String =
+    StandardCharsets.UTF_8.decode(scanner.text(node.byteOffset, node.byteLength)).toString()

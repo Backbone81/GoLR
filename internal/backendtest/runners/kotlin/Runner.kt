@@ -1,5 +1,5 @@
 // The Kotlin runner for the backend test corpus. It reads an input file, runs the generated scanner and the generated
-// parser over it, and writes the canonical scanner trace and parser trace the harness diffs against.
+// parser over it, and writes the canonical scanner trace, parser trace and tree trace the harness diffs against.
 //
 // This file has no dependencies, and it must not grow any. It runs in the image with no network, which is what proves
 // that generated GoLR code needs nothing but the bare language.
@@ -8,13 +8,19 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.util.Locale
 import kotlin.system.exitProcess
+import parser.Nonterminal
+import parser.NonterminalSymbol
+import parser.ParseNode
+import parser.ParseSymbol
 import parser.Parser
 import parser.Scanner
+import parser.TerminalSymbol
 import parser.Token
 import parser.TokenSkipper
 
 private const val SCANNER_TRACE_FILE_NAME = "scanner.actual"
 private const val PARSER_TRACE_FILE_NAME = "parser.actual"
+private const val TREE_TRACE_FILE_NAME = "tree.actual"
 
 // The bytes a trace line carries as they are. Everything outside of it is escaped.
 private const val PRINTABLE_LOW = 0x20
@@ -30,6 +36,7 @@ fun main(args: Array<String>) {
 
     writeTrace(SCANNER_TRACE_FILE_NAME) { lines -> appendScannerTrace(lines, source, inputPath) }
     writeTrace(PARSER_TRACE_FILE_NAME) { lines -> appendParserTrace(lines, source, inputPath) }
+    writeTrace(TREE_TRACE_FILE_NAME) { lines -> appendTreeTrace(lines, source, inputPath) }
 }
 
 // escapeLexeme escapes the bytes of a lexeme. The caller writes the quotes around the result.
@@ -108,6 +115,79 @@ private fun appendParserTrace(lines: MutableList<String>, source: ByteArray, inp
 
     // The TokenSkipper here, because a skipped rule never reaches the parser.
     parser.parse(TokenSkipper(Scanner(source, inputPath)))
+}
+
+// terminalTraceName names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar
+// name.
+private fun terminalTraceName(terminal: Token): String = when (terminal) {
+    Token.END_TOKEN -> "\$end"
+    Token.ERROR_TOKEN -> "\$error"
+    Token.INVALID_TOKEN -> "\$invalid"
+    else -> terminal.toString()
+}
+
+// symbolTraceName is the bare grammar name of a symbol, which for a nonterminal is what toString returns and for a
+// terminal is the name the traces spell it with.
+private fun symbolTraceName(symbol: ParseSymbol): String = when (symbol) {
+    is NonterminalSymbol -> symbol.nonterminal.toString()
+    is TerminalSymbol -> terminalTraceName(symbol.token)
+}
+
+// reduceTracePayload renders a node as "lhs => rhs", the way the REDUCE line of a parser trace names the production it
+// was reduced from, or as "lhs => ε" for a production with an empty right hand side.
+private fun reduceTracePayload(lhs: Nonterminal, rhs: List<ParseNode>): String {
+    val payload = StringBuilder(lhs.toString()).append(" =>")
+    if (rhs.isEmpty()) {
+        return payload.append(" ε").toString()
+    }
+    for (child in rhs) {
+        payload.append(' ').append(symbolTraceName(child.symbol))
+    }
+    return payload.toString()
+}
+
+// appendTreeNode appends the line of the given node and the lines of everything below it, which is the pre-order the
+// tree trace is read in: a node, then what it was built from. The payload carries the indentation and the position and
+// span columns do not, so they stay in the same place however deep a node sits.
+private fun appendTreeNode(lines: MutableList<String>, scanner: Scanner, node: ParseNode, depth: Int) {
+    val position = scanner.position(node.byteOffset)
+    val location = "${position.line}:${position.column}"
+    val span = "${node.byteOffset}+${node.byteLength}"
+
+    val payload = StringBuilder("  ".repeat(depth))
+    when (val symbol = node.symbol) {
+        is NonterminalSymbol -> payload.append(reduceTracePayload(symbol.nonterminal, node.children))
+        is TerminalSymbol -> if (symbol.token == Token.ERROR_TOKEN) {
+            // The error node stands for no token of its own, so its span is all it carries.
+            payload.append(terminalTraceName(symbol.token))
+        } else {
+            // The text is read off the source through the span and never carried along from the token, which is what
+            // makes the trace state that the span is right.
+            payload.append(terminalTraceName(symbol.token))
+                .append(" \"")
+                .append(escapeLexeme(scanner.text(node.byteOffset, node.byteLength)))
+                .append('"')
+        }
+    }
+
+    lines.add(String.format(Locale.ROOT, "%-7s %-7s %s", location, span, payload))
+    for (child in node.children) {
+        appendTreeNode(lines, scanner, child, depth + 1)
+    }
+}
+
+// appendTreeTrace parses the whole input and appends one line per node of the tree the parse built, in pre-order. A
+// parse which was given up builds no tree and appends nothing, which is the empty trace the harness expects for it.
+private fun appendTreeTrace(lines: MutableList<String>, source: ByteArray, inputPath: String) {
+    // The scanner stays at hand after the parse, because a node carries the span of the source it covers and not the
+    // source itself, so the trace resolves every node through position and text.
+    val scanner = Scanner(source, inputPath)
+
+    val result = Parser().parse(TokenSkipper(scanner))
+    val tree = result.tree
+    if (tree != null) {
+        appendTreeNode(lines, scanner, tree, 0)
+    }
 }
 
 // writeTrace produces one trace and writes it to its file. Whatever was produced before a failure is written all the
