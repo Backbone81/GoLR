@@ -40,7 +40,7 @@ func Evaluate(expression string) (int, error) {
 	}
 
 	// Traversing over the parse tree will calculate the result for us.
-	result, err := evaluateNode(&rootNode)
+	result, err := evaluateNode(scanner, &rootNode)
 	if err != nil {
 		return 0, err
 	}
@@ -52,16 +52,17 @@ func Evaluate(expression string) (int, error) {
 //   - 1 child:  INTEGER literal
 //   - 2 children: unary minus ("-" expression)
 //   - 3 children: binary operation (expression OP expression) or grouping ("(" expression ")")
-func evaluateNode(node *parser.Node) (int, error) {
-	// Each Node has a Symbol (the grammar symbol it represents), a Lexeme (the raw
-	// bytes from input, set for terminal nodes), and Children (sub-nodes).
+func evaluateNode(scanner parser.TokenSource, node *parser.Node) (int, error) {
+	// Each Node has a Symbol (the grammar symbol it represents), the span of the input it covers
+	// (ByteOffset and ByteLength, which TokenSource.Text turns back into bytes), and Children (sub-nodes).
 	switch len(node.Children) {
 	case 1:
 		// expression: INTEGER
-		return strconv.Atoi(string(node.Children[0].Lexeme))
+		integer := node.Children[0]
+		return strconv.Atoi(string(scanner.Text(integer.ByteOffset, integer.ByteLength)))
 	case 2:
 		// expression: "-" expression
-		value, err := evaluateNode(&node.Children[1])
+		value, err := evaluateNode(scanner, &node.Children[1])
 		if err != nil {
 			return 0, err
 		}
@@ -73,15 +74,15 @@ func evaluateNode(node *parser.Node) (int, error) {
 		token, isTerminal := node.Children[1].Symbol.Terminal()
 		if !isTerminal {
 			// expression: "(" expression ")"
-			return evaluateNode(&node.Children[1])
+			return evaluateNode(scanner, &node.Children[1])
 		}
 
-		leftValue, err := evaluateNode(&node.Children[0])
+		leftValue, err := evaluateNode(scanner, &node.Children[0])
 		if err != nil {
 			return 0, err
 		}
 
-		rightValue, err := evaluateNode(&node.Children[2])
+		rightValue, err := evaluateNode(scanner, &node.Children[2])
 		if err != nil {
 			return 0, err
 		}

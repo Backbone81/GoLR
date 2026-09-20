@@ -5,6 +5,7 @@ import (
 	goparser "go/parser"
 	gotoken "go/token"
 	"os"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -332,7 +333,7 @@ var _ = Describe("Golang Parser", func() {
 				golrParser := parser.NewParser()
 				ast, err := golrParser.Parse(golrScanner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(ast).To(Equal(buildBasicLitTree(parser.TokenIntLit, literal)), literal)
+				Expect(ast).To(Equal(buildBasicLitTree(source, parser.TokenIntLit, literal)), literal)
 			},
 			Entry("Integer", "42"),
 			Entry("Integer", "4_2"),
@@ -362,7 +363,7 @@ var _ = Describe("Golang Parser", func() {
 				golrParser := parser.NewParser()
 				ast, err := golrParser.Parse(golrScanner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(ast).To(Equal(buildBasicLitTree(parser.TokenFloatLit, literal)))
+				Expect(ast).To(Equal(buildBasicLitTree(source, parser.TokenFloatLit, literal)))
 			},
 			Entry("Decimal float", "0."),
 			Entry("Decimal float", "72.40"),
@@ -396,7 +397,7 @@ var _ = Describe("Golang Parser", func() {
 				golrParser := parser.NewParser()
 				ast, err := golrParser.Parse(golrScanner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(ast).To(Equal(buildBasicLitTree(parser.TokenImaginaryLit, literal)))
+				Expect(ast).To(Equal(buildBasicLitTree(source, parser.TokenImaginaryLit, literal)))
 			},
 			Entry("Imaginary", "0i"),
 			Entry("Imaginary", "0123i"),
@@ -425,7 +426,7 @@ var _ = Describe("Golang Parser", func() {
 				golrParser := parser.NewParser()
 				ast, err := golrParser.Parse(golrScanner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(ast).To(Equal(buildBasicLitTree(parser.TokenRuneLit, literal)))
+				Expect(ast).To(Equal(buildBasicLitTree(source, parser.TokenRuneLit, literal)))
 			},
 			Entry("Rune literal", `'a'`),
 			Entry("Rune literal", `'ä'`),
@@ -454,7 +455,7 @@ var _ = Describe("Golang Parser", func() {
 				golrParser := parser.NewParser()
 				ast, err := golrParser.Parse(golrScanner)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(ast).To(Equal(buildBasicLitTree(parser.TokenStringLit, literal)))
+				Expect(ast).To(Equal(buildBasicLitTree(source, parser.TokenStringLit, literal)))
 			},
 			Entry("String literal", "`abc`"),
 			Entry("String literal", "`\\n\n\\n`"),
@@ -709,7 +710,7 @@ var _ = Describe("Golang Parser", func() {
 	})
 })
 
-func buildBasicLitTree(token parser.Token, lexeme string) parser.Node {
+func buildBasicLitTree(source string, token parser.Token, lexeme string) parser.Node {
 	basicLitProduction := map[parser.Token]parser.Production{
 		parser.TokenIntLit:       parser.ProductionBasiclit1,
 		parser.TokenFloatLit:     parser.ProductionBasiclit2,
@@ -718,21 +719,33 @@ func buildBasicLitTree(token parser.Token, lexeme string) parser.Node {
 		parser.TokenStringLit:    parser.ProductionBasiclit5,
 	}[token]
 
+	// A node carries the span of the source it covers, so the expected tree follows from where the two tokens sit in
+	// the source the spec parsed.
+	const testBasicLitName = "@TestBasicLit"
+	testBasicLitOffset := strings.Index(source, testBasicLitName)
+	lexemeOffset := testBasicLitOffset + len(testBasicLitName) + len(" ")
+
 	return parser.Node{
 		Symbol:     parser.NewNonterminal(parser.NonterminalSourcefile),
 		Production: parser.ProductionSourcefile3,
+		ByteOffset: testBasicLitOffset,
+		ByteLength: lexemeOffset + len(lexeme) - testBasicLitOffset,
 		Children: []parser.Node{
 			{
-				Symbol: parser.NewTerminal(parser.TokenTestBasicLit),
-				Lexeme: []byte("@TestBasicLit"),
+				Symbol:     parser.NewTerminal(parser.TokenTestBasicLit),
+				ByteOffset: testBasicLitOffset,
+				ByteLength: len(testBasicLitName),
 			},
 			{
 				Symbol:     parser.NewNonterminal(parser.NonterminalBasiclit),
 				Production: basicLitProduction,
+				ByteOffset: lexemeOffset,
+				ByteLength: len(lexeme),
 				Children: []parser.Node{
 					{
-						Symbol: parser.NewTerminal(token),
-						Lexeme: []byte(lexeme),
+						Symbol:     parser.NewTerminal(token),
+						ByteOffset: lexemeOffset,
+						ByteLength: len(lexeme),
 					},
 				},
 			},

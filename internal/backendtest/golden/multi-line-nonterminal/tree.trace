@@ -1,8 +1,8 @@
 1:1     0+14    block => LEFTBRACE items RIGHTBRACE
 1:1     0+1       LEFTBRACE "{"
-2:3     4+8       items => items item
-2:3     4+2         items => items item
-2:3     4+0           items => ε
+1:2     1+11      items => items item
+1:2     1+5         items => items item
+1:2     1+0           items => ε
 2:3     4+2           item => NUMBER SEMICOLON
 2:3     4+1             NUMBER "1"
 2:4     5+1             SEMICOLON ";"

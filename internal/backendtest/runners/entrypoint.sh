@@ -15,7 +15,7 @@
 #   setup               runs once, before any case, in /work/<language>, above the case directories. It is optional:
 #                       the default below does nothing, so a language which needs none defines only execute.
 #   execute             runs once per case, in /work/<language>/<case>, with the generated sources, the input and the
-#                       rest of the runner already there. It writes the two traces and nothing else.
+#                       rest of the runner already there. It writes the three traces and nothing else.
 #
 # language.sh is sourced and not executed, which is what lets the work a language does once be done once: a compiled
 # language builds its hand written runner in setup and compiles only the generated files per case, instead of paying for
@@ -34,8 +34,9 @@
 # The language is the only argument, because a container has no other way of learning which service it is. It names both
 # the backend to generate with and the runner to use.
 #
-# Per case the runner writes <case>/scanner.actual and <case>/parser.actual, and nothing else is captured: whatever the
-# generator and the runner say goes to the output of this container, where the person who started the run can see it.
+# Per case the runner writes <case>/scanner.actual, <case>/parser.actual and <case>/tree.actual, and nothing else is
+# captured: whatever the generator and the runner say goes to the output of this container, where the person who
+# started the run can see it.
 # Each case announces itself first, so that output belongs to a case and a long run says how far it has come.
 #
 # Two kinds of failure are deliberately told apart here, because they need opposite treatment:

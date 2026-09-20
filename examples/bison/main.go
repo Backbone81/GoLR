@@ -56,13 +56,13 @@ func printAbstractSyntaxTree(filePath string, data []byte) {
 	if err != nil {
 		panic(err)
 	}
-	nodeCount := printTree(&rootNode, "", true, 0)
+	nodeCount := printTree(&scanner, &rootNode, "", true, 0)
 
 	fmt.Println()
 	fmt.Printf("%d nodes\n", nodeCount)
 }
 
-func printTree(node *parser.Node, prefix string, isLast bool, depth int) int {
+func printTree(scanner parser.TokenSource, node *parser.Node, prefix string, isLast bool, depth int) int {
 	var connector, childPrefix string
 	if depth > 0 {
 		if isLast {
@@ -75,7 +75,7 @@ func printTree(node *parser.Node, prefix string, isLast bool, depth int) int {
 	}
 
 	if terminal, ok := node.Symbol.Terminal(); ok {
-		fmt.Printf("%s%s%s %q\n", prefix, connector, terminal, node.Lexeme)
+		fmt.Printf("%s%s%s %q\n", prefix, connector, terminal, scanner.Text(node.ByteOffset, node.ByteLength))
 	} else {
 		nonterminal, _ := node.Symbol.Nonterminal()
 		fmt.Printf("%s%s%s\n", prefix, connector, nonterminal)
@@ -84,7 +84,7 @@ func printTree(node *parser.Node, prefix string, isLast bool, depth int) int {
 	var nodeCounter int
 	for i, child := range node.Children {
 		nodeCounter++
-		nodeCounter += printTree(&child, childPrefix, i == len(node.Children)-1, depth+1)
+		nodeCounter += printTree(scanner, &child, childPrefix, i == len(node.Children)-1, depth+1)
 	}
 	return nodeCounter
 }

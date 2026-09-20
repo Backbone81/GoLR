@@ -118,14 +118,21 @@ func (s Symbol) String() string {
 	return fmt.Sprintf("terminal %s", terminal)
 }
 
-// Node is a single node of the parse tree.
+// Node is a single node of the parse tree. It carries the span of the source it covers, which TokenSource.Text turns
+// back into bytes and TokenSource.Position into a file path, a line and a column.
+//
+// A terminal covers its lexeme and a nonterminal covers its children. The error symbol covers what the error recovery
+// threw away, up to the point it resumed at. A production with an empty right hand side has zero length at the end of
+// the symbol to its left.
 type Node struct {
     // Symbol is the terminal or nonterminal this node stands for.
     Symbol Symbol
 
-    // Lexeme are the bytes of the terminal, as a view into the source rather than a copy of it. Empty for a
-    // nonterminal and for the error symbol, which no input produced.
-    Lexeme []byte
+    // ByteOffset is the start of the source this node covers, in bytes from the start of the source.
+    ByteOffset int
+
+    // ByteLength is the number of bytes of the source this node covers.
+    ByteLength int
 
     // Children are the nodes of the right hand side of the production which was reduced to this node. Empty for a
     // terminal.
@@ -405,12 +412,13 @@ func (p *Parser) step(scanner TokenSource) error {
     switch action & actionKindMask {
     case actionKindShift:
         if p.Trace != nil {
-            p.emitTrace(scanner, "SHIFT", terminalTraceName(terminal)+` "`+escapeLexeme(scanner.Lexeme())+`"`)
+            p.emitTrace(scanner, "SHIFT", p.terminalTraceName(terminal)+` "`+p.escapeLexeme(scanner.Lexeme())+`"`)
         }
         p.stateStack = append(p.stateStack, int(action >> actionKindBits))
         p.nodeStack = append(p.nodeStack, Node{
-            Symbol: NewTerminal(terminal),
-            Lexeme: scanner.Lexeme(),
+            Symbol:     NewTerminal(terminal),
+            ByteOffset: scanner.ByteOffset(),
+            ByteLength: len(scanner.Lexeme()),
         })
         scanner.Next()
         if p.errorRecoveryShiftsRemaining > 0 {
@@ -429,7 +437,7 @@ func (p *Parser) step(scanner TokenSource) error {
         return errAccept
     case actionKindError:
         if p.Trace != nil {
-            p.emitErrorTrace(scanner, "unexpected token "+terminalTraceName(terminal))
+            p.emitErrorTrace(scanner, "unexpected token "+p.terminalTraceName(terminal))
         }
         return p.raiseError(scanner, fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
     default:
@@ -448,7 +456,7 @@ func (p *Parser) reduce(scanner TokenSource, productionIdx uint32) {
 
     if p.Trace != nil {
         // The right hand side is still on the node stack here, before it is cut back below.
-        p.emitTrace(scanner, "REDUCE", reduceTracePayload(Nonterminal(nonterminal), p.nodeStack[len(p.nodeStack)-popCount:]))
+        p.emitTrace(scanner, "REDUCE", p.reduceTracePayload(Nonterminal(nonterminal), p.nodeStack[len(p.nodeStack)-popCount:]))
     }
 
     p.stateStack = p.stateStack[:len(p.stateStack)-popCount]
@@ -463,13 +471,33 @@ func (p *Parser) reduce(scanner TokenSource, productionIdx uint32) {
     }
     p.stateStack = append(p.stateStack, int(gotoState))
 
+    // The node starts where its first child starts and ends where its last child ends.
+    rightHandSide := p.nodeStack[len(p.nodeStack)-popCount:]
+    var byteOffset, byteLength int
+    switch {
+    case popCount != 0:
+        lastChild := rightHandSide[popCount-1]
+        byteOffset = rightHandSide[0].ByteOffset
+        byteLength = lastChild.ByteOffset + lastChild.ByteLength - byteOffset
+    case len(p.nodeStack) != 0:
+        // A production with an empty right hand side goes at the end of the symbol to its left, so that it lies
+        // inside the node it becomes a child of instead of at the lookahead beyond it.
+        left := p.nodeStack[len(p.nodeStack)-1]
+        byteOffset = left.ByteOffset + left.ByteLength
+    default:
+        // Nothing has been parsed yet, so there is no symbol to the left of it.
+        byteOffset = scanner.ByteOffset()
+    }
+
     newNode := Node{
         Symbol:     NewNonterminal(Nonterminal(nonterminal)),
+        ByteOffset: byteOffset,
+        ByteLength: byteLength,
         Production: Production(productionIdx),
     }
     if popCount != 0 {
         newNode.Children = p.allocateNodes(popCount)
-        copy(newNode.Children, p.nodeStack[len(p.nodeStack)-popCount:])
+        copy(newNode.Children, rightHandSide)
         p.nodeStack = p.nodeStack[:len(p.nodeStack)-popCount]
     }
     p.nodeStack = append(p.nodeStack, newNode)
@@ -489,6 +517,11 @@ func (p *Parser) reduce(scanner TokenSource, productionIdx uint32) {
 // tells us. Popping and discarding in the same handler is what guarantees progress: every round of recovery either gets
 // the parse going again or consumes one token of the input, so a parse cannot get stuck between the two.
 func (p *Parser) recoverFromError(scanner TokenSource) bool {
+    // The error node this round ends with runs from the start of what the round throws away to the point where it
+    // resumes, so the span starts out empty at the token the parser stopped on and grows to the front with every node
+    // the round pops.
+    droppedOffset, droppedLength := scanner.ByteOffset(), 0
+
     if p.errorRecoveryShiftsRemaining == errorRecoveryShifts {
         // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
         if scanner.Token() == EndToken {
@@ -499,8 +532,10 @@ func (p *Parser) recoverFromError(scanner TokenSource) bool {
             return false
         }
         if p.Trace != nil {
-            p.emitTrace(scanner, "DISCARD", terminalTraceName(scanner.Token())+` "`+escapeLexeme(scanner.Lexeme())+`"`)
+            p.emitTrace(scanner, "DISCARD", p.terminalTraceName(scanner.Token())+` "`+p.escapeLexeme(scanner.Lexeme())+`"`)
         }
+        // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
+        droppedLength = len(scanner.Lexeme())
         scanner.Next()
     }
     p.errorRecoveryShiftsRemaining = errorRecoveryShifts
@@ -510,10 +545,18 @@ func (p *Parser) recoverFromError(scanner TokenSource) bool {
             if p.Trace != nil {
                 p.emitTrace(scanner, "RESYNC", "")
             }
-            // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
+            if droppedLength == 0 && len(p.nodeStack) != 0 {
+                // The round threw no bytes away, so its node goes at the end of the symbol to its left, where a
+                // production with an empty right hand side goes, and not at the lookahead beyond it.
+                left := p.nodeStack[len(p.nodeStack)-1]
+                droppedOffset = left.ByteOffset + left.ByteLength
+            }
+            // Shift the error symbol. Its node covers what this round dropped.
             p.stateStack = append(p.stateStack, nextState)
             p.nodeStack = append(p.nodeStack, Node{
-                Symbol: NewTerminal(ErrorToken),
+                Symbol:     NewTerminal(ErrorToken),
+                ByteOffset: droppedOffset,
+                ByteLength: droppedLength,
             })
             return true
         }
@@ -525,10 +568,13 @@ func (p *Parser) recoverFromError(scanner TokenSource) bool {
             return false
         }
         if p.Trace != nil {
-            p.emitTrace(scanner, "POP", symbolTraceName(p.nodeStack[len(p.nodeStack)-1].Symbol))
+            p.emitTrace(scanner, "POP", p.symbolTraceName(p.nodeStack[len(p.nodeStack)-1].Symbol))
         }
         // The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
         // node, so dropping one drops one.
+        droppedNode := p.nodeStack[len(p.nodeStack)-1]
+        droppedLength = droppedOffset + droppedLength - droppedNode.ByteOffset
+        droppedOffset = droppedNode.ByteOffset
         p.stateStack = p.stateStack[:len(p.stateStack)-1]
         p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
     }
@@ -568,13 +614,14 @@ func (p *Parser) errorShiftState(state int) (int, bool) {
 
 // raiseError returns an error with the given cause at the position the scanner is at.
 func (p *Parser) raiseError(scanner TokenSource, cause error) error {
+    position := scanner.Position(scanner.ByteOffset())
     return &Error {
         Token: scanner.Token(),
-        ByteOffset: scanner.ByteOffset(),
-        Line: scanner.Line(),
-        Column: scanner.Column(),
+        ByteOffset: position.ByteOffset,
+        Line: position.Line,
+        Column: position.Column,
         Lexeme: scanner.Lexeme(),
-        FilePath: scanner.FilePath(),
+        FilePath: position.FilePath,
         Cause: cause,
     }
 }
@@ -618,7 +665,8 @@ func (p *Parser) resetArena() {
 // emitTrace hands one trace line to p.Trace: the position of the current lookahead, the keyword, and an optional
 // payload. The caller has already checked that p.Trace is not nil.
 func (p *Parser) emitTrace(scanner TokenSource, keyword string, payload string) {
-    location := fmt.Sprintf("%d:%d", scanner.Line(), scanner.Column())
+    position := scanner.Position(scanner.ByteOffset())
+    location := fmt.Sprintf("%d:%d", position.Line, position.Column)
     if payload == "" {
         p.Trace(fmt.Sprintf("%-7s %s", location, keyword))
         return
@@ -635,28 +683,28 @@ func (p *Parser) emitErrorTrace(scanner TokenSource, detail string) {
 }
 
 // reduceTracePayload renders a reduction as "lhs => rhs", or "lhs => ε" for an empty right hand side.
-func reduceTracePayload(lhs Nonterminal, rhs []Node) string {
+func (p *Parser) reduceTracePayload(lhs Nonterminal, rhs []Node) string {
     payload := lhs.String() + " =>"
     if len(rhs) == 0 {
         return payload + " ε"
     }
     for i := range rhs {
-        payload += " " + symbolTraceName(rhs[i].Symbol)
+        payload += " " + p.symbolTraceName(rhs[i].Symbol)
     }
     return payload
 }
 
 // symbolTraceName is the bare grammar name of a symbol, without the prefix Symbol.String adds.
-func symbolTraceName(symbol Symbol) string {
+func (p *Parser) symbolTraceName(symbol Symbol) string {
     if nonterminal, ok := symbol.Nonterminal(); ok {
         return nonterminal.String()
     }
     terminal, _ := symbol.Terminal()
-    return terminalTraceName(terminal)
+    return p.terminalTraceName(terminal)
 }
 
 // terminalTraceName names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name.
-func terminalTraceName(terminal Token) string {
+func (p *Parser) terminalTraceName(terminal Token) string {
     switch terminal {
     case EndToken:
         return "$end"
@@ -670,7 +718,7 @@ func terminalTraceName(terminal Token) string {
 }
 
 // escapeLexeme escapes the bytes of a lexeme for a trace line. The caller writes the quotes around the result.
-func escapeLexeme(lexeme []byte) string {
+func (p *Parser) escapeLexeme(lexeme []byte) string {
     const hexDigits = "0123456789abcdef"
     result := make([]byte, 0, len(lexeme))
     for _, value := range lexeme {

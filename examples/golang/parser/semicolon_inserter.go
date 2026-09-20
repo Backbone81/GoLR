@@ -1,19 +1,25 @@
 package parser
 
+import "bytes"
+
 // SemicolonInserter wraps a Scanner and inserts synthetic TokenSemicolon tokens
 // as specified by https://go.dev/ref/spec#Semicolons.
 //
 // A semicolon is inserted between two tokens whenever:
-//   - the line number increases (the previous token was the last on its line), and
+//   - a line break sits between them (the previous token was the last on its line), and
 //   - the previous token is one of the trigger tokens listed in the spec.
 //
 // A trailing semicolon is also inserted at end of file if the last token is a trigger.
+//
+// An inserted semicolon has an empty lexeme and the offset of the end of the token in front of it.
 type SemicolonInserter struct {
 	Scanner *TokenSkipper
 
 	insertSemicolon bool
 	bufferedTokens  []Token
 	bufferedResult  bool
+
+	bufferedByteOffset int
 }
 
 func (s *SemicolonInserter) Reset(source []byte, offset int) {
@@ -23,15 +29,8 @@ func (s *SemicolonInserter) Reset(source []byte, offset int) {
 }
 
 func (s *SemicolonInserter) Next() bool {
-	previousLine := s.Scanner.Line()
-	if s.Scanner.Token() == TokenStringLit && s.Scanner.Lexeme()[0] == '`' {
-		for _, b := range s.Scanner.Lexeme() {
-			if b != '\n' {
-				continue
-			}
-			previousLine++
-		}
-	}
+	// A semicolon inserted after the current token goes at its end.
+	previousEnd := s.Scanner.ByteOffset() + len(s.Scanner.Lexeme())
 
 	var result bool
 	if len(s.bufferedTokens) > 0 {
@@ -43,16 +42,14 @@ func (s *SemicolonInserter) Next() bool {
 
 	if !result && s.insertSemicolon {
 		s.insertSemicolon = false
-		s.bufferedTokens = append(s.bufferedTokens, TokenSemicolon)
-		s.bufferedResult = result
+		s.bufferSemicolon(previousEnd, result)
 		return true
 	}
 
 	switch {
-	case s.insertSemicolon && previousLine < s.Scanner.Line():
+	case s.insertSemicolon && s.crossesLine(previousEnd):
 		s.insertSemicolon = false
-		s.bufferedTokens = append(s.bufferedTokens, TokenSemicolon)
-		s.bufferedResult = result
+		s.bufferSemicolon(previousEnd, result)
 		return true
 	case isSemicolonTrigger(s.Scanner.Token()):
 		s.insertSemicolon = true
@@ -61,6 +58,21 @@ func (s *SemicolonInserter) Next() bool {
 	}
 
 	return result
+}
+
+// bufferSemicolon holds a semicolon back, so that the next call hands on the token the scanner has already moved to.
+func (s *SemicolonInserter) bufferSemicolon(byteOffset int, result bool) {
+	s.bufferedTokens = append(s.bufferedTokens, TokenSemicolon)
+	s.bufferedByteOffset = byteOffset
+	s.bufferedResult = result
+}
+
+// crossesLine reports whether a line break sits between the end of the previous token and the start of the current one.
+// Everything in between was skipped, so a line feed anywhere in that gap means the previous token was the last on its
+// line.
+func (s *SemicolonInserter) crossesLine(previousEnd int) bool {
+	gap := s.Scanner.Text(previousEnd, s.Scanner.ByteOffset()-previousEnd)
+	return bytes.IndexByte(gap, '\n') >= 0
 }
 
 func isSemicolonTrigger(tok Token) bool {
@@ -84,18 +96,24 @@ func (s *SemicolonInserter) Token() Token {
 }
 
 func (s *SemicolonInserter) ByteOffset() int {
+	if len(s.bufferedTokens) > 0 {
+		return s.bufferedByteOffset
+	}
 	return s.Scanner.ByteOffset()
 }
 
 func (s *SemicolonInserter) Line() int {
-	return s.Scanner.Line()
+	return s.Position(s.ByteOffset()).Line
 }
 
 func (s *SemicolonInserter) Column() int {
-	return s.Scanner.Column()
+	return s.Position(s.ByteOffset()).Column
 }
 
 func (s *SemicolonInserter) Lexeme() []byte {
+	if len(s.bufferedTokens) > 0 {
+		return nil
+	}
 	return s.Scanner.Lexeme()
 }
 

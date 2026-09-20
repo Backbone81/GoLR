@@ -17,6 +17,10 @@ import (
 // TreeWalker is a helper struct which walks the parse tree of a parsed GoLR grammar and extracts all
 // information required to describe the context free grammar therein.
 type TreeWalker struct {
+	// scanner is the source the tree was parsed from. A node carries the span of the source it covers and not the
+	// source itself, so resolving a node back into its bytes goes through the scanner.
+	scanner parser.TokenSource
+
 	rules   []scannergenfrontend.Rule
 	grammar parsergenfrontend.Grammar
 
@@ -55,9 +59,10 @@ type TreeWalker struct {
 	explicitProductionNames map[string]struct{}
 }
 
-// NewTreeWalker creates a new TreeWalker.
-func NewTreeWalker() *TreeWalker {
+// NewTreeWalker creates a new TreeWalker which resolves the spans of the tree against the given scanner.
+func NewTreeWalker(scanner parser.TokenSource) *TreeWalker {
 	return &TreeWalker{
+		scanner:                 scanner,
 		terminalIdxByName:       make(map[string]int),
 		terminalIdxByAlias:      make(map[string]int),
 		nonterminalIdxByName:    make(map[string]int),
@@ -65,6 +70,11 @@ func NewTreeWalker() *TreeWalker {
 		lexemeByName:            make(map[string][]byte),
 		explicitProductionNames: make(map[string]struct{}),
 	}
+}
+
+// text returns the bytes of the source the given node covers, as a view into the source rather than a copy of it.
+func (w *TreeWalker) text(node *parser.Node) []byte {
+	return w.scanner.Text(node.ByteOffset, node.ByteLength)
 }
 
 // BuildGrammar takes the root node of the parse tree, traverses the tree to build the context free grammar
@@ -330,7 +340,7 @@ func (w *TreeWalker) visitScannerPattern(node *parser.Node) error {
 		return nil
 	}
 
-	w.lexemeByName[w.rules[len(w.rules)-1].Name] = node.Children[0].Lexeme
+	w.lexemeByName[w.rules[len(w.rules)-1].Name] = w.text(&node.Children[0])
 	return nil
 }
 
@@ -416,7 +426,7 @@ func (w *TreeWalker) visitStartDecl(node *parser.Node) {
 			continue
 		}
 		if terminal == parser.TokenIdentifier && w.startNonterminalName == "" {
-			w.startNonterminalName = string(child.Lexeme)
+			w.startNonterminalName = string(w.text(&child))
 		}
 	}
 }
@@ -713,7 +723,7 @@ func (w *TreeWalker) visitNameAnnotation(node *parser.Node) error {
 			continue
 		}
 
-		name := string(child.Lexeme)
+		name := string(w.text(&child))
 		if _, exists := w.explicitProductionNames[name]; exists {
 			return fmt.Errorf("duplicate production name %q", name)
 		}
@@ -836,7 +846,7 @@ func (w *TreeWalker) getNameLexeme(node *parser.Node) (string, error) {
 			continue
 		}
 		if terminal == parser.TokenIdentifier {
-			return string(child.Lexeme), nil
+			return string(w.text(&child)), nil
 		}
 	}
 	return "", errors.New("no name token found")
@@ -853,12 +863,12 @@ func (w *TreeWalker) getSymbolName(node *parser.Node) (string, error) {
 	}
 	switch terminal {
 	case parser.TokenIdentifier:
-		return string(child.Lexeme), nil
+		return string(w.text(&child)), nil
 	case parser.TokenError:
 		return w.internErrorTerminal(), nil
 	case parser.TokenString:
 		// Strings in symbol position reference a terminal by its alias.
-		alias := string(child.Lexeme)
+		alias := string(w.text(&child))
 		if idx, ok := w.terminalIdxByAlias[alias]; ok {
 			return w.grammar.Terminals[idx].Name, nil
 		}

@@ -47,6 +47,10 @@ var _ = Describe("Language backends", func() {
 				It("reproduces the parser trace of "+caseName, func() {
 					expectTrace(language, caseName, backendtest.ParserRole, parserTraceFileName)
 				})
+
+				It("reproduces the tree trace of "+caseName, func() {
+					expectTrace(language, caseName, backendtest.TreeRole, treeTraceFileName)
+				})
 			}
 		})
 	}

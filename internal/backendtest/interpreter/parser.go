@@ -94,30 +94,17 @@ type node struct {
 	children []node
 }
 
-// span returns the span covering the given nodes, which is the start of the first one covering anything up to the end
-// of the last one, and a zero length span at fallbackOffset when none of them covers anything.
-//
-// Nodes covering nothing are left out rather than taken as points the span has to reach, which is what keeps a
-// nonterminal with an ε-child from covering the whitespace in front of it. The nodes need not be in the order of the
-// input: a recovery round drops the token it discarded before the nodes it pops, and those come off the stack from
-// right to left.
-func span(nodes []node, fallbackOffset int) (int, int) {
-	start, end := -1, -1
-	for _, current := range nodes {
-		if current.byteLength == 0 {
-			continue
-		}
-		if start == -1 {
-			start, end = current.byteOffset, current.byteOffset+current.byteLength
-			continue
-		}
-		start = min(start, current.byteOffset)
-		end = max(end, current.byteOffset+current.byteLength)
-	}
-	if start == -1 {
+// childSpan returns the span of a node over the children it was reduced from, which starts where the first child starts
+// and ends where the last child ends. No child is skipped, whatever its length. A production with no children at all is
+// placed at fallbackOffset.
+func childSpan(children []node, fallbackOffset int) (int, int) {
+	if len(children) == 0 {
 		return fallbackOffset, 0
 	}
-	return start, end - start
+
+	byteOffset := children[0].byteOffset
+	last := children[len(children)-1]
+	return byteOffset, last.byteOffset + last.byteLength - byteOffset
 }
 
 // Parser is the reference parser of the backend test harness. It reads the compressed tables the way a generated table
@@ -318,9 +305,16 @@ func (p *Parser) reduce(productionIdx int) {
 		RightHandSide: rightHandSide,
 	})
 
-	// A production whose right hand side covers nothing is placed where the parser stands, which is the start of the
-	// token it is looking at.
-	byteOffset, byteLength := span(children, p.token.start)
+	// A production with an empty right hand side is placed at the end of the symbol to its left, so that it lies
+	// inside the node it becomes a child of instead of at the lookahead beyond it. That is what lets a span be read
+	// off the first and the last child without skipping anything. At the bottom of the stack there is no symbol to
+	// the left, and the parser has got no further than the token it is looking at.
+	emptyOffset := p.token.start
+	if len(p.nodeStack) != 0 {
+		left := p.nodeStack[len(p.nodeStack)-1]
+		emptyOffset = left.byteOffset + left.byteLength
+	}
+	byteOffset, byteLength := childSpan(children, emptyOffset)
 	p.nodeStack = append(p.nodeStack[:len(p.nodeStack)-popCount], node{
 		kind:       nodeKindNonterminal,
 		name:       leftHandSide,
@@ -356,8 +350,10 @@ func (p *Parser) recoverFromError() bool {
 		Suppressed: p.errorRecoveryShiftsRemaining != 0,
 	})
 
-	// Everything this round drops is what the error node it ends with stands for, so it is collected as it goes.
-	var dropped []node
+	// The error node this round ends with runs from the start of what the round throws away to the point where it
+	// resumes, so the span starts out empty at the token the parser stopped on and grows to the front with every node
+	// the round pops.
+	droppedOffset, droppedLength := p.token.start, 0
 	if p.errorRecoveryShiftsRemaining == errorRecoveryShifts {
 		// Nothing was shifted since the last error, so the parser is failing on the token it already failed on and
 		// keeping it would only lead here again.
@@ -372,40 +368,40 @@ func (p *Parser) recoverFromError() bool {
 			TerminalName: p.token.name,
 			Lexeme:       string(p.scanner.source[p.token.start:p.token.end]),
 		})
-		dropped = append(dropped, node{
-			kind:       nodeKindTerminal,
-			name:       p.token.name,
-			byteOffset: p.token.start,
-			byteLength: p.token.end - p.token.start,
-		})
+		// The discarded token is thrown away as well, so the span reaches to its end and not to its start.
+		droppedLength = p.token.end - p.token.start
 		p.advanceToken()
 	}
 	p.errorRecoveryShiftsRemaining = errorRecoveryShifts
 
-	return p.popToErrorState(dropped)
+	return p.popToErrorState(droppedOffset, droppedLength)
 }
 
 // popToErrorState drops states off the stack until one of them can shift the error symbol, and shifts it there,
 // reporting whether it found such a state. A grammar which marks no place to resume at unwinds the whole stack here.
 //
-// dropped is what the round already threw away before it got here, which is the token it discarded, if any. The nodes
-// popped along the way join it, and the error symbol shifted at the end covers them all: an error node stands for the
-// part of the input the recovery gave up on. A node popped here may well be an error node of an earlier round, which
-// brings what that round dropped along.
-func (p *Parser) popToErrorState(dropped []node) bool {
+// droppedOffset and droppedLength are the span of what the round has thrown away so far, reaching to the point it will
+// resume at. Every node popped here moves its start to the front, and the error symbol shifted at the end carries it:
+// an error node stands for the part of the input the recovery gave up on. A node popped here may well be an error node
+// of an earlier round, which brings what that round dropped along.
+func (p *Parser) popToErrorState(droppedOffset int, droppedLength int) bool {
 	for {
 		line, column := lineCol(p.lineStarts, p.token.start)
 		if stateIdx, ok := p.compressed.ErrorShiftStateIdx(p.stateStack[len(p.stateStack)-1]); ok {
 			p.trace = append(p.trace, backendtest.Resync{Line: line, Column: column})
-			// Shift the error symbol. Its node stands for the part of the input which was dropped, and covers
-			// nothing at the position the parser resumes at when the round dropped nothing at all.
-			byteOffset, byteLength := span(dropped, p.token.start)
+			if droppedLength == 0 && len(p.nodeStack) != 0 {
+				// The round threw no bytes away, so its node goes at the end of the symbol to its left, where an
+				// ε-production goes, and not at the lookahead beyond it.
+				left := p.nodeStack[len(p.nodeStack)-1]
+				droppedOffset = left.byteOffset + left.byteLength
+			}
+			// Shift the error symbol. Its node stands for the part of the input which was dropped.
 			p.stateStack = append(p.stateStack, stateIdx)
 			p.nodeStack = append(p.nodeStack, node{
 				kind:       nodeKindErrorSymbol,
 				name:       errorSymbolName,
-				byteOffset: byteOffset,
-				byteLength: byteLength,
+				byteOffset: droppedOffset,
+				byteLength: droppedLength,
 			})
 			return true
 		}
@@ -421,7 +417,9 @@ func (p *Parser) popToErrorState(dropped []node) bool {
 			Column:     column,
 			SymbolName: p.nodeStack[len(p.nodeStack)-1].name,
 		})
-		dropped = append(dropped, p.nodeStack[len(p.nodeStack)-1])
+		droppedNode := p.nodeStack[len(p.nodeStack)-1]
+		droppedLength = droppedOffset + droppedLength - droppedNode.byteOffset
+		droppedOffset = droppedNode.byteOffset
 		p.stateStack = p.stateStack[:len(p.stateStack)-1]
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-1]
 	}

@@ -21,11 +21,12 @@ const (
 	runnerPath = "internal/backendtest/runners"
 )
 
-// The two traces a run produces. They are separate files because the scanner trace and the parser trace are never
-// interleaved into one stream.
+// The three traces a run produces. They are separate files because the scanner trace and the parser trace are never
+// interleaved into one stream, and because the tree trace states what a parse built rather than what it did.
 const (
 	ScannerRole = "scanner"
 	ParserRole  = "parser"
+	TreeRole    = "tree"
 
 	// TraceFileSuffix is appended to a role for the trace a runner wrote.
 	TraceFileSuffix = ".actual"

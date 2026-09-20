@@ -13,6 +13,10 @@ import (
 // TreeWalker is a helper struct which walks the parse tree of a parsed GNU Bison grammar and extracts all
 // information required to describe the context free grammar therein.
 type TreeWalker struct {
+	// scanner is the source the tree was parsed from. A node carries the span of the source it covers and not the
+	// source itself, so resolving a node back into its bytes goes through the scanner.
+	scanner parser.TokenSource
+
 	grammar frontend.Grammar
 
 	terminalIdxByName    map[string]int
@@ -39,9 +43,10 @@ type TreeWalker struct {
 	errs []error
 }
 
-// NewTreeWalker creates a new TreeWalker.
-func NewTreeWalker() *TreeWalker {
+// NewTreeWalker creates a new TreeWalker which resolves the spans of the tree against the given scanner.
+func NewTreeWalker(scanner parser.TokenSource) *TreeWalker {
 	result := TreeWalker{
+		scanner:              scanner,
 		terminalIdxByName:    make(map[string]int),
 		nonterminalIdxByName: make(map[string]int),
 	}
@@ -56,6 +61,11 @@ func NewTreeWalker() *TreeWalker {
 	result.grammar.Terminals = append(result.grammar.Terminals, frontend.SymbolError)
 	result.terminalIdxByName[ErrorTokenName] = len(result.grammar.Terminals) - 1
 	return &result
+}
+
+// text returns the bytes of the source the given node covers, as a view into the source rather than a copy of it.
+func (w *TreeWalker) text(node *parser.Node) []byte {
+	return w.scanner.Text(node.ByteOffset, node.ByteLength)
 }
 
 // BuildGrammar takes the root node of the parse tree, traverses the tree to build the context free grammar
@@ -323,8 +333,8 @@ func (w *TreeWalker) visitAlias(node *parser.Node) {
 
 	if len(node.Children) == 1 {
 		if terminal, ok := node.Children[0].Symbol.Terminal(); ok && terminal == parser.TokenTstring {
-			w.grammar.Terminals[len(w.grammar.Terminals)-1].Alias = string(node.Children[0].Lexeme)
-			w.terminalIdxByName[string(node.Children[0].Lexeme)] = len(w.grammar.Terminals) - 1
+			w.grammar.Terminals[len(w.grammar.Terminals)-1].Alias = string(w.text(&node.Children[0]))
+			w.terminalIdxByName[string(w.text(&node.Children[0]))] = len(w.grammar.Terminals) - 1
 		}
 	}
 
@@ -347,8 +357,8 @@ func (w *TreeWalker) visitStringAsId(node *parser.Node) {
 
 	if len(node.Children) == 1 {
 		if terminal, ok := node.Children[0].Symbol.Terminal(); ok && terminal == parser.TokenString {
-			w.grammar.Terminals[len(w.grammar.Terminals)-1].Alias = string(node.Children[0].Lexeme)
-			w.terminalIdxByName[string(node.Children[0].Lexeme)] = len(w.grammar.Terminals) - 1
+			w.grammar.Terminals[len(w.grammar.Terminals)-1].Alias = string(w.text(&node.Children[0]))
+			w.terminalIdxByName[string(w.text(&node.Children[0]))] = len(w.grammar.Terminals) - 1
 		}
 	}
 }
@@ -669,7 +679,7 @@ func (w *TreeWalker) getID(node *parser.Node) (string, error) {
 	if idTerminal != parser.TokenId {
 		return "", errors.New("expected token id")
 	}
-	return string(firstChildChild.Lexeme), nil
+	return string(w.text(&firstChildChild)), nil
 }
 
 func (w *TreeWalker) getStringAsID(node *parser.Node) (string, error) {
@@ -690,7 +700,7 @@ func (w *TreeWalker) getStringAsID(node *parser.Node) (string, error) {
 	if idTerminal != parser.TokenString {
 		return "", errors.New("expected token string")
 	}
-	return string(firstChildChild.Lexeme), nil
+	return string(w.text(&firstChildChild)), nil
 }
 
 func (w *TreeWalker) getCharLiteralAsID(node *parser.Node) (string, error) {
@@ -714,7 +724,7 @@ func (w *TreeWalker) getCharLiteralAsID(node *parser.Node) (string, error) {
 
 	// We normalize the char literal so that different spellings of the same character (like '\v' and '\13') resolve
 	// to the same terminal, as they do in GNU Bison.
-	code, err := decodeCharLiteral(string(firstChildChild.Lexeme))
+	code, err := decodeCharLiteral(string(w.text(&firstChildChild)))
 	if err != nil {
 		return "", err
 	}
@@ -830,5 +840,5 @@ func (w *TreeWalker) getIDColon(node *parser.Node) (string, error) {
 	if idTerminal != parser.TokenIdColon {
 		return "", errors.New("expected token id colon")
 	}
-	return string(firstChildChild.Lexeme), nil
+	return string(w.text(&firstChildChild)), nil
 }

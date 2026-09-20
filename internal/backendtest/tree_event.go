@@ -18,13 +18,11 @@ import (
 // what a user of the parse tree reports an error with. The rules the spans follow are part of the format:
 //
 //   - A terminal covers its lexeme.
-//   - A nonterminal covers its children, from the start of the first child which covers something up to the end of the
-//     last one which does. Children which cover nothing do not widen the span, so no whitespace around an ε-child is
-//     pulled in.
-//   - A node which covers nothing - an ε-production, or an error node which dropped nothing - has zero length at the
-//     position the parser was looking at when it was created.
-//   - An error node covers everything the recovery round which pushed it dropped, which is the tokens it discarded and
-//     the nodes it popped.
+//   - A nonterminal starts where its first child starts and ends where its last child ends. No child is skipped.
+//   - An ε-production has zero length at the end of the symbol to its left, so that it lies inside the node it becomes
+//     a child of. At the bottom of the stack there is no such symbol and it sits where the parser was looking.
+//   - An error node runs from the start of what its recovery round threw away to the point where that round resumed. A
+//     round which threw no bytes away leaves it empty at the end of the symbol to its left, where an ε-production goes.
 //
 // The invariant over the whole format is that the text of a node is the source its span covers, and that for a
 // terminal this is the lexeme the scanner produced.
