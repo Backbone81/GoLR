@@ -89,16 +89,23 @@ bool {{ .Func "ParseSymbolNonterminal" }}(const {{ .Type "ParseSymbol" }} *symbo
 /// size means it was cut short. Writes nothing when the buffer size is zero.
 size_t {{ .Func "ParseSymbolToString" }}(const {{ .Type "ParseSymbol" }} *symbol, char *buffer, size_t buffer_size);
 
-/// A single node of the parse tree. It borrows the source it was parsed from, and it is owned by the result it came
-/// with rather than by itself.
+/// A single node of the parse tree. It carries the span of the source it covers, which {{ .Func "ScannerText" }} turns
+/// back into bytes and {{ .Func "ScannerPosition" }} into a file path, a line and a column. It is owned by the result
+/// it came with rather than by itself.
+///
+/// A terminal covers its lexeme and a nonterminal covers its children. The error symbol covers what the error recovery
+/// threw away, up to the point it resumed at. A production with an empty right hand side has zero length at the end of
+/// the symbol to its left.
 typedef struct {{ .Type "ParseNode" }} {{ .Type "ParseNode" }};
 struct {{ .Type "ParseNode" }} {
     /// The terminal or nonterminal this node stands for.
     {{ .Type "ParseSymbol" }} symbol;
 
-    /// The bytes of the terminal, as a range of the source. Empty for a nonterminal and for the error symbol, which no
-    /// input produced.
-    {{ .Type "StringView" }} lexeme;
+    /// The start of the source this node covers, in bytes from the start of the source.
+    size_t byte_offset;
+
+    /// The number of bytes of the source this node covers.
+    size_t byte_length;
 
     /// The nodes of the right hand side of the production which was reduced to this node. Null for a terminal.
     {{ .Type "ParseNode" }} *children;
@@ -522,6 +529,7 @@ static bool {{ .Func "ParserReserveErrors" }}({{ .Type "Parser" }} *parser, size
 /// cut short.
 static {{ .Type "ParseError" }} {{ .Func "ParseErrorAt" }}(const char *reason, {{ .Type "ErrorKind" }} kind, const {{ .Type "TokenSource" }} *scanner) {
     {{ .Type "ParseError" }} error;
+    {{ .Type "Position" }} position = scanner->position(scanner->context, scanner->byte_offset(scanner->context));
     size_t length = strlen(reason);
 
     if (length >= sizeof(error.reason)) {
@@ -532,11 +540,11 @@ static {{ .Type "ParseError" }} {{ .Func "ParseErrorAt" }}(const char *reason, {
 
     error.kind = kind;
     error.token = scanner->token(scanner->context);
-    error.byte_offset = scanner->byte_offset(scanner->context);
-    error.line = scanner->line(scanner->context);
-    error.column = scanner->column(scanner->context);
+    error.byte_offset = position.byte_offset;
+    error.line = position.line;
+    error.column = position.column;
     error.lexeme = scanner->lexeme(scanner->context);
-    error.file_path = scanner->file_path(scanner->context);
+    error.file_path = position.file_path;
     return error;
 }
 
@@ -724,9 +732,10 @@ static void {{ .Func "ParserTraceReducePayload" }}({{ .Type "Parser" }} *parser,
 /// left justified to seven when a payload follows, and the payload. A null payload leaves it off. A line which does not
 /// fit parser->trace_line is cut short. The caller has checked that parser->trace is set.
 static void {{ .Func "ParserEmitTrace" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner, const char *keyword, const char *payload) {
+    {{ .Type "Position" }} position = scanner->position(scanner->context, scanner->byte_offset(scanner->context));
     char location[48];
 
-    snprintf(location, sizeof(location), "%zu:%zu", scanner->line(scanner->context), scanner->column(scanner->context));
+    snprintf(location, sizeof(location), "%zu:%zu", position.line, position.column);
     if (payload != NULL) {
         snprintf(parser->trace_line, sizeof(parser->trace_line), "%-7s %-7s %s", location, keyword, payload);
     } else {
@@ -753,7 +762,12 @@ static bool {{ .Func "ParserReduce" }}({{ .Type "Parser" }} *parser, const {{ .T
     size_t pop_count = {{ .Const "PopCountByProduction" }}[production_idx];
     size_t nonterminal = {{ .Const "NonterminalByProduction" }}[production_idx];
     {{ .Type "ParseNode" }} *children = NULL;
+    const {{ .Type "ParseNode" }} *right_hand_side = NULL;
+    const {{ .Type "ParseNode" }} *last_child;
+    const {{ .Type "ParseNode" }} *left;
     {{ .Type "ParseNode" }} node;
+    size_t byte_offset = 0;
+    size_t byte_length = 0;
     size_t state;
     size_t goto_state;
     size_t cell_idx;
@@ -780,6 +794,22 @@ static bool {{ .Func "ParserReduce" }}({{ .Type "Parser" }} *parser, const {{ .T
         return false;
     }
 
+    /* The node starts where its first child starts and ends where its last child ends. */
+    if (pop_count != 0) {
+        right_hand_side = parser->node_stack + parser->node_count - pop_count;
+        last_child = &right_hand_side[pop_count - 1];
+        byte_offset = right_hand_side[0].byte_offset;
+        byte_length = last_child->byte_offset + last_child->byte_length - byte_offset;
+    } else if (parser->node_count != 0) {
+        /* A production with an empty right hand side goes at the end of the symbol to its left, so that it lies inside
+           the node it becomes a child of instead of at the lookahead beyond it. */
+        left = &parser->node_stack[parser->node_count - 1];
+        byte_offset = left->byte_offset + left->byte_length;
+    } else {
+        /* Nothing has been parsed yet, so there is no symbol to the left of it. */
+        byte_offset = scanner->byte_offset(scanner->context);
+    }
+
     /* The right hand side comes off the node stack and is handed over as the children. */
     if (pop_count > 0) {
         children = {{ .Func "ArenaAllocate" }}(&parser->arena, pop_count);
@@ -788,13 +818,13 @@ static bool {{ .Func "ParserReduce" }}({{ .Type "Parser" }} *parser, const {{ .T
             return false;
         }
         parser->node_count -= pop_count;
-        memcpy(children, parser->node_stack + parser->node_count, pop_count * sizeof({{ .Type "ParseNode" }}));
+        memcpy(children, right_hand_side, pop_count * sizeof({{ .Type "ParseNode" }}));
     }
 
     node.symbol.kind = {{ .Const "SymbolKindNonterminal" }};
     node.symbol.value.nonterminal = ({{ .Type "Nonterminal" }})nonterminal;
-    node.lexeme.data = NULL;
-    node.lexeme.length = 0;
+    node.byte_offset = byte_offset;
+    node.byte_length = byte_length;
     node.children = children;
     node.child_count = pop_count;
     node.production = ({{ .Type "Production" }})production_idx;
@@ -845,7 +875,8 @@ static {{ .Type "StepResult" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *p
         }
         node.symbol.kind = {{ .Const "SymbolKindTerminal" }};
         node.symbol.value.terminal = terminal;
-        node.lexeme = scanner->lexeme(scanner->context);
+        node.byte_offset = scanner->byte_offset(scanner->context);
+        node.byte_length = scanner->lexeme(scanner->context).length;
         node.children = NULL;
         node.child_count = 0;
         node.production = {{ .Const "NoProduction" }};
@@ -903,7 +934,15 @@ static {{ .Type "StepResult" }} {{ .Func "ParserStep" }}({{ .Type "Parser" }} *p
 /// either gets the parse going again or consumes one token of the input, so a parse cannot get stuck between the two.
 static bool {{ .Func "ParserRecoverFromError" }}({{ .Type "Parser" }} *parser, const {{ .Type "TokenSource" }} *scanner) {
     {{ .Type "ParseNode" }} node;
+    const {{ .Type "ParseNode" }} *left;
+    const {{ .Type "ParseNode" }} *dropped_node;
     size_t next_state;
+
+    /* The error node this round ends with runs from the start of what the round throws away to the point where it
+       resumes, so the span starts out empty at the token the parser stopped on and grows to the front with every node
+       the round pops. */
+    size_t dropped_offset = scanner->byte_offset(scanner->context);
+    size_t dropped_length = 0;
 
     if (parser->error_recovery_shifts_remaining == {{ .Const "ErrorRecoveryShifts" }}) {
         /* Nothing was shifted since the last error, so the parser is failing on the token it already failed on. */
@@ -919,6 +958,8 @@ static bool {{ .Func "ParserRecoverFromError" }}({{ .Type "Parser" }} *parser, c
                                                   scanner->lexeme(scanner->context));
             {{ .Func "ParserEmitTrace" }}(parser, scanner, "DISCARD", parser->trace_payload);
         }
+        /* The discarded token is thrown away as well, so the span reaches to its end and not to its start. */
+        dropped_length = scanner->lexeme(scanner->context).length;
         scanner->next(scanner->context);
     }
     parser->error_recovery_shifts_remaining = {{ .Const "ErrorRecoveryShifts" }};
@@ -928,14 +969,20 @@ static bool {{ .Func "ParserRecoverFromError" }}({{ .Type "Parser" }} *parser, c
             if (parser->trace != NULL) {
                 {{ .Func "ParserEmitTrace" }}(parser, scanner, "RESYNC", NULL);
             }
-            /* Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme. */
+            if (dropped_length == 0 && parser->node_count != 0) {
+                /* The round threw no bytes away, so its node goes at the end of the symbol to its left, where a
+                   production with an empty right hand side goes, and not at the lookahead beyond it. */
+                left = &parser->node_stack[parser->node_count - 1];
+                dropped_offset = left->byte_offset + left->byte_length;
+            }
+            /* Shift the error symbol. Its node covers what this round dropped. */
             if (!{{ .Func "ParserPushState" }}(parser, next_state)) {
                 return false;
             }
             node.symbol.kind = {{ .Const "SymbolKindTerminal" }};
             node.symbol.value.terminal = {{ .Const "TokenErrorToken" }};
-            node.lexeme.data = NULL;
-            node.lexeme.length = 0;
+            node.byte_offset = dropped_offset;
+            node.byte_length = dropped_length;
             node.children = NULL;
             node.child_count = 0;
             node.production = {{ .Const "NoProduction" }};
@@ -954,6 +1001,9 @@ static bool {{ .Func "ParserRecoverFromError" }}({{ .Type "Parser" }} *parser, c
         }
         /* The state cannot resume here, so it is dropped together with what it had parsed. One state carries one node,
            so dropping one drops one. */
+        dropped_node = &parser->node_stack[parser->node_count - 1];
+        dropped_length = dropped_offset + dropped_length - dropped_node->byte_offset;
+        dropped_offset = dropped_node->byte_offset;
         parser->state_count--;
         parser->node_count--;
     }

@@ -86,16 +86,23 @@ bool calculator_parse_symbol_nonterminal(const CalculatorParseSymbol *symbol, Ca
 /// size means it was cut short. Writes nothing when the buffer size is zero.
 size_t calculator_parse_symbol_to_string(const CalculatorParseSymbol *symbol, char *buffer, size_t buffer_size);
 
-/// A single node of the parse tree. It borrows the source it was parsed from, and it is owned by the result it came
-/// with rather than by itself.
+/// A single node of the parse tree. It carries the span of the source it covers, which calculator_scanner_text turns
+/// back into bytes and calculator_scanner_position into a file path, a line and a column. It is owned by the result
+/// it came with rather than by itself.
+///
+/// A terminal covers its lexeme and a nonterminal covers its children. The error symbol covers what the error recovery
+/// threw away, up to the point it resumed at. A production with an empty right hand side has zero length at the end of
+/// the symbol to its left.
 typedef struct CalculatorParseNode CalculatorParseNode;
 struct CalculatorParseNode {
     /// The terminal or nonterminal this node stands for.
     CalculatorParseSymbol symbol;
 
-    /// The bytes of the terminal, as a range of the source. Empty for a nonterminal and for the error symbol, which no
-    /// input produced.
-    CalculatorStringView lexeme;
+    /// The start of the source this node covers, in bytes from the start of the source.
+    size_t byte_offset;
+
+    /// The number of bytes of the source this node covers.
+    size_t byte_length;
 
     /// The nodes of the right hand side of the production which was reduced to this node. Null for a terminal.
     CalculatorParseNode *children;
@@ -542,6 +549,7 @@ static bool calculator_parser_reserve_errors(CalculatorParser *parser, size_t co
 /// cut short.
 static CalculatorParseError calculator_parse_error_at(const char *reason, CalculatorErrorKind kind, const CalculatorTokenSource *scanner) {
     CalculatorParseError error;
+    CalculatorPosition position = scanner->position(scanner->context, scanner->byte_offset(scanner->context));
     size_t length = strlen(reason);
 
     if (length >= sizeof(error.reason)) {
@@ -552,11 +560,11 @@ static CalculatorParseError calculator_parse_error_at(const char *reason, Calcul
 
     error.kind = kind;
     error.token = scanner->token(scanner->context);
-    error.byte_offset = scanner->byte_offset(scanner->context);
-    error.line = scanner->line(scanner->context);
-    error.column = scanner->column(scanner->context);
+    error.byte_offset = position.byte_offset;
+    error.line = position.line;
+    error.column = position.column;
     error.lexeme = scanner->lexeme(scanner->context);
-    error.file_path = scanner->file_path(scanner->context);
+    error.file_path = position.file_path;
     return error;
 }
 
@@ -760,9 +768,10 @@ static void calculator_parser_trace_reduce_payload(CalculatorParser *parser, Cal
 /// left justified to seven when a payload follows, and the payload. A null payload leaves it off. A line which does not
 /// fit parser->trace_line is cut short. The caller has checked that parser->trace is set.
 static void calculator_parser_emit_trace(CalculatorParser *parser, const CalculatorTokenSource *scanner, const char *keyword, const char *payload) {
+    CalculatorPosition position = scanner->position(scanner->context, scanner->byte_offset(scanner->context));
     char location[48];
 
-    snprintf(location, sizeof(location), "%zu:%zu", scanner->line(scanner->context), scanner->column(scanner->context));
+    snprintf(location, sizeof(location), "%zu:%zu", position.line, position.column);
     if (payload != NULL) {
         snprintf(parser->trace_line, sizeof(parser->trace_line), "%-7s %-7s %s", location, keyword, payload);
     } else {
@@ -789,7 +798,12 @@ static bool calculator_parser_reduce(CalculatorParser *parser, const CalculatorT
     size_t pop_count = CALCULATOR_POP_COUNT_BY_PRODUCTION[production_idx];
     size_t nonterminal = CALCULATOR_NONTERMINAL_BY_PRODUCTION[production_idx];
     CalculatorParseNode *children = NULL;
+    const CalculatorParseNode *right_hand_side = NULL;
+    const CalculatorParseNode *last_child;
+    const CalculatorParseNode *left;
     CalculatorParseNode node;
+    size_t byte_offset = 0;
+    size_t byte_length = 0;
     size_t state;
     size_t goto_state;
     size_t cell_idx;
@@ -816,6 +830,22 @@ static bool calculator_parser_reduce(CalculatorParser *parser, const CalculatorT
         return false;
     }
 
+    /* The node starts where its first child starts and ends where its last child ends. */
+    if (pop_count != 0) {
+        right_hand_side = parser->node_stack + parser->node_count - pop_count;
+        last_child = &right_hand_side[pop_count - 1];
+        byte_offset = right_hand_side[0].byte_offset;
+        byte_length = last_child->byte_offset + last_child->byte_length - byte_offset;
+    } else if (parser->node_count != 0) {
+        /* A production with an empty right hand side goes at the end of the symbol to its left, so that it lies inside
+           the node it becomes a child of instead of at the lookahead beyond it. */
+        left = &parser->node_stack[parser->node_count - 1];
+        byte_offset = left->byte_offset + left->byte_length;
+    } else {
+        /* Nothing has been parsed yet, so there is no symbol to the left of it. */
+        byte_offset = scanner->byte_offset(scanner->context);
+    }
+
     /* The right hand side comes off the node stack and is handed over as the children. */
     if (pop_count > 0) {
         children = calculator_arena_allocate(&parser->arena, pop_count);
@@ -824,13 +854,13 @@ static bool calculator_parser_reduce(CalculatorParser *parser, const CalculatorT
             return false;
         }
         parser->node_count -= pop_count;
-        memcpy(children, parser->node_stack + parser->node_count, pop_count * sizeof(CalculatorParseNode));
+        memcpy(children, right_hand_side, pop_count * sizeof(CalculatorParseNode));
     }
 
     node.symbol.kind = CALCULATOR_SYMBOL_KIND_NONTERMINAL;
     node.symbol.value.nonterminal = (CalculatorNonterminal)nonterminal;
-    node.lexeme.data = NULL;
-    node.lexeme.length = 0;
+    node.byte_offset = byte_offset;
+    node.byte_length = byte_length;
     node.children = children;
     node.child_count = pop_count;
     node.production = (CalculatorProduction)production_idx;
@@ -881,7 +911,8 @@ static CalculatorStepResult calculator_parser_step(CalculatorParser *parser, con
         }
         node.symbol.kind = CALCULATOR_SYMBOL_KIND_TERMINAL;
         node.symbol.value.terminal = terminal;
-        node.lexeme = scanner->lexeme(scanner->context);
+        node.byte_offset = scanner->byte_offset(scanner->context);
+        node.byte_length = scanner->lexeme(scanner->context).length;
         node.children = NULL;
         node.child_count = 0;
         node.production = CALCULATOR_NO_PRODUCTION;
@@ -939,7 +970,15 @@ static CalculatorStepResult calculator_parser_step(CalculatorParser *parser, con
 /// either gets the parse going again or consumes one token of the input, so a parse cannot get stuck between the two.
 static bool calculator_parser_recover_from_error(CalculatorParser *parser, const CalculatorTokenSource *scanner) {
     CalculatorParseNode node;
+    const CalculatorParseNode *left;
+    const CalculatorParseNode *dropped_node;
     size_t next_state;
+
+    /* The error node this round ends with runs from the start of what the round throws away to the point where it
+       resumes, so the span starts out empty at the token the parser stopped on and grows to the front with every node
+       the round pops. */
+    size_t dropped_offset = scanner->byte_offset(scanner->context);
+    size_t dropped_length = 0;
 
     if (parser->error_recovery_shifts_remaining == CALCULATOR_ERROR_RECOVERY_SHIFTS) {
         /* Nothing was shifted since the last error, so the parser is failing on the token it already failed on. */
@@ -955,6 +994,8 @@ static bool calculator_parser_recover_from_error(CalculatorParser *parser, const
                                                   scanner->lexeme(scanner->context));
             calculator_parser_emit_trace(parser, scanner, "DISCARD", parser->trace_payload);
         }
+        /* The discarded token is thrown away as well, so the span reaches to its end and not to its start. */
+        dropped_length = scanner->lexeme(scanner->context).length;
         scanner->next(scanner->context);
     }
     parser->error_recovery_shifts_remaining = CALCULATOR_ERROR_RECOVERY_SHIFTS;
@@ -964,14 +1005,20 @@ static bool calculator_parser_recover_from_error(CalculatorParser *parser, const
             if (parser->trace != NULL) {
                 calculator_parser_emit_trace(parser, scanner, "RESYNC", NULL);
             }
-            /* Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme. */
+            if (dropped_length == 0 && parser->node_count != 0) {
+                /* The round threw no bytes away, so its node goes at the end of the symbol to its left, where a
+                   production with an empty right hand side goes, and not at the lookahead beyond it. */
+                left = &parser->node_stack[parser->node_count - 1];
+                dropped_offset = left->byte_offset + left->byte_length;
+            }
+            /* Shift the error symbol. Its node covers what this round dropped. */
             if (!calculator_parser_push_state(parser, next_state)) {
                 return false;
             }
             node.symbol.kind = CALCULATOR_SYMBOL_KIND_TERMINAL;
             node.symbol.value.terminal = CALCULATOR_TOKEN_ERROR_TOKEN;
-            node.lexeme.data = NULL;
-            node.lexeme.length = 0;
+            node.byte_offset = dropped_offset;
+            node.byte_length = dropped_length;
             node.children = NULL;
             node.child_count = 0;
             node.production = CALCULATOR_NO_PRODUCTION;
@@ -990,6 +1037,9 @@ static bool calculator_parser_recover_from_error(CalculatorParser *parser, const
         }
         /* The state cannot resume here, so it is dropped together with what it had parsed. One state carries one node,
            so dropping one drops one. */
+        dropped_node = &parser->node_stack[parser->node_count - 1];
+        dropped_length = dropped_offset + dropped_length - dropped_node->byte_offset;
+        dropped_offset = dropped_node->byte_offset;
         parser->state_count--;
         parser->node_count--;
     }

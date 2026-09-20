@@ -1,5 +1,5 @@
 /* The C runner for the backend test corpus. It reads an input file, runs the generated scanner and the generated
-   parser over it, and writes the canonical scanner trace and parser trace the harness diffs against.
+   parser over it, and writes the canonical scanner trace, parser trace and tree trace the harness diffs against.
 
    This file has no dependencies beyond the standard library, and it must not grow any. It runs in the image with no
    network, which is what proves that generated GoLR code needs nothing but the bare language.
@@ -19,6 +19,7 @@
 
 static const char *const SCANNER_TRACE_FILE_NAME = "scanner.actual";
 static const char *const PARSER_TRACE_FILE_NAME = "parser.actual";
+static const char *const TREE_TRACE_FILE_NAME = "tree.actual";
 
 /* The bytes a trace line carries as they are. Everything outside of it is escaped. */
 #define PRINTABLE_LOW 0x20
@@ -154,6 +155,105 @@ static void write_parser_trace(FILE *out, const char *source, size_t source_leng
     parser_scanner_free(&scanner);
 }
 
+/* Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name. */
+static const char *terminal_trace_name(ParserToken terminal) {
+    switch (terminal) {
+    case PARSER_TOKEN_END_TOKEN:
+        return "$end";
+    case PARSER_TOKEN_ERROR_TOKEN:
+        return "$error";
+    case PARSER_TOKEN_INVALID_TOKEN:
+        return "$invalid";
+    default:
+        return parser_token_to_string(terminal);
+    }
+}
+
+/* The bare grammar name of a symbol, which for a nonterminal is what parser_nonterminal_to_string returns and for a
+   terminal is the name the traces spell it with. */
+static const char *symbol_trace_name(const ParserParseSymbol *symbol) {
+    ParserToken terminal;
+    ParserNonterminal nonterminal;
+
+    if (parser_parse_symbol_terminal(symbol, &terminal)) {
+        return terminal_trace_name(terminal);
+    }
+    parser_parse_symbol_nonterminal(symbol, &nonterminal);
+    return parser_nonterminal_to_string(nonterminal);
+}
+
+/* Writes the line of the given node and the lines of everything below it, which is the pre-order the tree trace is
+   read in: a node, then what it was built from. The payload carries the indentation and the position and span columns
+   do not, so they stay in the same place however deep a node sits. */
+static void write_tree_node(FILE *out, ParserScanner *scanner, const ParserParseNode *node, size_t depth) {
+    ParserPosition position = parser_scanner_position(scanner, node->byte_offset);
+    ParserToken terminal;
+    ParserNonterminal nonterminal;
+    char location[48];
+    char span[48];
+    size_t idx;
+
+    snprintf(location, sizeof(location), "%zu:%zu", position.line, position.column);
+    snprintf(span, sizeof(span), "%zu+%zu", node->byte_offset, node->byte_length);
+    fprintf(out, "%-7s %-7s ", location, span);
+    for (idx = 0; idx < depth; idx++) {
+        fputs("  ", out);
+    }
+
+    if (!parser_parse_symbol_terminal(&node->symbol, &terminal)) {
+        parser_parse_symbol_nonterminal(&node->symbol, &nonterminal);
+        /* The node is named the way the REDUCE line of a parser trace names the production it was reduced from. */
+        fprintf(out, "%s =>", parser_nonterminal_to_string(nonterminal));
+        if (node->child_count == 0) {
+            fputs(" ε", out);
+        }
+        for (idx = 0; idx < node->child_count; idx++) {
+            fprintf(out, " %s", symbol_trace_name(&node->children[idx].symbol));
+        }
+        fputc('\n', out);
+    } else if (terminal == PARSER_TOKEN_ERROR_TOKEN) {
+        /* The error node stands for no token of its own, so its span is all it carries. */
+        fprintf(out, "%s\n", terminal_trace_name(terminal));
+    } else {
+        /* The text is read off the source through the span and never carried along from the token, which is what makes
+           the trace state that the span is right. */
+        fprintf(out, "%s \"", terminal_trace_name(terminal));
+        write_escaped_lexeme(out, parser_scanner_text(scanner, node->byte_offset, node->byte_length));
+        fputs("\"\n", out);
+    }
+
+    for (idx = 0; idx < node->child_count; idx++) {
+        write_tree_node(out, scanner, &node->children[idx], depth + 1);
+    }
+}
+
+/* Parses the whole input and writes one line per node of the tree the parse built, in pre-order. A parse which was
+   given up builds no tree and writes nothing, which is the empty trace the harness expects for it. */
+static void write_tree_trace(FILE *out, const char *source, size_t source_length, const char *input_path) {
+    /* The scanner stays at hand after the parse, because a node carries the span of the source it covers and not the
+       source itself, so the trace resolves every node through the position and the text of the scanner. */
+    ParserScanner scanner;
+    ParserTokenSkipper skipper;
+    ParserTokenSource source_of_tokens;
+    ParserParser parser;
+    ParserParseResult result;
+
+    parser_scanner_init(&scanner, source, source_length, input_path);
+    parser_token_skipper_init(&skipper, parser_scanner_as_token_source(&scanner));
+    source_of_tokens = parser_token_skipper_as_token_source(&skipper);
+
+    parser_parser_init(&parser);
+    result = parser_parser_parse(&parser, &source_of_tokens);
+
+    if (result.tree != NULL) {
+        write_tree_node(out, &scanner, result.tree, 0);
+    }
+
+    parser_parse_result_free(&result);
+    parser_parser_free(&parser);
+    parser_scanner_free(&scanner);
+}
+
 /* Opens a trace file, or reports why it could not be opened. */
 static FILE *open_trace(const char *file_name) {
     FILE *out = fopen(file_name, "wb");
@@ -207,7 +307,7 @@ int main(int argc, char **argv) {
     fclose(in);
 
     /* Each trace is written on its own, so a scanner which breaks still lets the parser trace be written. A case
-       failing both traces has to stay distinguishable from one failing only the scanner. */
+       failing all three traces has to stay distinguishable from one failing only the last. */
     out = open_trace(SCANNER_TRACE_FILE_NAME);
     if (out != NULL) {
         write_scanner_trace(out, source, source_length, input_path);
@@ -217,6 +317,12 @@ int main(int argc, char **argv) {
     out = open_trace(PARSER_TRACE_FILE_NAME);
     if (out != NULL) {
         write_parser_trace(out, source, source_length, input_path);
+        fclose(out);
+    }
+
+    out = open_trace(TREE_TRACE_FILE_NAME);
+    if (out != NULL) {
+        write_tree_trace(out, source, source_length, input_path);
         fclose(out);
     }
 

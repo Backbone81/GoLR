@@ -9,10 +9,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-static bool evaluate_node(const CalculatorParseNode *node, long *value, const char **error);
+static bool evaluate_node(const CalculatorScanner *scanner, const CalculatorParseNode *node, long *value,
+                          const char **error);
 
 /* Evaluates the two productions with three symbols on the right hand side. */
-static bool evaluate_three_children(const CalculatorParseNode *node, long *value, const char **error) {
+static bool evaluate_three_children(const CalculatorScanner *scanner, const CalculatorParseNode *node, long *value,
+                                    const char **error) {
     /* In "(" expression ")", the middle child is the nonterminal expression node.
        In "expression OP expression", the middle child is a terminal operator token.
        We use this to distinguish the two cases. */
@@ -23,13 +25,13 @@ static bool evaluate_three_children(const CalculatorParseNode *node, long *value
 
     if (!calculator_parse_symbol_terminal(&middle->symbol, &operation)) {
         /* expression: "(" expression ")" */
-        return evaluate_node(middle, value, error);
+        return evaluate_node(scanner, middle, value, error);
     }
 
-    if (!evaluate_node(&node->children[0], &left_value, error)) {
+    if (!evaluate_node(scanner, &node->children[0], &left_value, error)) {
         return false;
     }
-    if (!evaluate_node(&node->children[2], &right_value, error)) {
+    if (!evaluate_node(scanner, &node->children[2], &right_value, error)) {
         return false;
     }
 
@@ -66,28 +68,31 @@ static bool evaluate_three_children(const CalculatorParseNode *node, long *value
      - 1 child:    INTEGER literal
      - 2 children: unary minus ("-" expression)
      - 3 children: binary operation (expression OP expression) or grouping ("(" expression ")") */
-static bool evaluate_node(const CalculatorParseNode *node, long *value, const char **error) {
-    /* Each node has a symbol (the grammar symbol it represents), a lexeme (the raw bytes from the input, set for
-       terminal nodes), and children (sub-nodes). */
+static bool evaluate_node(const CalculatorScanner *scanner, const CalculatorParseNode *node, long *value,
+                          const char **error) {
+    /* Each node has a symbol (the grammar symbol it represents), the span of the input it covers (byte_offset and
+       byte_length, which calculator_scanner_text turns back into bytes), and children (sub-nodes). */
+    CalculatorStringView integer;
     char digits[32];
     long operand;
 
     switch (node->child_count) {
     case 1:
-        /* expression: INTEGER. The lexeme is a range of the input and is not terminated by a zero, so it is copied
+        /* expression: INTEGER. The text is a range of the input and is not terminated by a zero, so it is copied
            before it is read as a number. */
-        snprintf(digits, sizeof(digits), "%.*s", (int)node->children[0].lexeme.length, node->children[0].lexeme.data);
+        integer = calculator_scanner_text(scanner, node->children[0].byte_offset, node->children[0].byte_length);
+        snprintf(digits, sizeof(digits), "%.*s", (int)integer.length, integer.data);
         *value = strtol(digits, NULL, 10);
         return true;
     case 2:
         /* expression: "-" expression */
-        if (!evaluate_node(&node->children[1], &operand, error)) {
+        if (!evaluate_node(scanner, &node->children[1], &operand, error)) {
             return false;
         }
         *value = -operand;
         return true;
     case 3:
-        return evaluate_three_children(node, value, error);
+        return evaluate_three_children(scanner, node, value, error);
     default:
         *error = "unexpected node structure";
         return false;
@@ -132,7 +137,7 @@ static bool evaluate(const char *expression, size_t length, long *value, char *e
     }
 
     /* Traversing over the parse tree will calculate the result for us. */
-    evaluated = evaluate_node(result.tree, value, &error);
+    evaluated = evaluate_node(&scanner, result.tree, value, &error);
     if (!evaluated) {
         snprintf(error_buffer, error_size, "%s", error);
     }
