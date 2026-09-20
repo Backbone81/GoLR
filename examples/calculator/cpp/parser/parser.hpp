@@ -84,14 +84,21 @@ using ParseSymbol = std::variant<Token, Nonterminal>;
     return std::string("nonterminal ").append(to_string(std::get<Nonterminal>(symbol)));
 }
 
-/// A single node of the parse tree. It borrows the source it was parsed from.
+/// A single node of the parse tree. It carries the span of the source it covers, which Scanner::text turns back into
+/// bytes and Scanner::position into a file path, a line and a column.
+///
+/// A terminal covers its lexeme and a nonterminal covers its children. The error symbol covers what the error recovery
+/// threw away, up to the point it resumed at. A production with an empty right hand side has zero length at the end of
+/// the symbol to its left.
 struct ParseNode {
     /// The terminal or nonterminal this node stands for.
     ParseSymbol symbol;
 
-    /// The bytes of the terminal, as a view into the source. Empty for a nonterminal and for the error symbol, which
-    /// no input produced.
-    std::string_view lexeme;
+    /// The start of the source this node covers, in bytes from the start of the source.
+    std::size_t byte_offset;
+
+    /// The number of bytes of the source this node covers.
+    std::size_t byte_length;
 
     /// The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal.
     std::vector<ParseNode> children;
@@ -115,14 +122,7 @@ struct ParseError {
     /// Creates an error which stands at the position the given scanner is at.
     template <typename ScannerT>
     ParseError(std::string error_reason, ErrorKind error_kind, const ScannerT& scanner)
-        : reason(std::move(error_reason)),
-          kind(error_kind),
-          token(scanner.token()),
-          byte_offset(scanner.byte_offset()),
-          line(scanner.line()),
-          column(scanner.column()),
-          lexeme(scanner.lexeme()),
-          file_path(scanner.file_path()) {}
+        : ParseError(std::move(error_reason), error_kind, scanner, scanner.position(scanner.byte_offset())) {}
 
     /// Returns the error in the file:line:column: reason form editors and build tools recognize.
     [[nodiscard]] std::string message() const {
@@ -152,6 +152,20 @@ struct ParseError {
 
     /// The file path the scanner was given.
     std::string file_path;
+
+private:
+    /// The constructor above delegates here, so that the position is resolved once and every field which reads it is
+    /// initialized from the same result.
+    template <typename ScannerT>
+    ParseError(std::string error_reason, ErrorKind error_kind, const ScannerT& scanner, const Position& position)
+        : reason(std::move(error_reason)),
+          kind(error_kind),
+          token(scanner.token()),
+          byte_offset(position.byte_offset),
+          line(position.line),
+          column(position.column),
+          lexeme(scanner.lexeme()),
+          file_path(position.file_path) {}
 };
 
 /// What a parse returns.
@@ -364,7 +378,8 @@ private:
                                .append("\""));
             }
             state_stack_.push_back(action >> ACTION_KIND_BITS);
-            node_stack_.push_back(ParseNode{terminal, scanner.lexeme(), {}, std::nullopt});
+            node_stack_.push_back(
+                ParseNode{terminal, scanner.byte_offset(), scanner.lexeme().size(), {}, std::nullopt});
             scanner.next();
             if (error_recovery_shifts_remaining_ > 0) {
                 // Getting tokens of the input shifted again is what makes the parser trust its position.
@@ -428,13 +443,31 @@ private:
         }
         state_stack_.push_back(goto_state);
 
+        // The node starts where its first child starts and ends where its last child ends.
+        std::size_t byte_offset = 0;
+        std::size_t byte_length = 0;
+        if (pop_count != 0) {
+            const ParseNode& last_child = node_stack_.back();
+            byte_offset = node_stack_[node_stack_.size() - pop_count].byte_offset;
+            byte_length = last_child.byte_offset + last_child.byte_length - byte_offset;
+        } else if (!node_stack_.empty()) {
+            // A production with an empty right hand side goes at the end of the symbol to its left, so that it lies
+            // inside the node it becomes a child of instead of at the lookahead beyond it.
+            const ParseNode& left = node_stack_.back();
+            byte_offset = left.byte_offset + left.byte_length;
+        } else {
+            // Nothing has been parsed yet, so there is no symbol to the left of it.
+            byte_offset = scanner.byte_offset();
+        }
+
         // The right hand side comes off the node stack and is handed over as the children.
         const auto first = node_stack_.end() - static_cast<std::ptrdiff_t>(pop_count);
         std::vector<ParseNode> children(std::make_move_iterator(first), std::make_move_iterator(node_stack_.end()));
         node_stack_.erase(first, node_stack_.end());
         node_stack_.push_back(ParseNode{
             static_cast<Nonterminal>(nonterminal),
-            std::string_view(),
+            byte_offset,
+            byte_length,
             std::move(children),
             static_cast<Production>(production_idx),
         });
@@ -456,6 +489,12 @@ private:
     /// get stuck between the two.
     template <typename ScannerT>
     bool recover_from_error(ScannerT& scanner) {
+        // The error node this round ends with runs from the start of what the round throws away to the point where it
+        // resumes, so the span starts out empty at the token the parser stopped on and grows to the front with every
+        // node the round pops.
+        std::size_t dropped_offset = scanner.byte_offset();
+        std::size_t dropped_length = 0;
+
         if (error_recovery_shifts_remaining_ == ERROR_RECOVERY_SHIFTS) {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
             if (scanner.token() == Token::EndToken) {
@@ -472,6 +511,8 @@ private:
                                .append(escape_lexeme(scanner.lexeme()))
                                .append("\""));
             }
+            // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
+            dropped_length = scanner.lexeme().size();
             scanner.next();
         }
         error_recovery_shifts_remaining_ = ERROR_RECOVERY_SHIFTS;
@@ -482,9 +523,15 @@ private:
                 if (trace_) {
                     emit_trace(scanner, "RESYNC", "");
                 }
-                // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
+                if (dropped_length == 0 && !node_stack_.empty()) {
+                    // The round threw no bytes away, so its node goes at the end of the symbol to its left, where a
+                    // production with an empty right hand side goes, and not at the lookahead beyond it.
+                    const ParseNode& left = node_stack_.back();
+                    dropped_offset = left.byte_offset + left.byte_length;
+                }
+                // Shift the error symbol. Its node covers what this round dropped.
                 state_stack_.push_back(*next_state);
-                node_stack_.push_back(ParseNode{Token::ErrorToken, std::string_view(), {}, std::nullopt});
+                node_stack_.push_back(ParseNode{Token::ErrorToken, dropped_offset, dropped_length, {}, std::nullopt});
                 return true;
             }
             if (state_stack_.size() == 1) {
@@ -499,6 +546,9 @@ private:
             }
             // The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
             // node, so dropping one drops one.
+            const ParseNode& dropped_node = node_stack_.back();
+            dropped_length = dropped_offset + dropped_length - dropped_node.byte_offset;
+            dropped_offset = dropped_node.byte_offset;
             state_stack_.pop_back();
             node_stack_.pop_back();
         }
@@ -568,8 +618,8 @@ private:
     /// caller has already checked that trace_ holds a callable.
     template <typename ScannerT>
     void emit_trace(const ScannerT& scanner, std::string_view keyword, std::string_view payload) {
-        const std::string location =
-            pad_field(std::to_string(scanner.line()) + ":" + std::to_string(scanner.column()));
+        const Position position = scanner.position(scanner.byte_offset());
+        const std::string location = pad_field(std::to_string(position.line) + ":" + std::to_string(position.column));
         if (payload.empty()) {
             trace_(location + " " + std::string(keyword));
             return;

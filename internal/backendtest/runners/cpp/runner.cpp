@@ -1,5 +1,5 @@
 // The C++ runner for the backend test corpus. It reads an input file, runs the generated scanner and the generated
-// parser over it, and writes the canonical scanner trace and parser trace the harness diffs against.
+// parser over it, and writes the canonical scanner trace, parser trace and tree trace the harness diffs against.
 //
 // This file has no dependencies beyond the standard library, and it must not grow any. It runs in the image with no
 // network, which is what proves that generated GoLR code needs nothing but the bare language.
@@ -13,6 +13,7 @@
 #include <iterator>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include "parser.hpp"
@@ -22,6 +23,7 @@ namespace {
 
 const char* const SCANNER_TRACE_FILE_NAME = "scanner.actual";
 const char* const PARSER_TRACE_FILE_NAME = "parser.actual";
+const char* const TREE_TRACE_FILE_NAME = "tree.actual";
 
 // The bytes a trace line carries as they are. Everything outside of it is escaped.
 constexpr unsigned char PRINTABLE_LOW = 0x20;
@@ -137,6 +139,88 @@ void append_parser_trace(std::vector<std::string>& lines, std::string_view sourc
     static_cast<void>(instance.parse(skipper));
 }
 
+// terminal_trace_name names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar
+// name.
+std::string terminal_trace_name(parser::Token terminal) {
+    switch (terminal) {
+    case parser::Token::EndToken:
+        return "$end";
+    case parser::Token::ErrorToken:
+        return "$error";
+    case parser::Token::InvalidToken:
+        return "$invalid";
+    default:
+        return std::string(parser::to_string(terminal));
+    }
+}
+
+// symbol_trace_name is the bare grammar name of a symbol, which for a nonterminal is what to_string returns and for a
+// terminal is the name the traces spell it with.
+std::string symbol_trace_name(const parser::ParseSymbol& symbol) {
+    if (const parser::Token* terminal = std::get_if<parser::Token>(&symbol)) {
+        return terminal_trace_name(*terminal);
+    }
+    return std::string(parser::to_string(std::get<parser::Nonterminal>(symbol)));
+}
+
+// reduce_trace_payload renders a node as "lhs => rhs", the way the REDUCE line of a parser trace names the production
+// it was reduced from, or as "lhs => ε" for a production with an empty right hand side.
+std::string reduce_trace_payload(parser::Nonterminal lhs, const std::vector<parser::ParseNode>& rhs) {
+    std::string payload = std::string(parser::to_string(lhs)).append(" =>");
+    if (rhs.empty()) {
+        return payload.append(" ε");
+    }
+    for (const parser::ParseNode& child : rhs) {
+        payload.append(" ").append(symbol_trace_name(child.symbol));
+    }
+    return payload;
+}
+
+// append_tree_node appends the line of the given node and the lines of everything below it, which is the pre-order the
+// tree trace is read in: a node, then what it was built from. The payload carries the indentation and the position and
+// span columns do not, so they stay in the same place however deep a node sits.
+void append_tree_node(std::vector<std::string>& lines, const parser::Scanner& scanner, const parser::ParseNode& node,
+                      std::size_t depth) {
+    const parser::Position position = scanner.position(node.byte_offset);
+    const std::string location = pad_field(std::to_string(position.line) + ":" + std::to_string(position.column));
+    const std::string span = pad_field(std::to_string(node.byte_offset) + "+" + std::to_string(node.byte_length));
+
+    std::string payload(depth * 2, ' ');
+    if (const parser::Token* terminal = std::get_if<parser::Token>(&node.symbol)) {
+        if (*terminal == parser::Token::ErrorToken) {
+            // The error node stands for no token of its own, so its span is all it carries.
+            payload += terminal_trace_name(*terminal);
+        } else {
+            // The text is read off the source through the span and never carried along from the token, which is what
+            // makes the trace state that the span is right.
+            payload += terminal_trace_name(*terminal) + " \"" +
+                       escape_lexeme(scanner.text(node.byte_offset, node.byte_length)) + "\"";
+        }
+    } else {
+        payload += reduce_trace_payload(std::get<parser::Nonterminal>(node.symbol), node.children);
+    }
+
+    lines.push_back(location + " " + span + " " + payload);
+    for (const parser::ParseNode& child : node.children) {
+        append_tree_node(lines, scanner, child, depth + 1);
+    }
+}
+
+// append_tree_trace parses the whole input and appends one line per node of the tree the parse built, in pre-order. A
+// parse which was given up builds no tree and appends nothing, which is the empty trace the harness expects for it.
+void append_tree_trace(std::vector<std::string>& lines, std::string_view source, const std::string& input_path) {
+    // The scanner stays at hand after the parse, because a node carries the span of the source it covers and not the
+    // source itself, so the trace resolves every node through position() and text().
+    parser::Scanner scanner(source, input_path);
+    parser::TokenSkipper skipper(scanner);
+
+    parser::Parser instance;
+    const parser::ParseResult result = instance.parse(skipper);
+    if (result.tree.has_value()) {
+        append_tree_node(lines, scanner, *result.tree, 0);
+    }
+}
+
 // write_trace produces one trace and writes it to its file. Whatever was produced before an exception is written all
 // the same, so a runner which breaks half way still says how far it got, and the other trace is still produced.
 template <typename Produce>
@@ -186,6 +270,9 @@ int main(int argc, char** argv) {
     });
     write_trace(PARSER_TRACE_FILE_NAME, [&](std::vector<std::string>& lines) {
         append_parser_trace(lines, source, input_path);
+    });
+    write_trace(TREE_TRACE_FILE_NAME, [&](std::vector<std::string>& lines) {
+        append_tree_trace(lines, source, input_path);
     });
     return 0;
 }

@@ -14,10 +14,10 @@ using calculator::parser::Scanner;
 using calculator::parser::Token;
 using calculator::parser::TokenSkipper;
 
-long evaluate_node(const ParseNode& node);
+long evaluate_node(const Scanner& scanner, const ParseNode& node);
 
 // Evaluates the two productions with three symbols on the right hand side.
-long evaluate_three_children(const ParseNode& node) {
+long evaluate_three_children(const Scanner& scanner, const ParseNode& node) {
     // In "(" expression ")", the middle child is the nonterminal expression node.
     // In "expression OP expression", the middle child is a terminal operator token.
     // We use this to distinguish the two cases.
@@ -25,11 +25,11 @@ long evaluate_three_children(const ParseNode& node) {
     const Token* operation = std::get_if<Token>(&middle.symbol);
     if (operation == nullptr) {
         // expression: "(" expression ")"
-        return evaluate_node(middle);
+        return evaluate_node(scanner, middle);
     }
 
-    const long left_value = evaluate_node(node.children[0]);
-    const long right_value = evaluate_node(node.children[2]);
+    const long left_value = evaluate_node(scanner, node.children[0]);
+    const long right_value = evaluate_node(scanner, node.children[2]);
 
     switch (*operation) {
     case Token::TokenPlus:
@@ -58,18 +58,20 @@ long evaluate_three_children(const ParseNode& node) {
 //   - 1 child:    INTEGER literal
 //   - 2 children: unary minus ("-" expression)
 //   - 3 children: binary operation (expression OP expression) or grouping ("(" expression ")")
-long evaluate_node(const ParseNode& node) {
-    // Each node has a symbol (the grammar symbol it represents), a lexeme (the raw bytes from the input, set for
-    // terminal nodes), and children (sub-nodes).
+long evaluate_node(const Scanner& scanner, const ParseNode& node) {
+    // Each node has a symbol (the grammar symbol it represents), the span of the input it covers (byte_offset and
+    // byte_length, which Scanner::text turns back into bytes), and children (sub-nodes).
     switch (node.children.size()) {
-    case 1:
+    case 1: {
         // expression: INTEGER
-        return std::stol(std::string(node.children[0].lexeme));
+        const ParseNode& integer = node.children[0];
+        return std::stol(std::string(scanner.text(integer.byte_offset, integer.byte_length)));
+    }
     case 2:
         // expression: "-" expression
-        return -evaluate_node(node.children[1]);
+        return -evaluate_node(scanner, node.children[1]);
     case 3:
-        return evaluate_three_children(node);
+        return evaluate_three_children(scanner, node);
     default:
         throw std::runtime_error("unexpected node structure");
     }
@@ -96,7 +98,7 @@ long evaluate(const std::string& expression) {
     }
 
     // Traversing over the parse tree will calculate the result for us.
-    return evaluate_node(*result.tree);
+    return evaluate_node(scanner, *result.tree);
 }
 
 }  // namespace
