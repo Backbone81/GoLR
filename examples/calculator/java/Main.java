@@ -39,7 +39,7 @@ public class Main {
         }
 
         // Traversing over the parse tree will calculate the result for us.
-        return evaluateNode(result.tree());
+        return evaluateNode(scanner, result.tree());
     }
 
     // evaluateNode recursively evaluates an expression node from the parse tree.
@@ -47,33 +47,33 @@ public class Main {
     //   - 1 child:  INTEGER literal
     //   - 2 children: unary minus ("-" expression)
     //   - 3 children: binary operation (expression OP expression) or grouping ("(" expression ")")
-    private static int evaluateNode(Parser.ParseNode node) {
-        // Each node has a symbol (the grammar symbol it represents), a lexeme (the raw bytes from the input, set for
-        // terminal nodes), and children (sub-nodes).
+    private static int evaluateNode(Scanner.TokenSkipper scanner, Parser.ParseNode node) {
+        // Each node has a symbol (the grammar symbol it represents), the span of the input it covers (byteOffset and
+        // byteLength, which text() turns back into bytes), and children (sub-nodes).
         List<Parser.ParseNode> children = node.children();
         return switch (children.size()) {
             // expression: INTEGER
-            case 1 -> Integer.parseInt(lexeme(children.get(0)));
+            case 1 -> Integer.parseInt(text(scanner, children.get(0)));
             // expression: "-" expression
-            case 2 -> -evaluateNode(children.get(1));
-            case 3 -> evaluateThreeChildren(node);
+            case 2 -> -evaluateNode(scanner, children.get(1));
+            case 3 -> evaluateThreeChildren(scanner, node);
             default -> throw new IllegalStateException("unexpected node structure");
         };
     }
 
     // evaluateThreeChildren evaluates the two productions with three symbols on the right hand side.
-    private static int evaluateThreeChildren(Parser.ParseNode node) {
+    private static int evaluateThreeChildren(Scanner.TokenSkipper scanner, Parser.ParseNode node) {
         // In "(" expression ")", the middle child is the nonterminal expression node.
         // In "expression OP expression", the middle child is a terminal operator token.
         // We use this to distinguish the two cases.
         Parser.ParseNode middle = node.children().get(1);
         if (!(middle.symbol() instanceof Parser.TerminalSymbol operator)) {
             // expression: "(" expression ")"
-            return evaluateNode(middle);
+            return evaluateNode(scanner, middle);
         }
 
-        int leftValue = evaluateNode(node.children().get(0));
-        int rightValue = evaluateNode(node.children().get(2));
+        int leftValue = evaluateNode(scanner, node.children().get(0));
+        int rightValue = evaluateNode(scanner, node.children().get(2));
 
         return switch (operator.token()) {
             // expression: expression "+" expression
@@ -93,8 +93,8 @@ public class Main {
         };
     }
 
-    // lexeme returns the bytes a terminal node stands for as text.
-    private static String lexeme(Parser.ParseNode node) {
-        return StandardCharsets.UTF_8.decode(node.lexeme()).toString();
+    // text returns the bytes a node covers as text.
+    private static String text(Scanner.TokenSkipper scanner, Parser.ParseNode node) {
+        return StandardCharsets.UTF_8.decode(scanner.text(node.byteOffset(), node.byteLength())).toString();
     }
 }

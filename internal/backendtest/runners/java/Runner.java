@@ -1,5 +1,5 @@
 // The Java runner for the backend test corpus. It reads an input file, runs the generated scanner and the generated
-// parser over it, and writes the canonical scanner trace and parser trace the harness diffs against.
+// parser over it, and writes the canonical scanner trace, parser trace and tree trace the harness diffs against.
 //
 // This file has no dependencies, and it must not grow any. It runs in the image with no network, which is what proves
 // that generated GoLR code needs nothing but the bare language.
@@ -18,6 +18,7 @@ import parser.Scanner;
 public class Runner {
     private static final String SCANNER_TRACE_FILE_NAME = "scanner.actual";
     private static final String PARSER_TRACE_FILE_NAME = "parser.actual";
+    private static final String TREE_TRACE_FILE_NAME = "tree.actual";
 
     // The bytes a trace line carries as they are. Everything outside of it is escaped.
     private static final int PRINTABLE_LOW = 0x20;
@@ -35,6 +36,7 @@ public class Runner {
 
         writeTrace(SCANNER_TRACE_FILE_NAME, lines -> appendScannerTrace(lines, source, inputPath));
         writeTrace(PARSER_TRACE_FILE_NAME, lines -> appendParserTrace(lines, source, inputPath));
+        writeTrace(TREE_TRACE_FILE_NAME, lines -> appendTreeTrace(lines, source, inputPath));
     }
 
     // escapeLexeme escapes the bytes of a lexeme. The caller writes the quotes around the result.
@@ -122,6 +124,85 @@ public class Runner {
 
         // The TokenSkipper here, because a skipped rule never reaches the parser.
         parser.parse(new Scanner.TokenSkipper(new Scanner(source, inputPath)));
+    }
+
+    // terminalTraceName names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar
+    // name.
+    private static String terminalTraceName(Scanner.Token terminal) {
+        return switch (terminal) {
+            case END_TOKEN -> "$end";
+            case ERROR_TOKEN -> "$error";
+            case INVALID_TOKEN -> "$invalid";
+            default -> terminal.toString();
+        };
+    }
+
+    // symbolTraceName is the bare grammar name of a symbol, which for a nonterminal is what toString returns and for a
+    // terminal is the name the traces spell it with.
+    private static String symbolTraceName(Parser.ParseSymbol symbol) {
+        if (symbol instanceof Parser.NonterminalSymbol nonterminal) {
+            return nonterminal.nonterminal().toString();
+        }
+        return terminalTraceName(((Parser.TerminalSymbol) symbol).token());
+    }
+
+    // reduceTracePayload renders a node as "lhs => rhs", the way the REDUCE line of a parser trace names the
+    // production it was reduced from, or as "lhs => ε" for a production with an empty right hand side.
+    private static String reduceTracePayload(Parser.Nonterminal lhs, List<Parser.ParseNode> rhs) {
+        StringBuilder payload = new StringBuilder(lhs.toString()).append(" =>");
+        if (rhs.isEmpty()) {
+            return payload.append(" ε").toString();
+        }
+        for (Parser.ParseNode child : rhs) {
+            payload.append(' ').append(symbolTraceName(child.symbol()));
+        }
+        return payload.toString();
+    }
+
+    // appendTreeNode appends the line of the given node and the lines of everything below it, which is the pre-order
+    // the tree trace is read in: a node, then what it was built from. The payload carries the indentation and the
+    // position and span columns do not, so they stay in the same place however deep a node sits.
+    private static void appendTreeNode(List<String> lines, Scanner scanner, Parser.ParseNode node, int depth) {
+        Scanner.Position position = scanner.position(node.byteOffset());
+        String location = position.line() + ":" + position.column();
+        String span = node.byteOffset() + "+" + node.byteLength();
+
+        StringBuilder payload = new StringBuilder("  ".repeat(depth));
+        if (node.symbol() instanceof Parser.NonterminalSymbol nonterminal) {
+            payload.append(reduceTracePayload(nonterminal.nonterminal(), node.children()));
+        } else {
+            Scanner.Token terminal = ((Parser.TerminalSymbol) node.symbol()).token();
+            if (terminal == Scanner.Token.ERROR_TOKEN) {
+                // The error node stands for no token of its own, so its span is all it carries.
+                payload.append(terminalTraceName(terminal));
+            } else {
+                // The text is read off the source through the span and never carried along from the token, which is
+                // what makes the trace state that the span is right.
+                payload.append(terminalTraceName(terminal))
+                        .append(" \"")
+                        .append(escapeLexeme(scanner.text(node.byteOffset(), node.byteLength())))
+                        .append('"');
+            }
+        }
+
+        lines.add(String.format(Locale.ROOT, "%-7s %-7s %s", location, span, payload));
+        for (Parser.ParseNode child : node.children()) {
+            appendTreeNode(lines, scanner, child, depth + 1);
+        }
+    }
+
+    // appendTreeTrace parses the whole input and appends one line per node of the tree the parse built, in pre-order.
+    // A parse which was given up builds no tree and appends nothing, which is the empty trace the harness expects for
+    // it.
+    private static void appendTreeTrace(List<String> lines, byte[] source, String inputPath) {
+        // The scanner stays at hand after the parse, because a node carries the span of the source it covers and not
+        // the source itself, so the trace resolves every node through position() and text().
+        Scanner scanner = new Scanner(source, inputPath);
+
+        Parser.ParseResult result = new Parser().parse(new Scanner.TokenSkipper(scanner));
+        if (result.tree() != null) {
+            appendTreeNode(lines, scanner, result.tree(), 0);
+        }
     }
 
     // writeTrace produces one trace and writes it to its file. Whatever was produced before a failure is written all
