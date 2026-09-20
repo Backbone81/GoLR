@@ -65,6 +65,28 @@ public class Runner {
         return result.toString();
     }
 
+    // checkPosition holds the offset based position() and text() against the line(), column() and lexeme() of the token
+    // the scanner currently sits on. The two ways of asking exist side by side until the release which drops line() and
+    // column(), and the corpus is where they have to agree: every case of it is far more input than a hand written test
+    // covers.
+    private static void checkPosition(Scanner scanner) {
+        Scanner.Position position = scanner.position(scanner.byteOffset());
+        if (position.line() != scanner.line() || position.column() != scanner.column()
+                || !position.filePath().equals(scanner.filePath())) {
+            System.err.printf(Locale.ROOT, "position(%d) is %s %d:%d, but the scanner reports %s %d:%d%n",
+                    scanner.byteOffset(), position.filePath(), position.line(), position.column(), scanner.filePath(),
+                    scanner.line(), scanner.column());
+            System.exit(1);
+        }
+
+        ByteBuffer lexeme = scanner.lexeme();
+        if (!scanner.text(scanner.byteOffset(), lexeme.remaining()).equals(lexeme)) {
+            System.err.printf(Locale.ROOT, "text(%d, %d) differs from the lexeme%n", scanner.byteOffset(),
+                    lexeme.remaining());
+            System.exit(1);
+        }
+    }
+
     // appendScannerTrace scans the whole input and appends one line per event: the position the token or the failed
     // match starts at, a keyword, and for a token its rule and lexeme, for a failed match the bytes it could not match.
     private static void appendScannerTrace(List<String> lines, byte[] source, String inputPath) {
@@ -73,6 +95,8 @@ public class Runner {
         Scanner scanner = new Scanner(source, inputPath);
 
         while (scanner.next()) {
+            checkPosition(scanner);
+
             String location = scanner.line() + ":" + scanner.column();
             String lexeme = escapeLexeme(scanner.lexeme());
 
@@ -84,7 +108,8 @@ public class Runner {
         }
 
         // The position after the scanner ran out of input, which is one past the last byte only when it consumed
-        // everything.
+        // everything. It is the offset every off by one in a line table lands on, so it is checked like a token.
+        checkPosition(scanner);
         lines.add(String.format(Locale.ROOT, "%-7s %s", scanner.line() + ":" + scanner.column(), "EOF"));
     }
 

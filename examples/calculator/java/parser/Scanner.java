@@ -7,6 +7,7 @@
 package parser;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 /**
  * What a scanner offers. Both Scanner and TokenSkipper implement it.
@@ -32,6 +33,19 @@ interface TokenSource {
 
     /** Returns the bytes of the token, as a view into the source rather than a copy of it. */
     ByteBuffer lexeme();
+
+    /**
+     * Resolves a byte offset of the source into file path, line and column. Offsets from zero up to and including the
+     * length of the source are valid, the last of them being the end of the source, and an offset outside of that is
+     * clamped into it.
+     */
+    Scanner.Position position(int byteOffset);
+
+    /**
+     * Returns the bytes the given span covers, as a view into the source rather than a copy of it. The span is clamped
+     * to the source, and a negative length is empty.
+     */
+    ByteBuffer text(int byteOffset, int byteLength);
 
     /** Returns the file path the scanner was given. */
     String filePath();
@@ -95,6 +109,18 @@ public final class Scanner implements TokenSource {
     }
 
     /**
+     * Where a byte offset of the source is, in the terms a human reads: the file the scanner was given, the offset
+     * itself, and the line and column it falls on.
+     *
+     * @param filePath the file path the scanner was given
+     * @param byteOffset the offset this position was resolved for, in bytes from the start of the source
+     * @param line the line the offset falls on, counted from one. Only a line feed starts a new line, so the carriage
+     *     return of a CRLF pair is the last byte of the line it ends
+     * @param column the column the offset falls on, counted from one in bytes
+     */
+    public record Position(String filePath, int byteOffset, int line, int column) {}
+
+    /**
      * Wraps a scanner and skips the tokens marked for skipping, which are usually whitespace and comments. It offers
      * the same members as {@link Scanner}.
      */
@@ -130,6 +156,16 @@ public final class Scanner implements TokenSource {
         @Override
         public ByteBuffer lexeme() {
             return scanner.lexeme();
+        }
+
+        @Override
+        public Position position(int byteOffset) {
+            return scanner.position(byteOffset);
+        }
+
+        @Override
+        public ByteBuffer text(int byteOffset, int byteLength) {
+            return scanner.text(byteOffset, byteLength);
         }
 
         @Override
@@ -218,6 +254,16 @@ public final class Scanner implements TokenSource {
     private int column;
 
     /**
+     * The byte offset every line of the source begins at, in the first {@link #lineStartCount} entries. It is built on
+     * the first call to {@link #position(int)} and emptied by {@link #reset(byte[], int)}, which keeps its storage for
+     * the next source.
+     */
+    private int[] lineStarts = new int[0];
+
+    /** The entries of {@link #lineStarts} in use. A count next to the array, because Java grows no array of its own. */
+    private int lineStartCount;
+
+    /**
      * @param source the bytes to scan
      * @param filePath used in error messages, any string will do when the source is not a file
      */
@@ -252,6 +298,52 @@ public final class Scanner implements TokenSource {
     }
 
     @Override
+    public Position position(int byteOffset) {
+        byteOffset = Math.min(Math.max(byteOffset, 0), source.length);
+
+        if (lineStartCount == 0) {
+            buildLineStarts();
+        }
+
+        // The search returns where the offset sits when it is a line start itself, and the complement of where it would
+        // be inserted otherwise, which is the number of lines in front of it.
+        int found = Arrays.binarySearch(lineStarts, 0, lineStartCount, byteOffset);
+        int line = found >= 0 ? found + 1 : ~found;
+        return new Position(filePath, byteOffset, line, byteOffset - lineStarts[line - 1] + 1);
+    }
+
+    /**
+     * Fills in the byte offset every line of the source begins at, into the storage left over from the source before.
+     * The first line begins at zero, so the result is never empty and an empty source has one line.
+     */
+    private void buildLineStarts() {
+        // One byte at a time, because the library offers no scan for a byte within a byte array.
+        addLineStart(0);
+        for (int byteOffset = 0; byteOffset < source.length; byteOffset++) {
+            if (source[byteOffset] == 0x0a) {
+                addLineStart(byteOffset + 1);
+            }
+        }
+    }
+
+    /** Appends one line start, growing the array it goes into when that is full. */
+    private void addLineStart(int byteOffset) {
+        if (lineStartCount == lineStarts.length) {
+            lineStarts = Arrays.copyOf(lineStarts, Math.max(2 * lineStarts.length, 16));
+        }
+        lineStarts[lineStartCount] = byteOffset;
+        lineStartCount++;
+    }
+
+    @Override
+    public ByteBuffer text(int byteOffset, int byteLength) {
+        int startIdx = Math.min(Math.max(byteOffset, 0), source.length);
+        // Clamping the length against what is left rather than the end against the source, because the two added up can
+        // overflow where the difference cannot.
+        return sourceBuffer.slice(startIdx, Math.min(Math.max(byteLength, 0), source.length - startIdx));
+    }
+
+    @Override
     public String filePath() {
         return filePath;
     }
@@ -268,6 +360,9 @@ public final class Scanner implements TokenSource {
 
         line = 1;
         column = 1;
+
+        // The line starts belong to the source which was replaced here, but their storage is worth keeping.
+        lineStartCount = 0;
 
         token = Token.INVALID_TOKEN;
     }
