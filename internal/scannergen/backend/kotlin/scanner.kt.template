@@ -31,6 +31,18 @@ enum class Token(private val displayName: String, val isSkipped: Boolean = false
     override fun toString(): String = displayName
 }
 
+/**
+ * Where a byte offset of the source is, in the terms a human reads: the file the scanner was given, the offset itself,
+ * and the line and column it falls on.
+ *
+ * @property filePath the file path the scanner was given
+ * @property byteOffset the offset this position was resolved for, in bytes from the start of the source
+ * @property line the line the offset falls on, counted from one. Only a line feed starts a new line, so the carriage
+ *     return of a CRLF pair is the last byte of the line it ends
+ * @property column the column the offset falls on, counted from one in bytes
+ */
+data class Position(val filePath: String, val byteOffset: Int, val line: Int, val column: Int)
+
 /** What a scanner offers. Both [Scanner] and [TokenSkipper] implement it. */
 interface TokenSource {
     /** The current token. */
@@ -50,6 +62,24 @@ interface TokenSource {
 
     /** The bytes of the token, as a view into the source rather than a copy of it. */
     val lexeme: ByteBuffer
+
+    /**
+     * Resolves a byte offset of the source into file path, line and column. Offsets from zero up to and including the
+     * length of the source are valid, the last of them being the end of the source, and an offset outside of that is
+     * clamped into it.
+     *
+     * @param byteOffset the offset to resolve
+     */
+    fun position(byteOffset: Int): Position
+
+    /**
+     * Returns the bytes the given span covers, as a view into the source rather than a copy of it. The span is clamped
+     * to the source, and a negative length is empty.
+     *
+     * @param byteOffset the offset the span starts at
+     * @param byteLength the number of bytes the span covers
+     */
+    fun text(byteOffset: Int, byteLength: Int): ByteBuffer
 
     /** The file path the scanner was given. */
     val filePath: String
@@ -138,6 +168,15 @@ class Scanner(private var source: ByteArray, override val filePath: String) : To
     /** Index one past the last byte of the current token. */
     private var lexemeEndIdx: Int = 0
 
+    /**
+     * The byte offset every line of the source begins at, in the first [lineStartCount] entries. It is built on the
+     * first call to [position] and emptied by [reset], which keeps its storage for the next source.
+     */
+    private var lineStarts: IntArray = IntArray(0)
+
+    /** The entries of [lineStarts] in use. A count next to the array, because Kotlin grows no array of its own. */
+    private var lineStartCount: Int = 0
+
     override var token: Token = Token.INVALID_TOKEN
         private set
 
@@ -153,6 +192,51 @@ class Scanner(private var source: ByteArray, override val filePath: String) : To
     override val lexeme: ByteBuffer
         get() = sourceBuffer.slice(lexemeStartIdx, lexemeEndIdx - lexemeStartIdx)
 
+    override fun position(byteOffset: Int): Position {
+        // A parameter is read only, so the offset the lookup and the result use is the clamped one next to it.
+        val clampedOffset = byteOffset.coerceIn(0, source.size)
+
+        if (lineStartCount == 0) {
+            buildLineStarts()
+        }
+
+        // The search returns where the offset sits when it is a line start itself, and the complement of where it would
+        // be inserted otherwise, which is the number of lines in front of it.
+        val found = lineStarts.binarySearch(clampedOffset, 0, lineStartCount)
+        val line = if (found >= 0) found + 1 else found.inv()
+        return Position(filePath, clampedOffset, line, clampedOffset - lineStarts[line - 1] + 1)
+    }
+
+    /**
+     * Fills in the byte offset every line of the source begins at, into the storage left over from the source before.
+     * The first line begins at zero, so the result is never empty and an empty source has one line.
+     */
+    private fun buildLineStarts() {
+        // One byte at a time, because the library offers no scan for a byte within a byte array.
+        addLineStart(0)
+        for (byteOffset in source.indices) {
+            if (source[byteOffset].toInt() == 0x0a) {
+                addLineStart(byteOffset + 1)
+            }
+        }
+    }
+
+    /** Appends one line start, growing the array it goes into when that is full. */
+    private fun addLineStart(byteOffset: Int) {
+        if (lineStartCount == lineStarts.size) {
+            lineStarts = lineStarts.copyOf(maxOf(2 * lineStarts.size, 16))
+        }
+        lineStarts[lineStartCount] = byteOffset
+        lineStartCount++
+    }
+
+    override fun text(byteOffset: Int, byteLength: Int): ByteBuffer {
+        val startIdx = byteOffset.coerceIn(0, source.size)
+        // Clamping the length against what is left rather than the end against the source, because the two added up can
+        // overflow where the difference cannot.
+        return sourceBuffer.slice(startIdx, byteLength.coerceIn(0, source.size - startIdx))
+    }
+
     override fun reset(source: ByteArray, offset: Int) {
         this.source = source
         sourceBuffer = ByteBuffer.wrap(source).asReadOnlyBuffer()
@@ -164,6 +248,9 @@ class Scanner(private var source: ByteArray, override val filePath: String) : To
 
         line = 1
         column = 1
+
+        // The line starts belong to the source which was replaced here, but their storage is worth keeping.
+        lineStartCount = 0
 
         token = Token.INVALID_TOKEN
     }

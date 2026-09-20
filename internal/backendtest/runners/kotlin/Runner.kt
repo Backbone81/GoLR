@@ -7,6 +7,7 @@
 import java.io.File
 import java.nio.ByteBuffer
 import java.util.Locale
+import kotlin.system.exitProcess
 import parser.Parser
 import parser.Scanner
 import parser.Token
@@ -53,6 +54,26 @@ private fun escapeLexeme(lexeme: ByteBuffer): String {
     return result.toString()
 }
 
+// checkPosition holds the offset based position and text against the line, column and lexeme of the token the scanner
+// currently sits on. The two ways of asking exist side by side until the release which drops line and column, and the
+// corpus is where they have to agree: every case of it is far more input than a hand written test covers.
+private fun checkPosition(scanner: Scanner) {
+    val position = scanner.position(scanner.byteOffset)
+    if (position.line != scanner.line || position.column != scanner.column || position.filePath != scanner.filePath) {
+        System.err.println(
+            "position(${scanner.byteOffset}) is ${position.filePath} ${position.line}:${position.column}, " +
+                "but the scanner reports ${scanner.filePath} ${scanner.line}:${scanner.column}",
+        )
+        exitProcess(1)
+    }
+
+    val lexeme = scanner.lexeme
+    if (scanner.text(scanner.byteOffset, lexeme.remaining()) != lexeme) {
+        System.err.println("text(${scanner.byteOffset}, ${lexeme.remaining()}) differs from the lexeme")
+        exitProcess(1)
+    }
+}
+
 // appendScannerTrace scans the whole input and appends one line per event: the position the token or the failed match
 // starts at, a keyword, and for a token its rule and lexeme, for a failed match the bytes it could not match.
 private fun appendScannerTrace(lines: MutableList<String>, source: ByteArray, inputPath: String) {
@@ -61,6 +82,8 @@ private fun appendScannerTrace(lines: MutableList<String>, source: ByteArray, in
     val scanner = Scanner(source, inputPath)
 
     while (scanner.next()) {
+        checkPosition(scanner)
+
         val location = "${scanner.line}:${scanner.column}"
         val lexeme = escapeLexeme(scanner.lexeme)
 
@@ -72,7 +95,8 @@ private fun appendScannerTrace(lines: MutableList<String>, source: ByteArray, in
     }
 
     // The position after the scanner ran out of input, which is one past the last byte only when it consumed
-    // everything.
+    // everything. It is the offset every off by one in a line table lands on, so it is checked like a token.
+    checkPosition(scanner)
     lines.add(String.format(Locale.ROOT, "%-7s %s", "${scanner.line}:${scanner.column}", "EOF"))
 }
 
