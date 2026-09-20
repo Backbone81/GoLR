@@ -146,18 +146,28 @@ public readonly struct ParseSymbol : IEquatable<ParseSymbol>
     }
 }
 
-/// <summary>A single node of the parse tree.</summary>
+/// <summary>
+/// A single node of the parse tree. It carries the span of the source it covers, which
+/// <see cref="ITokenSource.Text"/> turns back into bytes and <see cref="ITokenSource.Position"/> into a file path, a
+/// line and a column.
+///
+/// A terminal covers its lexeme and a nonterminal covers its children. The error symbol covers what the error recovery
+/// threw away, up to the point it resumed at. A production with an empty right hand side has zero length at the end of
+/// the symbol to its left.
+/// </summary>
 public sealed class ParseNode
 {
     /// <summary>Creates a node for the given symbol.</summary>
     /// <param name="symbol">The terminal or nonterminal the node stands for.</param>
-    /// <param name="lexeme">The bytes of the terminal, empty for a nonterminal.</param>
+    /// <param name="byteOffset">The start of the source the node covers.</param>
+    /// <param name="byteLength">The number of bytes of the source the node covers.</param>
     /// <param name="children">The nodes of the right hand side of the production, empty for a terminal.</param>
     /// <param name="production">The production reduced to this node, null for a terminal.</param>
-    public ParseNode(ParseSymbol symbol, ReadOnlyMemory<byte> lexeme, IReadOnlyList<ParseNode> children, Production? production)
+    public ParseNode(ParseSymbol symbol, int byteOffset, int byteLength, IReadOnlyList<ParseNode> children, Production? production)
     {
         Symbol = symbol;
-        Lexeme = lexeme;
+        ByteOffset = byteOffset;
+        ByteLength = byteLength;
         Children = children;
         Production = production;
     }
@@ -168,11 +178,11 @@ public sealed class ParseNode
     /// </summary>
     public ParseSymbol Symbol { get; }
 
-    /// <summary>
-    /// The bytes of the terminal, as a view into the source rather than a copy of it. Empty for a nonterminal and for
-    /// the error symbol, which no input produced.
-    /// </summary>
-    public ReadOnlyMemory<byte> Lexeme { get; }
+    /// <summary>The start of the source this node covers, in bytes from the start of the source.</summary>
+    public int ByteOffset { get; }
+
+    /// <summary>The number of bytes of the source this node covers.</summary>
+    public int ByteLength { get; }
 
     /// <summary>
     /// The nodes of the right hand side of the production which was reduced to this node. Empty for a terminal.
@@ -209,12 +219,13 @@ public sealed class ParseError
         Reason = reason;
         Kind = kind;
 
+        Position position = scanner.Position(scanner.ByteOffset);
         Token = scanner.Token;
-        ByteOffset = scanner.ByteOffset;
-        Line = scanner.Line;
-        Column = scanner.Column;
+        ByteOffset = position.ByteOffset;
+        Line = position.Line;
+        Column = position.Column;
         Lexeme = scanner.Lexeme;
-        FilePath = scanner.FilePath;
+        FilePath = position.FilePath;
     }
 
     /// <summary>What is wrong, without the position in front of it.</summary>
@@ -515,7 +526,7 @@ public sealed class Parser
                 }
                 _stateStack.Add(action >> ActionKindBits);
                 _nodeStack.Add(new ParseNode(
-                    ParseSymbol.NewTerminal(terminal), scanner.Lexeme, Array.Empty<ParseNode>(), null));
+                    ParseSymbol.NewTerminal(terminal), scanner.ByteOffset, scanner.Lexeme.Length, Array.Empty<ParseNode>(), null));
                 scanner.Next();
                 if (_errorRecoveryShiftsRemaining > 0)
                 {
@@ -580,13 +591,35 @@ public sealed class Parser
         }
         _stateStack.Add(gotoState);
 
+        // The node starts where its first child starts and ends where its last child ends.
+        int byteOffset = 0;
+        int byteLength = 0;
+        if (popCount != 0)
+        {
+            ParseNode lastChild = _nodeStack[^1];
+            byteOffset = _nodeStack[_nodeStack.Count - popCount].ByteOffset;
+            byteLength = lastChild.ByteOffset + lastChild.ByteLength - byteOffset;
+        }
+        else if (_nodeStack.Count != 0)
+        {
+            // A production with an empty right hand side goes at the end of the symbol to its left, so that it lies
+            // inside the node it becomes a child of instead of at the lookahead beyond it.
+            ParseNode left = _nodeStack[^1];
+            byteOffset = left.ByteOffset + left.ByteLength;
+        }
+        else
+        {
+            // Nothing has been parsed yet, so there is no symbol to the left of it.
+            byteOffset = scanner.ByteOffset;
+        }
+
         // The right hand side comes off the node stack and is handed over as the children. An empty right hand side
         // takes nothing and shares the one empty array instead of allocating one of its own.
         ParseNode[] children = popCount == 0 ? Array.Empty<ParseNode>() : new ParseNode[popCount];
         _nodeStack.CopyTo(_nodeStack.Count - popCount, children, 0, popCount);
         _nodeStack.RemoveRange(_nodeStack.Count - popCount, popCount);
         _nodeStack.Add(new ParseNode(
-            ParseSymbol.NewNonterminal((Nonterminal)nonterminal), default, children, (Production)productionIdx));
+            ParseSymbol.NewNonterminal((Nonterminal)nonterminal), byteOffset, byteLength, children, (Production)productionIdx));
     }
 
     /// <summary>
@@ -607,6 +640,12 @@ public sealed class Parser
     /// </summary>
     private bool RecoverFromError(ITokenSource scanner)
     {
+        // The error node this round ends with runs from the start of what the round throws away to the point where it
+        // resumes, so the span starts out empty at the token the parser stopped on and grows to the front with every
+        // node the round pops.
+        int droppedOffset = scanner.ByteOffset;
+        int droppedLength = 0;
+
         if (_errorRecoveryShiftsRemaining == ErrorRecoveryShifts)
         {
             // Nothing was shifted since the last error, so the parser is failing on the token it already failed on.
@@ -623,6 +662,8 @@ public sealed class Parser
             {
                 EmitTrace(scanner, "DISCARD", $"{TerminalTraceName(scanner.Token)} \"{EscapeLexeme(scanner.Lexeme.Span)}\"");
             }
+            // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
+            droppedLength = scanner.Lexeme.Length;
             scanner.Next();
         }
         _errorRecoveryShiftsRemaining = ErrorRecoveryShifts;
@@ -636,10 +677,17 @@ public sealed class Parser
                 {
                     EmitTrace(scanner, "RESYNC", "");
                 }
-                // Shift the error symbol. Its node stands for the dropped part of the input and has no lexeme.
+                if (droppedLength == 0 && _nodeStack.Count != 0)
+                {
+                    // The round threw no bytes away, so its node goes at the end of the symbol to its left, where a
+                    // production with an empty right hand side goes, and not at the lookahead beyond it.
+                    ParseNode left = _nodeStack[^1];
+                    droppedOffset = left.ByteOffset + left.ByteLength;
+                }
+                // Shift the error symbol. Its node covers what this round dropped.
                 _stateStack.Add(nextState);
                 _nodeStack.Add(new ParseNode(
-                    ParseSymbol.NewTerminal(Token.ErrorToken), default, Array.Empty<ParseNode>(), null));
+                    ParseSymbol.NewTerminal(Token.ErrorToken), droppedOffset, droppedLength, Array.Empty<ParseNode>(), null));
                 return true;
             }
             if (_stateStack.Count == 1)
@@ -657,6 +705,9 @@ public sealed class Parser
             }
             // The state cannot resume here, so it is dropped together with what it had parsed. One state carries one
             // node, so dropping one drops one.
+            ParseNode droppedNode = _nodeStack[^1];
+            droppedLength = droppedOffset + droppedLength - droppedNode.ByteOffset;
+            droppedOffset = droppedNode.ByteOffset;
             _stateStack.RemoveAt(_stateStack.Count - 1);
             _nodeStack.RemoveAt(_nodeStack.Count - 1);
         }
@@ -713,7 +764,8 @@ public sealed class Parser
     /// <param name="payload">The payload, or an empty string for none.</param>
     private void EmitTrace(ITokenSource scanner, string keyword, string payload)
     {
-        string location = $"{scanner.Line}:{scanner.Column}".PadRight(7);
+        Position position = scanner.Position(scanner.ByteOffset);
+        string location = $"{position.Line}:{position.Column}".PadRight(7);
         if (payload.Length == 0)
         {
             Trace!.Invoke($"{location} {keyword}");

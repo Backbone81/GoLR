@@ -49,7 +49,7 @@ internal static class Program
         }
 
         // Traversing over the parse tree will calculate the result for us.
-        return EvaluateNode(result.Tree);
+        return EvaluateNode(scanner, result.Tree);
     }
 
     // EvaluateNode recursively evaluates an expression node from the parse tree.
@@ -57,28 +57,30 @@ internal static class Program
     //   - 1 child:  INTEGER literal
     //   - 2 children: unary minus ("-" expression)
     //   - 3 children: binary operation (expression OP expression) or grouping ("(" expression ")")
-    private static int EvaluateNode(ParseNode node)
+    private static int EvaluateNode(ITokenSource scanner, ParseNode node)
     {
-        // Each node has a symbol (the grammar symbol it represents), a lexeme (the raw bytes from the input, set for
-        // terminal nodes), and children (sub-nodes).
+        // Each node has a symbol (the grammar symbol it represents), the span of the input it covers (ByteOffset and
+        // ByteLength, which ITokenSource.Text turns back into bytes), and children (sub-nodes).
         switch (node.Children.Count)
         {
             case 1:
                 // expression: INTEGER
+                ParseNode integer = node.Children[0];
                 return int.Parse(
-                    Encoding.UTF8.GetString(node.Children[0].Lexeme.Span), CultureInfo.InvariantCulture);
+                    Encoding.UTF8.GetString(scanner.Text(integer.ByteOffset, integer.ByteLength).Span),
+                    CultureInfo.InvariantCulture);
             case 2:
                 // expression: "-" expression
-                return -EvaluateNode(node.Children[1]);
+                return -EvaluateNode(scanner, node.Children[1]);
             case 3:
-                return EvaluateThreeChildren(node);
+                return EvaluateThreeChildren(scanner, node);
             default:
                 throw new InvalidOperationException("unexpected node structure");
         }
     }
 
     // EvaluateThreeChildren evaluates the two productions with three symbols on the right hand side.
-    private static int EvaluateThreeChildren(ParseNode node)
+    private static int EvaluateThreeChildren(ITokenSource scanner, ParseNode node)
     {
         // In "(" expression ")", the middle child is the nonterminal expression node.
         // In "expression OP expression", the middle child is a terminal operator token.
@@ -87,11 +89,11 @@ internal static class Program
         if (!middle.Symbol.TryGetTerminal(out Token operatorToken))
         {
             // expression: "(" expression ")"
-            return EvaluateNode(middle);
+            return EvaluateNode(scanner, middle);
         }
 
-        int leftValue = EvaluateNode(node.Children[0]);
-        int rightValue = EvaluateNode(node.Children[2]);
+        int leftValue = EvaluateNode(scanner, node.Children[0]);
+        int rightValue = EvaluateNode(scanner, node.Children[2]);
 
         switch (operatorToken)
         {

@@ -1,5 +1,5 @@
 // The C# runner for the backend test corpus. It reads an input file, runs the generated scanner and the generated
-// parser over it, and writes the canonical scanner trace and parser trace the harness diffs against.
+// parser over it, and writes the canonical scanner trace, parser trace and tree trace the harness diffs against.
 //
 // This file has no dependencies, and it must not grow any. It runs in the image with no network, which is what proves
 // that generated GoLR code needs nothing but the bare language.
@@ -16,6 +16,7 @@ internal static class Runner
 {
     private const string ScannerTraceFileName = "scanner.actual";
     private const string ParserTraceFileName = "parser.actual";
+    private const string TreeTraceFileName = "tree.actual";
 
     // The bytes a trace line carries as they are. Everything outside of it is escaped.
     private const byte PrintableLow = 0x20;
@@ -35,6 +36,7 @@ internal static class Runner
 
         WriteTrace(ScannerTraceFileName, lines => AppendScannerTrace(lines, source, inputPath));
         WriteTrace(ParserTraceFileName, lines => AppendParserTrace(lines, source, inputPath));
+        WriteTrace(TreeTraceFileName, lines => AppendTreeTrace(lines, source, inputPath));
     }
 
     // EscapeLexeme escapes the bytes of a lexeme. The caller writes the quotes around the result.
@@ -139,6 +141,94 @@ internal static class Runner
 
         // The TokenSkipper here, because a skipped rule never reaches the parser.
         parser.Parse(new TokenSkipper(new Scanner(source, inputPath)));
+    }
+
+    // TerminalTraceName names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar
+    // name.
+    private static string TerminalTraceName(Token terminal) => terminal switch
+    {
+        Token.EndToken => "$end",
+        Token.ErrorToken => "$error",
+        Token.InvalidToken => "$invalid",
+        _ => terminal.ToDisplayString(),
+    };
+
+    // SymbolTraceName is the bare grammar name of a symbol, which for a nonterminal is what ToDisplayString returns and
+    // for a terminal is the name the traces spell it with.
+    private static string SymbolTraceName(ParseSymbol symbol)
+    {
+        if (symbol.TryGetNonterminal(out Nonterminal nonterminal))
+        {
+            return nonterminal.ToDisplayString();
+        }
+        _ = symbol.TryGetTerminal(out Token terminal);
+        return TerminalTraceName(terminal);
+    }
+
+    // ReduceTracePayload renders a node as "lhs => rhs", the way the REDUCE line of a parser trace names the production
+    // it was reduced from, or as "lhs => ε" for a production with an empty right hand side.
+    private static string ReduceTracePayload(Nonterminal lhs, IReadOnlyList<ParseNode> rhs)
+    {
+        StringBuilder payload = new StringBuilder(lhs.ToDisplayString()).Append(" =>");
+        if (rhs.Count == 0)
+        {
+            return payload.Append(" ε").ToString();
+        }
+        foreach (ParseNode child in rhs)
+        {
+            payload.Append(' ').Append(SymbolTraceName(child.Symbol));
+        }
+        return payload.ToString();
+    }
+
+    // AppendTreeNode appends the line of the given node and the lines of everything below it, which is the pre-order
+    // the tree trace is read in: a node, then what it was built from. The payload carries the indentation and the
+    // position and span columns do not, so they stay in the same place however deep a node sits.
+    private static void AppendTreeNode(List<string> lines, Scanner scanner, ParseNode node, int depth)
+    {
+        Position position = scanner.Position(node.ByteOffset);
+        string location = $"{position.Line}:{position.Column}".PadRight(7);
+        string span = $"{node.ByteOffset}+{node.ByteLength}".PadRight(7);
+
+        StringBuilder payload = new StringBuilder().Append(' ', depth * 2);
+        if (!node.Symbol.TryGetTerminal(out Token terminal))
+        {
+            _ = node.Symbol.TryGetNonterminal(out Nonterminal nonterminal);
+            payload.Append(ReduceTracePayload(nonterminal, node.Children));
+        }
+        else if (terminal == Token.ErrorToken)
+        {
+            // The error node stands for no token of its own, so its span is all it carries.
+            payload.Append(TerminalTraceName(terminal));
+        }
+        else
+        {
+            // The text is read off the source through the span and never carried along from the token, which is what
+            // makes the trace state that the span is right.
+            payload.Append(TerminalTraceName(terminal)).Append(" \"")
+                .Append(EscapeLexeme(scanner.Text(node.ByteOffset, node.ByteLength).Span)).Append('"');
+        }
+
+        lines.Add($"{location} {span} {payload}");
+        foreach (ParseNode child in node.Children)
+        {
+            AppendTreeNode(lines, scanner, child, depth + 1);
+        }
+    }
+
+    // AppendTreeTrace parses the whole input and appends one line per node of the tree the parse built, in pre-order. A
+    // parse which was given up builds no tree and appends nothing, which is the empty trace the harness expects for it.
+    private static void AppendTreeTrace(List<string> lines, byte[] source, string inputPath)
+    {
+        // The scanner stays at hand after the parse, because a node carries the span of the source it covers and not
+        // the source itself, so the trace resolves every node through Position and Text.
+        Scanner scanner = new Scanner(source, inputPath);
+
+        ParseResult result = new Parser.Parser().Parse(new TokenSkipper(scanner));
+        if (result.Tree != null)
+        {
+            AppendTreeNode(lines, scanner, result.Tree, 0);
+        }
     }
 
     // WriteTrace produces one trace and writes it to its file. Whatever was produced before a throw is written all the
