@@ -7,6 +7,7 @@
 // A grammar declares tokens and a scanner offers members which a given user has no use for.
 #![allow(dead_code)]
 
+use std::cell::OnceCell;
 use std::fmt;
 
 /// Every terminal symbol this scanner knows.
@@ -51,6 +52,24 @@ pub fn is_skipped(token: Token) -> bool {
     }
 }
 
+/// Where a byte offset of the source is, in the terms a human reads: the file the scanner was given, the offset
+/// itself, and the line and column it falls on. The lifetime is the one of the borrow of the scanner it came from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Position<'a> {
+    /// The file path the scanner was given.
+    pub file_path: &'a str,
+
+    /// The offset this position was resolved for, in bytes from the start of the source.
+    pub byte_offset: usize,
+
+    /// The line the offset falls on, counted from one. Only a line feed starts a new line, so the carriage return of a
+    /// CRLF pair is the last byte of the line it ends.
+    pub line: usize,
+
+    /// The column the offset falls on, counted from one in bytes.
+    pub column: usize,
+}
+
 /// What a scanner offers. Both [`Scanner`] and [`TokenSkipper`] implement it. The lifetime is the one of the source.
 pub trait TokenSource<'a> {
     /// Returns the current token.
@@ -68,6 +87,15 @@ pub trait TokenSource<'a> {
 
     /// Returns the bytes of the token, as a view into the source rather than a copy of it.
     fn lexeme(&self) -> &'a [u8];
+
+    /// Resolves a byte offset of the source into file path, line and column. Offsets from zero up to and including
+    /// the length of the source are valid, the last of them being the end of the source, and an offset outside of
+    /// that is clamped into it.
+    fn position(&self, byte_offset: usize) -> Position<'_>;
+
+    /// Returns the bytes the given span covers, as a view into the source rather than a copy of it. The span is
+    /// clamped to the source.
+    fn text(&self, byte_offset: usize, byte_length: usize) -> &'a [u8];
 
     /// Returns the file path the scanner was given.
     fn file_path(&self) -> &str;
@@ -113,6 +141,14 @@ impl<'a, S: TokenSource<'a>> TokenSource<'a> for TokenSkipper<S> {
 
     fn lexeme(&self) -> &'a [u8] {
         self.scanner.lexeme()
+    }
+
+    fn position(&self, byte_offset: usize) -> Position<'_> {
+        self.scanner.position(byte_offset)
+    }
+
+    fn text(&self, byte_offset: usize, byte_length: usize) -> &'a [u8] {
+        self.scanner.text(byte_offset, byte_length)
     }
 
     fn file_path(&self) -> &str {
@@ -195,6 +231,11 @@ pub struct Scanner<'a> {
 
     /// The column the current token starts on, counted from one.
     column: usize,
+
+    /// The byte offset every line of the source begins at. It is built on the first call to
+    /// [`TokenSource::position`] and dropped by [`TokenSource::reset`], which the cell allows because it holds the
+    /// table behind a shared borrow.
+    line_starts: OnceCell<Vec<usize>>,
 }
 
 impl<'a> Scanner<'a> {
@@ -208,6 +249,19 @@ impl<'a> Scanner<'a> {
         };
         scanner.reset(source, 0);
         scanner
+    }
+
+    /// Returns the byte offset every line of the source begins at. The first line begins at zero, so the result is
+    /// never empty and an empty source has one line.
+    fn build_line_starts(&self) -> Vec<usize> {
+        // One byte at a time, because the library offers no scan for a byte within a slice.
+        let mut line_starts = vec![0];
+        for (idx, &byte) in self.source.iter().enumerate() {
+            if byte == b'\n' {
+                line_starts.push(idx + 1);
+            }
+        }
+        line_starts
     }
 
     /// Advances the line and column counters over the bytes between the two indexes.
@@ -244,6 +298,33 @@ impl<'a> TokenSource<'a> for Scanner<'a> {
         &self.source[self.lexeme_start_idx..self.lexeme_end_idx]
     }
 
+    fn position(&self, byte_offset: usize) -> Position<'_> {
+        let byte_offset = byte_offset.min(self.source.len());
+
+        let line_starts = self.line_starts.get_or_init(|| self.build_line_starts());
+
+        // The search returns where the offset sits when it is a line start itself, and where it would be inserted
+        // otherwise, which is the number of lines in front of it.
+        let line = match line_starts.binary_search(&byte_offset) {
+            Ok(found_idx) => found_idx + 1,
+            Err(insert_idx) => insert_idx,
+        };
+        Position {
+            file_path: &self.file_path,
+            byte_offset,
+            line,
+            column: byte_offset - line_starts[line - 1] + 1,
+        }
+    }
+
+    fn text(&self, byte_offset: usize, byte_length: usize) -> &'a [u8] {
+        let start_idx = byte_offset.min(self.source.len());
+        // Clamping the length against what is left rather than the end against the source, because the two added up
+        // can overflow where the difference cannot.
+        let byte_length = byte_length.min(self.source.len() - start_idx);
+        &self.source[start_idx..start_idx + byte_length]
+    }
+
     fn file_path(&self) -> &str {
         &self.file_path
     }
@@ -258,6 +339,10 @@ impl<'a> TokenSource<'a> for Scanner<'a> {
 
         self.line = 1;
         self.column = 1;
+
+        // The line starts belong to the source which was replaced here, so the cell goes back to being empty and the
+        // next call to position builds the table again.
+        self.line_starts.take();
 
         self.token = Token::InvalidToken;
     }
