@@ -6,10 +6,12 @@
 
 """A scanner which turns the bytes of a source into tokens."""
 
+from bisect import bisect_right
+from dataclasses import dataclass
 from enum import IntEnum
 from typing import Final, Protocol
 
-__all__ = ["Scanner", "Token", "TokenSkipper", "TokenSource", "is_skipped"]
+__all__ = ["Position", "Scanner", "Token", "TokenSkipper", "TokenSource", "is_skipped"]
 
 
 class Token(IntEnum):
@@ -67,6 +69,29 @@ def is_skipped(token: Token) -> bool:
     return token in _SKIPPED_TOKENS
 
 
+@dataclass(frozen=True, slots=True)
+class Position:
+    """Where a byte offset of the source is, in the terms a human reads.
+
+    It carries the file the scanner was given, the offset itself, and the line and column it falls on.
+    """
+
+    file_path: str
+    """The file path the scanner was given."""
+
+    byte_offset: int
+    """The offset this position was resolved for, in bytes from the start of the source."""
+
+    line: int
+    """The line the offset falls on, counted from one.
+
+    Only a line feed starts a new line, so the carriage return of a CRLF pair is the last byte of the line it ends.
+    """
+
+    column: int
+    """The column the offset falls on, counted from one in bytes."""
+
+
 class TokenSource(Protocol):
     """What a scanner offers. Both `Scanner` and `TokenSkipper` satisfy it."""
 
@@ -96,6 +121,21 @@ class TokenSource(Protocol):
     @property
     def lexeme(self) -> bytes:
         """The bytes of the token."""
+        ...
+
+    def position(self, byte_offset: int) -> Position:
+        """Resolves a byte offset of the source into file path, line and column.
+
+        Offsets from zero up to and including the length of the source are valid, the last of them being the end of the
+        source, and an offset outside of that is clamped into it.
+        """
+        ...
+
+    def text(self, byte_offset: int, byte_length: int) -> bytes:
+        """Returns the bytes the given span covers.
+
+        The span is clamped to the source, and a negative length is empty.
+        """
         ...
 
     @property
@@ -160,6 +200,21 @@ class TokenSkipper:
     def lexeme(self) -> bytes:
         """The bytes of the token."""
         return self._scanner.lexeme
+
+    def position(self, byte_offset: int) -> Position:
+        """Resolves a byte offset of the source into file path, line and column.
+
+        Offsets from zero up to and including the length of the source are valid, the last of them being the end of the
+        source, and an offset outside of that is clamped into it.
+        """
+        return self._scanner.position(byte_offset)
+
+    def text(self, byte_offset: int, byte_length: int) -> bytes:
+        """Returns the bytes the given span covers.
+
+        The span is clamped to the source, and a negative length is empty.
+        """
+        return self._scanner.text(byte_offset, byte_length)
 
     @property
     def file_path(self) -> str:
@@ -261,6 +316,7 @@ class Scanner:
         "_lexeme_end_idx",
         "_line",
         "_column",
+        "_line_starts",
     )
 
     _source: bytes
@@ -284,6 +340,12 @@ class Scanner:
     _column: int
     """The column the current token starts on, counted from one."""
 
+    _line_starts: list[int]
+    """The byte offset every line of the source begins at.
+
+    It is built on the first call to `position` and emptied by `reset`, which keeps its storage for the next source.
+    """
+
     def __init__(self, source: bytes, file_path: str) -> None:
         """Creates a scanner which turns the given bytes into tokens, starting at the first of them.
 
@@ -291,6 +353,8 @@ class Scanner:
         :param file_path: Used in error messages. Any string will do when the source is not a file.
         """
         self._file_path = file_path
+        # The list `reset` empties has to be there before it runs, because a slot holds nothing until it is assigned.
+        self._line_starts = []
         self.reset(source, 0)
 
     @property
@@ -321,6 +385,48 @@ class Scanner:
         """The bytes of the token."""
         return self._source[self._lexeme_start_idx:self._lexeme_end_idx]
 
+    def position(self, byte_offset: int) -> Position:
+        """Resolves a byte offset of the source into file path, line and column.
+
+        Offsets from zero up to and including the length of the source are valid, the last of them being the end of the
+        source, and an offset outside of that is clamped into it.
+        """
+        byte_offset = min(max(byte_offset, 0), len(self._source))
+
+        if not self._line_starts:
+            self._build_line_starts()
+
+        # The search settles to the right of an offset which is a line start itself, so what it returns is the number
+        # of lines in front of the offset and that line together: the one the offset falls on.
+        line = bisect_right(self._line_starts, byte_offset)
+        return Position(self._file_path, byte_offset, line, byte_offset - self._line_starts[line - 1] + 1)
+
+    def _build_line_starts(self) -> None:
+        """Fills in the byte offset every line of the source begins at.
+
+        It appends into the storage left over from the source before. The first line begins at zero, so the result is
+        never empty and an empty source has one line.
+        """
+        self._line_starts.append(0)
+        byte_offset = 0
+        while byte_offset < len(self._source):
+            line_feed_idx = self._source.find(b"\n", byte_offset)
+            if line_feed_idx < 0:
+                break
+            byte_offset = line_feed_idx + 1
+            self._line_starts.append(byte_offset)
+
+    def text(self, byte_offset: int, byte_length: int) -> bytes:
+        """Returns the bytes the given span covers.
+
+        The span is clamped to the source, and a negative length is empty.
+        """
+        start_idx = min(max(byte_offset, 0), len(self._source))
+        # Clamping the length against what is left rather than the end against the source, because a slice reads a
+        # negative end as one counted back from the end of the source.
+        byte_length = min(max(byte_length, 0), len(self._source) - start_idx)
+        return self._source[start_idx:start_idx + byte_length]
+
     @property
     def file_path(self) -> str:
         """The file path the scanner was given."""
@@ -340,6 +446,9 @@ class Scanner:
 
         self._line = 1
         self._column = 1
+
+        # The line starts belong to the source which was replaced here, but their storage is worth keeping.
+        self._line_starts.clear()
 
         self._token = Token.INVALID_TOKEN
 

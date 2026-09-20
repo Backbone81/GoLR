@@ -46,6 +46,28 @@ def escape_lexeme(lexeme):
     return "".join(result)
 
 
+def check_position(scanner):
+    """Holds the offset based position and text against the line, column and lexeme of the current token.
+
+    The two ways of asking exist side by side until the release which drops line and column, and the corpus is where
+    they have to agree: every case of it is far more input than a hand written test covers.
+    """
+    position = scanner.position(scanner.byte_offset)
+    if (position.line != scanner.line or position.column != scanner.column
+            or position.file_path != scanner.file_path):
+        print(
+            f"position({scanner.byte_offset}) is {position.file_path} {position.line}:{position.column}, "
+            f"but the scanner reports {scanner.file_path} {scanner.line}:{scanner.column}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    lexeme = scanner.lexeme
+    if scanner.text(scanner.byte_offset, len(lexeme)) != lexeme:
+        print(f"text({scanner.byte_offset}, {len(lexeme)}) differs from the lexeme", file=sys.stderr)
+        sys.exit(1)
+
+
 def append_scanner_trace(lines, source, input_path):
     """Scans the whole input and appends one line per event.
 
@@ -57,6 +79,8 @@ def append_scanner_trace(lines, source, input_path):
     scanner = Scanner(source, input_path)
 
     while scanner.next():
+        check_position(scanner)
+
         location = f"{scanner.line}:{scanner.column}"
         lexeme = escape_lexeme(scanner.lexeme)
 
@@ -67,7 +91,8 @@ def append_scanner_trace(lines, source, input_path):
         lines.append(f'{location:<7} {"TOKEN":<7} {scanner.token} "{lexeme}"')
 
     # The position after the scanner ran out of input, which is one past the last byte only when it consumed
-    # everything.
+    # everything. It is the offset every off by one in a line table lands on, so it is checked like a token.
+    check_position(scanner)
     location = f"{scanner.line}:{scanner.column}"
     lines.append(f"{location:<7} EOF")
 
