@@ -60,6 +60,18 @@ export function isSkipped(token) {
 }
 
 /**
+ * Where a byte offset of the source is, in the terms a human reads: the file the scanner was given, the offset itself,
+ * and the line and column it falls on.
+ *
+ * @typedef {object} Position
+ * @property {string} filePath The file path the scanner was given.
+ * @property {number} byteOffset The offset this position was resolved for, in bytes from the start of the source.
+ * @property {number} line The line the offset falls on, counted from one. Only a line feed starts a new line, so the
+ *     carriage return of a CRLF pair is the last byte of the line it ends.
+ * @property {number} column The column the offset falls on, counted from one in bytes.
+ */
+
+/**
  * What a scanner offers. Both Scanner and TokenSkipper implement it.
  *
  * @typedef {object} TokenSource
@@ -68,6 +80,8 @@ export function isSkipped(token) {
  * @property {() => number} line
  * @property {() => number} column
  * @property {() => Uint8Array} lexeme
+ * @property {(byteOffset: number) => Position} position
+ * @property {(byteOffset: number, byteLength: number) => Uint8Array} text
  * @property {() => string} filePath
  * @property {(source: Uint8Array, offset: number) => void} reset
  * @property {() => boolean} next
@@ -136,6 +150,30 @@ export class TokenSkipper {
      */
     lexeme() {
         return this.#scanner.lexeme();
+    }
+
+    /**
+     * Resolves a byte offset of the source into file path, line and column. Offsets from zero up to and including the
+     * length of the source are valid, the last of them being the end of the source, and an offset outside of that is
+     * clamped into it.
+     *
+     * @param {number} byteOffset
+     * @returns {Position}
+     */
+    position(byteOffset) {
+        return this.#scanner.position(byteOffset);
+    }
+
+    /**
+     * Returns the bytes the given span covers, as a view into the source rather than a copy of it. The span is clamped
+     * to the source, and a negative length is empty.
+     *
+     * @param {number} byteOffset
+     * @param {number} byteLength
+     * @returns {Uint8Array}
+     */
+    text(byteOffset, byteLength) {
+        return this.#scanner.text(byteOffset, byteLength);
     }
 
     /**
@@ -260,6 +298,14 @@ export class Scanner {
     #column;
 
     /**
+     * The byte offset every line of the source begins at. It is built on the first call to position and emptied by
+     * reset, which keeps its storage for the next source.
+     *
+     * @type {number[]}
+     */
+    #lineStarts = [];
+
+    /**
      * @param {Uint8Array} source The bytes to scan.
      * @param {string} filePath Used in error messages. Any string will do when the source is not a file.
      */
@@ -315,6 +361,84 @@ export class Scanner {
     }
 
     /**
+     * Resolves a byte offset of the source into file path, line and column. Offsets from zero up to and including the
+     * length of the source are valid, the last of them being the end of the source, and an offset outside of that is
+     * clamped into it.
+     *
+     * @param {number} byteOffset
+     * @returns {Position}
+     */
+    position(byteOffset) {
+        byteOffset = Math.min(Math.max(byteOffset, 0), this.#source.length);
+
+        if (this.#lineStarts.length === 0) {
+            this.#buildLineStarts();
+        }
+
+        const line = this.#lineAt(byteOffset);
+        return {
+            filePath: this.#filePath,
+            byteOffset: byteOffset,
+            line: line,
+            column: byteOffset - this.#lineStarts[line - 1] + 1,
+        };
+    }
+
+    /**
+     * Fills in the byte offset every line of the source begins at, into the storage left over from the source before.
+     * The first line begins at zero, so the result is never empty and an empty source has one line.
+     */
+    #buildLineStarts() {
+        this.#lineStarts.push(0);
+        for (let byteOffset = 0; byteOffset < this.#source.length;) {
+            const lineFeedIdx = this.#source.indexOf(0x0a, byteOffset);
+            if (lineFeedIdx < 0) {
+                break;
+            }
+            byteOffset = lineFeedIdx + 1;
+            this.#lineStarts.push(byteOffset);
+        }
+    }
+
+    /**
+     * Returns the line the given offset falls on, counted from one. The search is written out, because the language
+     * has none to call: it settles on the first line start past the offset, and the number of lines in front of that
+     * is the line the offset falls on.
+     *
+     * @param {number} byteOffset
+     * @returns {number}
+     */
+    #lineAt(byteOffset) {
+        let lowIdx = 0;
+        let highIdx = this.#lineStarts.length;
+        while (lowIdx < highIdx) {
+            const midIdx = (lowIdx + highIdx) >>> 1;
+            if (this.#lineStarts[midIdx] <= byteOffset) {
+                lowIdx = midIdx + 1;
+            } else {
+                highIdx = midIdx;
+            }
+        }
+        return lowIdx;
+    }
+
+    /**
+     * Returns the bytes the given span covers, as a view into the source rather than a copy of it. The span is clamped
+     * to the source, and a negative length is empty.
+     *
+     * @param {number} byteOffset
+     * @param {number} byteLength
+     * @returns {Uint8Array}
+     */
+    text(byteOffset, byteLength) {
+        const startIdx = Math.min(Math.max(byteOffset, 0), this.#source.length);
+        // Clamping the length against what is left rather than the end against the source, because subarray reads a
+        // negative end as one counted back from the end of the source.
+        const length = Math.min(Math.max(byteLength, 0), this.#source.length - startIdx);
+        return this.#source.subarray(startIdx, startIdx + length);
+    }
+
+    /**
      * Returns the file path the scanner was given.
      *
      * @returns {string}
@@ -340,6 +464,9 @@ export class Scanner {
 
         this.#line = 1;
         this.#column = 1;
+
+        // The line starts belong to the source which was replaced here, but their storage is worth keeping.
+        this.#lineStarts.length = 0;
 
         this.#token = Token.InvalidToken;
     }
