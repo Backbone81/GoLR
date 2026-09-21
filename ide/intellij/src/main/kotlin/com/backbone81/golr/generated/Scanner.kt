@@ -62,7 +62,8 @@ enum class Token(private val displayName: String, val isSkipped: Boolean = false
  * @property byteOffset the offset this position was resolved for, in bytes from the start of the source
  * @property line the line the offset falls on, counted from one. Only a line feed starts a new line, so the carriage
  *     return of a CRLF pair is the last byte of the line it ends
- * @property column the column the offset falls on, counted from one in bytes
+ * @property column the column the offset falls on, counted from one in characters. A byte which continues a UTF-8
+ *     character does not count, so every character is one column, a tab included
  */
 data class Position(val filePath: String, val byteOffset: Int, val line: Int, val column: Int)
 
@@ -221,7 +222,14 @@ class Scanner(private var source: ByteArray, override val filePath: String) : To
         // be inserted otherwise, which is the number of lines in front of it.
         val found = lineStarts.binarySearch(clampedOffset, 0, lineStartCount)
         val line = if (found >= 0) found + 1 else found.inv()
-        return Position(filePath, clampedOffset, line, clampedOffset - lineStarts[line - 1] + 1)
+
+        var column = 1
+        for (idx in lineStarts[line - 1] until clampedOffset) {
+            if ((source[idx].toInt() and 0xc0) != 0x80) {
+                column++
+            }
+        }
+        return Position(filePath, clampedOffset, line, column)
     }
 
     /**

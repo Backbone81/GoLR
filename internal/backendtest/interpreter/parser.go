@@ -228,7 +228,7 @@ func (p *Parser) Parse() backendtest.Trace {
 		case parsertable.ActionKindReduce:
 			p.reduce(action.ProductionIdx())
 		case parsertable.ActionKindAccept:
-			line, column := lineCol(p.lineStarts, p.token.start)
+			line, column := lineCol(p.scanner.source, p.lineStarts, p.token.start)
 			p.trace = append(p.trace, backendtest.Accept{Line: line, Column: column})
 			// The stack carries the start symbol with the end of input symbol shifted on top of it, so the
 			// tree of the parse is the node at the bottom.
@@ -261,7 +261,7 @@ func (p *Parser) action() parsertable.Action {
 // position again after an error. The synthetic shift of the end of input symbol goes through here too, so it appears in
 // the trace like any other shift.
 func (p *Parser) shift(stateIdx int) {
-	line, column := lineCol(p.lineStarts, p.token.start)
+	line, column := lineCol(p.scanner.source, p.lineStarts, p.token.start)
 	p.trace = append(p.trace, backendtest.Shift{
 		Line:         line,
 		Column:       column,
@@ -297,7 +297,7 @@ func (p *Parser) reduce(productionIdx int) {
 	for i, child := range children {
 		rightHandSide[i] = child.name
 	}
-	line, column := lineCol(p.lineStarts, p.token.start)
+	line, column := lineCol(p.scanner.source, p.lineStarts, p.token.start)
 	p.trace = append(p.trace, backendtest.Reduce{
 		Line:          line,
 		Column:        column,
@@ -341,7 +341,7 @@ func (p *Parser) reduce(productionIdx int) {
 // tells us. Popping and discarding in the same round is what guarantees progress: every round either gets the parse
 // going again or consumes one token.
 func (p *Parser) recoverFromError() bool {
-	line, column := lineCol(p.lineStarts, p.token.start)
+	line, column := lineCol(p.scanner.source, p.lineStarts, p.token.start)
 	p.trace = append(p.trace, backendtest.ParserError{
 		Line:   line,
 		Column: column,
@@ -386,7 +386,7 @@ func (p *Parser) recoverFromError() bool {
 // of an earlier round, which brings what that round dropped along.
 func (p *Parser) popToErrorState(droppedOffset int, droppedLength int) bool {
 	for {
-		line, column := lineCol(p.lineStarts, p.token.start)
+		line, column := lineCol(p.scanner.source, p.lineStarts, p.token.start)
 		if stateIdx, ok := p.compressed.ErrorShiftStateIdx(p.stateStack[len(p.stateStack)-1]); ok {
 			p.trace = append(p.trace, backendtest.Resync{Line: line, Column: column})
 			if droppedLength == 0 && len(p.nodeStack) != 0 {
@@ -425,11 +425,18 @@ func (p *Parser) popToErrorState(droppedOffset int, droppedLength int) bool {
 	}
 }
 
-// lineCol turns a byte offset into a one based line and column, matching how the generated scanners count. lineStarts
-// is the offset each line begins at, from newLineStarts.
-func lineCol(lineStarts []int, offset int) (int, int) {
+// lineCol turns a byte offset into a one based line and column, matching how the generated scanners count: the column
+// counts characters, and a byte which continues a UTF-8 character does not count. lineStarts is the offset each line
+// begins at, from newLineStarts.
+func lineCol(source []byte, lineStarts []int, offset int) (int, int) {
 	line := sort.Search(len(lineStarts), func(i int) bool { return lineStarts[i] > offset })
-	return line, offset - lineStarts[line-1] + 1
+	column := 1
+	for _, value := range source[lineStarts[line-1]:offset] {
+		if value&0xc0 != 0x80 {
+			column++
+		}
+	}
+	return line, column
 }
 
 // advanceToken reads the next token the parser has to decide on, skipping the rules the scanner marks as skipped the
@@ -490,7 +497,7 @@ func (p *Parser) TreeTrace() backendtest.Trace {
 // appendNode appends the line of the given node and the lines of everything below it to the trace, which is the
 // pre-order the tree trace is read in: a node, then what it was built from.
 func (p *Parser) appendNode(trace backendtest.Trace, current node, depth int) backendtest.Trace {
-	line, column := lineCol(p.lineStarts, current.byteOffset)
+	line, column := lineCol(p.scanner.source, p.lineStarts, current.byteOffset)
 	switch current.kind {
 	case nodeKindTerminal:
 		trace = append(trace, backendtest.TreeTerminal{

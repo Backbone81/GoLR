@@ -89,7 +89,10 @@ class Position:
     """
 
     column: int
-    """The column the offset falls on, counted from one in bytes."""
+    """The column the offset falls on, counted from one in characters.
+
+    A byte which continues a UTF-8 character does not count, so every character is one column, a tab included.
+    """
 
 
 class TokenSource(Protocol):
@@ -385,7 +388,12 @@ class Scanner:
         # The search settles to the right of an offset which is a line start itself, so what it returns is the number
         # of lines in front of the offset and that line together: the one the offset falls on.
         line = bisect_right(self._line_starts, byte_offset)
-        return Position(self._file_path, byte_offset, line, byte_offset - self._line_starts[line - 1] + 1)
+
+        column = 1
+        for value in self._source[self._line_starts[line - 1] : byte_offset]:
+            if value & 0xC0 != 0x80:
+                column += 1
+        return Position(self._file_path, byte_offset, line, column)
 
     def _build_line_starts(self) -> None:
         """Fills in the byte offset every line of the source begins at.

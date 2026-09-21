@@ -69,7 +69,10 @@ public static class TokenExtensions
 /// The line the offset falls on, counted from one. Only a line feed starts a new line, so the carriage return of a CRLF
 /// pair is the last byte of the line it ends.
 /// </param>
-/// <param name="Column">The column the offset falls on, counted from one in bytes.</param>
+/// <param name="Column">
+/// The column the offset falls on, counted from one in characters. A byte which continues a UTF-8 character does not
+/// count, so every character is one column, a tab included.
+/// </param>
 public readonly record struct Position(string FilePath, int ByteOffset, int Line, int Column);
 
 /// <summary>What a scanner offers. Both <see cref="Scanner"/> and <see cref="TokenSkipper"/> implement it.</summary>
@@ -267,7 +270,16 @@ public sealed class Scanner : ITokenSource
         // be inserted otherwise, which is the number of lines in front of it.
         int found = _lineStarts.BinarySearch(byteOffset);
         int line = found >= 0 ? found + 1 : ~found;
-        return new Position(FilePath, byteOffset, line, byteOffset - _lineStarts[line - 1] + 1);
+
+        int column = 1;
+        foreach (byte value in _source.Span[_lineStarts[line - 1]..byteOffset])
+        {
+            if ((value & 0xc0) != 0x80)
+            {
+                column++;
+            }
+        }
+        return new Position(FilePath, byteOffset, line, column);
     }
 
     /// <summary>

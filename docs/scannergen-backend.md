@@ -77,9 +77,10 @@ copy of it, which means the source has to outlive the tokens taken from it.
 Byte offsets are the only coordinates a scanner carries. Two methods resolve them against the source:
 
 - **`Position(byteOffset)`** returns the file path, the byte offset, the line and the column. Line and column are
-  counted from one, and the column counts bytes rather than characters. Only `\n` starts a new line, so `\r\n` works and
-  a lone `\r` does not break the line. Offsets from zero up to and including the length of the source are valid, the
-  last one being the end of the source; anything outside is clamped.
+  counted from one, and the column counts UTF-8 characters rather than bytes: a byte which continues a character does
+  not count, and a tab is one column like any other character. Use the byte offset to get at the bytes themselves.
+  Only `\n` starts a new line, so `\r\n` works and a lone `\r` does not break the line. Offsets from zero up to and
+  including the length of the source are valid, the last one being the end of the source; anything outside is clamped.
 - **`Text(byteOffset, byteLength)`** returns the bytes of a span, clamped to the source, as a view where the language
   allows it.
 

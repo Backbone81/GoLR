@@ -91,7 +91,8 @@ struct Position {
     /// CRLF pair is the last byte of the line it ends.
     std::size_t line;
 
-    /// The column the offset falls on, counted from one in bytes.
+    /// The column the offset falls on, counted from one in characters. A byte which continues a UTF-8 character does
+    /// not count, so every character is one column, a tab included.
     std::size_t column;
 };
 
@@ -191,7 +192,14 @@ public:
         // line it falls on, counted from one.
         const auto line_start = std::upper_bound(line_starts_.begin(), line_starts_.end(), byte_offset);
         const auto line = static_cast<std::size_t>(line_start - line_starts_.begin());
-        return Position{file_path_, byte_offset, line, byte_offset - line_starts_[line - 1] + 1};
+
+        std::size_t column = 1;
+        for (std::size_t idx = line_starts_[line - 1]; idx < byte_offset; ++idx) {
+            if ((static_cast<unsigned char>(source_[idx]) & 0xc0) != 0x80) {
+                ++column;
+            }
+        }
+        return Position{file_path_, byte_offset, line, column};
     }
 
     /// Returns the bytes the given span covers, as a view into the source rather than a copy of it. The span is clamped

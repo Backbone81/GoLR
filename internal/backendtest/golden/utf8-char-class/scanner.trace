@@ -1,7 +1,7 @@
 1:1     TOKEN   LATIN "abc"
 1:4     TOKEN   WHITESPACE " "
 1:5     TOKEN   GREEK "\xce\xb1\xce\xb2\xcf\x89"
-1:11    TOKEN   WHITESPACE " "
-1:12    TOKEN   LATIN "xyz"
-1:15    TOKEN   WHITESPACE "\n"
+1:8     TOKEN   WHITESPACE " "
+1:9     TOKEN   LATIN "xyz"
+1:12    TOKEN   WHITESPACE "\n"
 2:1     EOF

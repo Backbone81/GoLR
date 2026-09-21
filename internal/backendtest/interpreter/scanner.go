@@ -132,7 +132,7 @@ func (s *Scanner) rule(match Match) (frontend.Rule, bool) {
 // becomes an error carrying the bytes it could not match, every other match becomes a token, whether or not its rule
 // was marked for skipping, see backendtest.Token.
 func (s *Scanner) Event(match Match) fmt.Stringer {
-	line, column := lineCol(s.lineStarts, match.Start)
+	line, column := lineCol(s.source, s.lineStarts, match.Start)
 	lexeme := string(s.source[match.Start:match.End])
 
 	rule, ok := s.rule(match)
@@ -157,6 +157,6 @@ func ScanTrace(dfa backend.DFA, source []byte) backendtest.Trace {
 		result = append(result, scanner.Event(match))
 	}
 
-	line, column := lineCol(scanner.lineStarts, len(source))
+	line, column := lineCol(source, scanner.lineStarts, len(source))
 	return append(result, backendtest.EOF{Line: line, Column: column})
 }

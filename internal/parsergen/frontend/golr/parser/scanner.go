@@ -144,7 +144,8 @@ type Position struct {
 	// return of a CRLF pair is the last byte of the line it ends.
 	Line int
 
-	// Column is the column the offset falls on, counted from one in bytes.
+	// Column is the column the offset falls on, counted from one in characters. A byte which continues a UTF-8
+	// character does not count, so every character is one column, a tab included.
 	Column int
 }
 
@@ -579,11 +580,18 @@ func (s *Scanner) Position(byteOffset int) Position {
 	if isLineStart {
 		line++
 	}
+
+	column := 1
+	for _, value := range s.source[s.lineStarts[line-1]:byteOffset] {
+		if value&0xc0 != 0x80 {
+			column++
+		}
+	}
 	return Position{
 		FilePath:   s.filePath,
 		ByteOffset: byteOffset,
 		Line:       line,
-		Column:     byteOffset - s.lineStarts[line-1] + 1,
+		Column:     column,
 	}
 }
 

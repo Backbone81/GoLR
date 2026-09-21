@@ -1,0 +1,1 @@
+description: "BREAKING: The column reported by the Position method of generated scanners now counts UTF-8 characters instead of bytes, and a tab counts as one column. Use the byte offset to get at the bytes of the source."

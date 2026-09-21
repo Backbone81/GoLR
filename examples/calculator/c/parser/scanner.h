@@ -64,7 +64,8 @@ typedef struct CalculatorPosition {
     /// CRLF pair is the last byte of the line it ends.
     size_t line;
 
-    /// The column the offset falls on, counted from one in bytes.
+    /// The column the offset falls on, counted from one in characters. A byte which continues a UTF-8 character does
+    /// not count, so every character is one column, a tab included.
     size_t column;
 } CalculatorPosition;
 
@@ -432,6 +433,7 @@ static size_t calculator_scanner_line_of_offset(const CalculatorScanner *scanner
 CalculatorPosition calculator_scanner_position(CalculatorScanner *scanner, size_t byte_offset) {
     CalculatorPosition position;
     size_t line;
+    size_t idx;
 
     /* An offset is never negative here, so the end of the source is the only side to clamp. */
     if (byte_offset > scanner->source_length) {
@@ -449,14 +451,13 @@ CalculatorPosition calculator_scanner_position(CalculatorScanner *scanner, size_
     if (scanner->line_starts_length == 0) {
         /* The table did not fit into memory, so the line feeds in front of the offset are counted instead. That is
            slower for every call, but it is the same answer. */
-        size_t idx;
         position.line = 1;
         position.column = 1;
         for (idx = 0; idx < byte_offset; idx++) {
             if (scanner->source[idx] == '\n') {
                 position.line++;
                 position.column = 1;
-            } else {
+            } else if (((unsigned char)scanner->source[idx] & 0xc0) != 0x80) {
                 position.column++;
             }
         }
@@ -465,7 +466,12 @@ CalculatorPosition calculator_scanner_position(CalculatorScanner *scanner, size_
 
     line = calculator_scanner_line_of_offset(scanner, byte_offset);
     position.line = line;
-    position.column = byte_offset - scanner->line_starts[line - 1] + 1;
+    position.column = 1;
+    for (idx = scanner->line_starts[line - 1]; idx < byte_offset; idx++) {
+        if (((unsigned char)scanner->source[idx] & 0xc0) != 0x80) {
+            position.column++;
+        }
+    }
     return position;
 }
 

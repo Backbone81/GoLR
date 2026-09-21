@@ -108,7 +108,10 @@ export interface Position {
      */
     readonly line: number;
 
-    /** The column the offset falls on, counted from one in bytes. */
+    /**
+     * The column the offset falls on, counted from one in characters. A byte which continues a UTF-8 character does
+     * not count, so every character is one column, a tab included.
+     */
     readonly column: number;
 }
 
@@ -566,11 +569,18 @@ export class Scanner implements TokenSource {
         }
 
         const line = this.#lineAt(byteOffset);
+
+        let column = 1;
+        for (let idx = this.#lineStarts[line - 1]!; idx < byteOffset; idx++) {
+            if ((this.#source[idx]! & 0xc0) !== 0x80) {
+                column++;
+            }
+        }
         return {
             filePath: this.#filePath,
             byteOffset: byteOffset,
             line: line,
-            column: byteOffset - this.#lineStarts[line - 1]! + 1,
+            column: column,
         };
     }
 

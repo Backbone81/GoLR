@@ -79,7 +79,8 @@ export function isSkipped(token) {
  * @property {number} byteOffset The offset this position was resolved for, in bytes from the start of the source.
  * @property {number} line The line the offset falls on, counted from one. Only a line feed starts a new line, so the
  *     carriage return of a CRLF pair is the last byte of the line it ends.
- * @property {number} column The column the offset falls on, counted from one in bytes.
+ * @property {number} column The column the offset falls on, counted from one in characters. A byte which continues a
+ *     UTF-8 character does not count, so every character is one column, a tab included.
  */
 
 /**
@@ -385,11 +386,18 @@ export class Scanner {
         }
 
         const line = this.#lineAt(byteOffset);
+
+        let column = 1;
+        for (let idx = this.#lineStarts[line - 1]; idx < byteOffset; idx++) {
+            if ((this.#source[idx] & 0xc0) !== 0x80) {
+                column++;
+            }
+        }
         return {
             filePath: this.#filePath,
             byteOffset: byteOffset,
             line: line,
-            column: byteOffset - this.#lineStarts[line - 1] + 1,
+            column: column,
         };
     }
 

@@ -66,7 +66,8 @@ pub struct Position<'a> {
     /// CRLF pair is the last byte of the line it ends.
     pub line: usize,
 
-    /// The column the offset falls on, counted from one in bytes.
+    /// The column the offset falls on, counted from one in characters. A byte which continues a UTF-8 character does
+    /// not count, so every character is one column, a tab included.
     pub column: usize,
 }
 
@@ -280,11 +281,16 @@ impl<'a> TokenSource<'a> for Scanner<'a> {
             Ok(found_idx) => found_idx + 1,
             Err(insert_idx) => insert_idx,
         };
+        let column = self.source[line_starts[line - 1]..byte_offset]
+            .iter()
+            .filter(|&&value| value & 0xc0 != 0x80)
+            .count()
+            + 1;
         Position {
             file_path: &self.file_path,
             byte_offset,
             line,
-            column: byte_offset - line_starts[line - 1] + 1,
+            column,
         }
     }
 

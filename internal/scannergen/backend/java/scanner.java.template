@@ -108,7 +108,8 @@ public final class Scanner implements TokenSource {
      * @param byteOffset the offset this position was resolved for, in bytes from the start of the source
      * @param line the line the offset falls on, counted from one. Only a line feed starts a new line, so the carriage
      *     return of a CRLF pair is the last byte of the line it ends
-     * @param column the column the offset falls on, counted from one in bytes
+     * @param column the column the offset falls on, counted from one in characters. A byte which continues a UTF-8
+     *     character does not count, so every character is one column, a tab included
      */
     public record Position(String filePath, int byteOffset, int line, int column) {}
 
@@ -280,7 +281,14 @@ public final class Scanner implements TokenSource {
         // be inserted otherwise, which is the number of lines in front of it.
         int found = Arrays.binarySearch(lineStarts, 0, lineStartCount, byteOffset);
         int line = found >= 0 ? found + 1 : ~found;
-        return new Position(filePath, byteOffset, line, byteOffset - lineStarts[line - 1] + 1);
+
+        int column = 1;
+        for (int idx = lineStarts[line - 1]; idx < byteOffset; idx++) {
+            if ((source[idx] & 0xc0) != 0x80) {
+                column++;
+            }
+        }
+        return new Position(filePath, byteOffset, line, column);
     }
 
     /**

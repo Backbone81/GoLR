@@ -145,11 +145,19 @@ var _ = Describe("Scanner", func() {
 	})
 
 	Context("bytes", func() {
-		It("counts the column in bytes and escapes a lexeme byte by byte", func() {
+		It("counts the column in characters and escapes a lexeme byte by byte", func() {
 			expectScannerTrace(rulesToDFA(dsl.Rule("UMLAUT", dsl.Literal("ä"))), "ää",
 				`1:1     TOKEN   UMLAUT "\xc3\xa4"`,
-				`1:3     TOKEN   UMLAUT "\xc3\xa4"`,
-				"1:5     EOF",
+				`1:2     TOKEN   UMLAUT "\xc3\xa4"`,
+				"1:3     EOF",
+			)
+		})
+
+		It("does not advance the column for a continuation byte without a leading byte", func() {
+			expectScannerTrace(rulesToDFA(dsl.Rule("A", dsl.Literal("a"))), "\x80a",
+				`1:1     ERROR   "\x80"`,
+				`1:1     TOKEN   A "a"`,
+				"1:2     EOF",
 			)
 		})
 
