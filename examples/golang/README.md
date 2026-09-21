@@ -23,12 +23,12 @@ goos: linux
 goarch: amd64
 pkg: github.com/backbone81/golr/examples/golang/parser
 cpu: Intel(R) Core(TM) i9-14900K
-BenchmarkGolangParser/Official_Go_Parser-32          228   4,867,542 ns/op   887,541 B/op   25,411 allocs/op
-BenchmarkGolangParser/GoLR_Generated_Parser-32       852   1,176,418 ns/op     3,692 B/op        0 allocs/op
-BenchmarkGolangScanner/Official_Go_Scanner-32      1,564     742,033 ns/op   125,846 B/op    7,273 allocs/op
-BenchmarkGolangScanner/GoLR_Generated_Scanner-32   1,674     637,284 ns/op         0 B/op        0 allocs/op
+BenchmarkGolangParser/Official_Go_Parser-32          253   4,785,679 ns/op   887,508 B/op   25,411 allocs/op
+BenchmarkGolangParser/GoLR_Generated_Parser-32       915   1,094,166 ns/op     3,008 B/op        0 allocs/op
+BenchmarkGolangScanner/Official_Go_Scanner-32      1,818     687,404 ns/op   125,831 B/op    7,273 allocs/op
+BenchmarkGolangScanner/GoLR_Generated_Scanner-32   2,204     544,977 ns/op         0 B/op        0 allocs/op
 PASS
-ok      github.com/backbone81/golr/examples/golang/parser       4.353s
+ok      github.com/backbone81/golr/examples/golang/parser       4.682s
 ```
 
 The benchmark uses the file `net/http/server.go` from the Go standard library as input. It is about 130 KB in size.
