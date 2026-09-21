@@ -76,8 +76,6 @@ typedef struct {{ .Type "Scanner" }} {
     {{ .Type "Token" }} token;
     size_t lexeme_start_idx;
     size_t lexeme_end_idx;
-    size_t line;
-    size_t column;
     size_t *line_starts;
     size_t line_starts_length;
     size_t line_starts_capacity;
@@ -96,12 +94,6 @@ void {{ .Func "ScannerFree" }}({{ .Type "Scanner" }} *scanner);
 /// Returns the start of the token in bytes from the start of the source. After the scanner reported false it is the
 /// offset one past the last byte.
 size_t {{ .Func "ScannerByteOffset" }}(const {{ .Type "Scanner" }} *scanner);
-
-/// Returns the line the token starts on, counted from one.
-size_t {{ .Func "ScannerLine" }}(const {{ .Type "Scanner" }} *scanner);
-
-/// Returns the column the token starts on, counted from one.
-size_t {{ .Func "ScannerColumn" }}(const {{ .Type "Scanner" }} *scanner);
 
 /// Returns the bytes of the token, as a range of the source rather than a copy of it.
 {{ .Type "StringView" }} {{ .Func "ScannerLexeme" }}(const {{ .Type "Scanner" }} *scanner);
@@ -139,12 +131,6 @@ typedef struct {{ .Type "TokenSource" }} {
 
     /// Returns the start of the token in bytes from the start of the source.
     size_t (*byte_offset)(const void *context);
-
-    /// Returns the line the token starts on, counted from one.
-    size_t (*line)(const void *context);
-
-    /// Returns the column the token starts on, counted from one.
-    size_t (*column)(const void *context);
 
     /// Returns the bytes of the token.
     {{ .Type "StringView" }} (*lexeme)(const void *context);
@@ -185,12 +171,6 @@ void {{ .Func "TokenSkipperInit" }}({{ .Type "TokenSkipper" }} *skipper, {{ .Typ
 
 /// Returns the start of the token in bytes from the start of the source.
 size_t {{ .Func "TokenSkipperByteOffset" }}(const {{ .Type "TokenSkipper" }} *skipper);
-
-/// Returns the line the token starts on, counted from one.
-size_t {{ .Func "TokenSkipperLine" }}(const {{ .Type "TokenSkipper" }} *skipper);
-
-/// Returns the column the token starts on, counted from one.
-size_t {{ .Func "TokenSkipperColumn" }}(const {{ .Type "TokenSkipper" }} *skipper);
 
 /// Returns the bytes of the token, as a range of the source rather than a copy of it.
 {{ .Type "StringView" }} {{ .Func "TokenSkipperLexeme" }}(const {{ .Type "TokenSkipper" }} *skipper);
@@ -311,14 +291,6 @@ void {{ .Func "ScannerFree" }}({{ .Type "Scanner" }} *scanner) {
 
 size_t {{ .Func "ScannerByteOffset" }}(const {{ .Type "Scanner" }} *scanner) {
     return scanner->lexeme_start_idx;
-}
-
-size_t {{ .Func "ScannerLine" }}(const {{ .Type "Scanner" }} *scanner) {
-    return scanner->line;
-}
-
-size_t {{ .Func "ScannerColumn" }}(const {{ .Type "Scanner" }} *scanner) {
-    return scanner->column;
 }
 
 {{ .Type "StringView" }} {{ .Func "ScannerLexeme" }}(const {{ .Type "Scanner" }} *scanner) {
@@ -460,12 +432,9 @@ void {{ .Func "ScannerReset" }}({{ .Type "Scanner" }} *scanner, const char *sour
     scanner->source_length = source_length;
 
     scanner->lexeme_start_idx = 0;
-    /* An offset past the end of the source would walk the line and column counters over bytes which are not there.
-       Clamping it leaves the scanner at the end of the source, where it reports the end token. */
+    /* An offset past the end of the source would point at bytes which are not there. Clamping it leaves the scanner at
+       the end of the source, where it reports the end token. */
     scanner->lexeme_end_idx = offset < source_length ? offset : source_length;
-
-    scanner->line = 1;
-    scanner->column = 1;
 
     /* The line starts belong to the source which was replaced here, but their storage is worth keeping. */
     scanner->line_starts_length = 0;
@@ -473,24 +442,10 @@ void {{ .Func "ScannerReset" }}({{ .Type "Scanner" }} *scanner, const char *sour
     scanner->token = {{ .Const "TokenInvalidToken" }};
 }
 
-/// Advances the line and column counters over the bytes between the two indexes.
-static void {{ .Func "ScannerUpdateLineAndColumn" }}({{ .Type "Scanner" }} *scanner, size_t start_idx, size_t end_idx) {
-    size_t idx;
-    for (idx = start_idx; idx < end_idx; idx++) {
-        if (scanner->source[idx] == '\n') {
-            scanner->line++;
-            scanner->column = 1;
-        } else {
-            scanner->column++;
-        }
-    }
-}
-
 bool {{ .Func "ScannerNext" }}({{ .Type "Scanner" }} *scanner) {
     size_t state = 0;
     size_t lexeme_peek_idx;
 
-    {{ .Func "ScannerUpdateLineAndColumn" }}(scanner, scanner->lexeme_start_idx, scanner->lexeme_end_idx);
     scanner->lexeme_start_idx = scanner->lexeme_end_idx;
 
     lexeme_peek_idx = scanner->lexeme_end_idx;
@@ -553,14 +508,6 @@ size_t {{ .Func "TokenSkipperByteOffset" }}(const {{ .Type "TokenSkipper" }} *sk
     return skipper->scanner.byte_offset(skipper->scanner.context);
 }
 
-size_t {{ .Func "TokenSkipperLine" }}(const {{ .Type "TokenSkipper" }} *skipper) {
-    return skipper->scanner.line(skipper->scanner.context);
-}
-
-size_t {{ .Func "TokenSkipperColumn" }}(const {{ .Type "TokenSkipper" }} *skipper) {
-    return skipper->scanner.column(skipper->scanner.context);
-}
-
 {{ .Type "StringView" }} {{ .Func "TokenSkipperLexeme" }}(const {{ .Type "TokenSkipper" }} *skipper) {
     return skipper->scanner.lexeme(skipper->scanner.context);
 }
@@ -602,14 +549,6 @@ static size_t {{ .Func "ScannerByteOffsetAdapter" }}(const void *context) {
     return {{ .Func "ScannerByteOffset" }}((const {{ .Type "Scanner" }} *)context);
 }
 
-static size_t {{ .Func "ScannerLineAdapter" }}(const void *context) {
-    return {{ .Func "ScannerLine" }}((const {{ .Type "Scanner" }} *)context);
-}
-
-static size_t {{ .Func "ScannerColumnAdapter" }}(const void *context) {
-    return {{ .Func "ScannerColumn" }}((const {{ .Type "Scanner" }} *)context);
-}
-
 static {{ .Type "StringView" }} {{ .Func "ScannerLexemeAdapter" }}(const void *context) {
     return {{ .Func "ScannerLexeme" }}((const {{ .Type "Scanner" }} *)context);
 }
@@ -639,8 +578,6 @@ static bool {{ .Func "ScannerNextAdapter" }}(void *context) {
     result.context = scanner;
     result.token = {{ .Func "ScannerTokenAdapter" }};
     result.byte_offset = {{ .Func "ScannerByteOffsetAdapter" }};
-    result.line = {{ .Func "ScannerLineAdapter" }};
-    result.column = {{ .Func "ScannerColumnAdapter" }};
     result.lexeme = {{ .Func "ScannerLexemeAdapter" }};
     result.position = {{ .Func "ScannerPositionAdapter" }};
     result.text = {{ .Func "ScannerTextAdapter" }};
@@ -656,14 +593,6 @@ static {{ .Type "Token" }} {{ .Func "TokenSkipperTokenAdapter" }}(const void *co
 
 static size_t {{ .Func "TokenSkipperByteOffsetAdapter" }}(const void *context) {
     return {{ .Func "TokenSkipperByteOffset" }}((const {{ .Type "TokenSkipper" }} *)context);
-}
-
-static size_t {{ .Func "TokenSkipperLineAdapter" }}(const void *context) {
-    return {{ .Func "TokenSkipperLine" }}((const {{ .Type "TokenSkipper" }} *)context);
-}
-
-static size_t {{ .Func "TokenSkipperColumnAdapter" }}(const void *context) {
-    return {{ .Func "TokenSkipperColumn" }}((const {{ .Type "TokenSkipper" }} *)context);
 }
 
 static {{ .Type "StringView" }} {{ .Func "TokenSkipperLexemeAdapter" }}(const void *context) {
@@ -695,8 +624,6 @@ static bool {{ .Func "TokenSkipperNextAdapter" }}(void *context) {
     result.context = skipper;
     result.token = {{ .Func "TokenSkipperTokenAdapter" }};
     result.byte_offset = {{ .Func "TokenSkipperByteOffsetAdapter" }};
-    result.line = {{ .Func "TokenSkipperLineAdapter" }};
-    result.column = {{ .Func "TokenSkipperColumnAdapter" }};
     result.lexeme = {{ .Func "TokenSkipperLexemeAdapter" }};
     result.position = {{ .Func "TokenSkipperPositionAdapter" }};
     result.text = {{ .Func "TokenSkipperTextAdapter" }};

@@ -109,16 +109,6 @@ class TokenSource(Protocol):
         ...
 
     @property
-    def line(self) -> int:
-        """The line the token starts on, counted from one."""
-        ...
-
-    @property
-    def column(self) -> int:
-        """The column the token starts on, counted from one."""
-        ...
-
-    @property
     def lexeme(self) -> bytes:
         """The bytes of the token."""
         ...
@@ -185,16 +175,6 @@ class TokenSkipper:
         After `next` returned false it is the offset one past the last byte.
         """
         return self._scanner.byte_offset
-
-    @property
-    def line(self) -> int:
-        """The line the token starts on, counted from one."""
-        return self._scanner.line
-
-    @property
-    def column(self) -> int:
-        """The column the token starts on, counted from one."""
-        return self._scanner.column
 
     @property
     def lexeme(self) -> bytes:
@@ -314,8 +294,6 @@ class Scanner:
         "_token",
         "_lexeme_start_idx",
         "_lexeme_end_idx",
-        "_line",
-        "_column",
         "_line_starts",
     )
 
@@ -333,12 +311,6 @@ class Scanner:
 
     _lexeme_end_idx: int
     """Index one past the last byte of the current token."""
-
-    _line: int
-    """The line the current token starts on, counted from one."""
-
-    _column: int
-    """The column the current token starts on, counted from one."""
 
     _line_starts: list[int]
     """The byte offset every line of the source begins at.
@@ -369,16 +341,6 @@ class Scanner:
         After `next` returned false it is the offset one past the last byte.
         """
         return self._lexeme_start_idx
-
-    @property
-    def line(self) -> int:
-        """The line the token starts on, counted from one."""
-        return self._line
-
-    @property
-    def column(self) -> int:
-        """The column the token starts on, counted from one."""
-        return self._column
 
     @property
     def lexeme(self) -> bytes:
@@ -440,12 +402,9 @@ class Scanner:
         self._source = source
 
         self._lexeme_start_idx = 0
-        # An offset past the end of the source would walk the line and column counters over bytes which are not
-        # there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+        # An offset past the end of the source would point at bytes which are not there. Clamping it leaves the
+        # scanner at the end of the source, where it reports the end token.
         self._lexeme_end_idx = min(offset, len(source))
-
-        self._line = 1
-        self._column = 1
 
         # The line starts belong to the source which was replaced here, but their storage is worth keeping.
         self._line_starts.clear()
@@ -457,7 +416,6 @@ class Scanner:
 
         Returns false once the end of the source is reached, which sets the token to the end token.
         """
-        self._update_line_and_column(self._lexeme_start_idx, self._lexeme_end_idx)
         self._lexeme_start_idx = self._lexeme_end_idx
 
         source = self._source
@@ -497,12 +455,3 @@ class Scanner:
         self._token = Token.INVALID_TOKEN
         self._lexeme_end_idx = max(self._lexeme_start_idx + 1, lexeme_peek_idx)
         return True
-
-    def _update_line_and_column(self, start_idx: int, end_idx: int) -> None:
-        """Advances the line and column counters over the bytes between the two indexes."""
-        for byte in self._source[start_idx:end_idx]:
-            if byte == 0x0A:
-                self._line += 1
-                self._column = 1
-            else:
-                self._column += 1

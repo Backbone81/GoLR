@@ -77,12 +77,6 @@ interface TokenSource {
      */
     val byteOffset: Int
 
-    /** The line the token starts on, counted from one. */
-    val line: Int
-
-    /** The column the token starts on, counted from one. */
-    val column: Int
-
     /** The bytes of the token, as a view into the source rather than a copy of it. */
     val lexeme: ByteBuffer
 
@@ -206,12 +200,6 @@ class Scanner(private var source: ByteArray, override val filePath: String) : To
     override val byteOffset: Int
         get() = lexemeStartIdx
 
-    override var line: Int = 1
-        private set
-
-    override var column: Int = 1
-        private set
-
     override val lexeme: ByteBuffer
         get() = sourceBuffer.slice(lexemeStartIdx, lexemeEndIdx - lexemeStartIdx)
 
@@ -265,12 +253,9 @@ class Scanner(private var source: ByteArray, override val filePath: String) : To
         sourceBuffer = ByteBuffer.wrap(source).asReadOnlyBuffer()
 
         lexemeStartIdx = 0
-        // An offset past the end of the source would walk the line and column counters over bytes which are not
-        // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+        // An offset past the end of the source would point at bytes which are not there. Clamping it leaves the
+        // scanner at the end of the source, where it reports the end token.
         lexemeEndIdx = minOf(offset, source.size)
-
-        line = 1
-        column = 1
 
         // The line starts belong to the source which was replaced here, but their storage is worth keeping.
         lineStartCount = 0
@@ -283,7 +268,6 @@ class Scanner(private var source: ByteArray, override val filePath: String) : To
      * source is reached, which sets the token to the end token.
      */
     override fun next(): Boolean {
-        updateLineAndColumn(lexemeStartIdx, lexemeEndIdx)
         lexemeStartIdx = lexemeEndIdx
 
         var state = 0
@@ -329,18 +313,6 @@ class Scanner(private var source: ByteArray, override val filePath: String) : To
         token = Token.INVALID_TOKEN
         lexemeEndIdx = maxOf(lexemeStartIdx + 1, lexemePeekIdx)
         return true
-    }
-
-    /** Advances the line and column counters over the bytes between the two indexes. */
-    private fun updateLineAndColumn(startIdx: Int, endIdx: Int) {
-        for (idx in startIdx until endIdx) {
-            if (source[idx].toInt() == 0x0a) {
-                line++
-                column = 1
-            } else {
-                column++
-            }
-        }
     }
 }
 

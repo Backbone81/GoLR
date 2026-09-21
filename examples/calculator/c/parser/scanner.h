@@ -83,8 +83,6 @@ typedef struct CalculatorScanner {
     CalculatorToken token;
     size_t lexeme_start_idx;
     size_t lexeme_end_idx;
-    size_t line;
-    size_t column;
     size_t *line_starts;
     size_t line_starts_length;
     size_t line_starts_capacity;
@@ -103,12 +101,6 @@ CalculatorToken calculator_scanner_token(const CalculatorScanner *scanner);
 /// Returns the start of the token in bytes from the start of the source. After the scanner reported false it is the
 /// offset one past the last byte.
 size_t calculator_scanner_byte_offset(const CalculatorScanner *scanner);
-
-/// Returns the line the token starts on, counted from one.
-size_t calculator_scanner_line(const CalculatorScanner *scanner);
-
-/// Returns the column the token starts on, counted from one.
-size_t calculator_scanner_column(const CalculatorScanner *scanner);
 
 /// Returns the bytes of the token, as a range of the source rather than a copy of it.
 CalculatorStringView calculator_scanner_lexeme(const CalculatorScanner *scanner);
@@ -146,12 +138,6 @@ typedef struct CalculatorTokenSource {
 
     /// Returns the start of the token in bytes from the start of the source.
     size_t (*byte_offset)(const void *context);
-
-    /// Returns the line the token starts on, counted from one.
-    size_t (*line)(const void *context);
-
-    /// Returns the column the token starts on, counted from one.
-    size_t (*column)(const void *context);
 
     /// Returns the bytes of the token.
     CalculatorStringView (*lexeme)(const void *context);
@@ -192,12 +178,6 @@ CalculatorToken calculator_token_skipper_token(const CalculatorTokenSkipper *ski
 
 /// Returns the start of the token in bytes from the start of the source.
 size_t calculator_token_skipper_byte_offset(const CalculatorTokenSkipper *skipper);
-
-/// Returns the line the token starts on, counted from one.
-size_t calculator_token_skipper_line(const CalculatorTokenSkipper *skipper);
-
-/// Returns the column the token starts on, counted from one.
-size_t calculator_token_skipper_column(const CalculatorTokenSkipper *skipper);
 
 /// Returns the bytes of the token, as a range of the source rather than a copy of it.
 CalculatorStringView calculator_token_skipper_lexeme(const CalculatorTokenSkipper *skipper);
@@ -359,14 +339,6 @@ size_t calculator_scanner_byte_offset(const CalculatorScanner *scanner) {
     return scanner->lexeme_start_idx;
 }
 
-size_t calculator_scanner_line(const CalculatorScanner *scanner) {
-    return scanner->line;
-}
-
-size_t calculator_scanner_column(const CalculatorScanner *scanner) {
-    return scanner->column;
-}
-
 CalculatorStringView calculator_scanner_lexeme(const CalculatorScanner *scanner) {
     CalculatorStringView lexeme;
     lexeme.data = scanner->source + scanner->lexeme_start_idx;
@@ -506,12 +478,9 @@ void calculator_scanner_reset(CalculatorScanner *scanner, const char *source, si
     scanner->source_length = source_length;
 
     scanner->lexeme_start_idx = 0;
-    /* An offset past the end of the source would walk the line and column counters over bytes which are not there.
-       Clamping it leaves the scanner at the end of the source, where it reports the end token. */
+    /* An offset past the end of the source would point at bytes which are not there. Clamping it leaves the scanner at
+       the end of the source, where it reports the end token. */
     scanner->lexeme_end_idx = offset < source_length ? offset : source_length;
-
-    scanner->line = 1;
-    scanner->column = 1;
 
     /* The line starts belong to the source which was replaced here, but their storage is worth keeping. */
     scanner->line_starts_length = 0;
@@ -519,24 +488,10 @@ void calculator_scanner_reset(CalculatorScanner *scanner, const char *source, si
     scanner->token = CALCULATOR_TOKEN_INVALID_TOKEN;
 }
 
-/// Advances the line and column counters over the bytes between the two indexes.
-static void calculator_scanner_update_line_and_column(CalculatorScanner *scanner, size_t start_idx, size_t end_idx) {
-    size_t idx;
-    for (idx = start_idx; idx < end_idx; idx++) {
-        if (scanner->source[idx] == '\n') {
-            scanner->line++;
-            scanner->column = 1;
-        } else {
-            scanner->column++;
-        }
-    }
-}
-
 bool calculator_scanner_next(CalculatorScanner *scanner) {
     size_t state = 0;
     size_t lexeme_peek_idx;
 
-    calculator_scanner_update_line_and_column(scanner, scanner->lexeme_start_idx, scanner->lexeme_end_idx);
     scanner->lexeme_start_idx = scanner->lexeme_end_idx;
 
     lexeme_peek_idx = scanner->lexeme_end_idx;
@@ -599,14 +554,6 @@ size_t calculator_token_skipper_byte_offset(const CalculatorTokenSkipper *skippe
     return skipper->scanner.byte_offset(skipper->scanner.context);
 }
 
-size_t calculator_token_skipper_line(const CalculatorTokenSkipper *skipper) {
-    return skipper->scanner.line(skipper->scanner.context);
-}
-
-size_t calculator_token_skipper_column(const CalculatorTokenSkipper *skipper) {
-    return skipper->scanner.column(skipper->scanner.context);
-}
-
 CalculatorStringView calculator_token_skipper_lexeme(const CalculatorTokenSkipper *skipper) {
     return skipper->scanner.lexeme(skipper->scanner.context);
 }
@@ -648,14 +595,6 @@ static size_t calculator_scanner_byte_offset_adapter(const void *context) {
     return calculator_scanner_byte_offset((const CalculatorScanner *)context);
 }
 
-static size_t calculator_scanner_line_adapter(const void *context) {
-    return calculator_scanner_line((const CalculatorScanner *)context);
-}
-
-static size_t calculator_scanner_column_adapter(const void *context) {
-    return calculator_scanner_column((const CalculatorScanner *)context);
-}
-
 static CalculatorStringView calculator_scanner_lexeme_adapter(const void *context) {
     return calculator_scanner_lexeme((const CalculatorScanner *)context);
 }
@@ -685,8 +624,6 @@ CalculatorTokenSource calculator_scanner_as_token_source(CalculatorScanner *scan
     result.context = scanner;
     result.token = calculator_scanner_token_adapter;
     result.byte_offset = calculator_scanner_byte_offset_adapter;
-    result.line = calculator_scanner_line_adapter;
-    result.column = calculator_scanner_column_adapter;
     result.lexeme = calculator_scanner_lexeme_adapter;
     result.position = calculator_scanner_position_adapter;
     result.text = calculator_scanner_text_adapter;
@@ -702,14 +639,6 @@ static CalculatorToken calculator_token_skipper_token_adapter(const void *contex
 
 static size_t calculator_token_skipper_byte_offset_adapter(const void *context) {
     return calculator_token_skipper_byte_offset((const CalculatorTokenSkipper *)context);
-}
-
-static size_t calculator_token_skipper_line_adapter(const void *context) {
-    return calculator_token_skipper_line((const CalculatorTokenSkipper *)context);
-}
-
-static size_t calculator_token_skipper_column_adapter(const void *context) {
-    return calculator_token_skipper_column((const CalculatorTokenSkipper *)context);
 }
 
 static CalculatorStringView calculator_token_skipper_lexeme_adapter(const void *context) {
@@ -741,8 +670,6 @@ CalculatorTokenSource calculator_token_skipper_as_token_source(CalculatorTokenSk
     result.context = skipper;
     result.token = calculator_token_skipper_token_adapter;
     result.byte_offset = calculator_token_skipper_byte_offset_adapter;
-    result.line = calculator_token_skipper_line_adapter;
-    result.column = calculator_token_skipper_column_adapter;
     result.lexeme = calculator_token_skipper_lexeme_adapter;
     result.position = calculator_token_skipper_position_adapter;
     result.text = calculator_token_skipper_text_adapter;

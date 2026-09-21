@@ -88,8 +88,6 @@ export function isSkipped(token) {
  * @typedef {object} TokenSource
  * @property {() => number} token
  * @property {() => number} byteOffset
- * @property {() => number} line
- * @property {() => number} column
  * @property {() => Uint8Array} lexeme
  * @property {(byteOffset: number) => Position} position
  * @property {(byteOffset: number, byteLength: number) => Uint8Array} text
@@ -134,24 +132,6 @@ export class TokenSkipper {
      */
     byteOffset() {
         return this.#scanner.byteOffset();
-    }
-
-    /**
-     * Returns the line the token starts on, counted from one.
-     *
-     * @returns {number}
-     */
-    line() {
-        return this.#scanner.line();
-    }
-
-    /**
-     * Returns the column the token starts on, counted from one.
-     *
-     * @returns {number}
-     */
-    column() {
-        return this.#scanner.column();
     }
 
     /**
@@ -326,20 +306,6 @@ export class Scanner {
     #lexemeEndIdx;
 
     /**
-     * The line the current token starts on, counted from one.
-     *
-     * @type {number}
-     */
-    #line;
-
-    /**
-     * The column the current token starts on, counted from one.
-     *
-     * @type {number}
-     */
-    #column;
-
-    /**
      * The byte offset every line of the source begins at. It is built on the first call to position and emptied by
      * reset, which keeps its storage for the next source.
      *
@@ -373,24 +339,6 @@ export class Scanner {
      */
     byteOffset() {
         return this.#lexemeStartIdx;
-    }
-
-    /**
-     * Returns the line the token starts on, counted from one.
-     *
-     * @returns {number}
-     */
-    line() {
-        return this.#line;
-    }
-
-    /**
-     * Returns the column the token starts on, counted from one.
-     *
-     * @returns {number}
-     */
-    column() {
-        return this.#column;
     }
 
     /**
@@ -500,12 +448,9 @@ export class Scanner {
         this.#source = source;
 
         this.#lexemeStartIdx = 0;
-        // An offset past the end of the source would walk the line and column counters over bytes which are not
-        // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+        // An offset past the end of the source would point at bytes which are not there. Clamping it leaves the
+        // scanner at the end of the source, where it reports the end token.
         this.#lexemeEndIdx = Math.min(offset, source.length);
-
-        this.#line = 1;
-        this.#column = 1;
 
         // The line starts belong to the source which was replaced here, but their storage is worth keeping.
         this.#lineStarts.length = 0;
@@ -520,7 +465,6 @@ export class Scanner {
      * @returns {boolean}
      */
     next() {
-        this.#updateLineAndColumn(this.#lexemeStartIdx, this.#lexemeEndIdx);
         this.#lexemeStartIdx = this.#lexemeEndIdx;
 
         let state = 0;
@@ -563,22 +507,5 @@ export class Scanner {
         this.#token = Token.InvalidToken;
         this.#lexemeEndIdx = Math.max(this.#lexemeStartIdx + 1, lexemePeekIdx);
         return true;
-    }
-
-    /**
-     * Advances the line and column counters over the bytes between the two indexes.
-     *
-     * @param {number} startIdx
-     * @param {number} endIdx
-     */
-    #updateLineAndColumn(startIdx, endIdx) {
-        for (const currByte of this.#source.subarray(startIdx, endIdx)) {
-            if (currByte === 0x0a) {
-                this.#line++;
-                this.#column = 1;
-            } else {
-                this.#column++;
-            }
-        }
     }
 }

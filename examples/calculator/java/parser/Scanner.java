@@ -25,12 +25,6 @@ interface TokenSource {
      */
     int byteOffset();
 
-    /** Returns the line the token starts on, counted from one. */
-    int line();
-
-    /** Returns the column the token starts on, counted from one. */
-    int column();
-
     /** Returns the bytes of the token, as a view into the source rather than a copy of it. */
     ByteBuffer lexeme();
 
@@ -144,16 +138,6 @@ public final class Scanner implements TokenSource {
         }
 
         @Override
-        public int line() {
-            return scanner.line();
-        }
-
-        @Override
-        public int column() {
-            return scanner.column();
-        }
-
-        @Override
         public ByteBuffer lexeme() {
             return scanner.lexeme();
         }
@@ -247,12 +231,6 @@ public final class Scanner implements TokenSource {
     /** Index one past the last byte of the current token. */
     private int lexemeEndIdx;
 
-    /** The line the current token starts on, counted from one. */
-    private int line;
-
-    /** The column the current token starts on, counted from one. */
-    private int column;
-
     /**
      * The byte offset every line of the source begins at, in the first {@link #lineStartCount} entries. It is built on
      * the first call to {@link #position(int)} and emptied by {@link #reset(byte[], int)}, which keeps its storage for
@@ -280,16 +258,6 @@ public final class Scanner implements TokenSource {
     @Override
     public int byteOffset() {
         return lexemeStartIdx;
-    }
-
-    @Override
-    public int line() {
-        return line;
-    }
-
-    @Override
-    public int column() {
-        return column;
     }
 
     @Override
@@ -354,12 +322,9 @@ public final class Scanner implements TokenSource {
         sourceBuffer = ByteBuffer.wrap(source).asReadOnlyBuffer();
 
         lexemeStartIdx = 0;
-        // An offset past the end of the source would walk the line and column counters over bytes which are not
-        // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+        // An offset past the end of the source would point at bytes which are not there. Clamping it leaves the
+        // scanner at the end of the source, where it reports the end token.
         lexemeEndIdx = Math.min(offset, source.length);
-
-        line = 1;
-        column = 1;
 
         // The line starts belong to the source which was replaced here, but their storage is worth keeping.
         lineStartCount = 0;
@@ -373,7 +338,6 @@ public final class Scanner implements TokenSource {
      */
     @Override
     public boolean next() {
-        updateLineAndColumn(lexemeStartIdx, lexemeEndIdx);
         lexemeStartIdx = lexemeEndIdx;
 
         int state = 0;
@@ -418,18 +382,6 @@ public final class Scanner implements TokenSource {
         token = Token.INVALID_TOKEN;
         lexemeEndIdx = Math.max(lexemeStartIdx + 1, lexemePeekIdx);
         return true;
-    }
-
-    /** Advances the line and column counters over the bytes between the two indexes. */
-    private void updateLineAndColumn(int startIdx, int endIdx) {
-        for (int idx = startIdx; idx < endIdx; idx++) {
-            if (source[idx] == 0x0a) {
-                line++;
-                column = 1;
-            } else {
-                column++;
-            }
-        }
     }
 
     /** Returns chunk 0 of {@link #BYTE_CLASS_BY_BYTE}. */

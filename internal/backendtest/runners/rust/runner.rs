@@ -70,44 +70,14 @@ fn escape_lexeme(lexeme: &[u8]) -> String {
 
 // append_scanner_trace scans the whole input and appends one line per event: the position the token or the failed
 // match starts at, a keyword, and for a token its rule and lexeme, for a failed match the bytes it could not match.
-// check_position holds the offset based position and text against the line, column and lexeme of the token the scanner
-// currently sits on. The two ways of asking exist side by side until the release which drops line and column, and the
-// corpus is where they have to agree: every case of it is far more input than a hand written test covers.
-fn check_position(scanner: &Scanner<'_>) {
-    let position = scanner.position(scanner.byte_offset());
-    if position.line != scanner.line()
-        || position.column != scanner.column()
-        || position.file_path != scanner.file_path()
-    {
-        eprintln!(
-            "position({}) is {} {}:{}, but the scanner reports {} {}:{}",
-            scanner.byte_offset(),
-            position.file_path,
-            position.line,
-            position.column,
-            scanner.file_path(),
-            scanner.line(),
-            scanner.column()
-        );
-        std::process::exit(1);
-    }
-
-    let lexeme = scanner.lexeme();
-    if scanner.text(scanner.byte_offset(), lexeme.len()) != lexeme {
-        eprintln!("text({}, {}) differs from the lexeme", scanner.byte_offset(), lexeme.len());
-        std::process::exit(1);
-    }
-}
-
 fn append_scanner_trace(lines: &mut Vec<String>, source: &[u8], input_path: &str) {
     // The plain Scanner and not the TokenSkipper: a skipped rule matched like any other, and the position of the
     // tokens around it is only checkable when it is in the trace.
     let mut scanner = Scanner::new(source, input_path);
 
     while scanner.next() {
-        check_position(&scanner);
-
-        let location = format!("{}:{}", scanner.line(), scanner.column());
+        let position = scanner.position(scanner.byte_offset());
+        let location = format!("{}:{}", position.line, position.column);
         let lexeme = escape_lexeme(scanner.lexeme());
 
         if scanner.token() == Token::InvalidToken {
@@ -118,9 +88,9 @@ fn append_scanner_trace(lines: &mut Vec<String>, source: &[u8], input_path: &str
     }
 
     // The position after the scanner ran out of input, which is one past the last byte only when it consumed
-    // everything. It is the offset every off by one in a line table lands on, so it is checked like a token.
-    check_position(&scanner);
-    let location = format!("{}:{}", scanner.line(), scanner.column());
+    // everything. It is the offset every off by one in a line table lands on.
+    let position = scanner.position(scanner.byte_offset());
+    let location = format!("{}:{}", position.line, position.column);
     lines.push(format!("{location:<7} {}", "EOF"));
 }
 

@@ -90,12 +90,6 @@ pub trait TokenSource<'a> {
     /// is the offset one past the last byte.
     fn byte_offset(&self) -> usize;
 
-    /// Returns the line the token starts on, counted from one.
-    fn line(&self) -> usize;
-
-    /// Returns the column the token starts on, counted from one.
-    fn column(&self) -> usize;
-
     /// Returns the bytes of the token, as a view into the source rather than a copy of it.
     fn lexeme(&self) -> &'a [u8];
 
@@ -140,14 +134,6 @@ impl<'a, S: TokenSource<'a>> TokenSource<'a> for TokenSkipper<S> {
 
     fn byte_offset(&self) -> usize {
         self.scanner.byte_offset()
-    }
-
-    fn line(&self) -> usize {
-        self.scanner.line()
-    }
-
-    fn column(&self) -> usize {
-        self.scanner.column()
     }
 
     fn lexeme(&self) -> &'a [u8] {
@@ -264,12 +250,6 @@ pub struct Scanner<'a> {
     /// Index one past the last byte of the current token.
     lexeme_end_idx: usize,
 
-    /// The line the current token starts on, counted from one.
-    line: usize,
-
-    /// The column the current token starts on, counted from one.
-    column: usize,
-
     /// The byte offset every line of the source begins at. It is built on the first call to
     /// [`TokenSource::position`] and dropped by [`TokenSource::reset`], which the cell allows because it holds the
     /// table behind a shared borrow.
@@ -301,18 +281,6 @@ impl<'a> Scanner<'a> {
         }
         line_starts
     }
-
-    /// Advances the line and column counters over the bytes between the two indexes.
-    fn update_line_and_column(&mut self, start_idx: usize, end_idx: usize) {
-        for &byte in &self.source[start_idx..end_idx] {
-            if byte == b'\n' {
-                self.line += 1;
-                self.column = 1;
-            } else {
-                self.column += 1;
-            }
-        }
-    }
 }
 
 impl<'a> TokenSource<'a> for Scanner<'a> {
@@ -322,14 +290,6 @@ impl<'a> TokenSource<'a> for Scanner<'a> {
 
     fn byte_offset(&self) -> usize {
         self.lexeme_start_idx
-    }
-
-    fn line(&self) -> usize {
-        self.line
-    }
-
-    fn column(&self) -> usize {
-        self.column
     }
 
     fn lexeme(&self) -> &'a [u8] {
@@ -371,12 +331,9 @@ impl<'a> TokenSource<'a> for Scanner<'a> {
         self.source = source;
 
         self.lexeme_start_idx = 0;
-        // An offset past the end of the source would walk the line and column counters over bytes which are not
-        // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+        // An offset past the end of the source would point at bytes which are not there. Clamping it leaves the
+        // scanner at the end of the source, where it reports the end token.
         self.lexeme_end_idx = offset.min(source.len());
-
-        self.line = 1;
-        self.column = 1;
 
         // The line starts belong to the source which was replaced here, so the cell goes back to being empty and the
         // next call to position builds the table again.
@@ -388,7 +345,6 @@ impl<'a> TokenSource<'a> for Scanner<'a> {
     /// Advances to the next token. Bytes which form no token become an invalid token. Returns false once the end of
     /// the source is reached, which sets the token to the end token.
     fn next(&mut self) -> bool {
-        self.update_line_and_column(self.lexeme_start_idx, self.lexeme_end_idx);
         self.lexeme_start_idx = self.lexeme_end_idx;
 
         let mut state = 0usize;

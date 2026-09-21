@@ -79,29 +79,6 @@ internal static class Runner
         return result.ToString();
     }
 
-    // CheckPosition holds the offset based Position and Text against the Line, Column and Lexeme of the token the
-    // scanner currently sits on. The two ways of asking exist side by side until the release which drops Line and
-    // Column, and the corpus is where they have to agree: every case of it is far more input than a hand written test
-    // covers.
-    private static void CheckPosition(Scanner scanner)
-    {
-        Position position = scanner.Position(scanner.ByteOffset);
-        if (position.Line != scanner.Line || position.Column != scanner.Column || position.FilePath != scanner.FilePath)
-        {
-            Console.Error.WriteLine(
-                $"Position({scanner.ByteOffset}) is {position.FilePath} {position.Line}:{position.Column}, " +
-                $"but the scanner reports {scanner.FilePath} {scanner.Line}:{scanner.Column}");
-            Environment.Exit(1);
-        }
-
-        ReadOnlySpan<byte> lexeme = scanner.Lexeme.Span;
-        if (!scanner.Text(scanner.ByteOffset, lexeme.Length).Span.SequenceEqual(lexeme))
-        {
-            Console.Error.WriteLine($"Text({scanner.ByteOffset}, {lexeme.Length}) differs from the lexeme");
-            Environment.Exit(1);
-        }
-    }
-
     // AppendScannerTrace scans the whole input and appends one line per event: the position the token or the failed
     // match starts at, a keyword, and for a token its rule and lexeme, for a failed match the bytes it could not match.
     private static void AppendScannerTrace(List<string> lines, byte[] source, string inputPath)
@@ -112,9 +89,8 @@ internal static class Runner
 
         while (scanner.Next())
         {
-            CheckPosition(scanner);
-
-            string location = $"{scanner.Line}:{scanner.Column}".PadRight(7);
+            Position position = scanner.Position(scanner.ByteOffset);
+            string location = $"{position.Line}:{position.Column}".PadRight(7);
             string lexeme = EscapeLexeme(scanner.Lexeme.Span);
 
             if (scanner.Token == Token.InvalidToken)
@@ -126,9 +102,9 @@ internal static class Runner
         }
 
         // The position after the scanner ran out of input, which is one past the last byte only when it consumed
-        // everything. It is the offset every off by one in a line table lands on, so it is checked like a token.
-        CheckPosition(scanner);
-        string endLocation = $"{scanner.Line}:{scanner.Column}".PadRight(7);
+        // everything. It is the offset every off by one in a line table lands on.
+        Position endPosition = scanner.Position(scanner.ByteOffset);
+        string endLocation = $"{endPosition.Line}:{endPosition.Column}".PadRight(7);
         lines.Add($"{endLocation} EOF");
     }
 

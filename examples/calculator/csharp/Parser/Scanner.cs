@@ -95,12 +95,6 @@ public interface ITokenSource
     /// </summary>
     int ByteOffset { get; }
 
-    /// <summary>The line the token starts on, counted from one.</summary>
-    int Line { get; }
-
-    /// <summary>The column the token starts on, counted from one.</summary>
-    int Column { get; }
-
     /// <summary>The bytes of the token, as a view into the source rather than a copy of it.</summary>
     ReadOnlyMemory<byte> Lexeme { get; }
 
@@ -153,12 +147,6 @@ public sealed class TokenSkipper : ITokenSource
 
     /// <inheritdoc/>
     public int ByteOffset => _scanner.ByteOffset;
-
-    /// <inheritdoc/>
-    public int Line => _scanner.Line;
-
-    /// <inheritdoc/>
-    public int Column => _scanner.Column;
 
     /// <inheritdoc/>
     public ReadOnlyMemory<byte> Lexeme => _scanner.Lexeme;
@@ -296,12 +284,6 @@ public sealed class Scanner : ITokenSource
     public int ByteOffset => _lexemeStartIdx;
 
     /// <inheritdoc/>
-    public int Line { get; private set; }
-
-    /// <inheritdoc/>
-    public int Column { get; private set; }
-
-    /// <inheritdoc/>
     public ReadOnlyMemory<byte> Lexeme => _source[_lexemeStartIdx.._lexemeEndIdx];
 
     /// <inheritdoc/>
@@ -360,12 +342,9 @@ public sealed class Scanner : ITokenSource
         _source = source;
 
         _lexemeStartIdx = 0;
-        // An offset past the end of the source would walk the line and column counters over bytes which are not
-        // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+        // An offset past the end of the source would point at bytes which are not there. Clamping it leaves the
+        // scanner at the end of the source, where it reports the end token.
         _lexemeEndIdx = Math.Min(offset, source.Length);
-
-        Line = 1;
-        Column = 1;
 
         // The line starts belong to the source which was replaced here, but their storage is worth keeping.
         _lineStarts.Clear();
@@ -381,7 +360,6 @@ public sealed class Scanner : ITokenSource
     {
         ReadOnlySpan<byte> source = _source.Span;
 
-        UpdateLineAndColumn(_lexemeStartIdx, _lexemeEndIdx);
         _lexemeStartIdx = _lexemeEndIdx;
 
         int state = 0;
@@ -430,24 +408,5 @@ public sealed class Scanner : ITokenSource
         Token = Token.InvalidToken;
         _lexemeEndIdx = Math.Max(_lexemeStartIdx + 1, lexemePeekIdx);
         return true;
-    }
-
-    /// <summary>Advances the line and column counters over the bytes between the two indexes.</summary>
-    /// <param name="startIdx">Index of the first byte to move over.</param>
-    /// <param name="endIdx">Index one past the last byte to move over.</param>
-    private void UpdateLineAndColumn(int startIdx, int endIdx)
-    {
-        foreach (byte currByte in _source.Span[startIdx..endIdx])
-        {
-            if (currByte == 0x0a)
-            {
-                Line++;
-                Column = 1;
-            }
-            else
-            {
-                Column++;
-            }
-        }
     }
 }

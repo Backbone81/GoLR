@@ -94,12 +94,6 @@ public:
     /// offset one past the last byte.
     [[nodiscard]] std::size_t byte_offset() const noexcept { return scanner_.byte_offset(); }
 
-    /// Returns the line the token starts on, counted from one.
-    [[nodiscard]] std::size_t line() const noexcept { return scanner_.line(); }
-
-    /// Returns the column the token starts on, counted from one.
-    [[nodiscard]] std::size_t column() const noexcept { return scanner_.column(); }
-
     /// Returns the bytes of the token, as a view into the source rather than a copy of it.
     [[nodiscard]] std::string_view lexeme() const { return scanner_.lexeme(); }
 
@@ -153,12 +147,6 @@ public:
     /// offset one past the last byte.
     [[nodiscard]] std::size_t byte_offset() const noexcept { return lexeme_start_idx_; }
 
-    /// Returns the line the token starts on, counted from one.
-    [[nodiscard]] std::size_t line() const noexcept { return line_; }
-
-    /// Returns the column the token starts on, counted from one.
-    [[nodiscard]] std::size_t column() const noexcept { return column_; }
-
     /// Returns the bytes of the token, as a view into the source rather than a copy of it.
     [[nodiscard]] std::string_view lexeme() const {
         return source_.substr(lexeme_start_idx_, lexeme_end_idx_ - lexeme_start_idx_);
@@ -196,12 +184,9 @@ public:
         source_ = source;
 
         lexeme_start_idx_ = 0;
-        // An offset past the end of the source would walk the line and column counters over bytes which are not
-        // there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+        // An offset past the end of the source would point at bytes which are not there. Clamping it leaves the
+        // scanner at the end of the source, where it reports the end token.
         lexeme_end_idx_ = std::min(offset, source_.size());
-
-        line_ = 1;
-        column_ = 1;
 
         // The line starts belong to the source which was replaced here, but their storage is worth keeping.
         line_starts_.clear();
@@ -212,7 +197,6 @@ public:
     /// Advances to the next token. Bytes which form no token become an invalid token. Returns false once the end of the
     /// source is reached, which sets the token to the end token.
     bool next() {
-        update_line_and_column(lexeme_start_idx_, lexeme_end_idx_);
         lexeme_start_idx_ = lexeme_end_idx_;
 
         std::size_t state = 0;
@@ -307,18 +291,6 @@ private:
         }
     }
 
-    /// Advances the line and column counters over the bytes between the two indexes.
-    void update_line_and_column(std::size_t start_idx, std::size_t end_idx) noexcept {
-        for (std::size_t idx = start_idx; idx < end_idx; idx++) {
-            if (source_[idx] == '\n') {
-                line_++;
-                column_ = 1;
-            } else {
-                column_++;
-            }
-        }
-    }
-
     /// The bytes being scanned.
     std::string_view source_;
 
@@ -333,12 +305,6 @@ private:
 
     /// Index one past the last byte of the current token.
     std::size_t lexeme_end_idx_;
-
-    /// The line the current token starts on, counted from one.
-    std::size_t line_;
-
-    /// The column the current token starts on, counted from one.
-    std::size_t column_;
 
     /// The byte offset every line of the source begins at. It is built on the first call to position() and emptied by
     /// reset(), which keeps its storage for the next source.
