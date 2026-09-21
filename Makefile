@@ -20,6 +20,13 @@ BACKEND_LABEL_FILTER := $(BACKEND_LABEL)$(if $(LANGUAGE), && $(LANGUAGE))
 # The shell scripts shellcheck is run over.
 SHELL_SCRIPTS := $(sort $(shell find internal scripts -name '*.sh'))
 
+# The user the containers run as, so nothing they write to a bind mount ends up owned by someone else. Regular docker
+# needs the invoking user. Rootless docker maps the invoking user to root inside the container, and any other user there
+# to an unrelated host user which cannot write to the bind mounts, so the containers run as root there.
+CONTAINER_ROOTLESS = $(shell docker info --format '{{.SecurityOptions}}' 2>/dev/null | grep -q rootless && echo yes)
+CONTAINER_UID ?= $(if $(CONTAINER_ROOTLESS),0,$(shell id -u))
+CONTAINER_GID ?= $(if $(CONTAINER_ROOTLESS),0,$(shell id -g))
+
 export CGO_ENABLED=0
 
 .PHONY: all
@@ -42,7 +49,7 @@ prepare: generate
 		--rm \
 		--volume ${PWD}:/app \
 		--workdir /app \
-		--user $$(id -u):$$(id -g) \
+		--user $(CONTAINER_UID):$(CONTAINER_GID) \
 		--volume $$(go env GOCACHE):/.cache/go-build \
 		--env GOCACHE=/.cache/go-build \
 		--volume $$(go env GOMODCACHE):/.cache/mod \
@@ -118,7 +125,7 @@ test-backends: build
 	mkdir -p tmp/backendtest
 	for language in $(if $(LANGUAGE),$(LANGUAGE),$(BACKEND_LANGUAGES)); do \
 		echo "==> running the corpus through the $$language container"; \
-		GOLR_UID=$$(id -u) GOLR_GID=$$(id -g) docker compose \
+		GOLR_UID=$(CONTAINER_UID) GOLR_GID=$(CONTAINER_GID) docker compose \
 			--file internal/backendtest/docker-compose.yaml \
 			--project-directory . \
 			run --rm --no-deps --no-TTY --build "$$language" || exit 1; \
