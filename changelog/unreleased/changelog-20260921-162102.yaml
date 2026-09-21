@@ -1,0 +1,1 @@
+description: "Semantic errors in GoLR and GNU Bison grammar files, like undeclared terminals or duplicate declarations, now report the file, line and column they occur at."

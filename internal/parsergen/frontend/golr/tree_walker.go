@@ -2,7 +2,6 @@
 package golr
 
 import (
-	"errors"
 	"fmt"
 	"math"
 
@@ -31,6 +30,13 @@ type TreeWalker struct {
 	// startNonterminalName keeps track of the start symbol declared with @start.
 	startNonterminalName string
 
+	// startNonterminalByteOffset is where the start symbol declared with @start is in the source.
+	startNonterminalByteOffset int
+
+	// nonterminalByteOffsetByName holds where every nonterminal first appears in the source, so an error about a
+	// nonterminal which is never defined can point at its first reference.
+	nonterminalByteOffsetByName map[string]int
+
 	// currentPrecedence is the current precedence level. The first precedence declared has the highest priority. Every
 	// following precedence is decremented by one for every @left, @right and @none
 	// declaration.
@@ -54,6 +60,9 @@ type TreeWalker struct {
 	// lexemeByName holds all lexemes of token declarations. This is needed to make fragments work.
 	lexemeByName map[string][]byte
 
+	// lexemeByteOffsetByName holds where the lexeme of every token declaration is in the source.
+	lexemeByteOffsetByName map[string]int
+
 	// explicitProductionNames holds every name set with an @name annotation so far, so a second production asking for
 	// the same name can be rejected.
 	explicitProductionNames map[string]struct{}
@@ -62,19 +71,28 @@ type TreeWalker struct {
 // NewTreeWalker creates a new TreeWalker which resolves the spans of the tree against the given scanner.
 func NewTreeWalker(scanner parser.TokenSource) *TreeWalker {
 	return &TreeWalker{
-		scanner:                 scanner,
-		terminalIdxByName:       make(map[string]int),
-		terminalIdxByAlias:      make(map[string]int),
-		nonterminalIdxByName:    make(map[string]int),
-		currentPrecedence:       math.MaxInt,
-		lexemeByName:            make(map[string][]byte),
-		explicitProductionNames: make(map[string]struct{}),
+		scanner:                     scanner,
+		terminalIdxByName:           make(map[string]int),
+		terminalIdxByAlias:          make(map[string]int),
+		nonterminalIdxByName:        make(map[string]int),
+		nonterminalByteOffsetByName: make(map[string]int),
+		currentPrecedence:           math.MaxInt,
+		lexemeByName:                make(map[string][]byte),
+		lexemeByteOffsetByName:      make(map[string]int),
+		explicitProductionNames:     make(map[string]struct{}),
 	}
 }
 
 // text returns the bytes of the source the given node covers, as a view into the source rather than a copy of it.
 func (w *TreeWalker) text(node *parser.Node) []byte {
 	return w.scanner.Text(node.ByteOffset, node.ByteLength)
+}
+
+// errorAt returns an error with the given message, prefixed with the file path, line and column of the given byte
+// offset of the source.
+func (w *TreeWalker) errorAt(byteOffset int, format string, args ...any) error {
+	position := w.scanner.Position(byteOffset)
+	return fmt.Errorf("%s:%d:%d: %w", position.FilePath, position.Line, position.Column, fmt.Errorf(format, args...))
 }
 
 // BuildGrammar takes the root node of the parse tree, traverses the tree to build the context free grammar
@@ -86,7 +104,11 @@ func (w *TreeWalker) BuildGrammar(node parser.Node) ([]scannergenfrontend.Rule, 
 	if w.startNonterminalName != "" {
 		idx, ok := w.nonterminalIdxByName[w.startNonterminalName]
 		if !ok {
-			return nil, parsergenfrontend.Grammar{}, fmt.Errorf("unknown start nonterminal %q", w.startNonterminalName)
+			return nil, parsergenfrontend.Grammar{}, w.errorAt(
+				w.startNonterminalByteOffset,
+				"unknown start nonterminal %q",
+				w.startNonterminalName,
+			)
 		}
 		w.grammar.StartNonterminalIdx = idx
 	}
@@ -100,12 +122,20 @@ func (w *TreeWalker) BuildGrammar(node parser.Node) ([]scannergenfrontend.Rule, 
 		if _, ok := definedNonterminals[idx]; !ok {
 			return nil,
 				parsergenfrontend.Grammar{},
-				fmt.Errorf("nonterminal %q is referenced but never defined", nonterminal.Name)
+				w.errorAt(
+					w.nonterminalByteOffsetByName[nonterminal.Name],
+					"nonterminal %q is referenced but never defined",
+					nonterminal.Name,
+				)
 		}
 	}
 
 	if len(w.grammar.Productions) < 1 {
-		return nil, parsergenfrontend.Grammar{}, errors.New("grammar requires at least one production")
+		// There is no single place a missing production belongs to, so the error points at the end of the grammar.
+		return nil, parsergenfrontend.Grammar{}, w.errorAt(
+			node.ByteOffset+node.ByteLength,
+			"grammar requires at least one production",
+		)
 	}
 
 	// Nonterminals are interned in order of first appearance, which counts right hand side references (see
@@ -214,7 +244,7 @@ func (w *TreeWalker) resolvePatterns() error {
 		if lexeme[0] == '"' {
 			alias := string(lexeme)
 			if _, exists := w.terminalIdxByAlias[alias]; exists {
-				return fmt.Errorf("alias %s has already been declared", alias)
+				return w.errorAt(w.lexemeByteOffsetByName[rule.Name], "alias %s has already been declared", alias)
 			}
 			w.grammar.Terminals[idx].Alias = alias
 			w.terminalIdxByAlias[alias] = idx
@@ -222,7 +252,12 @@ func (w *TreeWalker) resolvePatterns() error {
 		} else {
 			regexNode, err := regex.Parse(lexeme, fragments)
 			if err != nil {
-				return fmt.Errorf("invalid regex for terminal %q: %w", rule.Name, err)
+				return w.errorAt(
+					w.lexemeByteOffsetByName[rule.Name],
+					"invalid regex for terminal %q: %w",
+					rule.Name,
+					err,
+				)
 			}
 			w.rules[idx].Regex = *regexNode
 		}
@@ -262,13 +297,14 @@ func (w *TreeWalker) visitScannerDecl(node *parser.Node) error {
 	// We reset the fragment for each declaration.
 	w.isFragment = false
 
-	name, err := w.getNameLexeme(node)
+	nameNode, err := w.getNameNode(node)
 	if err != nil {
 		return err
 	}
+	name := string(w.text(nameNode))
 
 	if _, ok := w.lexemeByName[name]; ok {
-		return fmt.Errorf("terminal %q is declared multiple times", name)
+		return w.errorAt(nameNode.ByteOffset, "terminal %q is declared multiple times", name)
 	}
 	w.lexemeByName[name] = nil // prime the lexeme now, so we cannot forget empty declarations
 
@@ -340,7 +376,9 @@ func (w *TreeWalker) visitScannerPattern(node *parser.Node) error {
 		return nil
 	}
 
-	w.lexemeByName[w.rules[len(w.rules)-1].Name] = w.text(&node.Children[0])
+	name := w.rules[len(w.rules)-1].Name
+	w.lexemeByName[name] = w.text(&node.Children[0])
+	w.lexemeByteOffsetByName[name] = node.Children[0].ByteOffset
 	return nil
 }
 
@@ -427,6 +465,7 @@ func (w *TreeWalker) visitStartDecl(node *parser.Node) {
 		}
 		if terminal == parser.TokenIdentifier && w.startNonterminalName == "" {
 			w.startNonterminalName = string(w.text(&child))
+			w.startNonterminalByteOffset = child.ByteOffset
 		}
 	}
 }
@@ -556,18 +595,20 @@ func (w *TreeWalker) visitProductionDecl(node *parser.Node) error {
 		panic("unexpected nonterminal")
 	}
 
-	name, err := w.getNameLexeme(node)
+	nameNode, err := w.getNameNode(node)
 	if err != nil {
 		return err
 	}
+	name := string(w.text(nameNode))
 
 	if _, ok := w.terminalIdxByName[name]; ok {
-		return fmt.Errorf("left hand side of production %q is already declared as terminal", name)
+		return w.errorAt(nameNode.ByteOffset, "left hand side of production %q is already declared as terminal", name)
 	}
 
 	if _, ok := w.nonterminalIdxByName[name]; !ok {
 		w.grammar.Nonterminals = append(w.grammar.Nonterminals, parsergenfrontend.Symbol{Name: name})
 		w.nonterminalIdxByName[name] = len(w.grammar.Nonterminals) - 1
+		w.nonterminalByteOffsetByName[name] = nameNode.ByteOffset
 	}
 
 	w.grammar.Productions = append(w.grammar.Productions, parsergenfrontend.Production{
@@ -725,13 +766,13 @@ func (w *TreeWalker) visitNameAnnotation(node *parser.Node) error {
 
 		name := string(w.text(&child))
 		if _, exists := w.explicitProductionNames[name]; exists {
-			return fmt.Errorf("duplicate production name %q", name)
+			return w.errorAt(child.ByteOffset, "duplicate production name %q", name)
 		}
 		w.explicitProductionNames[name] = struct{}{}
 		w.grammar.Productions[len(w.grammar.Productions)-1].Name = &name
 		return nil
 	}
-	return errors.New("no IDENTIFIER token found in @name annotation")
+	return w.errorAt(node.ByteOffset, "no IDENTIFIER token found in @name annotation")
 }
 
 func (w *TreeWalker) visitSymbolList(node *parser.Node) error {
@@ -769,17 +810,17 @@ func (w *TreeWalker) visitSymbol(node *parser.Node) error {
 	}
 
 	if w.inAlternativeAnnotation {
-		return w.visitSymbolInAlternativeAnnotation(name)
+		return w.visitSymbolInAlternativeAnnotation(node, name)
 	}
 
 	if w.inPrecedenceDecl {
-		return w.visitSymbolInPrecedenceDecl(name)
+		return w.visitSymbolInPrecedenceDecl(node, name)
 	}
 
-	return w.visitSymbolInAlternative(name)
+	return w.visitSymbolInAlternative(node, name)
 }
 
-func (w *TreeWalker) visitSymbolInAlternativeAnnotation(name string) error {
+func (w *TreeWalker) visitSymbolInAlternativeAnnotation(node *parser.Node, name string) error {
 	// We are inside @precedence(...) — set the precedence override terminal for the current production.
 	if idx, ok := w.terminalIdxByName[name]; ok {
 		w.grammar.Productions[len(w.grammar.Productions)-1].PrecedenceTerminalIdx = &idx
@@ -789,10 +830,10 @@ func (w *TreeWalker) visitSymbolInAlternativeAnnotation(name string) error {
 		w.grammar.Productions[len(w.grammar.Productions)-1].PrecedenceTerminalIdx = &idx
 		return nil
 	}
-	return fmt.Errorf("undeclared terminal %s", name)
+	return w.errorAt(node.ByteOffset, "undeclared terminal %s", name)
 }
 
-func (w *TreeWalker) visitSymbolInPrecedenceDecl(name string) error {
+func (w *TreeWalker) visitSymbolInPrecedenceDecl(node *parser.Node, name string) error {
 	// We are inside a precedence_decl symbol_list — assign precedence and associativity to this terminal.
 	if idx, ok := w.terminalIdxByName[name]; ok {
 		w.grammar.Terminals[idx].Associativity = w.currentAssociativity
@@ -804,10 +845,10 @@ func (w *TreeWalker) visitSymbolInPrecedenceDecl(name string) error {
 		w.grammar.Terminals[idx].Precedence = w.currentPrecedence
 		return nil
 	}
-	return fmt.Errorf("undeclared terminal %s", name)
+	return w.errorAt(node.ByteOffset, "undeclared terminal %s", name)
 }
 
-func (w *TreeWalker) visitSymbolInAlternative(name string) error {
+func (w *TreeWalker) visitSymbolInAlternative(node *parser.Node, name string) error {
 	// We are in a production alternative — add the symbol to the current production's RHS.
 	if terminalIdx, ok := w.terminalIdxByName[name]; ok {
 		production := w.grammar.Productions[len(w.grammar.Productions)-1]
@@ -824,12 +865,13 @@ func (w *TreeWalker) visitSymbolInAlternative(name string) error {
 	}
 
 	if len(name) > 0 && name[0] == '"' {
-		return fmt.Errorf("undeclared terminal %s", name)
+		return w.errorAt(node.ByteOffset, "undeclared terminal %s", name)
 	}
 
 	if _, ok := w.nonterminalIdxByName[name]; !ok {
 		w.grammar.Nonterminals = append(w.grammar.Nonterminals, parsergenfrontend.Symbol{Name: name})
 		w.nonterminalIdxByName[name] = len(w.grammar.Nonterminals) - 1
+		w.nonterminalByteOffsetByName[name] = node.ByteOffset
 	}
 
 	nonterminalIdx := w.nonterminalIdxByName[name]
@@ -839,27 +881,28 @@ func (w *TreeWalker) visitSymbolInAlternative(name string) error {
 	return nil
 }
 
-func (w *TreeWalker) getNameLexeme(node *parser.Node) (string, error) {
-	for _, child := range node.Children {
-		terminal, ok := child.Symbol.Terminal()
+// getNameNode returns the IDENTIFIER child of the given node, which is the name the node declares.
+func (w *TreeWalker) getNameNode(node *parser.Node) (*parser.Node, error) {
+	for i := range node.Children {
+		terminal, ok := node.Children[i].Symbol.Terminal()
 		if !ok {
 			continue
 		}
 		if terminal == parser.TokenIdentifier {
-			return string(w.text(&child)), nil
+			return &node.Children[i], nil
 		}
 	}
-	return "", errors.New("no name token found")
+	return nil, w.errorAt(node.ByteOffset, "no name token found")
 }
 
 func (w *TreeWalker) getSymbolName(node *parser.Node) (string, error) {
 	if len(node.Children) != 1 {
-		return "", errors.New("unexpected symbol node structure")
+		return "", w.errorAt(node.ByteOffset, "unexpected symbol node structure")
 	}
 	child := node.Children[0]
 	terminal, ok := child.Symbol.Terminal()
 	if !ok {
-		return "", errors.New("expected terminal in symbol node")
+		return "", w.errorAt(node.ByteOffset, "expected terminal in symbol node")
 	}
 	switch terminal {
 	case parser.TokenIdentifier:
@@ -874,5 +917,5 @@ func (w *TreeWalker) getSymbolName(node *parser.Node) (string, error) {
 		}
 		return alias, nil
 	}
-	return "", fmt.Errorf("unexpected token %v in symbol node", terminal)
+	return "", w.errorAt(node.ByteOffset, "unexpected token %v in symbol node", terminal)
 }

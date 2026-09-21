@@ -1577,6 +1577,17 @@ var _ = Describe("Bison Grammar Files", func() {
 			}))
 		})
 
+		It("should reject a %start naming an unknown nonterminal", func() {
+			bisonGrammar := utils.HereDoc(`
+				%start c
+				%%
+				a:
+			`)
+			Expect(bison.GrammarFromString(bisonGrammar)).Error().To(MatchError(
+				`in-memory:1:8: unknown start nonterminal "c"`,
+			))
+		})
+
 		It("should default to the first nonterminal when no %start is declared", func() {
 			bisonGrammar := utils.HereDoc(`
 				%%
@@ -1624,7 +1635,10 @@ var _ = Describe("Bison Grammar Files", func() {
 				%%
 				s: 'ab'
 			`)
-			Expect(bison.GrammarFromString(bisonGrammar)).Error().To(HaveOccurred())
+			Expect(bison.GrammarFromString(bisonGrammar)).Error().To(MatchError(
+				"in-memory:1:13: char literal 'ab' contains more than one character\n" +
+					"in-memory:3:4: char literal 'ab' contains more than one character",
+			))
 		})
 
 		It("should return an error for a char literal with an unknown escape sequence", func() {
@@ -1632,7 +1646,9 @@ var _ = Describe("Bison Grammar Files", func() {
 				%%
 				s: '\z'
 			`)
-			Expect(bison.GrammarFromString(bisonGrammar)).Error().To(HaveOccurred())
+			Expect(bison.GrammarFromString(bisonGrammar)).Error().To(MatchError(
+				`in-memory:2:4: char literal '\z' contains an unknown escape sequence`,
+			))
 		})
 
 		It("should return an error for an empty char literal", func() {
@@ -1641,7 +1657,9 @@ var _ = Describe("Bison Grammar Files", func() {
 				%%
 				s: %empty
 			`)
-			Expect(bison.GrammarFromString(bisonGrammar)).Error().To(HaveOccurred())
+			Expect(bison.GrammarFromString(bisonGrammar)).Error().To(MatchError(
+				"in-memory:1:7: invalid char literal ''",
+			))
 		})
 	})
 

@@ -28,6 +28,9 @@ type TreeWalker struct {
 	// startNonterminalName keeps track of the start symbol defined by %start
 	startNonterminalName string
 
+	// startNonterminalByteOffset is where the start symbol defined by %start is in the source.
+	startNonterminalByteOffset int
+
 	// currentPrecedence is the current precedence level and is increased for every %left, %right, %nonassoc and
 	// %precedence
 	currentPrecedence int
@@ -68,6 +71,13 @@ func (w *TreeWalker) text(node *parser.Node) []byte {
 	return w.scanner.Text(node.ByteOffset, node.ByteLength)
 }
 
+// errorAt returns an error with the given message, prefixed with the file path, line and column of the given byte
+// offset of the source.
+func (w *TreeWalker) errorAt(byteOffset int, format string, args ...any) error {
+	position := w.scanner.Position(byteOffset)
+	return fmt.Errorf("%s:%d:%d: %w", position.FilePath, position.Line, position.Column, fmt.Errorf(format, args...))
+}
+
 // BuildGrammar takes the root node of the parse tree, traverses the tree to build the context free grammar
 // and returns the finished grammar afterward.
 func (w *TreeWalker) BuildGrammar(node parser.Node) (frontend.Grammar, error) {
@@ -78,7 +88,11 @@ func (w *TreeWalker) BuildGrammar(node parser.Node) (frontend.Grammar, error) {
 	if w.startNonterminalName != "" {
 		idx, ok := w.nonterminalIdxByName[w.startNonterminalName]
 		if !ok {
-			return frontend.Grammar{}, fmt.Errorf("unknown start nonterminal %q", w.startNonterminalName)
+			return frontend.Grammar{}, w.errorAt(
+				w.startNonterminalByteOffset,
+				"unknown start nonterminal %q",
+				w.startNonterminalName,
+			)
 		}
 		w.grammar.StartNonterminalIdx = idx
 	}
@@ -289,7 +303,7 @@ func (w *TreeWalker) visitTokenDecl(node *parser.Node) {
 	if err != nil {
 		id, err = w.getCharLiteralAsID(node)
 		if err != nil {
-			w.errs = append(w.errs, err)
+			w.errs = append(w.errs, w.errorAt(node.ByteOffset, "%w", err))
 			return
 		}
 	}
@@ -303,7 +317,7 @@ func (w *TreeWalker) visitTokenDecl(node *parser.Node) {
 	if id[0] == '\'' {
 		name, err := charLiteralTerminalName(id)
 		if err != nil {
-			w.errs = append(w.errs, err)
+			w.errs = append(w.errs, w.errorAt(node.ByteOffset, "%w", err))
 			return
 		}
 		symbol.Name = name
@@ -412,7 +426,7 @@ func (w *TreeWalker) visitTokenDeclForPrec(node *parser.Node) {
 		if err != nil {
 			id, err = w.getCharLiteralAsID(node)
 			if err != nil {
-				w.errs = append(w.errs, err)
+				w.errs = append(w.errs, w.errorAt(node.ByteOffset, "%w", err))
 				return
 			}
 		}
@@ -432,7 +446,7 @@ func (w *TreeWalker) visitTokenDeclForPrec(node *parser.Node) {
 	if id[0] == '\'' {
 		name, err := charLiteralTerminalName(id)
 		if err != nil {
-			w.errs = append(w.errs, err)
+			w.errs = append(w.errs, w.errorAt(node.ByteOffset, "%w", err))
 			return
 		}
 		symbol.Name = name
@@ -582,7 +596,7 @@ func (w *TreeWalker) visitSymbol(node *parser.Node) {
 	if err != nil {
 		// Silently skipping the symbol would drop it from the production and produce a wrong grammar, so the error
 		// has to be reported.
-		w.errs = append(w.errs, err)
+		w.errs = append(w.errs, w.errorAt(node.ByteOffset, "%w", err))
 		return
 	}
 
@@ -600,6 +614,7 @@ func (w *TreeWalker) visitSymbol(node *parser.Node) {
 		// We arrived here through the %start declaration. We set the start nonterminal only if not already set.
 		if w.startNonterminalName == "" {
 			w.startNonterminalName = id
+			w.startNonterminalByteOffset = node.ByteOffset
 		}
 		return
 	}

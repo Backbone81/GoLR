@@ -47,7 +47,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 			}
 		`)
 		_, _, err := golr.GrammarFromString(source)
-		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError(`in-memory:4:2: grammar requires at least one production`))
 	})
 
 	Context("Tokens", func() {
@@ -200,7 +200,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				}
 			`)
 			_, _, err := golr.GrammarFromString(source)
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`in-memory:3:2: terminal "FOO" is declared multiple times`))
 		})
 
 		It("should reject duplicate token aliases", func() {
@@ -214,7 +214,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				}
 			`)
 			_, _, err := golr.GrammarFromString(source)
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`in-memory:3:7: alias "baz" has already been declared`))
 		})
 
 		It("should reject a token with an invalid regular expression", func() {
@@ -227,7 +227,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				}
 			`)
 			_, _, err := golr.GrammarFromString(source)
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`in-memory:2:7: invalid regex for terminal "FOO": unexpected end of character class`))
 		})
 	})
 
@@ -351,7 +351,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				}
 			`)
 			_, _, err := golr.GrammarFromString(source)
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`in-memory:5:10: undeclared terminal FOO`))
 		})
 	})
 
@@ -448,7 +448,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				}
 			`)
 			_, _, err := golr.GrammarFromString(source)
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`in-memory:3:2: terminal "DIGIT" is declared multiple times`))
 		})
 
 		It("should reject a fragment name that collides with a token name", func() {
@@ -462,7 +462,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				}
 			`)
 			_, _, err := golr.GrammarFromString(source)
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`in-memory:3:2: terminal "DIGIT" is declared multiple times`))
 		})
 
 		It("should reject a token referencing an unknown fragment", func() {
@@ -475,7 +475,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				}
 			`)
 			_, _, err := golr.GrammarFromString(source)
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`in-memory:2:10: invalid regex for terminal "NUMBER": unknown fragment "DIGIT"`))
 		})
 
 		It("should reject a cyclic fragment reference", func() {
@@ -490,7 +490,10 @@ var _ = Describe("GoLR Grammar Files", func() {
 				}
 			`)
 			_, _, err := golr.GrammarFromString(source)
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(
+				`in-memory:4:9: invalid regex for terminal "TOKEN": fragment "A": fragment "B": ` +
+					`fragment "A" has a cyclic reference`,
+			))
 		})
 	})
 
@@ -731,7 +734,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				}
 			`)
 			_, _, err := golr.GrammarFromString(source)
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`in-memory:5:2: left hand side of production "FOO" is already declared as terminal`))
 		})
 
 		It("should reject production with undeclared nonterminal", func() {
@@ -743,7 +746,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				}
 			`)
 			_, _, err := golr.GrammarFromString(source)
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`in-memory:4:8: nonterminal "content" is referenced but never defined`))
 		})
 
 		It("should reject production with undeclared terminal", func() {
@@ -755,7 +758,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				}
 			`)
 			_, _, err := golr.GrammarFromString(source)
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`in-memory:4:8: undeclared terminal "foo"`))
 		})
 	})
 
@@ -1022,7 +1025,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				}
 			`)
 			_, _, err := golr.GrammarFromString(source)
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`in-memory:5:26: undeclared terminal BAR`))
 		})
 	})
 
@@ -1104,8 +1107,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				}
 			`)
 			_, _, err := golr.GrammarFromString(source)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring(`"dup"`))
+			Expect(err).To(MatchError(`in-memory:7:19: duplicate production name "dup"`))
 		})
 
 		It("should round trip an @name annotation through the GoLR writer", func() {
@@ -1178,7 +1180,7 @@ var _ = Describe("GoLR Grammar Files", func() {
 				}
 			`)
 			_, _, err := golr.GrammarFromString(source)
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`in-memory:4:10: unknown start nonterminal "content"`))
 		})
 	})
 })
