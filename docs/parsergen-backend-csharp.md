@@ -7,8 +7,8 @@ generated parser does and [scanner generator backend: C#](scannergen-backend-csh
 generated into.
 
 `Parser.Parse` takes an `ITokenSource` and returns a `ParseResult` holding the tree and the errors, and can be called
-again with another scanner. The tree is null when the parse could not be finished. Lexemes are a
-`ReadOnlyMemory<byte>` over the source rather than a copy of it.
+again with another scanner. The tree is null when the parse could not be finished. Every node
+carries its span as `ByteOffset` and `ByteLength`, which the scanner's `Text` turns into its bytes.
 
 Every nonterminal node's `Production` property names the alternative it was reduced by, as one of the generated
 `Production` members (`ProductionExpression1`, ... - `@name` in the grammar overrides the auto-generated name). It is

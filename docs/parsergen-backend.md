@@ -59,10 +59,24 @@ column, because no scanner ever delivers the error symbol - the parser shifts it
 
 ## The parse tree
 
-A parse returns a tree with a node per grammar symbol. A node carries the symbol it stands for, and either the bytes of
-the terminal or the child nodes of the production which was reduced to it. Terminal lexemes are a view into the source
-rather than a copy, so the source has to outlive the tree. Nodes for the error symbol carry neither, since no input
-produced them. Walking such a tree is what the [calculator example](../examples/calculator/) shows.
+A parse returns a tree with a node per grammar symbol. A node carries the symbol it stands for, the child nodes of the
+production which was reduced to it, and the span of the source it covers as a byte offset and a byte length. A node
+holds no text: the scanner's `Text` turns a span into its bytes and `Position` turns an offset into line and column, so
+the source has to stay available for as long as spans are resolved. Walking such a tree is what the
+[calculator example](../examples/calculator/) shows.
+
+Spans follow these rules:
+
+- A **terminal** covers its lexeme.
+- A **nonterminal** runs from the start of its first child to the end of its last, so every child lies inside its
+  parent.
+- An **empty production** has length zero and sits at the end of the symbol to its left, or at the start of the
+  lookahead when nothing is to its left. A production starting with such a node therefore includes the whitespace in
+  front of its first real symbol.
+- An **error node** covers what its recovery round dropped: the nodes it popped and the tokens it discarded. If it
+  dropped nothing, it has length zero and sits like an empty production.
+
+For every node, `Text(ByteOffset, ByteLength)` is the source the node covers.
 
 ## Tracing
 
@@ -138,6 +152,11 @@ Two things are worth knowing before writing one:
   hand-written scanner does have to deliver is the end token, since that is how the parser learns the input is over.
 - **The error token is never produced by a scanner.** It exists as a constant because the grammar names it, but no
   input yields it and the parser shifts it itself while recovering.
+- **`Position` and `Text` are part of the token source.** The parser uses `Position` for the line and column of errors
+  and trace lines. A wrapper around a scanner forwards both.
+- **A synthetic token has an empty lexeme**, and its byte offset is where it is conceptually inserted. A wrapper which
+  inserts a semicolon at the end of a line, for example, puts it at the end of the token before it. Anything else breaks
+  the span rules of the nodes above it.
 
 The reverse direction, a generated scanner feeding a hand-written parser, is described in
 [scanner generator backends](scannergen-backend.md).

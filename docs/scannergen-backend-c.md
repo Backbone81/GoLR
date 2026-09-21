@@ -17,6 +17,11 @@ context pointer plus the function pointers to read it with - through `<prefix>_s
 `<prefix>_token_skipper_as_token_source`, which is what a parser is handed. Lexemes are a `<Prefix>StringView` pointing
 into the source, not a copy of it and not null terminated.
 
+`<prefix>_scanner_position` returns a `<Prefix>Position` and `<prefix>_scanner_text` a `<Prefix>StringView`. The line
+table behind `<prefix>_scanner_position` is allocated on its first call and released by `<prefix>_scanner_free`, so
+call that once the scanner is done with, or the table leaks. A reset keeps the allocation for the next source. If the
+table cannot be allocated, `<prefix>_scanner_position` still answers correctly by counting line feeds on every call.
+
 ## Example
 
 [examples/calculator/c/](../examples/calculator/c/) is a calculator built on this backend. Its scanner was generated

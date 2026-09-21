@@ -11,8 +11,9 @@ defaults to `super::scanner`.
 
 `Parser::parse` takes anything implementing `TokenSource` and returns a `ParseResult` holding the tree and the errors,
 and can be called again with another scanner. The tree is `None` when the parse could not be finished. The result is
-`#[must_use]`, since dropping it unlooked at drops every error the parse reported. Lexemes borrow from the source, so
-the borrow checker enforces that the source outlives the tree.
+`#[must_use]`, since dropping it unlooked at drops every error the parse reported. Every node carries its span as
+`byte_offset` and `byte_length`, which the scanner's `text` turns into its bytes. A `ParseNode` does not borrow the
+source and has no lifetime parameter; the `ParseResult` still has one, because its errors borrow their lexemes.
 
 Every nonterminal node's `production` field names the alternative it was reduced by, as one of the generated
 `Production` variants (`ProductionExpression1`, ... - `@name` in the grammar overrides the auto-generated name). It is

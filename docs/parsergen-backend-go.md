@@ -14,8 +14,8 @@ can be set at the same time when the parse recovered from an error:
   was found at, so `errors.Is(err, ErrSyntax)` tells a syntax error apart from an `ErrInternal`, and `errors.As` gets
   at the position of the first one - both look into a join. Printing the joined error lists all of them, one per line.
   To reach every single error instead of the first, unwrap the join with `err.(interface{ Unwrap() []error })`.
-- The tree is the zero `Node` when the parse could not be finished. Its lexemes are a `[]byte` viewing into the source
-  rather than a copy of it.
+- The tree is the zero `Node` when the parse could not be finished. Every node carries its span as `ByteOffset` and
+  `ByteLength`, which the scanner's `Text` turns into its bytes.
 
 The nodes of the tree are handed out from an arena which the parser reuses, which is what keeps a parse from allocating
 once per node. A tree therefore stays valid only until the next call to `Parse` on the same parser, which hands the

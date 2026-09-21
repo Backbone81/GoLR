@@ -8,7 +8,7 @@ every generated scanner does and [parser generator backend: C#](parsergen-backen
 The scanner is `Scanner` and its tokens are the `Token` enum, extended by `TokenExtensions` with `IsSkipped` and
 `ToDisplayString`. `TokenSkipper` wraps a scanner to drop the tokens marked for skipping. Both implement
 `ITokenSource`, which is what a parser reads its tokens through. Lexemes are a `ReadOnlyMemory<byte>` over the source
-rather than a copy of it.
+rather than a copy of it. `Position` returns a `Position` record struct and `Text` a `ReadOnlyMemory<byte>`.
 
 ## Example
 

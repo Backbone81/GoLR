@@ -9,7 +9,11 @@ crate it is dropped into.
 The scanner is `Scanner` and its tokens are the `Token` enum, with `is_skipped` alongside it. `TokenSkipper` wraps a
 scanner to drop the tokens marked for skipping. Both implement the `TokenSource` trait, which is what a parser reads
 its tokens through. A scanner borrows its source, and lexemes are a `&[u8]` into it, so the borrow checker enforces
-that the source outlives what is taken from it.
+that the source outlives what is taken from it. `position` returns a `Position<'_>` borrowing the file path from the
+scanner, and `text` a `&[u8]` into the source.
+
+The line table is a `OnceCell` built behind `&self`, so a `Scanner` is `Send` but not `Sync`: it moves to another
+thread, but a `&Scanner` is not shared between threads.
 
 ## Example
 

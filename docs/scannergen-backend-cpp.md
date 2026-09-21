@@ -10,7 +10,8 @@ It targets C++17 and is a self contained header which includes nothing beyond th
 The scanner is `Scanner` and its tokens are the `Token` enum class. `TokenSkipper` wraps a scanner to drop the tokens
 marked for skipping; it is a template rather than an implementation of an interface, so anything offering the same
 members can take the place of a scanner. Lexemes are a `std::string_view` into the source, which therefore has to
-outlive them.
+outlive them. `position` returns a `Position` and is `const`, the line table being `mutable`; `text` returns a
+`std::string_view`.
 
 ## Example
 

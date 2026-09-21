@@ -20,7 +20,8 @@ produced. An allocation which fails ends the parse and is reported as an error o
 
 Every nonterminal node's `production` field names the alternative it was reduced by, as one of the generated
 `<Prefix>Production` enumerators (`<PREFIX>_PRODUCTION_EXPRESSION1`, ... - `@name` in the grammar overrides the
-auto-generated name). It is `<PREFIX>_NO_PRODUCTION` on a terminal node, which no production reduces to.
+auto-generated name). It is `<PREFIX>_NO_PRODUCTION` on a terminal node, which no production reduces to. Every node
+carries its span as `byte_offset` and `byte_length`, which `<prefix>_scanner_text` turns into its bytes.
 
 ## Tracing
 

@@ -71,28 +71,40 @@ match the same bytes, the one specified earlier in the grammar wins.
 
 ## Positions and lexemes
 
-Every token comes with the byte offset it starts at, its line and its column, both counted from one. The column counts
-bytes rather than characters, so a multi byte character advances it by more than one. The lexeme is a view into the
-source rather than a copy of it, which means the source has to outlive the tokens taken from it.
+Every token comes with the byte offset it starts at and its lexeme. The lexeme is a view into the source rather than a
+copy of it, which means the source has to outlive the tokens taken from it.
+
+Byte offsets are the only coordinates a scanner carries. Two methods resolve them against the source:
+
+- **`Position(byteOffset)`** returns the file path, the byte offset, the line and the column. Line and column are
+  counted from one, and the column counts bytes rather than characters. Only `\n` starts a new line, so `\r\n` works and
+  a lone `\r` does not break the line. Offsets from zero up to and including the length of the source are valid, the
+  last one being the end of the source; anything outside is clamped.
+- **`Text(byteOffset, byteLength)`** returns the bytes of a span, clamped to the source, as a view where the language
+  allows it.
+
+The line table behind `Position` is built on its first call, so a scan which never asks for a position does not pay for
+it. Both methods are part of the token source, and a token skipper forwards them to the scanner it wraps.
 
 ## Reuse and concurrency
 
 The tables are constant data which every scanner of the same rules shares, so creating one is cheap.
 
 A scanner is reused by resetting it onto a source and a byte offset within it, which is what re-tokenizing the part of
-a source which changed needs. The positions it reports stay absolute: the counters are brought up to date over the
-bytes before the offset, so a token found after a reset carries the line and column it has in the whole source and not
-one relative to where the scan resumed. Tokens read before a reset keep pointing into the source they came from, which
+a source which changed needs. A reset takes constant time, and offsets stay absolute: `Position` resolves them against
+the whole source, not against where the scan resumed. A reset drops the line table, and `Position` and `Text` then
+answer for the new source only. Tokens read before a reset keep pointing into the source they came from, which
 therefore has to stay alive for as long as they are used.
 
-A scanner is a scan in progress and not safe to use from several threads at once. Give every thread its own; since the
-tables are read only, nothing has to be shared or locked between them.
+A scanner is a scan in progress and not safe to use from several threads at once, and that includes `Position`, which
+may build the line table. Give every thread its own; since the tables are read only, nothing has to be shared or locked
+between them.
 
 ## Using a hand-written parser
 
 A generated scanner is usable on its own. It is an iterator over tokens with no knowledge of any parser: advance it,
-read the current token with its position and lexeme, and stop when the end token arrives. Nothing about it requires the
-consumer to be a generated parser.
+read the current token with its byte offset and lexeme, and stop when the end token arrives. Nothing about it requires
+the consumer to be a generated parser.
 
 The reverse direction, a generated parser fed by a hand-written scanner, is described in
 [parser generator backends](parsergen-backend.md#using-a-hand-written-scanner).

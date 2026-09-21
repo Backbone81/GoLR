@@ -7,7 +7,8 @@ every generated scanner does and [parser generator backend: Go](parsergen-backen
 
 The scanner is `Scanner` and its tokens are the `Token` constants. `TokenSkipper` wraps a scanner to drop the tokens
 marked for skipping. Both implement `TokenSource`, which is what a parser reads its tokens through. Lexemes are a
-`[]byte` viewing into the source rather than a copy of it.
+`[]byte` viewing into the source rather than a copy of it. `Position` returns a `Position` struct and `Text` a `[]byte`
+of the source.
 
 ## Example
 

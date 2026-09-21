@@ -9,7 +9,7 @@ The output is an ES module and needs nothing beyond the language itself.
 The scanner is `Scanner` and its tokens are the frozen `Token` object together with the `Token` type, with
 `tokenToString` and `isSkipped` alongside them. `TokenSkipper` wraps a scanner to drop the tokens marked for skipping.
 Both implement the `TokenSource` interface, which is what a parser reads its tokens through. Lexemes are a `Uint8Array`
-viewing into the source rather than a copy of it.
+viewing into the source rather than a copy of it. `position` returns a `Position` and `text` a `Uint8Array`.
 
 ## Example
 

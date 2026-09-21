@@ -10,8 +10,8 @@ The output is an ES module and needs nothing beyond the language itself.
 to `./scanner.js`.
 
 `Parser.parse` takes a `TokenSource` and returns a `ParseResult` holding the tree and the errors, and can be called
-again with another scanner. The tree is null when the parse could not be finished. Lexemes are a `Uint8Array` viewing
-into the source rather than a copy of it.
+again with another scanner. The tree is null when the parse could not be finished. Every node carries its span as
+`byteOffset` and `byteLength`, which the scanner's `text` turns into its bytes.
 
 Every nonterminal node's `production` field names the alternative it was reduced by, as one of the generated
 `Production` values (`ProductionExpression1`, ... - `@name` in the grammar overrides the auto-generated name). It is

@@ -1,0 +1,1 @@
+description: "BREAKING: C scanners allocate a line table on the first position lookup. Call <prefix>_scanner_free once a scanner is done with, or the table leaks."

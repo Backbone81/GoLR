@@ -1,0 +1,1 @@
+description: "BREAKING: Parse tree nodes carry the byte offset and length of the source they cover instead of a lexeme. Scanners resolve these through the new Position and Text methods, which replace Line and Column."

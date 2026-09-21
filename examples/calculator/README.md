@@ -56,6 +56,9 @@ shape of the node tells the evaluator which production was matched:
 For the 3-child case, checking whether the middle child is a terminal distinguishes a binary operation from a grouped
 sub-expression.
 
+A node carries no text, only the span of the input it covers. The evaluator reads an integer's digits with
+`scanner.Text(node.ByteOffset, node.ByteLength)`.
+
 ## Running the Example
 
 ```shell

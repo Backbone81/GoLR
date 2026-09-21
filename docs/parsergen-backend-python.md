@@ -10,7 +10,8 @@ leading dot makes the import relative, which is what a scanner and a parser sitt
 
 `Parser.parse` takes a `TokenSource` and returns a `ParseResult` holding the tree and the errors, and can be called
 again with another scanner. The tree is `None` when the parse could not be finished. Errors are returned rather than
-raised, so reporting many of them costs nothing. Lexemes are `bytes` sliced out of the source.
+raised, so reporting many of them costs nothing. Every node carries its span as `byte_offset` and
+`byte_length`, which the scanner's `text` turns into its bytes.
 
 Every nonterminal node's `production` field names the alternative it was reduced by, as one of the generated
 `Production` members (`PRODUCTION_EXPRESSION1`, ... - `@name` in the grammar overrides the auto-generated name). It is

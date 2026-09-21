@@ -11,7 +11,7 @@ The scanner is the `Scanner` class, its tokens are the `Token` enum, and `TokenS
 tokens marked for skipping. Both implement `TokenSource`, which is what a parser reads its tokens through, and the
 skipper hands every member but `next` on to the scanner it wraps by class delegation. What a scanner reports is
 properties rather than methods, so it is `scanner.token` and not `scanner.token()`. Lexemes are a `ByteBuffer` over the
-source rather than a copy of it.
+source rather than a copy of it. `position` returns a `Position` data class and `text` a `ByteBuffer`.
 
 ## Example
 

@@ -9,7 +9,8 @@ It targets Java 17.
 
 The scanner is the `Scanner` class, its tokens are the nested `Scanner.Token` enum, and the nested
 `Scanner.TokenSkipper` wraps a scanner to drop the tokens marked for skipping. Both implement `TokenSource`, which is
-what a parser reads its tokens through. Lexemes are a `ByteBuffer` over the source rather than a copy of it.
+what a parser reads its tokens through. Lexemes are a `ByteBuffer` over the source rather than a copy of it. `position`
+returns the nested `Scanner.Position` record and `text` a `ByteBuffer`.
 
 ## Example
 

@@ -11,7 +11,8 @@ scanner was generated into.
 `Parser.parse` takes a `TokenSource` and returns a `ParseResult` holding the tree and the errors, and can be called
 again with another scanner. The tree is null when the parse could not be finished, which the Kotlin type system states
 rather than the documentation. A `ParseSymbol` is a sealed interface over `TerminalSymbol` and `NonterminalSymbol`, so a
-`when` over a node symbol needs no else branch. Lexemes are a `ByteBuffer` over the source rather than a copy of it.
+`when` over a node symbol needs no else branch. Every node carries its span as `byteOffset` and `byteLength`, which the
+scanner's `text` turns into its bytes.
 
 Every nonterminal node's `production` property names the alternative it was reduced by, as one of the generated
 `Production` entries (`PRODUCTION_EXPRESSION1`, ... - `@name` in the grammar overrides the auto-generated name). It is

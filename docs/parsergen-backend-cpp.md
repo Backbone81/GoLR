@@ -11,8 +11,8 @@ generated into. `--backend-cpp-scanner-include` sets the header the token type i
 
 `Parser::parse` returns a `ParseResult` holding the tree and the errors, and can be called again with a different
 scanner. It is a template over the scanner type rather than a function taking an interface, so any type with the
-members the generated scanner has will do. The tree holds `std::string_view` lexemes into the source, which therefore
-has to outlive it.
+members the generated scanner has will do. Every node carries its span as `byte_offset` and `byte_length`, which the
+scanner's `text` turns into its bytes.
 
 Every nonterminal node's `production` field names the alternative it was reduced by, as one of the generated
 `Production` enumerators (`ProductionExpression1`, ... - `@name` in the grammar overrides the auto-generated name). It

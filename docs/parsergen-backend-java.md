@@ -10,7 +10,8 @@ scanner was generated into.
 
 `Parser.parse` takes a `TokenSource` and returns a `ParseResult` record holding the tree and the errors, and can be
 called again with another scanner. The tree is null when the parse could not be finished. Nodes, errors and symbols are
-records too, and lexemes are a `ByteBuffer` over the source rather than a copy of it.
+records too, and a node carries its span as `byteOffset()` and `byteLength()`, which the scanner's `text` turns into its
+bytes.
 
 Every nonterminal node's `production` component names the alternative it was reduced by, as one of the generated
 `Production` values (`PRODUCTION_EXPRESSION1`, ... - `@name` in the grammar overrides the auto-generated name). It is
