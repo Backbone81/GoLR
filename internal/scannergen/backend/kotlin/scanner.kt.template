@@ -54,6 +54,9 @@ interface TokenSource {
      */
     val byteOffset: Int
 
+    /** The length of the token in bytes. After [next] returned false it is zero. */
+    val byteLength: Int
+
     /** The bytes of the token, as a view into the source rather than a copy of it. */
     val lexeme: ByteBuffer
 
@@ -176,6 +179,9 @@ class Scanner(private var source: ByteArray, override val filePath: String) : To
 
     override val byteOffset: Int
         get() = lexemeStartIdx
+
+    override val byteLength: Int
+        get() = lexemeEndIdx - lexemeStartIdx
 
     override val lexeme: ByteBuffer
         get() = sourceBuffer.slice(lexemeStartIdx, lexemeEndIdx - lexemeStartIdx)

@@ -11,7 +11,7 @@ import "bytes"
 //
 // A trailing semicolon is also inserted at end of file if the last token is a trigger.
 //
-// An inserted semicolon has an empty lexeme and the offset of the end of the token in front of it.
+// An inserted semicolon has an empty lexeme, a length of zero and the offset of the end of the token in front of it.
 type SemicolonInserter struct {
 	Scanner *TokenSkipper
 
@@ -30,7 +30,7 @@ func (s *SemicolonInserter) Reset(source []byte, offset int) {
 
 func (s *SemicolonInserter) Next() bool {
 	// A semicolon inserted after the current token goes at its end.
-	previousEnd := s.Scanner.ByteOffset() + len(s.Scanner.Lexeme())
+	previousEnd := s.Scanner.ByteOffset() + s.Scanner.ByteLength()
 
 	var result bool
 	if len(s.bufferedTokens) > 0 {
@@ -100,6 +100,13 @@ func (s *SemicolonInserter) ByteOffset() int {
 		return s.bufferedByteOffset
 	}
 	return s.Scanner.ByteOffset()
+}
+
+func (s *SemicolonInserter) ByteLength() int {
+	if len(s.bufferedTokens) > 0 {
+		return 0
+	}
+	return s.Scanner.ByteLength()
 }
 
 func (s *SemicolonInserter) Lexeme() []byte {

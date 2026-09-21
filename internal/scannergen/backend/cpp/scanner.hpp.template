@@ -94,6 +94,9 @@ public:
     /// offset one past the last byte.
     [[nodiscard]] std::size_t byte_offset() const noexcept { return scanner_.byte_offset(); }
 
+    /// Returns the length of the token in bytes. After next() returned false it is zero.
+    [[nodiscard]] std::size_t byte_length() const noexcept { return scanner_.byte_length(); }
+
     /// Returns the bytes of the token, as a view into the source rather than a copy of it.
     [[nodiscard]] std::string_view lexeme() const { return scanner_.lexeme(); }
 
@@ -146,6 +149,9 @@ public:
     /// Returns the start of the token in bytes from the start of the source. After next() returned false it is the
     /// offset one past the last byte.
     [[nodiscard]] std::size_t byte_offset() const noexcept { return lexeme_start_idx_; }
+
+    /// Returns the length of the token in bytes. After next() returned false it is zero.
+    [[nodiscard]] std::size_t byte_length() const noexcept { return lexeme_end_idx_ - lexeme_start_idx_; }
 
     /// Returns the bytes of the token, as a view into the source rather than a copy of it.
     [[nodiscard]] std::string_view lexeme() const {

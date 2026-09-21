@@ -25,6 +25,9 @@ interface TokenSource {
      */
     int byteOffset();
 
+    /** Returns the length of the token in bytes. After {@link #next()} returned false it is zero. */
+    int byteLength();
+
     /** Returns the bytes of the token, as a view into the source rather than a copy of it. */
     ByteBuffer lexeme();
 
@@ -135,6 +138,11 @@ public final class Scanner implements TokenSource {
         @Override
         public int byteOffset() {
             return scanner.byteOffset();
+        }
+
+        @Override
+        public int byteLength() {
+            return scanner.byteLength();
         }
 
         @Override
@@ -258,6 +266,11 @@ public final class Scanner implements TokenSource {
     @Override
     public int byteOffset() {
         return lexemeStartIdx;
+    }
+
+    @Override
+    public int byteLength() {
+        return lexemeEndIdx - lexemeStartIdx;
     }
 
     @Override

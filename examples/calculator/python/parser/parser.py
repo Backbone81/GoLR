@@ -507,7 +507,7 @@ class Parser:
             if self.trace is not None:
                 self._emit_trace(scanner, "SHIFT", f'{_terminal_trace_name(terminal)} "{_escape_lexeme(scanner.lexeme)}"')
             self._state_stack.append(action >> _ACTION_KIND_BITS)
-            self._node_stack.append(ParseNode(TerminalSymbol(terminal), scanner.byte_offset, len(scanner.lexeme)))
+            self._node_stack.append(ParseNode(TerminalSymbol(terminal), scanner.byte_offset, scanner.byte_length))
             scanner.next()
             if self._error_recovery_shifts_remaining > 0:
                 # Getting tokens of the input shifted again is what makes the parser trust its position.
@@ -620,7 +620,7 @@ class Parser:
                     scanner, "DISCARD", f'{_terminal_trace_name(scanner.token)} "{_escape_lexeme(scanner.lexeme)}"'
                 )
             # The discarded token is thrown away as well, so the span reaches to its end and not to its start.
-            dropped_length = len(scanner.lexeme)
+            dropped_length = scanner.byte_length
             scanner.next()
         self._error_recovery_shifts_remaining = _ERROR_RECOVERY_SHIFTS
 

@@ -58,7 +58,7 @@ class GolrLexer : LexerBase() {
         }
 
         val startByte = scanner.byteOffset
-        val endByte = startByte + scanner.lexeme.remaining()
+        val endByte = startByte + scanner.byteLength
         tokenStart = byteToChar[startByte]
         tokenEnd = byteToChar[endByte]
         tokenType = mapToken(scanner.token, startByte)

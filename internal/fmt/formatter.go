@@ -318,7 +318,7 @@ func (f *Formatter) onTokenIdentifier() {
 	case golrparser.TokenScanner:
 		// This identifier is the left hand side of a scanner rule; remember its length for the ":"
 		// that follows right after.
-		f.lastScannerIdentifierLen = len(f.scanner.Lexeme())
+		f.lastScannerIdentifierLen = f.scanner.ByteLength()
 		if f.explicitBlankLine {
 			// Preserve the user's blank line between scanner rules.
 			f.blankLine()

@@ -448,7 +448,7 @@ impl<'a, 't> ParseState<'a, 't> {
                 self.node_stack.push(ParseNode {
                     symbol: ParseSymbol::Terminal(terminal),
                     byte_offset: scanner.byte_offset(),
-                    byte_length: scanner.lexeme().len(),
+                    byte_length: scanner.byte_length(),
                     children: Vec::new(),
                     production: None,
                 });
@@ -591,7 +591,7 @@ impl<'a, 't> ParseState<'a, 't> {
                 self.emit_trace(scanner, "DISCARD", &payload);
             }
             // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
-            dropped_length = scanner.lexeme().len();
+            dropped_length = scanner.byte_length();
             scanner.next();
         }
         self.error_recovery_shifts_remaining = ERROR_RECOVERY_SHIFTS;

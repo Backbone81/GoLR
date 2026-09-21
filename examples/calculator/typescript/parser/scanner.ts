@@ -90,6 +90,9 @@ export interface TokenSource {
      */
     byteOffset(): number;
 
+    /** Returns the length of the token in bytes. After next returned false it is zero. */
+    byteLength(): number;
+
     /** Returns the bytes of the token, as a view into the source rather than a copy of it. */
     lexeme(): Uint8Array;
 
@@ -143,6 +146,11 @@ export class TokenSkipper implements TokenSource {
      */
     byteOffset(): number {
         return this.#scanner.byteOffset();
+    }
+
+    /** Returns the length of the token in bytes. After next returned false it is zero. */
+    byteLength(): number {
+        return this.#scanner.byteLength();
     }
 
     /** Returns the bytes of the token, as a view into the source rather than a copy of it. */
@@ -300,6 +308,11 @@ export class Scanner implements TokenSource {
      */
     byteOffset(): number {
         return this.#lexemeStartIdx;
+    }
+
+    /** Returns the length of the token in bytes. After next returned false it is zero. */
+    byteLength(): number {
+        return this.#lexemeEndIdx - this.#lexemeStartIdx;
     }
 
     /** Returns the bytes of the token, as a view into the source rather than a copy of it. */

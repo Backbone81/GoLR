@@ -483,7 +483,7 @@ export class Parser {
                 }
                 this.#stateStack.push(action >>> actionKindBits);
                 this.#nodeStack.push(
-                    new ParseNode(ParseSymbol.newTerminal(terminal), scanner.byteOffset(), scanner.lexeme().length, [], null),
+                    new ParseNode(ParseSymbol.newTerminal(terminal), scanner.byteOffset(), scanner.byteLength(), [], null),
                 );
                 scanner.next();
                 if (this.#errorRecoveryShiftsRemaining > 0) {
@@ -612,7 +612,7 @@ export class Parser {
                 this.#emitTrace(scanner, "DISCARD", `${terminalTraceName(scanner.token())} "${escapeLexeme(scanner.lexeme())}"`);
             }
             // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
-            droppedLength = scanner.lexeme().length;
+            droppedLength = scanner.byteLength();
             scanner.next();
         }
         this.#errorRecoveryShiftsRemaining = errorRecoveryShifts;

@@ -95,6 +95,9 @@ void {{ .Func "ScannerFree" }}({{ .Type "Scanner" }} *scanner);
 /// offset one past the last byte.
 size_t {{ .Func "ScannerByteOffset" }}(const {{ .Type "Scanner" }} *scanner);
 
+/// Returns the length of the token in bytes. After the scanner reported false it is zero.
+size_t {{ .Func "ScannerByteLength" }}(const {{ .Type "Scanner" }} *scanner);
+
 /// Returns the bytes of the token, as a range of the source rather than a copy of it.
 {{ .Type "StringView" }} {{ .Func "ScannerLexeme" }}(const {{ .Type "Scanner" }} *scanner);
 
@@ -131,6 +134,9 @@ typedef struct {{ .Type "TokenSource" }} {
 
     /// Returns the start of the token in bytes from the start of the source.
     size_t (*byte_offset)(const void *context);
+
+    /// Returns the length of the token in bytes.
+    size_t (*byte_length)(const void *context);
 
     /// Returns the bytes of the token.
     {{ .Type "StringView" }} (*lexeme)(const void *context);
@@ -171,6 +177,9 @@ void {{ .Func "TokenSkipperInit" }}({{ .Type "TokenSkipper" }} *skipper, {{ .Typ
 
 /// Returns the start of the token in bytes from the start of the source.
 size_t {{ .Func "TokenSkipperByteOffset" }}(const {{ .Type "TokenSkipper" }} *skipper);
+
+/// Returns the length of the token in bytes.
+size_t {{ .Func "TokenSkipperByteLength" }}(const {{ .Type "TokenSkipper" }} *skipper);
 
 /// Returns the bytes of the token, as a range of the source rather than a copy of it.
 {{ .Type "StringView" }} {{ .Func "TokenSkipperLexeme" }}(const {{ .Type "TokenSkipper" }} *skipper);
@@ -291,6 +300,10 @@ void {{ .Func "ScannerFree" }}({{ .Type "Scanner" }} *scanner) {
 
 size_t {{ .Func "ScannerByteOffset" }}(const {{ .Type "Scanner" }} *scanner) {
     return scanner->lexeme_start_idx;
+}
+
+size_t {{ .Func "ScannerByteLength" }}(const {{ .Type "Scanner" }} *scanner) {
+    return scanner->lexeme_end_idx - scanner->lexeme_start_idx;
 }
 
 {{ .Type "StringView" }} {{ .Func "ScannerLexeme" }}(const {{ .Type "Scanner" }} *scanner) {
@@ -508,6 +521,10 @@ size_t {{ .Func "TokenSkipperByteOffset" }}(const {{ .Type "TokenSkipper" }} *sk
     return skipper->scanner.byte_offset(skipper->scanner.context);
 }
 
+size_t {{ .Func "TokenSkipperByteLength" }}(const {{ .Type "TokenSkipper" }} *skipper) {
+    return skipper->scanner.byte_length(skipper->scanner.context);
+}
+
 {{ .Type "StringView" }} {{ .Func "TokenSkipperLexeme" }}(const {{ .Type "TokenSkipper" }} *skipper) {
     return skipper->scanner.lexeme(skipper->scanner.context);
 }
@@ -549,6 +566,10 @@ static size_t {{ .Func "ScannerByteOffsetAdapter" }}(const void *context) {
     return {{ .Func "ScannerByteOffset" }}((const {{ .Type "Scanner" }} *)context);
 }
 
+static size_t {{ .Func "ScannerByteLengthAdapter" }}(const void *context) {
+    return {{ .Func "ScannerByteLength" }}((const {{ .Type "Scanner" }} *)context);
+}
+
 static {{ .Type "StringView" }} {{ .Func "ScannerLexemeAdapter" }}(const void *context) {
     return {{ .Func "ScannerLexeme" }}((const {{ .Type "Scanner" }} *)context);
 }
@@ -578,6 +599,7 @@ static bool {{ .Func "ScannerNextAdapter" }}(void *context) {
     result.context = scanner;
     result.token = {{ .Func "ScannerTokenAdapter" }};
     result.byte_offset = {{ .Func "ScannerByteOffsetAdapter" }};
+    result.byte_length = {{ .Func "ScannerByteLengthAdapter" }};
     result.lexeme = {{ .Func "ScannerLexemeAdapter" }};
     result.position = {{ .Func "ScannerPositionAdapter" }};
     result.text = {{ .Func "ScannerTextAdapter" }};
@@ -593,6 +615,10 @@ static {{ .Type "Token" }} {{ .Func "TokenSkipperTokenAdapter" }}(const void *co
 
 static size_t {{ .Func "TokenSkipperByteOffsetAdapter" }}(const void *context) {
     return {{ .Func "TokenSkipperByteOffset" }}((const {{ .Type "TokenSkipper" }} *)context);
+}
+
+static size_t {{ .Func "TokenSkipperByteLengthAdapter" }}(const void *context) {
+    return {{ .Func "TokenSkipperByteLength" }}((const {{ .Type "TokenSkipper" }} *)context);
 }
 
 static {{ .Type "StringView" }} {{ .Func "TokenSkipperLexemeAdapter" }}(const void *context) {
@@ -624,6 +650,7 @@ static bool {{ .Func "TokenSkipperNextAdapter" }}(void *context) {
     result.context = skipper;
     result.token = {{ .Func "TokenSkipperTokenAdapter" }};
     result.byte_offset = {{ .Func "TokenSkipperByteOffsetAdapter" }};
+    result.byte_length = {{ .Func "TokenSkipperByteLengthAdapter" }};
     result.lexeme = {{ .Func "TokenSkipperLexemeAdapter" }};
     result.position = {{ .Func "TokenSkipperPositionAdapter" }};
     result.text = {{ .Func "TokenSkipperTextAdapter" }};

@@ -340,6 +340,9 @@ type TokenSource interface {
 	// is the offset one past the last byte.
 	ByteOffset() int
 
+	// ByteLength returns the length of the token in bytes. After Next returned false it is zero.
+	ByteLength() int
+
 	// Lexeme returns the bytes of the token, as a view into the source rather than a copy of it.
 	Lexeme() []byte
 
@@ -386,6 +389,11 @@ func (s *TokenSkipper) Token() Token {
 // offset one past the last byte.
 func (s *TokenSkipper) ByteOffset() int {
 	return s.scanner.ByteOffset()
+}
+
+// ByteLength returns the length of the token in bytes. After Next returned false it is zero.
+func (s *TokenSkipper) ByteLength() int {
+	return s.scanner.ByteLength()
 }
 
 // Lexeme returns the bytes of the token, as a view into the source rather than a copy of it.
@@ -4672,6 +4680,11 @@ func (s *Scanner) Token() Token {
 // offset one past the last byte.
 func (s *Scanner) ByteOffset() int {
 	return s.lexemeStartIdx
+}
+
+// ByteLength returns the length of the token in bytes. After Next returned false it is zero.
+func (s *Scanner) ByteLength() int {
+	return s.lexemeEndIdx - s.lexemeStartIdx
 }
 
 // Lexeme returns the bytes of the token, as a view into the source rather than a copy of it.

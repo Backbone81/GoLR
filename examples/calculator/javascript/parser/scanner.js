@@ -88,6 +88,7 @@ export function isSkipped(token) {
  * @typedef {object} TokenSource
  * @property {() => number} token
  * @property {() => number} byteOffset
+ * @property {() => number} byteLength
  * @property {() => Uint8Array} lexeme
  * @property {(byteOffset: number) => Position} position
  * @property {(byteOffset: number, byteLength: number) => Uint8Array} text
@@ -132,6 +133,15 @@ export class TokenSkipper {
      */
     byteOffset() {
         return this.#scanner.byteOffset();
+    }
+
+    /**
+     * Returns the length of the token in bytes. After next returned false it is zero.
+     *
+     * @returns {number}
+     */
+    byteLength() {
+        return this.#scanner.byteLength();
     }
 
     /**
@@ -339,6 +349,15 @@ export class Scanner {
      */
     byteOffset() {
         return this.#lexemeStartIdx;
+    }
+
+    /**
+     * Returns the length of the token in bytes. After next returned false it is zero.
+     *
+     * @returns {number}
+     */
+    byteLength() {
+        return this.#lexemeEndIdx - this.#lexemeStartIdx;
     }
 
     /**

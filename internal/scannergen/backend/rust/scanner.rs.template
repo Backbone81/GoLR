@@ -79,6 +79,9 @@ pub trait TokenSource<'a> {
     /// is the offset one past the last byte.
     fn byte_offset(&self) -> usize;
 
+    /// Returns the length of the token in bytes. After [`Self::next`] returned false it is zero.
+    fn byte_length(&self) -> usize;
+
     /// Returns the bytes of the token, as a view into the source rather than a copy of it.
     fn lexeme(&self) -> &'a [u8];
 
@@ -123,6 +126,10 @@ impl<'a, S: TokenSource<'a>> TokenSource<'a> for TokenSkipper<S> {
 
     fn byte_offset(&self) -> usize {
         self.scanner.byte_offset()
+    }
+
+    fn byte_length(&self) -> usize {
+        self.scanner.byte_length()
     }
 
     fn lexeme(&self) -> &'a [u8] {
@@ -252,6 +259,10 @@ impl<'a> TokenSource<'a> for Scanner<'a> {
 
     fn byte_offset(&self) -> usize {
         self.lexeme_start_idx
+    }
+
+    fn byte_length(&self) -> usize {
+        self.lexeme_end_idx - self.lexeme_start_idx
     }
 
     fn lexeme(&self) -> &'a [u8] {

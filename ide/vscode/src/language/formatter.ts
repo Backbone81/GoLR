@@ -401,7 +401,7 @@ export class Formatter {
     if (this.#currentContext() === Token.TokenScanner) {
       // This identifier is the left hand side of a scanner rule; remember its length for the ":"
       // that follows right after.
-      this.#lastScannerIdentifierLen = this.#scanner.lexeme().length;
+      this.#lastScannerIdentifierLen = this.#scanner.byteLength();
       if (this.#explicitBlankLine) {
         // Preserve the user's blank line between scanner rules.
         this.#blankLine();

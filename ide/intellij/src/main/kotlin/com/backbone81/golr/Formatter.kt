@@ -315,7 +315,7 @@ class Formatter(private val config: Config = DefaultConfig) {
             Token.TOKEN_SCANNER -> {
                 // This identifier is the left hand side of a scanner rule; remember its length
                 // for the ":" that follows right after.
-                lastScannerIdentifierLen = scanner.lexeme.remaining()
+                lastScannerIdentifierLen = scanner.byteLength
                 if (explicitBlankLine) {
                     // Preserve the user's blank line between scanner rules.
                     blankLine()

@@ -447,7 +447,7 @@ public final class Parser {
                         new ParseNode(
                                 new TerminalSymbol(terminal),
                                 scanner.byteOffset(),
-                                scanner.lexeme().remaining(),
+                                scanner.byteLength(),
                                 List.of(),
                                 null));
                 scanner.next();
@@ -583,7 +583,7 @@ public final class Parser {
                         terminalTraceName(scanner.token()) + " \"" + escapeLexeme(scanner.lexeme()) + "\"");
             }
             // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
-            droppedLength = scanner.lexeme().remaining();
+            droppedLength = scanner.byteLength();
             scanner.next();
         }
         errorRecoveryShiftsRemaining = ERROR_RECOVERY_SHIFTS;

@@ -109,6 +109,14 @@ class TokenSource(Protocol):
         ...
 
     @property
+    def byte_length(self) -> int:
+        """The length of the token in bytes.
+
+        After `next` returned false it is zero.
+        """
+        ...
+
+    @property
     def lexeme(self) -> bytes:
         """The bytes of the token."""
         ...
@@ -175,6 +183,14 @@ class TokenSkipper:
         After `next` returned false it is the offset one past the last byte.
         """
         return self._scanner.byte_offset
+
+    @property
+    def byte_length(self) -> int:
+        """The length of the token in bytes.
+
+        After `next` returned false it is zero.
+        """
+        return self._scanner.byte_length
 
     @property
     def lexeme(self) -> bytes:
@@ -341,6 +357,14 @@ class Scanner:
         After `next` returned false it is the offset one past the last byte.
         """
         return self._lexeme_start_idx
+
+    @property
+    def byte_length(self) -> int:
+        """The length of the token in bytes.
+
+        After `next` returned false it is zero.
+        """
+        return self._lexeme_end_idx - self._lexeme_start_idx
 
     @property
     def lexeme(self) -> bytes:

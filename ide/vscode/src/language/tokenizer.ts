@@ -57,7 +57,7 @@ export function tokenize(text: string): Token[] {
   const tokens: Token[] = [];
   while (scanner.next()) {
     const startByte = scanner.byteOffset();
-    const endByte = startByte + scanner.lexeme().length;
+    const endByte = startByte + scanner.byteLength();
     const start = byteToChar[startByte]!;
     const end = byteToChar[endByte]!;
     tokens.push({

@@ -95,6 +95,9 @@ public interface ITokenSource
     /// </summary>
     int ByteOffset { get; }
 
+    /// <summary>The length of the token in bytes. After <see cref="Next"/> returned false it is zero.</summary>
+    int ByteLength { get; }
+
     /// <summary>The bytes of the token, as a view into the source rather than a copy of it.</summary>
     ReadOnlyMemory<byte> Lexeme { get; }
 
@@ -147,6 +150,9 @@ public sealed class TokenSkipper : ITokenSource
 
     /// <inheritdoc/>
     public int ByteOffset => _scanner.ByteOffset;
+
+    /// <inheritdoc/>
+    public int ByteLength => _scanner.ByteLength;
 
     /// <inheritdoc/>
     public ReadOnlyMemory<byte> Lexeme => _scanner.Lexeme;
@@ -282,6 +288,9 @@ public sealed class Scanner : ITokenSource
 
     /// <inheritdoc/>
     public int ByteOffset => _lexemeStartIdx;
+
+    /// <inheritdoc/>
+    public int ByteLength => _lexemeEndIdx - _lexemeStartIdx;
 
     /// <inheritdoc/>
     public ReadOnlyMemory<byte> Lexeme => _source[_lexemeStartIdx.._lexemeEndIdx];

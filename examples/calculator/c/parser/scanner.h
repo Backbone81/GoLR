@@ -102,6 +102,9 @@ CalculatorToken calculator_scanner_token(const CalculatorScanner *scanner);
 /// offset one past the last byte.
 size_t calculator_scanner_byte_offset(const CalculatorScanner *scanner);
 
+/// Returns the length of the token in bytes. After the scanner reported false it is zero.
+size_t calculator_scanner_byte_length(const CalculatorScanner *scanner);
+
 /// Returns the bytes of the token, as a range of the source rather than a copy of it.
 CalculatorStringView calculator_scanner_lexeme(const CalculatorScanner *scanner);
 
@@ -138,6 +141,9 @@ typedef struct CalculatorTokenSource {
 
     /// Returns the start of the token in bytes from the start of the source.
     size_t (*byte_offset)(const void *context);
+
+    /// Returns the length of the token in bytes.
+    size_t (*byte_length)(const void *context);
 
     /// Returns the bytes of the token.
     CalculatorStringView (*lexeme)(const void *context);
@@ -178,6 +184,9 @@ CalculatorToken calculator_token_skipper_token(const CalculatorTokenSkipper *ski
 
 /// Returns the start of the token in bytes from the start of the source.
 size_t calculator_token_skipper_byte_offset(const CalculatorTokenSkipper *skipper);
+
+/// Returns the length of the token in bytes.
+size_t calculator_token_skipper_byte_length(const CalculatorTokenSkipper *skipper);
 
 /// Returns the bytes of the token, as a range of the source rather than a copy of it.
 CalculatorStringView calculator_token_skipper_lexeme(const CalculatorTokenSkipper *skipper);
@@ -337,6 +346,10 @@ CalculatorToken calculator_scanner_token(const CalculatorScanner *scanner) {
 
 size_t calculator_scanner_byte_offset(const CalculatorScanner *scanner) {
     return scanner->lexeme_start_idx;
+}
+
+size_t calculator_scanner_byte_length(const CalculatorScanner *scanner) {
+    return scanner->lexeme_end_idx - scanner->lexeme_start_idx;
 }
 
 CalculatorStringView calculator_scanner_lexeme(const CalculatorScanner *scanner) {
@@ -554,6 +567,10 @@ size_t calculator_token_skipper_byte_offset(const CalculatorTokenSkipper *skippe
     return skipper->scanner.byte_offset(skipper->scanner.context);
 }
 
+size_t calculator_token_skipper_byte_length(const CalculatorTokenSkipper *skipper) {
+    return skipper->scanner.byte_length(skipper->scanner.context);
+}
+
 CalculatorStringView calculator_token_skipper_lexeme(const CalculatorTokenSkipper *skipper) {
     return skipper->scanner.lexeme(skipper->scanner.context);
 }
@@ -595,6 +612,10 @@ static size_t calculator_scanner_byte_offset_adapter(const void *context) {
     return calculator_scanner_byte_offset((const CalculatorScanner *)context);
 }
 
+static size_t calculator_scanner_byte_length_adapter(const void *context) {
+    return calculator_scanner_byte_length((const CalculatorScanner *)context);
+}
+
 static CalculatorStringView calculator_scanner_lexeme_adapter(const void *context) {
     return calculator_scanner_lexeme((const CalculatorScanner *)context);
 }
@@ -624,6 +645,7 @@ CalculatorTokenSource calculator_scanner_as_token_source(CalculatorScanner *scan
     result.context = scanner;
     result.token = calculator_scanner_token_adapter;
     result.byte_offset = calculator_scanner_byte_offset_adapter;
+    result.byte_length = calculator_scanner_byte_length_adapter;
     result.lexeme = calculator_scanner_lexeme_adapter;
     result.position = calculator_scanner_position_adapter;
     result.text = calculator_scanner_text_adapter;
@@ -639,6 +661,10 @@ static CalculatorToken calculator_token_skipper_token_adapter(const void *contex
 
 static size_t calculator_token_skipper_byte_offset_adapter(const void *context) {
     return calculator_token_skipper_byte_offset((const CalculatorTokenSkipper *)context);
+}
+
+static size_t calculator_token_skipper_byte_length_adapter(const void *context) {
+    return calculator_token_skipper_byte_length((const CalculatorTokenSkipper *)context);
 }
 
 static CalculatorStringView calculator_token_skipper_lexeme_adapter(const void *context) {
@@ -670,6 +696,7 @@ CalculatorTokenSource calculator_token_skipper_as_token_source(CalculatorTokenSk
     result.context = skipper;
     result.token = calculator_token_skipper_token_adapter;
     result.byte_offset = calculator_token_skipper_byte_offset_adapter;
+    result.byte_length = calculator_token_skipper_byte_length_adapter;
     result.lexeme = calculator_token_skipper_lexeme_adapter;
     result.position = calculator_token_skipper_position_adapter;
     result.text = calculator_token_skipper_text_adapter;

@@ -912,7 +912,7 @@ static CalculatorStepResult calculator_parser_step(CalculatorParser *parser, con
         node.symbol.kind = CALCULATOR_SYMBOL_KIND_TERMINAL;
         node.symbol.value.terminal = terminal;
         node.byte_offset = scanner->byte_offset(scanner->context);
-        node.byte_length = scanner->lexeme(scanner->context).length;
+        node.byte_length = scanner->byte_length(scanner->context);
         node.children = NULL;
         node.child_count = 0;
         node.production = CALCULATOR_NO_PRODUCTION;
@@ -995,7 +995,7 @@ static bool calculator_parser_recover_from_error(CalculatorParser *parser, const
             calculator_parser_emit_trace(parser, scanner, "DISCARD", parser->trace_payload);
         }
         /* The discarded token is thrown away as well, so the span reaches to its end and not to its start. */
-        dropped_length = scanner->lexeme(scanner->context).length;
+        dropped_length = scanner->byte_length(scanner->context);
         scanner->next(scanner->context);
     }
     parser->error_recovery_shifts_remaining = CALCULATOR_ERROR_RECOVERY_SHIFTS;

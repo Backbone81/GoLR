@@ -698,7 +698,7 @@ func (p *Parser) step(scanner TokenSource) error {
 		p.nodeStack = append(p.nodeStack, Node{
 			Symbol:     NewTerminal(terminal),
 			ByteOffset: scanner.ByteOffset(),
-			ByteLength: len(scanner.Lexeme()),
+			ByteLength: scanner.ByteLength(),
 		})
 		scanner.Next()
 		if p.errorRecoveryShiftsRemaining > 0 {
@@ -815,7 +815,7 @@ func (p *Parser) recoverFromError(scanner TokenSource) bool {
 			p.emitTrace(scanner, "DISCARD", p.terminalTraceName(scanner.Token())+` "`+p.escapeLexeme(scanner.Lexeme())+`"`)
 		}
 		// The discarded token is thrown away as well, so the span reaches to its end and not to its start.
-		droppedLength = len(scanner.Lexeme())
+		droppedLength = scanner.ByteLength()
 		scanner.Next()
 	}
 	p.errorRecoveryShiftsRemaining = errorRecoveryShifts

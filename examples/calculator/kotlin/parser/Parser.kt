@@ -403,7 +403,7 @@ class Parser {
                 }
                 pushState(action shr ACTION_KIND_BITS)
                 nodeStack.add(
-                    ParseNode(TerminalSymbol(terminal), scanner.byteOffset, scanner.lexeme.remaining(), emptyList(), null),
+                    ParseNode(TerminalSymbol(terminal), scanner.byteOffset, scanner.byteLength, emptyList(), null),
                 )
                 scanner.next()
                 if (errorRecoveryShiftsRemaining > 0) {
@@ -544,7 +544,7 @@ class Parser {
                 emitTrace(scanner, "DISCARD", "${terminalTraceName(scanner.token)} \"${escapeLexeme(scanner.lexeme)}\"")
             }
             // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
-            droppedLength = scanner.lexeme.remaining()
+            droppedLength = scanner.byteLength
             scanner.next()
         }
         errorRecoveryShiftsRemaining = ERROR_RECOVERY_SHIFTS

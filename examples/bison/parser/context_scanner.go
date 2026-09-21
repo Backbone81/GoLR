@@ -21,6 +21,10 @@ func (c *ContextScanner) ByteOffset() int {
 	return c.Scanner.ByteOffset()
 }
 
+func (c *ContextScanner) ByteLength() int {
+	return c.Scanner.ByteLength()
+}
+
 func (c *ContextScanner) Lexeme() []byte {
 	return c.Scanner.Lexeme()
 }
