@@ -21,14 +21,6 @@ func (c *ContextScanner) ByteOffset() int {
 	return c.Scanner.ByteOffset()
 }
 
-func (c *ContextScanner) Line() int {
-	return c.Scanner.Line()
-}
-
-func (c *ContextScanner) Column() int {
-	return c.Scanner.Column()
-}
-
 func (c *ContextScanner) Lexeme() []byte {
 	return c.Scanner.Lexeme()
 }

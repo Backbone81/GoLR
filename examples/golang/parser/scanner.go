@@ -340,12 +340,6 @@ type TokenSource interface {
 	// is the offset one past the last byte.
 	ByteOffset() int
 
-	// Line returns the line the token starts on, counted from one.
-	Line() int
-
-	// Column returns the column the token starts on, counted from one.
-	Column() int
-
 	// Lexeme returns the bytes of the token, as a view into the source rather than a copy of it.
 	Lexeme() []byte
 
@@ -392,16 +386,6 @@ func (s *TokenSkipper) Token() Token {
 // offset one past the last byte.
 func (s *TokenSkipper) ByteOffset() int {
 	return s.scanner.ByteOffset()
-}
-
-// Line returns the line the token starts on, counted from one.
-func (s *TokenSkipper) Line() int {
-	return s.scanner.Line()
-}
-
-// Column returns the column the token starts on, counted from one.
-func (s *TokenSkipper) Column() int {
-	return s.scanner.Column()
 }
 
 // Lexeme returns the bytes of the token, as a view into the source rather than a copy of it.
@@ -4664,12 +4648,6 @@ type Scanner struct {
 	// lexemeEndIdx is the index one past the last byte of the current token.
 	lexemeEndIdx int
 
-	// line is the line the current token starts on, counted from one.
-	line int
-
-	// column is the column the current token starts on, counted from one.
-	column int
-
 	// lineStarts holds the byte offset every line of the source begins at. It is built on the first call to Position
 	// and emptied by Reset, which keeps its storage for the next source.
 	lineStarts []int
@@ -4694,16 +4672,6 @@ func (s *Scanner) Token() Token {
 // offset one past the last byte.
 func (s *Scanner) ByteOffset() int {
 	return s.lexemeStartIdx
-}
-
-// Line returns the line the token starts on, counted from one.
-func (s *Scanner) Line() int {
-	return s.line
-}
-
-// Column returns the column the token starts on, counted from one.
-func (s *Scanner) Column() int {
-	return s.column
 }
 
 // Lexeme returns the bytes of the token, as a view into the source rather than a copy of it.
@@ -4768,12 +4736,9 @@ func (s *Scanner) Reset(source []byte, offset int) {
 	s.source = source
 
 	s.lexemeStartIdx = 0
-	// An offset past the end of the source would walk the line and column counters over bytes which are not
-	// there. Clamping it leaves the scanner at the end of the source, where it reports the end token.
+	// An offset past the end of the source would point at bytes which are not there. Clamping it leaves the scanner
+	// at the end of the source, where it reports the end token.
 	s.lexemeEndIdx = min(offset, len(source))
-
-	s.line = 1
-	s.column = 1
 
 	// The line starts belong to the source which was replaced here, but their storage is worth keeping.
 	s.lineStarts = s.lineStarts[:0]
@@ -4784,7 +4749,6 @@ func (s *Scanner) Reset(source []byte, offset int) {
 // Next advances to the next token. Bytes which form no token become an invalid token. Returns false once the end of the
 // source is reached, which sets the token to the end token.
 func (s *Scanner) Next() bool {
-	s.updateLineAndColumn(s.lexemeStartIdx, s.lexemeEndIdx)
 	s.lexemeStartIdx = s.lexemeEndIdx
 
 	var state uint32
@@ -4827,16 +4791,4 @@ func (s *Scanner) Next() bool {
 	s.token = InvalidToken
 	s.lexemeEndIdx = max(s.lexemeStartIdx+1, lexemePeekIdx)
 	return true
-}
-
-// updateLineAndColumn advances the line and column counters over the bytes between the two indexes.
-func (s *Scanner) updateLineAndColumn(startIdx int, endIdx int) {
-	for _, currByte := range s.source[startIdx:endIdx] {
-		if currByte == '\n' {
-			s.line++
-			s.column = 1
-		} else {
-			s.column++
-		}
-	}
 }

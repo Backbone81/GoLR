@@ -15,8 +15,6 @@ var _ TokenSource = (*TokenTransformer)(nil)
 type TokenSnapshot struct {
 	Token      Token
 	ByteOffset int
-	Line       int
-	Column     int
 	Lexeme     []byte
 }
 
@@ -26,14 +24,6 @@ func (t *TokenTransformer) Token() Token {
 
 func (t *TokenTransformer) ByteOffset() int {
 	return t.tokenQueue[0].ByteOffset
-}
-
-func (t *TokenTransformer) Line() int {
-	return t.tokenQueue[0].Line
-}
-
-func (t *TokenTransformer) Column() int {
-	return t.tokenQueue[0].Column
 }
 
 func (t *TokenTransformer) Lexeme() []byte {
@@ -73,8 +63,6 @@ func (t *TokenTransformer) ensureQueuedTokens(count int) {
 		t.tokenQueue = append(t.tokenQueue, TokenSnapshot{
 			Token:      t.Scanner.Token(),
 			ByteOffset: t.Scanner.ByteOffset(),
-			Line:       t.Scanner.Line(),
-			Column:     t.Scanner.Column(),
 			Lexeme:     t.Scanner.Lexeme(),
 		})
 	}

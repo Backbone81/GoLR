@@ -49,7 +49,7 @@ var _ = Describe("Golang Scanner", func() {
 					}
 					goScannerTokens = append(goScannerTokens, goToken)
 					golrScannerTokens = append(golrScannerTokens, tokenConvert(golrScanner.Token()))
-					line = append(line, golrScanner.Line())
+					line = append(line, golrScanner.Position(golrScanner.ByteOffset()).Line)
 				}
 
 				for i := range goScannerTokens {
@@ -64,7 +64,7 @@ var _ = Describe("Golang Scanner", func() {
 				Expect(endOfGoScanner).To(
 					Equal(endofGolrScanner),
 					"Unexpected end of parse at line %d with Go scanner end %v and GoLR scanner end %v",
-					golrScanner.Line(),
+					golrScanner.Position(golrScanner.ByteOffset()).Line,
 					endOfGoScanner,
 					endofGolrScanner,
 				)

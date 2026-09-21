@@ -75,9 +75,8 @@ func appendScannerTrace(lines []string, source []byte, inputPath string) []strin
 	scanner := parser.NewScanner(source, inputPath)
 
 	for scanner.Next() {
-		checkPosition(scanner)
-
-		location := fmt.Sprintf("%d:%d", scanner.Line(), scanner.Column())
+		position := scanner.Position(scanner.ByteOffset())
+		location := fmt.Sprintf("%d:%d", position.Line, position.Column)
 		lexeme := escapeLexeme(scanner.Lexeme())
 
 		if scanner.Token() == parser.InvalidToken {
@@ -88,27 +87,9 @@ func appendScannerTrace(lines []string, source []byte, inputPath string) []strin
 	}
 
 	// The position after the scanner ran out of input, which is one past the last byte only when it consumed
-	// everything. It is the offset every off by one in a line table lands on, so it is checked like a token.
-	checkPosition(scanner)
-	return append(lines, fmt.Sprintf("%-7s %s", fmt.Sprintf("%d:%d", scanner.Line(), scanner.Column()), "EOF"))
-}
-
-// checkPosition holds the offset based Position and Text against the Line, Column and Lexeme of the token the scanner
-// currently sits on. The two ways of asking exist side by side until the release which drops Line and Column, and the
-// corpus is where they have to agree: every case of it is far more input than a hand written test covers.
-func checkPosition(scanner *parser.Scanner) {
+	// everything. It is the offset every off by one in a line table lands on.
 	position := scanner.Position(scanner.ByteOffset())
-	if position.Line != scanner.Line() || position.Column != scanner.Column() || position.FilePath != scanner.FilePath() {
-		panic(fmt.Sprintf("Position(%d) is %s %d:%d, but the scanner reports %s %d:%d",
-			scanner.ByteOffset(), position.FilePath, position.Line, position.Column,
-			scanner.FilePath(), scanner.Line(), scanner.Column()))
-	}
-
-	lexeme := scanner.Lexeme()
-	if text := scanner.Text(scanner.ByteOffset(), len(lexeme)); string(text) != string(lexeme) {
-		panic(fmt.Sprintf("Text(%d, %d) is %q, but the lexeme is %q",
-			scanner.ByteOffset(), len(lexeme), text, lexeme))
-	}
+	return append(lines, fmt.Sprintf("%-7s %s", fmt.Sprintf("%d:%d", position.Line, position.Column), "EOF"))
 }
 
 // appendParserTrace parses the whole input and appends the line the parser's trace hook emits for every action. The

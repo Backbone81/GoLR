@@ -102,14 +102,6 @@ func (s *SemicolonInserter) ByteOffset() int {
 	return s.Scanner.ByteOffset()
 }
 
-func (s *SemicolonInserter) Line() int {
-	return s.Position(s.ByteOffset()).Line
-}
-
-func (s *SemicolonInserter) Column() int {
-	return s.Position(s.ByteOffset()).Column
-}
-
 func (s *SemicolonInserter) Lexeme() []byte {
 	if len(s.bufferedTokens) > 0 {
 		return nil

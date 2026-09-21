@@ -31,7 +31,8 @@ func printTokens(filePath string, data []byte) {
 	var tokenCounter int
 	for scanner.Next() {
 		tokenCounter++
-		fmt.Printf("%d:%d:%s %q\n", scanner.Line(), scanner.Column(), scanner.Token(), scanner.Lexeme())
+		position := scanner.Position(scanner.ByteOffset())
+		fmt.Printf("%d:%d:%s %q\n", position.Line, position.Column, scanner.Token(), scanner.Lexeme())
 	}
 
 	fmt.Println()
