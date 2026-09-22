@@ -56,11 +56,28 @@ type GrammarOutcome struct {
 // The returned GrammarOutcome is populated as far as the comparison got, an error notwithstanding, so that a caller
 // aggregating statistics over a corpus does not lose the sentences a failing grammar was driven through.
 //
+// Both tables are built with the policy factory, which is how a run checks a policy that leaves conflicts unresolved,
+// see conflict.SelectPolicy. Under such a policy a grammar can fail to generate, which is not a failure of the
+// comparison: the oracle then is that canonical LR(1) fails on the same grammar with the same conflicts, see
+// compareUnresolvedConflicts. Only a grammar whose tables both build is driven through sentences.
+//
 // The grammar is un-augmented, the same as any grammar handed to a core.
-func CompareBehavior(grammar frontend.Grammar, inputsPerGrammar int, rng *rand.Rand) (GrammarOutcome, error) {
-	tables, built, err := buildComparisonTables(grammar)
+func CompareBehavior(
+	grammar frontend.Grammar,
+	inputsPerGrammar int,
+	rng *rand.Rand,
+	policyFactory conflict.PolicyFactory,
+) (GrammarOutcome, error) {
+	tables, built, err := buildComparisonTables(grammar, policyFactory)
 	if err != nil || !built {
-		return GrammarOutcome{}, err
+		// A grammar whose conflicts were compared counts as compared even when that comparison is what failed. Only a
+		// grammar which could not be built at all is a skipped one.
+		return GrammarOutcome{Compared: built}, err
+	}
+	if tables.unresolved {
+		// Neither table exists, because both cores gave up on the conflicts they were left with. The conflicts were
+		// compared while building, so there is nothing left to do for this grammar.
+		return GrammarOutcome{Compared: true, Discriminating: tables.discriminating}, nil
 	}
 
 	// Every table is built now, so the coverage flags are known and the outcome is filled in before anything else can
@@ -69,7 +86,7 @@ func CompareBehavior(grammar frontend.Grammar, inputsPerGrammar int, rng *rand.R
 	outcome := GrammarOutcome{
 		Compared:       true,
 		Discriminating: tables.discriminating,
-		SplittingFired: len(tables.sutParser.States) > len(tables.lalrParser.States),
+		SplittingFired: len(tables.sutParser.States) > tables.lalrStateCount,
 	}
 	if err := tables.checkSizeInvariant(); err != nil {
 		return outcome, err
@@ -97,8 +114,19 @@ type comparisonTables struct {
 	// sutParser is the IELR(1) table under test.
 	sutParser backend.Parser
 
-	// lalrParser is the LALR(1) table, which is the lower bound of the size invariant.
-	lalrParser backend.Parser
+	// lalrParser is the resolved LALR(1) table, which is the lower bound of the size invariant. It is only there when
+	// hasLalrParser is set: under a policy which leaves conflicts unresolved, LALR(1) fails on the grammars whose
+	// mysterious conflicts IELR(1) removes, which is expected rather than a failure.
+	lalrParser    backend.Parser
+	hasLalrParser bool
+
+	// lalrStateCount is the number of states of the LALR(1) automaton, which is what tells whether phase 3 split a
+	// state. It is taken from the unresolved table when the resolved one does not exist, because those grammars are
+	// where splitting matters most.
+	lalrStateCount int
+
+	// unresolved reports that both cores failed on unresolved conflicts, so there are no tables to compare any further.
+	unresolved bool
 
 	// discriminating is true when LALR(1) reports more conflicts than canonical LR(1): the surplus are the mysterious
 	// LALR conflicts LR(1) removes, the shapes where phase 3 splitting matters. Comparing conflict counts is a
@@ -106,60 +134,139 @@ type comparisonTables struct {
 	discriminating bool
 }
 
-// buildComparisonTables constructs the three resolved parser tables for the grammar. It reports built as false, with a
-// nil error, when the grammar has to be skipped because its canonical LR(1) automaton exceeds the addressable state
-// limit and the oracle can therefore not be built at all.
-func buildComparisonTables(grammar frontend.Grammar) (comparisonTables, bool, error) {
-	// The oracle: canonical LR(1), resolved with the same default policy IELR(1) uses (both go through their core's
+// buildComparisonTables constructs the resolved parser tables for the grammar under the policy. It reports built as
+// false, with a nil error, when the grammar has to be skipped because its canonical LR(1) automaton exceeds the
+// addressable state limit and the oracle can therefore not be built at all.
+//
+// Under a policy which leaves conflicts unresolved, a core fails on a grammar it cannot resolve instead of returning a
+// table. The oracle for that is canonical LR(1): IELR(1) has to fail on exactly the grammars canonical LR(1) fails on,
+// with the same conflicts, which is what compareUnresolvedConflicts checks.
+func buildComparisonTables(
+	grammar frontend.Grammar,
+	policyFactory conflict.PolicyFactory,
+) (comparisonTables, bool, error) {
+	// The oracle: canonical LR(1), resolved with the same policy IELR(1) is built with (both go through their core's
 	// GrammarToParser, which resolves conflicts under the hood). A grammar whose canonical LR(1) automaton is too large
-	// to address is skipped, not a failure of the builder under test; any other error means conflict resolution failed,
-	// which the default policy never should for a generated grammar (no precedence declarations).
+	// to address is skipped, not a failure of the builder under test.
 	// Both the oracle and the system under test are built without the default-reduction compaction: the comparison is
 	// action for action, and a default reduction reduces where canonical LR(1) would report an error, on a lookahead
 	// partition that differs between the two automata. That is a correct optimization (same language, same parses, only
 	// the error is reported one or more reductions later), but it is not what this comparison is checking, so it is
 	// switched off on both sides to keep the comparison on the canonical resolved tables.
-	oracleParser, lr1Conflicts, err := lr1golrcore.GrammarToParser(
-		grammar, conflict.DefaultPolicy, core.WithoutDefaultReductions(),
+	oracleParser, lr1Conflicts, oracleErr := lr1golrcore.GrammarToParser(
+		grammar, policyFactory, core.WithoutDefaultReductions(),
 	)
-	if err != nil {
-		if errors.Is(err, backend.ErrStateLimitExceeded) {
-			return comparisonTables{}, false, nil
-		}
-		return comparisonTables{}, false, fmt.Errorf("building the canonical LR(1) oracle: %w", err)
+	if oracleErr != nil && errors.Is(oracleErr, backend.ErrStateLimitExceeded) {
+		return comparisonTables{}, false, nil
+	}
+	if oracleErr != nil && !isUnresolvedConflictError(oracleErr) {
+		return comparisonTables{}, false, fmt.Errorf("building the canonical LR(1) oracle: %w", oracleErr)
 	}
 
 	// The system under test: the IELR(1) table, resolved with the same policy by its GrammarToParser and, like the
 	// oracle above, without the default-reduction compaction so the two are compared as canonical resolved tables.
-	sutParser, _, err := ielr1golrcore.GrammarToParser(
-		grammar, conflict.DefaultPolicy, core.WithoutDefaultReductions(),
+	sutParser, _, sutErr := ielr1golrcore.GrammarToParser(
+		grammar, policyFactory, core.WithoutDefaultReductions(),
 	)
-	if err != nil {
-		return comparisonTables{}, false, fmt.Errorf("building the IELR(1) parser under test: %w", err)
+	if sutErr != nil && !isUnresolvedConflictError(sutErr) {
+		return comparisonTables{}, false, fmt.Errorf("building the IELR(1) parser under test: %w", sutErr)
+	}
+
+	if err := compareUnresolvedConflicts(oracleErr, sutErr); err != nil {
+		return comparisonTables{}, true, err
 	}
 
 	// The LALR(1) table, built the same way, is the lower bound of the size invariant and the source of the
 	// discriminating signal. It is always no larger than canonical LR(1), so if the oracle built without hitting the
-	// state limit this one does too; the default policy resolves every conflict of a generated grammar, so any error is
-	// a real failure.
-	lalrParser, lalrConflicts, err := lalr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
-	if err != nil {
-		return comparisonTables{}, false, fmt.Errorf("building the LALR(1) parser: %w", err)
+	// state limit this one does too. Under a policy which leaves conflicts unresolved it fails on the grammars whose
+	// mysterious conflicts only IELR(1) and canonical LR(1) get rid of, which is what makes such a grammar
+	// discriminating rather than a failure.
+	lalrParser, lalrConflicts, lalrErr := lalr1golrcore.GrammarToParser(grammar, policyFactory)
+	if lalrErr != nil && !isUnresolvedConflictError(lalrErr) {
+		return comparisonTables{}, false, fmt.Errorf("building the LALR(1) parser: %w", lalrErr)
+	}
+	lalrStateCount := len(lalrParser.States)
+	if lalrErr != nil {
+		// The resolved table does not exist, but the automaton it would have been built from does, and its state count
+		// is all the split signal needs. Resolving the conflicts is also what removes the unreachable states, so this
+		// count is not the lower bound of the size invariant.
+		unresolvedLalrParser, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, policyFactory)
+		if err != nil {
+			return comparisonTables{}, false, fmt.Errorf("building the unresolved LALR(1) parser: %w", err)
+		}
+		lalrStateCount = len(unresolvedLalrParser.States)
 	}
 
 	return comparisonTables{
 		oracleParser:   oracleParser,
 		sutParser:      sutParser,
 		lalrParser:     lalrParser,
+		hasLalrParser:  lalrErr == nil,
+		lalrStateCount: lalrStateCount,
+		unresolved:     oracleErr != nil,
+		// The conflicts a core reports come back with the error as well, so this reads the same for a grammar which
+		// failed to generate as for one which did not.
 		discriminating: len(lalrConflicts) > len(lr1Conflicts),
 	}, true, nil
+}
+
+// isUnresolvedConflictError reports whether the error is a core giving up on the conflicts a policy left unresolved,
+// rather than something which went wrong.
+func isUnresolvedConflictError(err error) bool {
+	return len(conflict.UnresolvedConflictErrors(err)) > 0
+}
+
+// compareUnresolvedConflicts checks that IELR(1) gave up on the grammar exactly when canonical LR(1) did, and on the
+// same conflicts. A conflict which only one of them reports means that IELR(1) either lost a conflict canonical LR(1)
+// has, or invented one it does not have.
+func compareUnresolvedConflicts(oracleErr error, sutErr error) error {
+	if (oracleErr == nil) != (sutErr == nil) {
+		return fmt.Errorf(
+			"IELR(1) and canonical LR(1) disagree on whether the grammar can be generated:"+
+				" canonical LR(1) error is %v, IELR(1) error is %v",
+			oracleErr, sutErr,
+		)
+	}
+	oracleConflicts := unresolvedConflictKeys(oracleErr)
+	sutConflicts := unresolvedConflictKeys(sutErr)
+	if !slices.Equal(oracleConflicts, sutConflicts) {
+		return fmt.Errorf(
+			"IELR(1) and canonical LR(1) report different unresolved conflicts:"+
+				"\n=== canonical LR(1) ===\n%s\n=== IELR(1) ===\n%s",
+			strings.Join(oracleConflicts, "\n"), strings.Join(sutConflicts, "\n"),
+		)
+	}
+	return nil
+}
+
+// unresolvedConflictKeys describes every unresolved conflict of the error by its kind, its terminal and the actions the
+// parser is left undecided between, sorted and without duplicates.
+//
+// Two things are deliberately not part of the description. The state is not, because the two automatons number their
+// states differently. And the actions which competed for the terminal are not, because IELR(1) merges two isocores
+// whenever they decide the conflict the same way, which unions the actions they contribute: the merged state is left
+// undecided between the same actions as each isocore, while more actions competed for the terminal than in either of
+// them. That merging is what IELR(1) is for, so what has to agree is which conflicts are left and what each of them is
+// undecided between.
+func unresolvedConflictKeys(err error) []string {
+	var result []string
+	for _, unresolvedConflictError := range conflict.UnresolvedConflictErrors(err) {
+		for _, entry := range unresolvedConflictError.Report.Entries {
+			result = append(result, fmt.Sprintf(
+				"%s on terminal %s: %s",
+				entry.Kind, entry.Terminal, strings.Join(entry.DecisionContributions, ", "),
+			))
+		}
+	}
+	slices.Sort(result)
+	return slices.Compact(result)
 }
 
 // checkSizeInvariant verifies |LALR(1)| <= |IELR(1)| <= |canonical LR(1)|. Conflict resolution never adds or removes
 // states, so comparing the resolved tables is valid. An IELR(1) table larger than canonical LR(1) or smaller than
 // LALR(1) is a correctness-preserving quality bug - splitting too eagerly or losing a required split.
 func (t comparisonTables) checkSizeInvariant() error {
-	if len(t.sutParser.States) < len(t.lalrParser.States) {
+	if t.hasLalrParser && len(t.sutParser.States) < len(t.lalrParser.States) {
 		return fmt.Errorf(
 			"IELR(1) has fewer states than LALR(1): %d < %d",
 			len(t.sutParser.States), len(t.lalrParser.States),

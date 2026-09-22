@@ -83,8 +83,25 @@ far too expensive to ship as a general purpose core for large grammars, which is
 small generated grammars it is perfectly practical.
 
 The comparison is behavioral, for the reason given at the top: the two tables are not supposed to look alike. Both are
-built with conflicts resolved under the same default policy, and both with the default-reduction compaction switched
-off, so what is compared is the canonical resolved table of each side.
+built with conflicts resolved under the same policy, and both with the default-reduction compaction switched off, so
+what is compared is the canonical resolved table of each side.
+
+### Policies which leave conflicts unresolved
+
+The comparison runs under any of the four conflict resolution policies, and the differential test of `make test` uses
+the default one. Under it every conflict of a generated grammar is decided, because a generated grammar declares no
+precedence, so a run never reaches the code paths an unresolved conflict takes through phases 2 and 3. A run under one
+of the policies which fail on conflicts is what covers those, and it compares one thing more:
+
+- IELR(1) has to fail on a grammar exactly when canonical LR(1) fails on it, and on the same conflicts. Conflicts are
+  compared by their kind, their terminal and the actions the parser is left undecided between, not by the actions which
+  competed for the terminal: IELR(1) merges two isocores which decide a conflict the same way, which unions the actions
+  they contribute, so the merged state is undecided between the same actions while more of them competed. The state is
+  not compared either, because the two automatons number their states differently.
+- A grammar which generates on both sides is compared on sentences as before, and the size invariant applies unchanged.
+
+LALR(1) failing where canonical LR(1) succeeds is expected under these policies rather than a failure of the run: those
+are the grammars with a mysterious conflict, which is what makes them discriminating.
 
 ### Random grammars aimed at the hard shapes
 
@@ -183,6 +200,15 @@ the behavioral differential test — not a reimplementation of it — across eve
 golr selftest --duration 8h --failure-dir ./selftest-failures
 ```
 
+The same three flags as `golr parser` select the policy both tables are built under, so the paths an unresolved conflict
+takes are soaked as well:
+
+```shell
+golr selftest --duration 8h --fail-on-sr-conflicts --failure-dir ./selftest-failures
+golr selftest --duration 8h --fail-on-rr-conflicts --failure-dir ./selftest-failures
+golr selftest --duration 8h --fail-on-conflicts --failure-dir ./selftest-failures
+```
+
 A run saturates all cores, reports progress as it goes, and can be interrupted at any point without losing the summary
 of what it checked so far. Each grammar is built from a single seed which reconstructs both the grammar and the
 sentences it was checked with, so a failure found in hour six of a run on sixteen workers is reproducible on its own.
@@ -208,8 +234,9 @@ the same parses, it just uses more states than it should. That is a quality regr
 invisible to a behavioral comparison by construction — the size invariant and the Bison state count comparison of layer
 2 are the checks which cover that side.
 
-Phase 5, conflict resolution, is not reached by the self-test at all: it operates on precedence and associativity
-declarations, which generated grammars do not have. It is covered by the pinned figure 2 grammar of layer 1 and by the
+Phase 5, conflict resolution, is only reached by the self-test where it decides a conflict without a declaration or
+leaves it unresolved: the precedence and associativity rules operate on declarations, which generated grammars do not
+have. It is covered by the pinned figure 2 grammar of layer 1 and by the
 well-known grammars of layer 2, which are full of real precedence declarations.
 
 ## What This Does Not Cover
@@ -219,7 +246,7 @@ Being explicit about the boundaries matters as much as the coverage itself:
 - **Over-splitting is only partly covered.** The behavioral oracle cannot see it, and the size invariant only catches
   the extreme case of exceeding canonical LR(1). The 2% tolerance against Bison on the two large non-LALR(1) grammars is
   the tightest bound currently asserted.
-- **Generated grammars carry no precedence or associativity declarations**, so phase 5 is exercised by the hand-picked
-  and real-world grammars rather than by the random corpus.
+- **Generated grammars carry no precedence or associativity declarations**, so the precedence rules of phase 5 are
+  exercised by the hand-picked and real-world grammars rather than by the random corpus.
 - **The random grammars are small.** They are the right size to reach unusual *shapes* quickly, but the real grammars of
   layer 2 are what covers scale.

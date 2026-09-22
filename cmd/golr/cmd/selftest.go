@@ -15,6 +15,8 @@ import (
 
 var (
 	selftestConfig selftest.Config
+
+	selftestFailOnConflicts bool
 )
 
 var selftestCmd = &cobra.Command{
@@ -25,6 +27,11 @@ var selftestCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 		defer cancel()
+
+		if selftestFailOnConflicts {
+			selftestConfig.FailOnShiftReduceConflicts = true
+			selftestConfig.FailOnReduceReduceConflicts = true
+		}
 
 		startTimestamp := time.Now()
 
@@ -127,6 +134,28 @@ func init() {
 		selftest.DefaultConfig.MemoryLimitMiB,
 		"The megabytes of heap to fill before collecting garbage. Higher values check more grammars per second at the "+
 			"cost of memory. Use 0 to leave the Go garbage collector at its defaults.",
+	)
+
+	selftestCmd.PersistentFlags().BoolVar(
+		&selftestFailOnConflicts,
+		"fail-on-conflicts",
+		false,
+		"Check the cores under the policy which fails if a shift/reduce or reduce/reduce conflict is not resolved by"+
+			" precedence or associativity.",
+	)
+	selftestCmd.PersistentFlags().BoolVar(
+		&selftestConfig.FailOnShiftReduceConflicts,
+		"fail-on-sr-conflicts",
+		false,
+		"Check the cores under the policy which fails if a shift/reduce conflict is not resolved by precedence or"+
+			" associativity.",
+	)
+	selftestCmd.PersistentFlags().BoolVar(
+		&selftestConfig.FailOnReduceReduceConflicts,
+		"fail-on-rr-conflicts",
+		false,
+		"Check the cores under the policy which fails if a reduce/reduce conflict is not resolved by precedence or"+
+			" associativity.",
 	)
 
 	selftestCmd.PersistentFlags().IntVar(

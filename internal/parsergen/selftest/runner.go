@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	golrfrontend "github.com/backbone81/golr/internal/parsergen/frontend/golr"
@@ -209,7 +210,12 @@ func (r *Runner) testSingleGrammar(seed int64) (Progress, error) {
 	}
 	randomGrammar := grammarGenerator.Generate()
 
-	outcome, err := CompareBehavior(randomGrammar, r.config.SentencesPerGrammar, rng)
+	outcome, err := CompareBehavior(
+		randomGrammar,
+		r.config.SentencesPerGrammar,
+		rng,
+		conflict.SelectPolicy(r.config.FailOnShiftReduceConflicts, r.config.FailOnReduceReduceConflicts),
+	)
 
 	result := Progress{
 		Generated:       1,

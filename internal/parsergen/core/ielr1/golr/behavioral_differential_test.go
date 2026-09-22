@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/core/ielr1/golr/oracle"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
@@ -28,7 +29,12 @@ var _ = Describe("IELR(1) behavioral differential test", func() {
 	DescribeTable(
 		"should agree action for action with resolved canonical LR(1) on curated grammars",
 		func(grammar frontend.Grammar) {
-			_, err := selftest.CompareBehavior(grammar, inputsPerGrammar, rand.New(rand.NewSource(GinkgoRandomSeed())))
+			_, err := selftest.CompareBehavior(
+				grammar,
+				inputsPerGrammar,
+				rand.New(rand.NewSource(GinkgoRandomSeed())),
+				conflict.DefaultPolicy,
+			)
 			Expect(err).ToNot(HaveOccurred())
 		},
 		Entry("the unambiguous test grammar for Fig. 1", ielr1golrcore.UnambiguousTestGrammarFig1),
@@ -62,7 +68,7 @@ var _ = Describe("IELR(1) behavioral differential test", func() {
 				// The sentences for this grammar are drawn from an RNG seeded off the grammar seed, so a failing grammar
 				// replays its exact sentence stream from the reported seed alone.
 				inputRng := rand.New(rand.NewSource(grammarSeed))
-				outcome, err := selftest.CompareBehavior(grammar, inputsPerGrammar, inputRng)
+				outcome, err := selftest.CompareBehavior(grammar, inputsPerGrammar, inputRng, conflict.DefaultPolicy)
 				Expect(err).ToNot(HaveOccurred(), "grammar seed %d:\n%s", grammarSeed, grammar.String())
 
 				if !outcome.Compared {

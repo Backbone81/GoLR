@@ -39,6 +39,14 @@ type Config struct {
 	// through the default of its --memory-limit flag.
 	MemoryLimitMiB int
 
+	// FailOnShiftReduceConflicts and FailOnReduceReduceConflicts select the conflict resolution policy both tables are
+	// built with, see conflict.SelectPolicy. Both false is the default policy, which decides every conflict of a
+	// generated grammar, so a run under it never reaches the code paths an unresolved conflict takes through phases 2
+	// and 3. A run under one of the other policies is what covers those, at the price of many grammars failing to
+	// generate on both sides, which is the comparison rather than a failure.
+	FailOnShiftReduceConflicts  bool
+	FailOnReduceReduceConflicts bool
+
 	// The generator limits below shape the random grammars. Each one defaults to the value of
 	// oracle.DefaultGrammarGenerator when left zero, which is tuned to produce small grammars whose canonical LR(1)
 	// oracle is cheap to build. Raising them explores larger grammars at a steeply rising cost per grammar, because the
