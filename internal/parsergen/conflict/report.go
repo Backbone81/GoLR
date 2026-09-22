@@ -28,7 +28,7 @@ type ReportConfig struct {
 // Only the conflicts the policy resolved on its own, by shift over reduce or by the earliest production, are reported.
 // They can run into the hundreds for a large grammar, so they are only summarized by default and listed in full after
 // the summary when verbose is set. Conflicts decided by precedence declarations are not reported at all, and conflicts
-// the policy could not decide are reported by the UnresolvedConflictError of each.
+// the policy could not decide are reported by WriteUnresolvedConflictReport.
 func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []Conflict, config ReportConfig) error {
 	var builder strings.Builder
 
@@ -37,7 +37,7 @@ func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []Conf
 	})
 
 	// The summary always comes first, so that it sits at the same place in every report.
-	writeResolvedConflictSummary(&builder, resolved)
+	writeConflictSummary(&builder, CountConflicts(conflicts))
 
 	// The resolved conflicts are listed in full only when asked for.
 	if !config.Verbose {
@@ -63,6 +63,56 @@ func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []Conf
 
 	_, err := io.WriteString(w, builder.String())
 	return err
+}
+
+// WriteUnresolvedConflictReport writes the report of a core which failed on unresolved conflicts: the summary of the
+// conflicts the core returned, followed by the report of every UnresolvedConflictError in err. The resolved conflicts
+// are only counted, never listed, because the unresolved ones have to be fixed first.
+func WriteUnresolvedConflictReport(w io.Writer, conflicts []Conflict, err error, config ReportConfig) error {
+	var builder strings.Builder
+	writeConflictSummary(&builder, CountConflicts(conflicts))
+	for _, unresolvedConflictError := range UnresolvedConflictErrors(err) {
+		// The summary and the reports of the states are separated by an empty line.
+		if builder.Len() > 0 {
+			builder.WriteString("\n")
+		}
+		if err := unresolvedConflictError.Report.Write(&builder, config); err != nil {
+			return err
+		}
+	}
+	_, writeErr := io.WriteString(w, builder.String())
+	return writeErr
+}
+
+// ConflictCounts are the numbers of reported conflicts per kind, separately for the conflicts a rule of last resort
+// resolved and those left unresolved. Each kind counts once per conflicted terminal of a state, so every count equals
+// the number of entries of that kind in the full report.
+type ConflictCounts struct {
+	ResolvedShiftReduce    int
+	ResolvedReduceReduce   int
+	UnresolvedShiftReduce  int
+	UnresolvedReduceReduce int
+}
+
+// CountConflicts counts the conflicts per kind, see classifyConflict.
+func CountConflicts(conflicts []Conflict) ConflictCounts {
+	var result ConflictCounts
+	for _, c := range conflicts {
+		kinds := classifyConflict(c)
+		if kinds.resolvedShiftReduce {
+			result.ResolvedShiftReduce++
+		}
+		if kinds.resolvedReduceReduce {
+			result.ResolvedReduceReduce++
+		}
+		if kinds.unresolvedShiftReduce {
+			result.UnresolvedShiftReduce++
+		}
+		if kinds.unresolvedReduceReduce {
+			result.UnresolvedReduceReduce++
+		}
+	}
+	return result
 }
 
 // ConflictReport is the report of the conflicts of a single state, rendered with the names of the grammar symbols so it
@@ -367,33 +417,17 @@ func buildConflictReportEntry(grammar frontend.Grammar, c Conflict) ConflictRepo
 	return entry
 }
 
-// writeResolvedConflictSummary writes the summary of the conflicts the policy resolved, one line per kind with
-// shift/reduce before reduce/reduce, so that a diff of two reports shows which kind changed.
-//
-// The conflicts are counted the way GNU Bison counts them, so the numbers can be compared with each other: a terminal
-// on which a shift competes with reductions counts as one shift/reduce conflict, and every reduction beyond the first
-// on a terminal counts as one reduce/reduce conflict. A terminal can count as both.
-func writeResolvedConflictSummary(builder *strings.Builder, conflicts []Conflict) {
-	var shiftReduce, reduceReduce int
-	for _, c := range conflicts {
-		shift, reduces := countContributions(c.Undeclared)
-		if shift && reduces > 0 {
-			shiftReduce++
-		}
-		if reduces > 1 {
-			reduceReduce += reduces - 1
-		}
-	}
-
-	if shiftReduce == 0 && reduceReduce == 0 {
-		return
-	}
-	writeConflictCount(builder, shiftReduce, "shift/reduce")
-	writeConflictCount(builder, reduceReduce, "reduce/reduce")
+// writeConflictSummary writes one line per kind of conflict which occurs, so that a diff of two reports shows which
+// count changed.
+func writeConflictSummary(builder *strings.Builder, counts ConflictCounts) {
+	writeConflictCount(builder, counts.ResolvedShiftReduce, "shift/reduce", "resolved")
+	writeConflictCount(builder, counts.UnresolvedShiftReduce, "shift/reduce", "unresolved")
+	writeConflictCount(builder, counts.ResolvedReduceReduce, "reduce/reduce", "resolved")
+	writeConflictCount(builder, counts.UnresolvedReduceReduce, "reduce/reduce", "unresolved")
 }
 
 // writeConflictCount writes the summary line for the conflicts of one kind, or nothing when there are none.
-func writeConflictCount(builder *strings.Builder, count int, kind string) {
+func writeConflictCount(builder *strings.Builder, count int, kind string, outcome string) {
 	if count == 0 {
 		return
 	}
@@ -401,20 +435,56 @@ func writeConflictCount(builder *strings.Builder, count int, kind string) {
 	if count == 1 {
 		noun = "conflict"
 	}
-	fmt.Fprintf(builder, "%d %s %s resolved\n", count, kind, noun)
+	fmt.Fprintf(builder, "%d %s %s %s\n", count, kind, noun, outcome)
 }
 
-// conflictKind classifies the conflict as a shift/reduce or a reduce/reduce conflict, which is the wording a grammar
-// author expects from a parser generator. The classification is by the actions precedence and associativity left
-// competing, because a shift which precedence removed is no part of the conflict the author has to deal with. A
-// conflict which mixes a shift with more than one reduction is reported as a shift/reduce conflict, because the
-// competing shift is the part the author usually reasons about first.
+// conflictKinds are the kinds a single conflict counts as.
+type conflictKinds struct {
+	resolvedShiftReduce    bool
+	resolvedReduceReduce   bool
+	unresolvedShiftReduce  bool
+	unresolvedReduceReduce bool
+}
+
+// classifyConflict derives the kinds of the conflict from its decision.
+//
+// An unresolved conflict is classified by the actions it was left with: a shift and a reduction make it a shift/reduce
+// conflict, two reductions a reduce/reduce conflict, and a shift with two reductions both.
+//
+// A resolved kind is what a rule of last resort decided. Shift over reduce decides a shift/reduce conflict by removing
+// every reduction, and earliest production decides a reduce/reduce conflict by removing reductions while another one
+// survives. So a conflict can count as a resolved reduce/reduce conflict and an unresolved shift/reduce conflict at
+// once. This only holds for the policies SelectPolicy returns, which have no other rule of last resort.
+func classifyConflict(c Conflict) conflictKinds {
+	var result conflictKinds
+	if c.Decision.Kind == DecisionUnresolved {
+		shift, reduces := countContributions(c.Decision.Unresolved)
+		result.unresolvedShiftReduce = shift && reduces > 0
+		result.unresolvedReduceReduce = reduces > 1
+	}
+
+	// The survivors are a subset of the undeclared contributions, because the rules of last resort only narrow them.
+	undeclaredShift, undeclaredReduces := countContributions(c.Undeclared)
+	survivingShift, survivingReduces := countContributions(c.Decision.Survivors())
+	result.resolvedShiftReduce = undeclaredShift && undeclaredReduces > 0 && survivingShift && survivingReduces == 0
+	result.resolvedReduceReduce = survivingReduces > 0 && undeclaredReduces > survivingReduces
+	return result
+}
+
+// conflictKind names the kind of the conflict for its report entry: the unresolved kinds of an unresolved conflict, and
+// the resolved kinds otherwise, see classifyConflict.
 func conflictKind(c Conflict) string {
-	shift, reduces := countContributions(c.Undeclared)
+	kinds := classifyConflict(c)
+	shiftReduce, reduceReduce := kinds.resolvedShiftReduce, kinds.resolvedReduceReduce
+	if c.Decision.Kind == DecisionUnresolved {
+		shiftReduce, reduceReduce = kinds.unresolvedShiftReduce, kinds.unresolvedReduceReduce
+	}
 	switch {
-	case shift && reduces > 0:
+	case shiftReduce && reduceReduce:
+		return "shift/reduce and reduce/reduce conflict"
+	case shiftReduce:
 		return "shift/reduce conflict"
-	case reduces > 1:
+	case reduceReduce:
 		return "reduce/reduce conflict"
 	default:
 		// A single contribution is not a conflict, so this only guards against unexpected input.

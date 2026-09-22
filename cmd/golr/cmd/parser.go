@@ -26,6 +26,7 @@ import (
 	typescriptbackend "github.com/backbone81/golr/pkg/parsergen/backend/typescript"
 	yamlbackend "github.com/backbone81/golr/pkg/parsergen/backend/yaml"
 	"github.com/backbone81/golr/pkg/parsergen/conflict"
+	"github.com/backbone81/golr/pkg/parsergen/core"
 	ielr1golrcore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/golr"
 	lalr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/lalr1/bison"
 	lr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/lr1/bison"
@@ -60,6 +61,10 @@ var (
 
 	parserVerbose          bool
 	parserWithStateNumbers bool
+
+	parserFailOnConflicts             bool
+	parserFailOnShiftReduceConflicts  bool
+	parserFailOnReduceReduceConflicts bool
 )
 
 var parserCmd = &cobra.Command{
@@ -81,9 +86,9 @@ var parserCmd = &cobra.Command{
 			WithStateNumbers: parserWithStateNumbers,
 		}
 
-		parser, conflicts, err := executeParserCore(grammar)
+		parser, conflicts, err := executeParserCore(grammar, parserCoreOptions()...)
 		if err != nil {
-			return reportUnresolvedConflicts(err, reportConfig)
+			return reportUnresolvedConflicts(err, conflicts, reportConfig)
 		}
 
 		if err := conflict.WriteConflictReport(os.Stderr, parser.Grammar, conflicts, reportConfig); err != nil {
@@ -97,24 +102,32 @@ var parserCmd = &cobra.Command{
 	},
 }
 
-// reportUnresolvedConflicts writes the report of every unresolved conflict the error holds to stderr, and returns an
-// error which only counts them, so they are not printed a second time. Any other error is returned unchanged.
-func reportUnresolvedConflicts(err error, config conflict.ReportConfig) error {
+// parserCoreOptions returns the core options the flags ask for.
+func parserCoreOptions() []core.Option {
+	var options []core.Option
+	if parserFailOnConflicts {
+		options = append(options, core.FailOnConflicts())
+	}
+	if parserFailOnShiftReduceConflicts {
+		options = append(options, core.FailOnShiftReduceConflicts())
+	}
+	if parserFailOnReduceReduceConflicts {
+		options = append(options, core.FailOnReduceReduceConflicts())
+	}
+	return options
+}
+
+// reportUnresolvedConflicts writes the report of the unresolved conflicts the error holds to stderr, headed by the
+// counts of all conflicts, and returns an error which only counts the unresolved ones, so they are not printed a second
+// time. Any other error is returned unchanged.
+func reportUnresolvedConflicts(err error, conflicts []conflict.Conflict, config conflict.ReportConfig) error {
 	unresolvedConflictErrors := conflict.UnresolvedConflictErrors(err)
 	if len(unresolvedConflictErrors) == 0 {
 		return err
 	}
 
-	for i, unresolvedConflictError := range unresolvedConflictErrors {
-		// The reports are separated by an empty line, the same way the conflict report separates them.
-		if i > 0 {
-			if _, err := io.WriteString(os.Stderr, "\n"); err != nil {
-				return err
-			}
-		}
-		if err := unresolvedConflictError.Report.Write(os.Stderr, config); err != nil {
-			return err
-		}
+	if err := conflict.WriteUnresolvedConflictReport(os.Stderr, conflicts, err, config); err != nil {
+		return err
 	}
 	// The error which follows is separated from the last report by an empty line, so it does not read as part of it.
 	if _, err := io.WriteString(os.Stderr, "\n"); err != nil {
@@ -155,20 +168,20 @@ func executeParserFrontend() (frontend.Grammar, error) {
 	}
 }
 
-func executeParserCore(grammar frontend.Grammar) (backend.Parser, []conflict.Conflict, error) {
+func executeParserCore(grammar frontend.Grammar, options ...core.Option) (backend.Parser, []conflict.Conflict, error) {
 	switch parserCore {
 	case "ielr1", "ielr1-golr":
-		return ielr1golrcore.GrammarToParser(grammar)
+		return ielr1golrcore.GrammarToParser(grammar, options...)
 	case "ielr1-bison":
-		return ielr1bisoncore.GrammarToParser(grammar)
+		return ielr1bisoncore.GrammarToParser(grammar, options...)
 	case "lalr1", "lalr1-golr":
-		return lalr1golrcore.GrammarToParser(grammar)
+		return lalr1golrcore.GrammarToParser(grammar, options...)
 	case "lalr1-bison":
-		return lalr1bisoncore.GrammarToParser(grammar)
+		return lalr1bisoncore.GrammarToParser(grammar, options...)
 	case "lr1", "lr1-golr":
-		return lr1golrcore.GrammarToParser(grammar)
+		return lr1golrcore.GrammarToParser(grammar, options...)
 	case "lr1-bison":
-		return lr1bisoncore.GrammarToParser(grammar)
+		return lr1bisoncore.GrammarToParser(grammar, options...)
 	default:
 		return backend.Parser{}, nil, fmt.Errorf("unsupported parser core %q", parserCore)
 	}
@@ -426,6 +439,25 @@ func init() {
 		"v",
 		false,
 		"List every conflict the parser generator resolved on its own.",
+	)
+
+	parserCmd.PersistentFlags().BoolVar(
+		&parserFailOnConflicts,
+		"fail-on-conflicts",
+		false,
+		"Fail if a shift/reduce or reduce/reduce conflict is not resolved by precedence or associativity.",
+	)
+	parserCmd.PersistentFlags().BoolVar(
+		&parserFailOnShiftReduceConflicts,
+		"fail-on-sr-conflicts",
+		false,
+		"Fail if a shift/reduce conflict is not resolved by precedence or associativity.",
+	)
+	parserCmd.PersistentFlags().BoolVar(
+		&parserFailOnReduceReduceConflicts,
+		"fail-on-rr-conflicts",
+		false,
+		"Fail if a reduce/reduce conflict is not resolved by precedence or associativity.",
 	)
 
 	parserCmd.PersistentFlags().BoolVar(

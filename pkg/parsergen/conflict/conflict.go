@@ -61,5 +61,9 @@ var UnresolvedConflictErrors = intconflict.UnresolvedConflictErrors
 
 // WriteConflictReport writes a report of the given conflicts to w. Conflicts the policy resolved on its own are
 // summarized and listed in full only with ReportConfig.Verbose. Conflicts decided by precedence declarations are not
-// reported, and conflicts the policy could not decide are reported by their UnresolvedConflictError.
+// reported, and conflicts the policy could not decide are reported by WriteUnresolvedConflictReport.
 var WriteConflictReport = intconflict.WriteConflictReport
+
+// WriteUnresolvedConflictReport writes the report of a core which failed on unresolved conflicts: the summary of the
+// conflicts it returned, followed by the report of every UnresolvedConflictError in the error.
+var WriteUnresolvedConflictReport = intconflict.WriteUnresolvedConflictReport

@@ -1,0 +1,15 @@
+1 shift/reduce conflict unresolved
+1 reduce/reduce conflict resolved
+
+state:
+  start -> "a" • "c"
+  x -> "a" •
+  y -> "a" •
+
+  shift/reduce conflict on terminal "c":
+    shift
+    reduce: x -> "a"
+    reduce: y -> "a"
+    unresolved between:
+      shift
+      reduce: x -> "a"

@@ -1,0 +1,11 @@
+1 reduce/reduce conflict unresolved
+
+state:
+  x -> "a" •
+  y -> "a" •
+  z -> "a" •
+
+  reduce/reduce conflict on terminal "b":
+    reduce: x -> "a"
+    reduce: y -> "a"
+    reduce: z -> "a"

@@ -1,3 +1,5 @@
+2 reduce/reduce conflicts unresolved
+
 state:
   x -> "c" •
   y -> "c" •

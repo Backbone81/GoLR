@@ -1,0 +1,23 @@
+// A shift competes with two reductions on "c": after "a", the state shifts "c" for start and reduces both x and y on
+// "c". Shift over reduce removes both reductions at once, while earliest production only removes the reduction of y.
+@scanner {
+    WHITESPACE: /[ \t\r\n]+/ @skip;
+    A:          "a";
+    C:          "c";
+}
+
+@parser {
+    start
+        : x "c"
+        | y "c"
+        | "a" "c"
+        ;
+
+    x
+        : "a"
+        ;
+
+    y
+        : "a"
+        ;
+}

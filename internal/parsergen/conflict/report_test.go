@@ -45,9 +45,12 @@ var _ = AfterSuite(func() {
 })
 
 var _ = Describe("WriteConflictReport", func() {
+	// A case can hold one variant per policy, each in a subdirectory of the case named after the command line flag which
+	// selects the policy. The variant is empty for a case which has a single policy.
 	DescribeTable("should reproduce the committed report",
-		func(caseName string, policyFactory conflict.PolicyFactory) {
+		func(caseName string, variant string, policyFactory conflict.PolicyFactory) {
 			casePath := filepath.Join(reportRootPath, caseName)
+			goldenPath := filepath.Join(casePath, variant)
 
 			_, grammar, err := golrfrontend.GrammarFromFile(filepath.Join(casePath, reportSpecFileName))
 			Expect(err).ToNot(HaveOccurred())
@@ -56,31 +59,66 @@ var _ = Describe("WriteConflictReport", func() {
 			// changes.
 			parser, conflicts, err := ielr1golr.GrammarToParser(grammar, policyFactory)
 			if err != nil {
-				// An unresolved conflict makes the core fail, and the error is what reports the conflict then.
-				expectGoldenFile(filepath.Join(casePath, reportErrorFileName), err.Error())
+				// An unresolved conflict makes the core fail, and the unresolved conflict report is what reports the
+				// conflicts then.
+				var builder strings.Builder
+				err := conflict.WriteUnresolvedConflictReport(&builder, conflicts, err, conflict.ReportConfig{})
+				Expect(err).ToNot(HaveOccurred())
+				expectGoldenFile(filepath.Join(goldenPath, reportErrorFileName), builder.String())
 				return
 			}
 
-			expectGoldenReport(filepath.Join(casePath, reportFileName), parser.Grammar, conflicts, conflict.ReportConfig{})
-			expectGoldenReport(filepath.Join(casePath, reportVerboseFileName), parser.Grammar, conflicts, conflict.ReportConfig{
-				Verbose: true,
-			})
+			expectGoldenReport(
+				filepath.Join(goldenPath, reportFileName),
+				parser.Grammar,
+				conflicts,
+				conflict.ReportConfig{},
+			)
+			expectGoldenReport(
+				filepath.Join(goldenPath, reportVerboseFileName),
+				parser.Grammar,
+				conflicts,
+				conflict.ReportConfig{Verbose: true},
+			)
 		},
-		Entry("with shift/reduce conflicts", "shift-reduce", conflict.PolicyFactory(conflict.DefaultPolicy)),
-		Entry("with reduce/reduce conflicts", "reduce-reduce", conflict.PolicyFactory(conflict.DefaultPolicy)),
-		Entry("with conflicts decided by precedence", "precedence", conflict.PolicyFactory(conflict.DefaultPolicy)),
-		Entry("with split states sharing their kernel items", "split-states", conflict.PolicyFactory(conflict.DefaultPolicy)),
+		Entry("with shift/reduce conflicts", "shift-reduce", "", conflict.PolicyFactory(conflict.DefaultPolicy)),
+		Entry("with reduce/reduce conflicts", "reduce-reduce", "", conflict.PolicyFactory(conflict.DefaultPolicy)),
+		Entry("with conflicts decided by precedence", "precedence", "", conflict.PolicyFactory(conflict.DefaultPolicy)),
+		Entry(
+			"with split states sharing their kernel items",
+			"split-states",
+			"",
+			conflict.PolicyFactory(conflict.DefaultPolicy),
+		),
 		Entry(
 			"with split states told apart by an empty production",
 			"split-states-empty-production",
+			"",
 			conflict.PolicyFactory(conflict.DefaultPolicy),
 		),
-		Entry("with unresolved conflicts", "unresolved", conflict.PolicyFactory(conflict.PrecedencePolicy)),
+		Entry("with unresolved conflicts", "unresolved", "", conflict.PolicyFactory(conflict.PrecedencePolicy)),
 		Entry(
 			"with unresolved conflicts in split states sharing their kernel items",
 			"split-states-unresolved",
+			"",
 			conflict.PolicyFactory(conflict.PrecedencePolicy),
 		),
+		Entry("with a shift and two reductions under the default policy",
+			"shift-two-reductions", "default", conflict.SelectPolicy(false, false)),
+		Entry("with a shift and two reductions failing on shift/reduce conflicts",
+			"shift-two-reductions", "fail-on-sr-conflicts", conflict.SelectPolicy(true, false)),
+		Entry("with a shift and two reductions failing on reduce/reduce conflicts",
+			"shift-two-reductions", "fail-on-rr-conflicts", conflict.SelectPolicy(false, true)),
+		Entry("with a shift and two reductions failing on conflicts",
+			"shift-two-reductions", "fail-on-conflicts", conflict.SelectPolicy(true, true)),
+		Entry("with three reductions under the default policy",
+			"three-reductions", "default", conflict.SelectPolicy(false, false)),
+		Entry("with three reductions failing on shift/reduce conflicts",
+			"three-reductions", "fail-on-sr-conflicts", conflict.SelectPolicy(true, false)),
+		Entry("with three reductions failing on reduce/reduce conflicts",
+			"three-reductions", "fail-on-rr-conflicts", conflict.SelectPolicy(false, true)),
+		Entry("with three reductions failing on conflicts",
+			"three-reductions", "fail-on-conflicts", conflict.SelectPolicy(true, true)),
 	)
 })
 

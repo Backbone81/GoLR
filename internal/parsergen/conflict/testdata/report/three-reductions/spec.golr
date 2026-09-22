@@ -1,0 +1,26 @@
+// Three reductions compete on "b" after "a", which is a single reduce/reduce conflict decided by earliest production.
+@scanner {
+    WHITESPACE: /[ \t\r\n]+/ @skip;
+    A:          "a";
+    B:          "b";
+}
+
+@parser {
+    start
+        : x "b"
+        | y "b"
+        | z "b"
+        ;
+
+    x
+        : "a"
+        ;
+
+    y
+        : "a"
+        ;
+
+    z
+        : "a"
+        ;
+}
