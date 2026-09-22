@@ -1,4 +1,38 @@
-unreleased: []
+unreleased:
+- description: Conflicts decided by precedence and associativity declarations are
+    no longer reported. The conflict summary and --verbose listing of golr parser,
+    and the conflicts returned by the GrammarToParser functions of the GoLR cores,
+    now only cover conflicts resolved by shift over reduce or by the earliest production,
+    plus unresolved ones.
+- description: Fixed the Bison frontend reading a string literal which was not declared
+    as a token alias, like "+", as a nonterminal without productions instead of as
+    a terminal.
+- description: Adjusted conflict reporting to be stable. This allows conflict reports
+    to be diffed reliably, even with the grammar being modified.
+- description: Unresolved conflicts are now reported in full.
+- description: Added --with-state-number to golr parser, which adds the state number
+    to every state of the conflict report.
+- description: 'BREAKING: Parse tree nodes carry the byte offset and length of the
+    source they cover instead of a lexeme. Scanners resolve these through the new
+    Position and Text methods, which replace Line and Column.'
+- description: 'BREAKING: Custom token sources have to provide Position and Text.
+    A token they insert needs an empty lexeme at the offset where it is inserted.'
+- description: 'BREAKING: C scanners allocate a line table on the first position lookup.
+    Call <prefix>_scanner_free once a scanner is done with, or the table leaks.'
+- description: 'BREAKING: The Rust ParseNode no longer has a lifetime parameter, and
+    the Rust Scanner is no longer Sync.'
+- description: Semantic errors in GoLR and GNU Bison grammar files, like undeclared
+    terminals or duplicate declarations, now report the file, line and column they
+    occur at.
+- description: 'BREAKING: The column reported by the Position method of generated
+    scanners now counts UTF-8 characters instead of bytes, and a tab counts as one
+    column. Use the byte offset to get at the bytes of the source.'
+- description: Added --fail-on-sr-conflicts, --fail-on-rr-conflicts and --fail-on-conflicts
+    to golr parser, which make the run fail on a shift/reduce or reduce/reduce conflict
+    that precedence and associativity do not resolve.
+- description: The conflict summary of golr parser now counts resolved and unresolved
+    conflicts separately, and a conflict decided by shift over reduce no longer also
+    counts as a reduce/reduce conflict.
 releases:
 - version: |
     v0.4.0

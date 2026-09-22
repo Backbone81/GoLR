@@ -1,0 +1,3 @@
+description: The conflict summary of golr parser now counts resolved and unresolved
+  conflicts separately, and a conflict decided by shift over reduce no longer also
+  counts as a reduce/reduce conflict.

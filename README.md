@@ -129,6 +129,9 @@ Flags:
       --backend-rust-scanner-module string         The module path the generated Rust parser takes the token type from. (default "super::scanner")
       --backend-typescript-scanner-module string   The module specifier the generated TypeScript parser imports the token constants from. (default "./scanner.js")
       --core string                                The core to use for generating the parser from the context free grammar. One of: ielr1, ielr1-golr, ielr1-bison, lalr1, lalr1-golr, lalr1-bison, lr1, lr1-golr, lr1-bison. (default "ielr1")
+      --fail-on-conflicts                          Fail if a shift/reduce or reduce/reduce conflict is not resolved by precedence or associativity.
+      --fail-on-rr-conflicts                       Fail if a reduce/reduce conflict is not resolved by precedence or associativity.
+      --fail-on-sr-conflicts                       Fail if a shift/reduce conflict is not resolved by precedence or associativity.
       --frontend string                            The frontend to use for reading the context free grammar. One of: bison, golr, json, yaml. (default "golr")
       --frontend-file-path string                  The file path to read the context free grammar from. Can be '-' to read from stdin.
   -h, --help                                       help for parser
@@ -191,24 +194,27 @@ manual corrections needed.
 The `selftest` sub-command checks the IELR(1) parser core against a canonical LR(1) oracle:
 
 ```text
-Checks the IELR(1) parser core against a canonical LR(1) oracle.
+Fuzz tests the IELR(1) parser core against a canonical LR(1) oracle.
 
 Usage:
   golr selftest [flags]
 
 Flags:
-      --duration duration                          How long to keep checking grammars, for example 30m or 8h. Zero means no time limit.
-      --failure-dir string                         The directory to dump a failing grammar and its action traces into. Empty only reports the seed.
-      --grammar-count int                          The number of grammars to check in total. Zero keeps checking until the duration is up or the run is interrupted.
+      --duration duration                          The duration to check random grammars. Supports Go durations with 30s or 10m. Use 0 for unlimited.
+      --fail-on-conflicts                          Check the cores under the policy which fails if a shift/reduce or reduce/reduce conflict is not resolved by precedence or associativity.
+      --fail-on-rr-conflicts                       Check the cores under the policy which fails if a reduce/reduce conflict is not resolved by precedence or associativity.
+      --fail-on-sr-conflicts                       Check the cores under the policy which fails if a shift/reduce conflict is not resolved by precedence or associativity.
+      --failure-dir string                         The directory to dump a failing grammar and its action traces into. (default ".")
+      --grammar-count int                          The number of random grammars to check in total. Use 0 for unlimited.
   -h, --help                                       help for selftest
-      --inputs-per-grammar int                     The number of generated sentences each grammar is checked with. (default 16)
-      --max-nonterminal-count int                  The largest number of nonterminals a generated grammar may have. Zero uses the generator default.
-      --max-production-count-per-nonterminal int   The largest number of productions a generated nonterminal may have. Zero uses the generator default.
-      --max-rhs-symbol-count int                   The largest number of symbols on the right hand side of a generated production. Zero uses the generator default.
-      --max-terminal-count int                     The largest number of terminals a generated grammar may have. Zero uses the generator default.
-      --progress-interval duration                 How often to print a progress line. (default 10s)
-      --stop-on-failure                            End the whole run as soon as one grammar fails, instead of counting the failure and carrying on.
-      --workers int                                The number of grammars to check concurrently. Defaults to the number of CPU cores.
+      --max-nonterminal-count int                  The largest number of nonterminals a random grammar may have. (default 8)
+      --max-production-count-per-nonterminal int   The largest number of productions a generated nonterminal may have. (default 6)
+      --max-rhs-symbol-count int                   The largest number of symbols on the right hand side of a generated production. (default 4)
+      --max-terminal-count int                     The largest number of terminals a random grammar may have. (default 5)
+      --memory-limit int                           The megabytes of heap to fill before collecting garbage. Higher values check more grammars per second at the cost of memory. Use 0 to leave the Go garbage collector at its defaults. (default 512)
+      --sentences-per-grammar int                  The number of random sentences each grammar is checked with. (default 16)
+      --stop-on-failure                            Exit the application on the first failing grammar instead of continuing.
+      --workers int                                The number of random grammars to check concurrently. Defaults to the number of CPU cores.
 ```
 
 This is a soak test for GoLR itself, not a step of generating a parser. Random grammars are turned into an IELR(1) and
@@ -224,6 +230,9 @@ far:
 golr selftest --duration 8h --failure-dir ./selftest-failures | tee selftest.log
 ```
 
+The `--fail-on-...` flags build both tables under the same policy as the flags of `golr parser`, which covers the paths
+an unresolved conflict takes through the IELR(1) core.
+
 See the documentation about [correctness](docs/correctness.md) for where this fits into the overall verification of the
 IELR(1) implementation.
 
@@ -231,6 +240,9 @@ IELR(1) implementation.
 
 The parser generator constructs an LR(1) parser from a context free grammar. Please be aware of the known
 [limitations](docs/limitations.md).
+
+See [conflicts](docs/parsergen-conflicts.md) for how conflicts are decided, how they are reported, and how to make a
+build fail on them.
 
 ### Parser Generator Frontends
 
