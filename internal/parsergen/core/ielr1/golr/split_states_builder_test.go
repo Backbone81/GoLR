@@ -1,6 +1,7 @@
 package golr_test
 
 import (
+	"fmt"
 	"math/rand"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -147,4 +148,81 @@ var _ = Describe("Split States Builder", func() {
 		Expect(compared).To(BeNumerically(">", grammarCount/2))
 		Expect(mysteriousConflictRemoved).To(BeNumerically(">", 10))
 	})
+
+	// A policy without a rule of last resort leaves some conflicts unresolved, and phase 3 has to keep two isocores apart
+	// when their conflicts are left unresolved between different contributions. The compatibility test of definition
+	// 3.43 compares the decisions, and two unresolved decisions are only equal when they were left with the same
+	// contributions. If phase 3 merged such isocores anyway, the merged state would carry the contributions of both,
+	// which is a conflict canonical LR(1) does not have, and the conflict report would describe a state the grammar
+	// author cannot find in the canonical LR(1) automaton.
+	//
+	// The grammar has two isocores which canonical LR(1) leaves with the shift of "c" against A -> e and against B -> e.
+	// Under a policy which decides every shift/reduce conflict in favor of the shift, both isocores decide the same, so
+	// phase 3 does not split them. Under a policy which leaves the shift/reduce conflicts unresolved, it has to.
+	DescribeTable("should keep isocores apart whose conflicts are left unresolved between different contributions",
+		func(policyFactory conflict.PolicyFactory, expectSplit bool) {
+			grammar := ielr1golrcore.UnresolvedShiftReduceIsocoresTestGrammar
+
+			lalr1Parser, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, policyFactory)
+			Expect(err).ToNot(HaveOccurred())
+			ielr1Parser, err := ielr1golrcore.GrammarToUnresolvedParser(grammar, policyFactory)
+			Expect(err).ToNot(HaveOccurred())
+			if expectSplit {
+				Expect(len(ielr1Parser.States)).To(
+					BeNumerically(">", len(lalr1Parser.States)),
+					"phase 3 is expected to split the isocores apart",
+				)
+			} else {
+				Expect(ielr1Parser.States).To(
+					HaveLen(len(lalr1Parser.States)),
+					"phase 3 is not expected to split isocores which decide the same",
+				)
+			}
+
+			// The state indexes differ between the two automatons, so the unresolved conflicts are compared by the
+			// conflicted terminal and the contributions they were left with.
+			_, ielr1Conflicts, _ := ielr1golrcore.GrammarToParser(grammar, policyFactory)
+			_, lr1Conflicts, _ := lr1golrcore.GrammarToParser(grammar, policyFactory)
+			if expectSplit {
+				// One unresolved shift/reduce conflict in each of the two isocores, so that the comparison below is not
+				// vacuous.
+				Expect(unresolvedConflictDescriptions(lr1Conflicts)).To(HaveLen(2))
+			} else {
+				Expect(unresolvedConflictDescriptions(lr1Conflicts)).To(BeEmpty())
+			}
+			Expect(unresolvedConflictDescriptions(ielr1Conflicts)).To(
+				ConsistOf(unresolvedConflictDescriptions(lr1Conflicts)),
+			)
+		},
+		Entry("the default policy",
+			conflict.DefaultPolicy,
+			false,
+		),
+		Entry("precedence and shift over reduce",
+			conflict.CompoundPolicy(conflict.PrecedencePolicy, conflict.ShiftOverReducePolicy),
+			false,
+		),
+		Entry("precedence and earliest production",
+			conflict.CompoundPolicy(conflict.PrecedencePolicy, conflict.EarliestProductionPolicy),
+			true,
+		),
+		Entry("precedence alone",
+			conflict.CompoundPolicy(conflict.PrecedencePolicy),
+			true,
+		),
+	)
 })
+
+// unresolvedConflictDescriptions describes each unresolved conflict by its conflicted terminal and the contributions it
+// was left with, which is how two automatons with different state indexes can be compared on their unresolved
+// conflicts.
+func unresolvedConflictDescriptions(conflicts []conflict.Conflict) []string {
+	var result []string
+	for _, c := range conflicts {
+		if c.Decision.Kind != conflict.DecisionUnresolved {
+			continue
+		}
+		result = append(result, fmt.Sprintf("terminal %d: %s", c.TerminalIdx, c.Decision.String()))
+	}
+	return result
+}

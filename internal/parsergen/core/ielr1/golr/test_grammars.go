@@ -1727,4 +1727,116 @@ var (
 		},
 		StartNonterminalIdx: 0, // "S"
 	}
+
+	// UnresolvedShiftReduceIsocoresTestGrammar is LR(1) apart from two shift/reduce conflicts on "c" in two isocores of
+	// the same state, which differ in the reduction the shift competes with. It is used to verify that phase 3 keeps
+	// two isocores apart when a policy leaves their conflicts unresolved between different contributions.
+	//
+	//   1. S -> aAc
+	//   2. S -> aBd
+	//   3. S -> bAg
+	//   4. S -> bBc
+	//   5. A -> e
+	//   6. A -> ec
+	//   7. B -> e
+	//
+	// In canonical LR(1) the state reached by "ae" reduces A -> e on "c", and the state reached by "be" reduces B -> e
+	// on "c". Both shift "c" for A -> ec, so the first is left with the conflict between the shift and A -> e, and the
+	// second with the conflict between the shift and B -> e. LALR(1) merges the two states because they share the same
+	// kernel items, which leaves the merged state with the shift and both reductions on "c", a reduce/reduce conflict
+	// canonical LR(1) does not have.
+	UnresolvedShiftReduceIsocoresTestGrammar = frontend.Grammar{
+		Terminals: []frontend.Symbol{
+			{
+				Name: "a", // 0
+			},
+			{
+				Name: "b", // 1
+			},
+			{
+				Name: "c", // 2
+			},
+			{
+				Name: "d", // 3
+			},
+			{
+				Name: "e", // 4
+			},
+			{
+				Name: "g", // 5
+			},
+		},
+		Nonterminals: []frontend.Symbol{
+			{
+				Name: "S", // 0
+			},
+			{
+				Name: "A", // 1
+			},
+			{
+				Name: "B", // 2
+			},
+		},
+		Productions: []frontend.Production{
+			//   1. S -> aAc
+			{
+				NonterminalIdx: 0, // S
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(0),    // a
+					frontend.NewNonterminalRef(1), // A
+					frontend.NewTerminalRef(2),    // c
+				},
+			},
+			//   2. S -> aBd
+			{
+				NonterminalIdx: 0, // S
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(0),    // a
+					frontend.NewNonterminalRef(2), // B
+					frontend.NewTerminalRef(3),    // d
+				},
+			},
+			//   3. S -> bAg
+			{
+				NonterminalIdx: 0, // S
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(1),    // b
+					frontend.NewNonterminalRef(1), // A
+					frontend.NewTerminalRef(5),    // g
+				},
+			},
+			//   4. S -> bBc
+			{
+				NonterminalIdx: 0, // S
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(1),    // b
+					frontend.NewNonterminalRef(2), // B
+					frontend.NewTerminalRef(2),    // c
+				},
+			},
+			//   5. A -> e
+			{
+				NonterminalIdx: 1, // A
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(4), // e
+				},
+			},
+			//   6. A -> ec
+			{
+				NonterminalIdx: 1, // A
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(4), // e
+					frontend.NewTerminalRef(2), // c
+				},
+			},
+			//   7. B -> e
+			{
+				NonterminalIdx: 2, // B
+				SymbolRefs: []frontend.SymbolRef{
+					frontend.NewTerminalRef(4), // e
+				},
+			},
+		},
+		StartNonterminalIdx: 0, // S
+	}
 )
