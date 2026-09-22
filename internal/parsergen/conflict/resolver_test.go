@@ -17,7 +17,7 @@ var _ = Describe("Resolve", func() {
 	// Resolving the conflicts of the parser tables is phase 5 of IELR(1), and it is what makes parser tables with
 	// conflicts usable for a parser. It works on the parser tables alone, so it does not matter which algorithm
 	// computed them.
-	It("should resolve every conflict of an ambiguous grammar with the policy of GNU Bison", func() {
+	It("should resolve every conflict of an ambiguous grammar with the default policy", func() {
 		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(conflictedTerminals(parser)).ToNot(
@@ -217,6 +217,65 @@ var _ = Describe("Resolve", func() {
 		}
 		Expect(conflicts).To(Equal(wantConflicts))
 	})
+
+	// A conflict between a shift and two reductions is where the order of the rules of last resort shows: shift over
+	// reduce removes both reductions at once, while earliest production only removes the later reduction and leaves the
+	// shift competing with the earlier one. The merged LALR(1) state of the grammar holds exactly such a conflict on "c",
+	// between the shift for A -> ec and the reductions of A -> e and B -> e, and the grammar declares no precedence.
+	DescribeTable("should decide a conflict between a shift and two reductions under every policy SelectPolicy returns",
+		func(failOnShiftReduceConflicts bool, failOnReduceReduceConflicts bool, wantUnresolved bool, wantReduces int) {
+			policyFactory := conflict.SelectPolicy(failOnShiftReduceConflicts, failOnReduceReduceConflicts)
+			parser, err := lalr1golr.GrammarToUnresolvedParser(
+				ielr1golr.UnresolvedShiftReduceIsocoresTestGrammar,
+				policyFactory,
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			var contributions conflict.ContributionSet
+			for _, c := range conflict.Detect(parser) {
+				if parser.Grammar.Terminals[c.TerminalIdx].Name == "c" {
+					Expect(contributions.IsEmpty()).To(BeTrue(), "the grammar is expected to have a single conflict on c")
+					contributions = c.Contributions
+				}
+			}
+			Expect(contributions.Length()).To(
+				Equal(3),
+				"the conflict on c is expected to be between the shift and the two reductions",
+			)
+			shift := conflict.NewShiftContribution()
+			// The contributions are ordered with the shift first and the reductions by their production index, so the
+			// reduction of A -> e comes before the one of B -> e.
+			earliestReduce := contributions.GetByIndex(1)
+
+			conflicts, err := conflict.Resolve(&parser, policyFactory(parser.Grammar))
+			Expect(conflicts).To(HaveLen(1))
+			decision := conflicts[0].Decision
+
+			if !wantUnresolved {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(decision).To(Equal(conflict.NewDominantDecision(shift)))
+				return
+			}
+			Expect(err).To(HaveOccurred())
+			Expect(conflict.UnresolvedConflictErrors(err)).To(HaveLen(1))
+			wantRemaining := contributions
+			if wantReduces == 1 {
+				wantRemaining = conflict.NewContributionSet(shift, earliestReduce)
+			}
+			Expect(decision.Equal(conflict.NewUnresolvedDecision(wantRemaining))).To(
+				BeTrue(),
+				"expected the conflict to be left unresolved between %s, but the decision was %s",
+				wantRemaining.String(),
+				decision,
+			)
+		},
+		Entry("the shift wins under the default policy", false, false, false, 0),
+		Entry("earliest production narrows the conflict down to the shift and the earlier reduction, which is left "+
+			"unresolved, when shift/reduce conflicts fail", true, false, true, 1),
+		Entry("the shift wins before any reduce/reduce rule applies when reduce/reduce conflicts fail",
+			false, true, false, 0),
+		Entry("the whole conflict is left unresolved when both fail", true, true, true, 2),
+	)
 })
 
 var _ = Describe("Detect", func() {

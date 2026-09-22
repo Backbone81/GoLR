@@ -1,6 +1,8 @@
 package conflict_test
 
 import (
+	"reflect"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -8,9 +10,24 @@ import (
 )
 
 var _ = Describe("Policies", func() {
+	// The mapping of the two switches to the four compositions only exists in SelectPolicy, so it is pinned down here.
+	// The factories are functions, which Go cannot compare, so they are compared by the code they point to.
+	DescribeTable("should map the switches of SelectPolicy to the matching policy",
+		func(failOnShiftReduceConflicts bool, failOnReduceReduceConflicts bool, want conflict.PolicyFactory) {
+			got := conflict.SelectPolicy(failOnShiftReduceConflicts, failOnReduceReduceConflicts)
+			Expect(reflect.ValueOf(got).Pointer()).To(Equal(reflect.ValueOf(want).Pointer()))
+		},
+		Entry("neither fails", false, false, conflict.PolicyFactory(conflict.DefaultPolicy)),
+		Entry("shift/reduce conflicts fail", true, false,
+			conflict.PolicyFactory(conflict.PrecedenceAndEarliestProductionPolicy)),
+		Entry("reduce/reduce conflicts fail", false, true,
+			conflict.PolicyFactory(conflict.PrecedenceAndShiftOverReducePolicy)),
+		Entry("both fail", true, true, conflict.PolicyFactory(conflict.PrecedencePolicy)),
+	)
+
 	// The dominant contribution function of definition 2.19 of IELR(1) decides which action wins a conflict. The
 	// grammar declares one operator per case a policy has to tell apart, see PrecedenceTestGrammar.
-	DescribeTable("should compute the dominant contribution with the policy of GNU Bison",
+	DescribeTable("should compute the dominant contribution with the default policy",
 		func(terminalIdx int, contributions conflict.ContributionSet, wantDecision conflict.Decision) {
 			policy := conflict.DefaultPolicy(conflict.PrecedenceTestGrammar)
 
@@ -152,10 +169,10 @@ var _ = Describe("Policies", func() {
 	// A policy which is not part of the compound policy is not applied, which is the whole point of composing the
 	// conflict resolution instead of hard coding it.
 	Describe("the compound policy", func() {
-		// A policy is free to leave a conflict unresolved, but the policy of GNU Bison never does: the shift beats a
+		// A policy is free to leave a conflict unresolved, but the default policy never does: the shift beats a
 		// reduction and the earliest production beats the ones declared after it whenever precedence has nothing to
 		// say.
-		It("should be total, so that it decides every conflict the way GNU Bison does", func() {
+		It("should be total for the default policy, so that it decides every conflict", func() {
 			policy := conflict.DefaultPolicy(conflict.PrecedenceTestGrammar)
 
 			for terminalIdx := range conflict.PrecedenceTestGrammar.Terminals {

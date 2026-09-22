@@ -72,3 +72,56 @@ func DefaultPolicy(augmentedGrammar frontend.Grammar) Policy {
 
 // DefaultPolicy is a PolicyFactory.
 var _ PolicyFactory = DefaultPolicy
+
+// PrecedenceAndShiftOverReducePolicy returns the compound policy which is DefaultPolicy without the earliest production
+// rule: a reduce/reduce conflict which precedence does not decide is left unresolved. A shift still beats several
+// reductions at once.
+//
+// This is a PolicyFactory, so it can be handed to a core as it is, and the grammar MUST be an augmented grammar.
+//
+//nolint:ireturn // Returning the interface is what makes this usable as a PolicyFactory.
+func PrecedenceAndShiftOverReducePolicy(augmentedGrammar frontend.Grammar) Policy {
+	return CompoundPolicy(
+		PrecedencePolicy,
+		ShiftOverReducePolicy,
+	)(augmentedGrammar)
+}
+
+// PrecedenceAndShiftOverReducePolicy is a PolicyFactory.
+var _ PolicyFactory = PrecedenceAndShiftOverReducePolicy
+
+// PrecedenceAndEarliestProductionPolicy returns the compound policy which is DefaultPolicy without the shift over
+// reduce rule: a shift/reduce conflict which precedence does not decide is left unresolved. A shift and several
+// reductions are narrowed down to the shift and the earliest reduction.
+//
+// This is a PolicyFactory, so it can be handed to a core as it is, and the grammar MUST be an augmented grammar.
+//
+//nolint:ireturn // Returning the interface is what makes this usable as a PolicyFactory.
+func PrecedenceAndEarliestProductionPolicy(augmentedGrammar frontend.Grammar) Policy {
+	return CompoundPolicy(
+		PrecedencePolicy,
+		EarliestProductionPolicy,
+	)(augmentedGrammar)
+}
+
+// PrecedenceAndEarliestProductionPolicy is a PolicyFactory.
+var _ PolicyFactory = PrecedenceAndEarliestProductionPolicy
+
+// SelectPolicy returns the policy which leaves the given kinds of conflicts unresolved when precedence does not decide
+// them. It is the only mapping from the two switches to a policy.
+//
+// The set of four policies is closed on purpose: IELR(1) needs a merge-stable policy, and phase 2 a policy whose
+// analytic split stability is correct. Neither follows from the parts of a composition, so each of the four is verified
+// on its own by the brute force tests of this package.
+func SelectPolicy(failOnShiftReduceConflicts bool, failOnReduceReduceConflicts bool) PolicyFactory {
+	switch {
+	case failOnShiftReduceConflicts && failOnReduceReduceConflicts:
+		return PrecedencePolicy
+	case failOnShiftReduceConflicts:
+		return PrecedenceAndEarliestProductionPolicy
+	case failOnReduceReduceConflicts:
+		return PrecedenceAndShiftOverReducePolicy
+	default:
+		return DefaultPolicy
+	}
+}

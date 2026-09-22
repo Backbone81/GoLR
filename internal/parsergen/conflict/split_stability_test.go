@@ -55,7 +55,7 @@ var _ = Describe("SplitStability", func() {
 				}
 			}
 		},
-		Entry("the default policy of GNU Bison",
+		Entry("the default policy",
 			conflict.PrecedenceTestGrammar, conflict.DefaultPolicy(conflict.PrecedenceTestGrammar)),
 		Entry("the shift over reduce policy alone",
 			conflict.PrecedenceTestGrammar, conflict.ShiftOverReducePolicy(conflict.PrecedenceTestGrammar)),
@@ -67,10 +67,22 @@ var _ = Describe("SplitStability", func() {
 			conflict.PrecedenceTestGrammar, conflict.CompoundPolicy()(conflict.PrecedenceTestGrammar)),
 		Entry("the conflict-preserving null policy",
 			conflict.PrecedenceTestGrammar, conflict.NullPolicy(conflict.PrecedenceTestGrammar)),
-		Entry("the default policy of GNU Bison on the multi rejecter grammar",
+		Entry("the default policy on the multi rejecter grammar",
 			conflict.MultiRejecterTestGrammar, conflict.DefaultPolicy(conflict.MultiRejecterTestGrammar)),
 		Entry("the precedence policy alone on the multi rejecter grammar",
 			conflict.MultiRejecterTestGrammar, conflict.PrecedencePolicy(conflict.MultiRejecterTestGrammar)),
+		Entry("precedence and shift over reduce",
+			conflict.PrecedenceTestGrammar,
+			conflict.PrecedenceAndShiftOverReducePolicy(conflict.PrecedenceTestGrammar)),
+		Entry("precedence and shift over reduce on the multi rejecter grammar",
+			conflict.MultiRejecterTestGrammar,
+			conflict.PrecedenceAndShiftOverReducePolicy(conflict.MultiRejecterTestGrammar)),
+		Entry("precedence and earliest production",
+			conflict.PrecedenceTestGrammar,
+			conflict.PrecedenceAndEarliestProductionPolicy(conflict.PrecedenceTestGrammar)),
+		Entry("precedence and earliest production on the multi rejecter grammar",
+			conflict.MultiRejecterTestGrammar,
+			conflict.PrecedenceAndEarliestProductionPolicy(conflict.MultiRejecterTestGrammar)),
 	)
 
 	// The null policy resolves nothing, so the general case of definition 3.35 collapses to observation 3.33: the
