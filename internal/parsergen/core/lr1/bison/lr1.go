@@ -10,6 +10,7 @@ import (
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/conflict"
+	"github.com/backbone81/golr/internal/parsergen/core"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	bisonfrontend "github.com/backbone81/golr/internal/parsergen/frontend/bison"
 	bisonutils "github.com/backbone81/golr/internal/utils/bison"
@@ -19,12 +20,18 @@ import (
 //
 // The policy factory is ignored. GNU Bison resolves the conflicts itself, with its own precedence and associativity
 // rules, and this core only reads the tables it reports back. The parameter is there so that this core has the same
-// signature as the GoLR one and a caller can switch between them.
+// signature as the GoLR one and a caller can switch between them. For the same reason, the options which make the GoLR
+// cores fail on unresolved conflicts cannot be applied, so they make this core fail with core.ErrOptionNotSupported.
 func GrammarToParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
+	options ...core.Option,
 ) (backend.Parser, []conflict.Conflict, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: LR1: Bison: GrammarToParser").End()
+
+	if err := core.RejectFailOnConflicts(core.ConfigFromOptions(options...), "the GNU Bison cores"); err != nil {
+		return backend.Parser{}, nil, err
+	}
 
 	builder := NewLR1(grammar)
 	parser, err := builder.BuildParser()

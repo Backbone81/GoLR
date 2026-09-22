@@ -5,6 +5,7 @@ import (
 	intielr1bison "github.com/backbone81/golr/internal/parsergen/core/ielr1/bison"
 	"github.com/backbone81/golr/pkg/parsergen/backend"
 	"github.com/backbone81/golr/pkg/parsergen/conflict"
+	"github.com/backbone81/golr/pkg/parsergen/core"
 	"github.com/backbone81/golr/pkg/parsergen/frontend"
 )
 
@@ -12,6 +13,6 @@ import (
 //
 // Conflicts are resolved by GNU Bison itself, which this core shells out to, so the parser tables come back with the
 // conflicts already decided the way GNU Bison and Yacc decide them.
-func GrammarToParser(grammar frontend.Grammar) (backend.Parser, []conflict.Conflict, error) {
-	return intielr1bison.GrammarToParser(grammar, intconflict.DefaultPolicy)
+func GrammarToParser(grammar frontend.Grammar, options ...core.Option) (backend.Parser, []conflict.Conflict, error) {
+	return intielr1bison.GrammarToParser(grammar, intconflict.DefaultPolicy, options...)
 }

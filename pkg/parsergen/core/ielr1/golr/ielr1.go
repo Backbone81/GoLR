@@ -2,9 +2,11 @@ package golr
 
 import (
 	intconflict "github.com/backbone81/golr/internal/parsergen/conflict"
+	intcore "github.com/backbone81/golr/internal/parsergen/core"
 	intielr1golr "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/pkg/parsergen/backend"
 	"github.com/backbone81/golr/pkg/parsergen/conflict"
+	"github.com/backbone81/golr/pkg/parsergen/core"
 	"github.com/backbone81/golr/pkg/parsergen/frontend"
 )
 
@@ -12,8 +14,9 @@ import (
 //
 // Conflicts are resolved the way GNU Bison and Yacc do: precedence and associativity decide first, a shift beats a
 // reduction when precedence has nothing to say, and the production which was declared first wins a conflict between two
-// reductions. Which rules apply is composable inside the library, but that is not part of the public API yet, which is
-// why this forwards with the default policy instead of being an alias of the internal function.
-func GrammarToParser(grammar frontend.Grammar) (backend.Parser, []conflict.Conflict, error) {
-	return intielr1golr.GrammarToParser(grammar, intconflict.DefaultPolicy)
+// reductions.
+func GrammarToParser(grammar frontend.Grammar, options ...core.Option) (backend.Parser, []conflict.Conflict, error) {
+	config := intcore.ConfigFromOptions(options...)
+	policyFactory := intconflict.SelectPolicy(config.FailOnShiftReduceConflicts, config.FailOnReduceReduceConflicts)
+	return intielr1golr.GrammarToParser(grammar, policyFactory, options...)
 }
