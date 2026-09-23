@@ -1,16 +1,15 @@
 # GoLR Plugin
 
-This plugin for IntelliJ provides language support for [GoLR](https://github.com/backbone81/golr) grammar
-files (`.golr`).
+This plugin for IntelliJ provides language support for [GoLR](https://github.com/backbone81/golr) grammar files (`.golr`).
 
 It provides:
 
 - Syntax highlighting
-- Code completion
-- Go to definition
-- Rename symbol
-- Find all references
-- Format document
+- Go to declaration for terminal names, terminal string aliases and nonterminal names
+- Rename for terminal names, terminal string aliases and nonterminal names
+- Find usage for terminal names, terminal string aliases and nonterminal names
+- Code completion for terminal names, nonterminal names and keywords in the context they are valid
+- Reformat file
 
 ## Release Notes
 

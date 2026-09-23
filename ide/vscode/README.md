@@ -1,15 +1,14 @@
 # GoLR Extension
 
-This extension for Visual Studio Code provides language support for [GoLR](https://github.com/backbone81/golr) grammar
-files (`.golr`).
+This extension for Visual Studio Code provides language support for [GoLR](https://github.com/backbone81/golr) grammar files (`.golr`).
 
 It provides:
 
 - Syntax highlighting
-- Code completion
-- Go to definition
-- Rename symbol
-- Find all references
+- Go to definition for terminal names, terminal string aliases and nonterminal names
+- Rename symbol for terminal names, terminal string aliases and nonterminal names
+- Find all references for terminal names, terminal string aliases and nonterminal names
+- Code completion for terminal names, nonterminal names and keywords in the context they are valid
 - Format document
 
 ## Release Notes
