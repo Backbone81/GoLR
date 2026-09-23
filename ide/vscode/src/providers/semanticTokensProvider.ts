@@ -14,6 +14,7 @@
 // contributes.semanticTokenScopes.
 
 import * as vscode from "vscode";
+import { isAliasName } from "../language/model";
 import { ModelCache } from "../language/modelCache";
 
 // Token types we emit. "class" reads as a nonterminal (a parser rule), "enum" as a terminal (a
@@ -58,6 +59,8 @@ export class GolrSemanticTokensProvider implements vscode.DocumentSemanticTokens
       });
     }
     for (const ref of model.references) {
+      // A reference by string alias keeps its string colour from the TextMate grammar.
+      if (isAliasName(ref.name)) continue;
       // A reference's colour follows the kind of the symbol it resolves to. If it resolves to
       // nothing (an unknown name), fall back to the nonterminal colour.
       const target = model.definitionsNamed(ref.name)[0];

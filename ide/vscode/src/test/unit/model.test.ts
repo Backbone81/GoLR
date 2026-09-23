@@ -35,11 +35,31 @@ suite("model", () => {
         ["term", "nonterminal"],
       ],
     );
-    // term (x2) and INT are references; "+" is a string literal and not a reference.
     assert.deepStrictEqual(
       model.references.map((r) => r.name),
-      ["term", "term", "INT"],
+      ["term", '"+"', "term", "INT"],
     );
+  });
+
+  test("a terminal's string is its alias; a fragment has none", () => {
+    const text = `
+      @scanner {
+        PLUS:  "+";
+        WS:    " " @skip;
+        DIGIT: /[0-9]/ @fragment;
+        INT:   /{DIGIT}+/;
+      }
+    `;
+    const model = buildModel(text);
+    assert.deepStrictEqual(
+      model.aliases.map((a) => [a.name, a.terminal]),
+      [
+        ['"+"', "PLUS"],
+        ['" "', "WS"],
+      ],
+    );
+    const plus = model.aliases[0];
+    assert.strictEqual(text.slice(plus.start, plus.end), '"+"');
   });
 
   test("@start declares a reference to the start symbol", () => {
@@ -65,6 +85,29 @@ suite("model", () => {
     const refNames = model.references.map((r) => r.name);
     assert.ok(refNames.includes("PLUS"));
     assert.ok(refNames.includes("MINUS"));
+  });
+
+  test("precedence-line strings are references", () => {
+    const model = buildModel(`
+      @parser {
+        @precedence {
+          @left : "+" "-" ;
+        }
+      }
+    `);
+    assert.deepStrictEqual(
+      model.references.map((r) => r.name),
+      ['"+"', '"-"'],
+    );
+  });
+
+  test("inline @precedence(SYMBOL) records a string SYMBOL as a reference", () => {
+    const model = buildModel(`
+      @parser {
+        e : e "-" e @precedence("-") ;
+      }
+    `);
+    assert.strictEqual(model.referencesNamed('"-"').length, 2);
   });
 
   test("inline @precedence(NAME) records NAME as a reference", () => {
@@ -107,5 +150,50 @@ expression : term ;
     `);
     assert.strictEqual(model.definitionsNamed("a").length, 1);
     assert.strictEqual(model.referencesNamed("b").length, 2);
+  });
+
+  test("usagesNamed of a terminal covers references by name and by alias", () => {
+    const model = buildModel(`
+      @scanner {
+        PLUS: "+";
+      }
+      @parser {
+        @precedence {
+          @left : "+" ;
+        }
+        e : e PLUS e | e "+" e ;
+      }
+    `);
+    assert.strictEqual(model.usagesNamed("PLUS").length, 3);
+    // A string is its own symbol: its usages are only the references by that string.
+    assert.strictEqual(model.usagesNamed('"+"').length, 2);
+  });
+
+  test("declarationsNamed resolves a string to the alias and a name to the definition", () => {
+    const model = buildModel(`
+      @scanner {
+        PLUS: "+";
+      }
+    `);
+    assert.deepStrictEqual(
+      model.declarationsNamed('"+"').map((d) => d.name),
+      ['"+"'],
+    );
+    assert.deepStrictEqual(
+      model.declarationsNamed("PLUS").map((d) => d.name),
+      ["PLUS"],
+    );
+    assert.strictEqual(model.declarationsNamed('"-"').length, 0);
+  });
+
+  test("symbolAt reports a terminal's alias as a definition", () => {
+    const text = `@scanner {
+PLUS: "+";
+}`;
+    const model = buildModel(text);
+    const alias = model.symbolAt(text.indexOf('"+"') + 1);
+    assert.ok(alias);
+    assert.strictEqual(alias!.name, '"+"');
+    assert.strictEqual(alias!.isDefinition, true);
   });
 });

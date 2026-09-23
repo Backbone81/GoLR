@@ -17,7 +17,7 @@ export enum TokenType {
   String = "string",
   /** @scanner or @parser — the two top-level section markers. */
   KeywordSection = "keyword-section",
-  /** @skip, @fragment, @empty, @error, @start, @left, @right, @none, @precedence. */
+  /** @skip, @fragment, @empty, @error, @start, @left, @right, @none, @precedence, @name. */
   KeywordControl = "keyword-control",
   /** A bare name: [A-Za-z_][A-Za-z0-9_]*. */
   Identifier = "identifier",

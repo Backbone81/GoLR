@@ -3,7 +3,8 @@
 // VSCode calls provideReferences with the caret on a symbol and a `context` flag that says
 // whether the symbol's own declaration should be included in the results. We resolve the
 // symbol under the caret by name and return every reference site, plus (optionally) every
-// definition site.
+// definition site. The references of a terminal include those by its string alias, while the
+// references of a string are only those by that string.
 
 import * as vscode from "vscode";
 import { ModelCache } from "../language/modelCache";
@@ -28,13 +29,13 @@ export class GolrReferenceProvider implements vscode.ReferenceProvider {
       );
 
     const locations: vscode.Location[] = model
-      .referencesNamed(occurrence.name)
+      .usagesNamed(occurrence.name)
       .map((ref) => toLocation(ref.start, ref.end));
 
     // includeDeclaration is true for "Find All References" and false when VSCode only wants
     // the non-declaration usages.
     if (context.includeDeclaration) {
-      for (const def of model.definitionsNamed(occurrence.name)) {
+      for (const def of model.declarationsNamed(occurrence.name)) {
         locations.push(toLocation(def.start, def.end));
       }
     }

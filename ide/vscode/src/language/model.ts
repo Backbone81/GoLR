@@ -1,11 +1,11 @@
 // Symbol model for a GoLR document.
 //
-// Instead of a full syntax tree, we build two flat lists — symbol *definitions* and symbol
-// *references* — which is all the language features need:
+// Instead of a full syntax tree, we build flat lists of symbol *definitions*, the string
+// *aliases* of terminals, and symbol *references* — which is all the language features need:
 //
-//   - Go to Definition: from a reference, find the definitions with the same name.
-//   - Find Usages:      from a definition, find the references with the same name.
-//   - Rename:           rewrite a definition and every reference with the same name.
+//   - Go to Definition: from a reference, find the definitions (or aliases) with the same name.
+//   - Find Usages:      from a definition, find the references by its name or its alias.
+//   - Rename:           rewrite a definition (or alias) and every reference with the same name.
 //   - Completion:       offer every definition's name.
 //   - Semantic tokens:  colour definitions and references differently.
 //
@@ -27,7 +27,23 @@ export interface SymbolDefinition {
   end: number;
 }
 
-/** A use of a symbol — an identifier in a rule body, precedence line, or @start. */
+/**
+ * The string of a terminal like `PLUS: "+";`, which productions and precedence lines may use
+ * in place of the terminal's name. The name includes the quotes, as that is the text of every
+ * reference to it.
+ */
+export interface AliasDefinition {
+  name: string;
+  /** Name of the terminal this is the alias of. */
+  terminal: string;
+  start: number;
+  end: number;
+}
+
+/**
+ * A use of a symbol — an identifier or string in a rule body or precedence line, or the
+ * identifier of @start.
+ */
 export interface SymbolReference {
   name: string;
   start: number;
@@ -52,6 +68,7 @@ export interface SymbolOccurrence {
 export class GolrModel {
   constructor(
     readonly definitions: readonly SymbolDefinition[],
+    readonly aliases: readonly AliasDefinition[],
     readonly references: readonly SymbolReference[],
   ) {}
 
@@ -60,9 +77,25 @@ export class GolrModel {
     return this.definitions.filter((d) => d.name === name);
   }
 
+  /** The definitions a reference named `name` resolves to: aliases for a string, else symbols. */
+  declarationsNamed(name: string): (SymbolDefinition | AliasDefinition)[] {
+    return isAliasName(name)
+      ? this.aliases.filter((a) => a.name === name)
+      : this.definitionsNamed(name);
+  }
+
   /** All references named `name`. */
   referencesNamed(name: string): SymbolReference[] {
     return this.references.filter((r) => r.name === name);
+  }
+
+  /** The usages of the symbol named `name`: references by that name or by its aliases. */
+  usagesNamed(name: string): SymbolReference[] {
+    const names = new Set([name]);
+    for (const a of this.aliases) {
+      if (a.terminal === name) names.add(a.name);
+    }
+    return this.references.filter((r) => names.has(r.name));
   }
 
   /**
@@ -70,7 +103,7 @@ export class GolrModel {
    * undefined if the offset is not on a symbol. Used to answer "what is under the caret?".
    */
   symbolAt(offset: number): SymbolOccurrence | undefined {
-    for (const d of this.definitions) {
+    for (const d of [...this.definitions, ...this.aliases]) {
       if (offset >= d.start && offset <= d.end) {
         return { name: d.name, start: d.start, end: d.end, isDefinition: true };
       }
@@ -82,6 +115,11 @@ export class GolrModel {
     }
     return undefined;
   }
+}
+
+/** Returns true when `name` is a string alias like `"+"` rather than a symbol name. */
+export function isAliasName(name: string): boolean {
+  return name.startsWith('"');
 }
 
 /** Tokenizes `text` and parses it into a {@link GolrModel}. */
@@ -102,6 +140,7 @@ export function buildModel(text: string): GolrModel {
 class Parser {
   private pos = 0;
   private readonly definitions: SymbolDefinition[] = [];
+  private readonly aliases: AliasDefinition[] = [];
   private readonly references: SymbolReference[] = [];
 
   constructor(private readonly tokens: Token[]) {}
@@ -118,14 +157,13 @@ class Parser {
         this.advance();
       }
     }
-    return new GolrModel(this.definitions, this.references);
+    return new GolrModel(this.definitions, this.aliases, this.references);
   }
 
   // @scanner { rules }   or   @parser { rules }
   //
-  // `kind` is the kind that rule definitions in this section produce. Terminals never have
-  // identifier references in their bodies, so the only structural difference between the two
-  // sections is the @start / @precedence directives that may appear in @parser.
+  // `kind` is the kind that rule definitions in this section produce. Only @parser has the
+  // @start / @precedence directives.
   private parseSection(kind: SymbolKind): void {
     this.advance(); // consume @scanner / @parser
     this.expect(TokenType.LBrace);
@@ -140,8 +178,10 @@ class Parser {
         t.text === "@precedence"
       ) {
         this.parsePrecedenceBlock();
+      } else if (t.type === TokenType.Identifier && kind === "terminal") {
+        this.parseScannerRule();
       } else if (t.type === TokenType.Identifier) {
-        this.parseRule(kind);
+        this.parseParserRule();
       } else {
         this.advance(); // error recovery
       }
@@ -150,34 +190,43 @@ class Parser {
     this.expectIf(TokenType.RBrace);
   }
 
-  // NAME : body ;
-  // The leading NAME is a definition. In @parser bodies, every identifier is a reference; in
-  // @scanner bodies there are none (so the body loop simply finds nothing to record).
-  private parseRule(kind: SymbolKind): void {
-    const nameTok = this.current();
-    this.definitions.push({
-      name: nameTok.text,
-      kind,
-      start: nameTok.start,
-      end: nameTok.end,
-    });
-    this.advance(); // consume NAME
-    this.expectIf(TokenType.Colon);
+  // NAME : /regex/ @fragment? ;   or   NAME : "string" @skip? ;   or   NAME : @empty ;
+  // The leading NAME defines a terminal, and its string (if any) is the terminal's alias. A
+  // @fragment has no alias, and a scanner body contains no references.
+  private parseScannerRule(): void {
+    const name = this.parseDefinition("terminal");
 
-    while (
-      !this.eof() &&
-      this.current().type !== TokenType.Semicolon &&
-      this.current().type !== TokenType.RBrace
-    ) {
+    const bodyStart = this.pos;
+    while (!this.atRuleEnd()) this.advance();
+    const body = this.tokens.slice(bodyStart, this.pos);
+
+    const isFragment = body.some(
+      (t) => t.type === TokenType.KeywordControl && t.text === "@fragment",
+    );
+    const alias = body.find((t) => t.type === TokenType.String);
+    if (alias && !isFragment) {
+      this.aliases.push({ name: alias.text, terminal: name, start: alias.start, end: alias.end });
+    }
+
+    this.expectIf(TokenType.Semicolon);
+  }
+
+  // NAME : body ;
+  // The leading NAME defines a nonterminal; every identifier and string in the body is a
+  // reference, a string referring to a terminal by its alias.
+  private parseParserRule(): void {
+    this.parseDefinition("nonterminal");
+
+    while (!this.atRuleEnd()) {
       const t = this.current();
-      if (t.type === TokenType.Identifier) {
+      if (isSymbolToken(t)) {
         this.addReference(t);
         this.advance();
       } else if (t.type === TokenType.KeywordControl && t.text === "@precedence") {
-        // Inline @precedence(NAME): the NAME inside the parentheses is a reference.
+        // Inline @precedence(SYMBOL): the SYMBOL inside the parentheses is a reference.
         this.advance(); // consume @precedence
         this.expectIf(TokenType.LParen);
-        if (!this.eof() && this.current().type === TokenType.Identifier) {
+        if (!this.eof() && isSymbolToken(this.current())) {
           this.addReference(this.current());
           this.advance();
         }
@@ -192,13 +241,30 @@ class Parser {
         }
         this.expectIf(TokenType.RParen);
       } else {
-        // Strings, "|", @empty, @error, etc. @error is a symbol in the body, but it is
-        // built in rather than declared anywhere, so there is nothing to resolve it to.
+        // "|", @empty, @error, etc. @error is a symbol in the body, but it is built in
+        // rather than declared anywhere, so there is nothing to resolve it to.
         this.advance();
       }
     }
 
     this.expectIf(TokenType.Semicolon);
+  }
+
+  // Records the rule NAME at the cursor as a definition of `kind` and consumes `NAME :`.
+  private parseDefinition(kind: SymbolKind): string {
+    const nameTok = this.current();
+    this.definitions.push({ name: nameTok.text, kind, start: nameTok.start, end: nameTok.end });
+    this.advance(); // consume NAME
+    this.expectIf(TokenType.Colon);
+    return nameTok.text;
+  }
+
+  private atRuleEnd(): boolean {
+    return (
+      this.eof() ||
+      this.current().type === TokenType.Semicolon ||
+      this.current().type === TokenType.RBrace
+    );
   }
 
   // @start : NAME ;   — NAME is a reference to the grammar's start nonterminal.
@@ -226,13 +292,13 @@ class Parser {
     this.expectIf(TokenType.RBrace);
   }
 
-  // @left : SYM SYM ;   (also @right / @none) — every identifier is a reference.
+  // @left : SYM "+" ;   (also @right / @none) — every identifier and string is a reference.
   private parsePrecedenceLine(): void {
     this.advance(); // consume @left / @right / @none
     this.expectIf(TokenType.Colon);
     while (!this.eof() && this.current().type !== TokenType.Semicolon) {
       const t = this.current();
-      if (t.type === TokenType.Identifier) {
+      if (isSymbolToken(t)) {
         this.addReference(t);
       }
       this.advance();
@@ -268,4 +334,9 @@ class Parser {
   private expect(type: TokenType): void {
     this.expectIf(type);
   }
+}
+
+// An identifier references a symbol by name, a string references a terminal by its alias.
+function isSymbolToken(t: Token): boolean {
+  return t.type === TokenType.Identifier || t.type === TokenType.String;
 }

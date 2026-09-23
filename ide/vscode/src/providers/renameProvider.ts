@@ -8,11 +8,15 @@
 //      "You cannot rename this element".
 //
 //   2. provideRenameEdits — called when the user confirms a new name. We validate the new name
-//      (using the same identifier rule as the lexer) and return a WorkspaceEdit that rewrites
-//      the definition together with every reference, so the whole file stays consistent.
+//      (an identifier, or a string literal when renaming a terminal's string alias) and return
+//      a WorkspaceEdit that rewrites the definition together with every reference, so the
+//      whole file stays consistent. Renaming a terminal keeps its string, and renaming a
+//      string keeps the terminal name.
 
 import * as vscode from "vscode";
+import { isAliasName } from "../language/model";
 import { ModelCache } from "../language/modelCache";
+import { TokenType, tokenize } from "../language/tokenizer";
 
 // A GoLR identifier starts with a letter or underscore and continues with letters, digits, or
 // underscores. The \p{...} classes make this Unicode-aware, matching the tokenizer.
@@ -44,13 +48,17 @@ export class GolrRenameProvider implements vscode.RenameProvider {
     newName: string,
     _token: vscode.CancellationToken,
   ): vscode.WorkspaceEdit | undefined {
-    if (!IDENTIFIER_RE.test(newName)) {
-      throw new Error(`'${newName}' is not a valid GoLR identifier.`);
-    }
-
     const model = this.cache.get(document);
     const occurrence = model.symbolAt(document.offsetAt(position));
     if (!occurrence) return undefined;
+
+    if (isAliasName(occurrence.name)) {
+      if (!isStringLiteral(newName)) {
+        throw new Error(`'${newName}' is not a string literal.`);
+      }
+    } else if (!IDENTIFIER_RE.test(newName)) {
+      throw new Error(`'${newName}' is not a valid GoLR identifier.`);
+    }
 
     const edit = new vscode.WorkspaceEdit();
     const rename = (start: number, end: number): void => {
@@ -63,9 +71,15 @@ export class GolrRenameProvider implements vscode.RenameProvider {
 
     // Rewrite every definition and every reference that shares the old name. Renaming from a
     // reference therefore updates the definition too.
-    for (const def of model.definitionsNamed(occurrence.name)) rename(def.start, def.end);
+    for (const def of model.declarationsNamed(occurrence.name)) rename(def.start, def.end);
     for (const ref of model.referencesNamed(occurrence.name)) rename(ref.start, ref.end);
 
     return edit;
   }
+}
+
+// The new name of a string alias must lex as exactly one string token.
+function isStringLiteral(text: string): boolean {
+  const tokens = tokenize(text);
+  return tokens.length === 1 && tokens[0].type === TokenType.String && tokens[0].end === text.length;
 }

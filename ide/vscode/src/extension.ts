@@ -37,7 +37,11 @@ export function activate(context: vscode.ExtensionContext): void {
 
     vscode.languages.registerRenameProvider(GOLR_SELECTOR, new GolrRenameProvider(cache)),
 
-    vscode.languages.registerCompletionItemProvider(GOLR_SELECTOR, new GolrCompletionProvider(cache)),
+    vscode.languages.registerCompletionItemProvider(
+      GOLR_SELECTOR,
+      new GolrCompletionProvider(cache),
+      "@", // open keyword completion as the "@" is typed
+    ),
 
     vscode.languages.registerDocumentSemanticTokensProvider(
       GOLR_SELECTOR,

@@ -142,6 +142,40 @@ suite("GoLR language features (integration)", () => {
     assert.strictEqual(termLens!.command?.command, "editor.action.showReferences");
   });
 
+  test("CodeLens counts references to a terminal by its string alias", async () => {
+    await openFixture(); // activates the extension
+    const document = await vscode.workspace.openTextDocument({
+      language: "golr",
+      content: `@scanner {\n    PLUS: "+";\n}\n\n@parser {\n    e: e PLUS e | e "+" e;\n}\n`,
+    });
+    const lenses = await vscode.commands.executeCommand<vscode.CodeLens[]>(
+      "vscode.executeCodeLensProvider",
+      document.uri,
+    );
+    const plusLens = lenses.find((l) => l.range.start.line === 1);
+    assert.ok(plusLens, "expected a lens on the 'PLUS' definition line");
+    assert.strictEqual(plusLens!.command?.title, "2 references");
+  });
+
+  test("Rename of a string alias rewrites the alias and its references only", async () => {
+    await openFixture(); // activates the extension
+    const document = await vscode.workspace.openTextDocument({
+      language: "golr",
+      content: `@scanner {\n    PLUS: "+";\n}\n\n@parser {\n    e: e PLUS e | e "+" e;\n}\n`,
+    });
+    const edit = await vscode.commands.executeCommand<vscode.WorkspaceEdit>(
+      "vscode.executeDocumentRenameProvider",
+      document.uri,
+      positionOf(document, '"+"', 1),
+      '"plus"',
+    );
+    const edits = edit.get(document.uri);
+    assert.strictEqual(edits.length, 2, "rename should touch the alias and its one reference");
+    for (const e of edits) {
+      assert.strictEqual(document.getText(e.range), '"+"');
+    }
+  });
+
   test("Semantic tokens are produced for the document", async () => {
     const document = await openFixture();
     const tokens = await vscode.commands.executeCommand<vscode.SemanticTokens>(

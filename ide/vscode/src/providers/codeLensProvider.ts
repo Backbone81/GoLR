@@ -2,7 +2,7 @@
 //
 // CodeLens is a small actionable annotation rendered on the line above a range. For each
 // symbol definition we render a lens labelled with how many references the symbol has in the
-// file. Clicking it invokes the built-in `editor.action.showReferences` command, which opens
+// file, counting those by a terminal's string alias too. Clicking it invokes the built-in `editor.action.showReferences` command, which opens
 // VSCode's reference peek — reusing exactly the reference set the Find All References feature
 // already computes from the same symbol model.
 
@@ -28,7 +28,7 @@ export class GolrCodeLensProvider implements vscode.CodeLensProvider {
 
       // The reference sites this lens will reveal when clicked.
       const referenceLocations = model
-        .referencesNamed(def.name)
+        .usagesNamed(def.name)
         .map(
           (ref) =>
             new vscode.Location(

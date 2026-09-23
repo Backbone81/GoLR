@@ -3,7 +3,8 @@
 // VSCode calls provideDefinition when the user invokes "Go to Definition" with the caret on a
 // word. We look at the symbol under the caret — whether it is a reference (e.g. `term` in a
 // rule body) or a definition itself — and return the location(s) of every matching definition
-// in the same file. Returning several locations makes VSCode show a peek list, which is how
+// in the same file. A string like `"+"` resolves to the string of the terminal it aliases.
+// Returning several locations makes VSCode show a peek list, which is how
 // accidentally-duplicated symbols surface.
 
 import * as vscode from "vscode";
@@ -22,7 +23,7 @@ export class GolrDefinitionProvider implements vscode.DefinitionProvider {
     const occurrence = model.symbolAt(document.offsetAt(position));
     if (!occurrence) return undefined;
 
-    const definitions = model.definitionsNamed(occurrence.name);
+    const definitions = model.declarationsNamed(occurrence.name);
     if (definitions.length === 0) return undefined;
 
     return definitions.map(
