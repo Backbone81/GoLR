@@ -2,6 +2,8 @@ package com.backbone81.golr
 
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
+import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.refactoring.rename.RenameUtil
 import com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
 import com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -84,5 +86,109 @@ class GolrRenameTest : BasePlatformTestCase() {
             }
             """.trimIndent(),
         )
+    }
+
+    // Renaming a terminal updates references by name but keeps references by string alias.
+    fun testInlineRenameKeepsAliasReferences() {
+        myFixture.configureByText(
+            "test.golr",
+            """
+            @scanner {
+            PLUS<caret> : "+" ;
+            }
+            @parser {
+            a : a "+" a | a PLUS a ;
+            }
+            """.trimIndent(),
+        )
+        CodeInsightTestUtil.doInlineRename(MemberInplaceRenameHandler(), "ADD", myFixture)
+        myFixture.checkResult(
+            """
+            @scanner {
+            ADD : "+" ;
+            }
+            @parser {
+            a : a "+" a | a ADD a ;
+            }
+            """.trimIndent(),
+        )
+    }
+
+    // Renaming a string from a reference renames the terminal's string and every reference by
+    // that string, and keeps the terminal name.
+    fun testInlineRenameFromAliasReferenceUpdatesAllAliases() {
+        myFixture.configureByText(
+            "test.golr",
+            """
+            @scanner {
+            PLUS : "+" ;
+            }
+            @parser {
+            @precedence {
+            @left : "+" ;
+            }
+            a : a "<caret>+" a | a PLUS a ;
+            }
+            """.trimIndent(),
+        )
+        CodeInsightTestUtil.doInlineRename(MemberInplaceRenameHandler(), "\"plus\"", myFixture)
+        myFixture.checkResult(
+            """
+            @scanner {
+            PLUS : "plus" ;
+            }
+            @parser {
+            @precedence {
+            @left : "plus" ;
+            }
+            a : a "plus" a | a PLUS a ;
+            }
+            """.trimIndent(),
+        )
+    }
+
+    // Renaming the string in the terminal definition renames every reference by that string.
+    fun testInlineRenameFromAliasDefinitionUpdatesAllAliases() {
+        myFixture.configureByText(
+            "test.golr",
+            """
+            @scanner {
+            PLUS : "<caret>+" ;
+            }
+            @parser {
+            a : a "+" a | a PLUS a ;
+            }
+            """.trimIndent(),
+        )
+        CodeInsightTestUtil.doInlineRename(MemberInplaceRenameHandler(), "\"plus\"", myFixture)
+        myFixture.checkResult(
+            """
+            @scanner {
+            PLUS : "plus" ;
+            }
+            @parser {
+            a : a "plus" a | a PLUS a ;
+            }
+            """.trimIndent(),
+        )
+    }
+
+    // A string can only be renamed to another string, and a name only to another identifier.
+    fun testRenameValidatesStringsAndNames() {
+        myFixture.configureByText(
+            "test.golr",
+            """
+            @scanner {
+            PLUS : "+" ;
+            }
+            """.trimIndent(),
+        )
+        val definition = PsiTreeUtil.findChildOfType(myFixture.file, GolrSymbolDefinition::class.java)!!
+        val alias = definition.alias()!!
+        assertTrue(RenameUtil.isValidName(project, alias, "\"plus\""))
+        assertFalse(RenameUtil.isValidName(project, alias, "plus"))
+        assertFalse(RenameUtil.isValidName(project, alias, "\"a\" \"b\""))
+        assertTrue(RenameUtil.isValidName(project, definition, "ADD"))
+        assertFalse(RenameUtil.isValidName(project, definition, "\"plus\""))
     }
 }

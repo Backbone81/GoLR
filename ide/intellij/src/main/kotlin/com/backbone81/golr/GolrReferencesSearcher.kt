@@ -16,7 +16,8 @@ import com.intellij.util.Processor
 // search returns nothing.
 //
 // This executor is called by ReferencesSearch whenever the target element is a
-// GolrSymbolDefinition. It bypasses the word-index / leaf-token path entirely and instead
+// GolrSymbolDefinition or GolrAliasDefinition. The references of a terminal include those
+// by its string alias, so the "N usages" count covers both. It bypasses the word-index / leaf-token path entirely and instead
 // walks the PSI tree directly — the same approach used by GolrRenamePsiElementProcessor for
 // rename, but registered at the ReferencesSearch level so all callers benefit automatically.
 //
@@ -55,12 +56,16 @@ class GolrReferencesSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.
         params: ReferencesSearch.SearchParameters,
         consumer: Processor<in PsiReference>,
     ) {
-        val target = params.elementToSearch as? GolrSymbolDefinition ?: return
-        val name = target.name ?: return
+        val target = params.elementToSearch
+        val matches: (String) -> Boolean = when (target) {
+            is GolrSymbolDefinition -> target::isReferencedBy
+            is GolrAliasDefinition -> { text -> text == target.name }
+            else -> return
+        }
         val file = target.containingFile ?: return
 
         for (ref in PsiTreeUtil.findChildrenOfType(file, GolrSymbolReference::class.java)) {
-            if (ref.text == name) {
+            if (matches(ref.text)) {
                 if (!consumer.process(ref.reference)) return
             }
         }

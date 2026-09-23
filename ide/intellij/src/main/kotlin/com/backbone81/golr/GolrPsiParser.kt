@@ -4,6 +4,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.lang.PsiBuilder
 import com.intellij.lang.PsiParser
 import com.intellij.psi.tree.IElementType
+import com.intellij.psi.tree.TokenSet
 
 // Turns the flat token stream from GolrLexer into a structured PSI tree.
 //
@@ -15,9 +16,9 @@ import com.intellij.psi.tree.IElementType
 //   - Find Usages requires both kinds of nodes so IntelliJ can match references to definitions.
 //
 // This parser does NOT validate the grammar (it produces no error markers). Its only
-// job is to wrap identifier tokens into the correct composite node type based on their
-// structural position: definition (left of ":") vs. reference (right of ":", or in
-// precedence lines).
+// job is to wrap identifier and string tokens into the correct composite node type based
+// on their structural position: definition (left of ":") vs. reference (right of ":", or
+// in precedence lines).
 //
 // IntelliJ passes us a PsiBuilder, which is a cursor over the token stream. Whitespace
 // and comment tokens are automatically skipped by the builder (configured in
@@ -61,7 +62,7 @@ class GolrPsiParser : PsiParser {
     // Consumes the entire @scanner block. Every direct child rule produces a
     // SYMBOL_DEFINITION node with a NAME_ELEMENT for the terminal name.
     // Scanner rule bodies (regex, string, @empty, @skip, @fragment) contain no
-    // symbol references — fragment names are embedded inside the REGEX token as
+    // symbol references, only the string alias of a terminal — fragment names are embedded inside the REGEX token as
     // "{FragmentName}" and are not standalone IDENTIFIER tokens.
     private fun parseScannerSection(builder: PsiBuilder) {
         advance(builder)                                // consume @scanner
@@ -90,13 +91,35 @@ class GolrPsiParser : PsiParser {
 
         advanceIf(builder, GolrTokenTypes.COLON)
 
-        // Consume the rule body (regex / string / @empty / annotations) until semicolon.
+        // Consume the rule body (regex / string / @empty / annotations) until semicolon. The
+        // string of a terminal becomes an ALIAS_DEFINITION; a @fragment has no alias.
+        val isFragment = isFragmentRuleBody(builder)
         while (!builder.eof() && builder.tokenType != GolrTokenTypes.SEMICOLON) {
-            builder.advanceLexer()
+            if (builder.tokenType == GolrTokenTypes.STRING && !isFragment) {
+                val aliasMarker = builder.mark()
+                builder.advanceLexer()
+                aliasMarker.done(GolrElementTypes.ALIAS_DEFINITION)
+            } else {
+                builder.advanceLexer()
+            }
         }
         advanceIf(builder, GolrTokenTypes.SEMICOLON)
 
         ruleMarker.done(GolrElementTypes.SYMBOL_DEFINITION)
+    }
+
+    // Looks ahead up to the semicolon for a @fragment annotation, then rewinds the builder.
+    private fun isFragmentRuleBody(builder: PsiBuilder): Boolean {
+        val probe = builder.mark()
+        var isFragment = false
+        while (!builder.eof() && builder.tokenType != GolrTokenTypes.SEMICOLON) {
+            if (builder.tokenType == GolrTokenTypes.KEYWORD_CONTROL && builder.tokenText == "@fragment") {
+                isFragment = true
+            }
+            builder.advanceLexer()
+        }
+        probe.rollbackTo()
+        return isFragment
     }
 
     // ── @parser { [@start] [@precedence {...}] rules } ───────────────────────────────────
@@ -159,8 +182,8 @@ class GolrPsiParser : PsiParser {
         advanceIf(builder, GolrTokenTypes.RBRACE)      // consume }
     }
 
-    // @left : SYMBOL1 SYMBOL2 ;   (also @right, @none, @precedence used as associativity)
-    // All identifiers after the colon are references to terminals.
+    // @left : SYMBOL1 "+" ;   (also @right, @none, @precedence used as associativity)
+    // All names and string aliases after the colon are references to terminals.
     private fun parsePrecedenceLine(builder: PsiBuilder) {
         val declMarker = builder.mark()
 
@@ -168,12 +191,10 @@ class GolrPsiParser : PsiParser {
         advanceIf(builder, GolrTokenTypes.COLON)
 
         while (!builder.eof() && builder.tokenType != GolrTokenTypes.SEMICOLON) {
-            if (builder.tokenType == GolrTokenTypes.IDENTIFIER) {
-                val refMarker = builder.mark()
-                builder.advanceLexer()
-                refMarker.done(GolrElementTypes.SYMBOL_REFERENCE)
+            if (builder.tokenType in SYMBOL_TOKENS) {
+                parseSymbolReference(builder)
             } else {
-                builder.advanceLexer()                  // consume string literals and other tokens
+                builder.advanceLexer()
             }
         }
 
@@ -204,33 +225,24 @@ class GolrPsiParser : PsiParser {
 
     // Production body: a sequence of alternatives separated by "|".
     // Each symbol in an alternative is either an IDENTIFIER (reference to a named
-    // symbol) or a STRING (reference to an inline terminal like "+" or "(").
-    // We only produce SYMBOL_REFERENCE nodes for IDENTIFIER tokens; STRING tokens are
-    // left as plain leaves for now.
+    // symbol) or a STRING (reference to a terminal by its alias like "+" or "(").
+    // Both become SYMBOL_REFERENCE nodes.
     //
-    // Special case: @precedence(NAME) is an inline annotation that binds a production
-    // to a precedence level. The NAME inside the parentheses is a reference.
+    // Special case: @precedence(SYMBOL) is an inline annotation that binds a production
+    // to a precedence level. The SYMBOL inside the parentheses is a reference.
     private fun parseRuleBody(builder: PsiBuilder) {
         while (!builder.eof()
             && builder.tokenType != GolrTokenTypes.SEMICOLON
             && builder.tokenType != GolrTokenTypes.RBRACE
         ) {
             when {
-                builder.tokenType == GolrTokenTypes.IDENTIFIER -> {
-                    val refMarker = builder.mark()
-                    builder.advanceLexer()
-                    refMarker.done(GolrElementTypes.SYMBOL_REFERENCE)
-                }
+                builder.tokenType in SYMBOL_TOKENS -> parseSymbolReference(builder)
 
                 // @precedence(SYMBOL) — the symbol inside the parens is a reference to a terminal
                 builder.tokenType == GolrTokenTypes.KEYWORD_CONTROL && builder.tokenText == "@precedence" -> {
                     advance(builder)                        // consume @precedence
                     advanceIf(builder, GolrTokenTypes.LPAREN)
-                    if (builder.tokenType == GolrTokenTypes.IDENTIFIER) {
-                        val refMarker = builder.mark()
-                        builder.advanceLexer()
-                        refMarker.done(GolrElementTypes.SYMBOL_REFERENCE)
-                    }
+                    if (builder.tokenType in SYMBOL_TOKENS) parseSymbolReference(builder)
                     advanceIf(builder, GolrTokenTypes.RPAREN)
                 }
 
@@ -243,7 +255,7 @@ class GolrPsiParser : PsiParser {
                     advanceIf(builder, GolrTokenTypes.RPAREN)
                 }
 
-                // @empty, @error, "|", string literals, and anything else — consume without
+                // @empty, @error, "|", and anything else — consume without
                 // wrapping. @error is a symbol in the body, but it is built in rather than
                 // declared anywhere, so there is nothing to resolve it to.
                 else -> builder.advanceLexer()
@@ -253,6 +265,13 @@ class GolrPsiParser : PsiParser {
 
     // ── helpers ──────────────────────────────────────────────────────────────────────────
 
+    // Wraps the current IDENTIFIER or STRING token as a SYMBOL_REFERENCE.
+    private fun parseSymbolReference(builder: PsiBuilder) {
+        val refMarker = builder.mark()
+        builder.advanceLexer()
+        refMarker.done(GolrElementTypes.SYMBOL_REFERENCE)
+    }
+
     // Unconditional advance — named for readability at call sites.
     private fun advance(builder: PsiBuilder) = builder.advanceLexer()
 
@@ -260,5 +279,10 @@ class GolrPsiParser : PsiParser {
     // (A production parser would mark an error here; we keep it simple.)
     private fun advanceIf(builder: PsiBuilder, type: IElementType) {
         if (builder.tokenType == type) builder.advanceLexer()
+    }
+
+    private companion object {
+        // Tokens that name a symbol: a terminal or nonterminal name, or a terminal's string alias.
+        private val SYMBOL_TOKENS = TokenSet.create(GolrTokenTypes.IDENTIFIER, GolrTokenTypes.STRING)
     }
 }

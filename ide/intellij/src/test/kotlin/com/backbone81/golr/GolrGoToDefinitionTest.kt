@@ -76,4 +76,63 @@ class GolrGoToDefinitionTest : BasePlatformTestCase() {
         assertNotNull("expected a reference under the caret", reference)
         assertNull("undefined symbol should not resolve", reference!!.resolve())
     }
+
+    // A string alias in a rule body resolves to the string of the terminal that declares it.
+    fun testAliasInRuleBodyResolvesToTerminalDefinition() {
+        myFixture.configureByText(
+            "test.golr",
+            """
+            @scanner {
+            PLUS : "+" ;
+            }
+            @parser {
+            expression : expression <caret>"+" expression ;
+            }
+            """.trimIndent(),
+        )
+        val target = myFixture.file.findReferenceAt(myFixture.caretOffset)?.resolve()
+        assertInstanceOf(target, GolrAliasDefinition::class.java)
+        assertEquals("PLUS", (target!!.parent as GolrSymbolDefinition).name)
+    }
+
+    // String aliases in precedence lines and @precedence(...) resolve like names.
+    fun testAliasInPrecedenceResolvesToTerminalDefinition() {
+        val text = """
+            @scanner {
+            MINUS : "-" ;
+            UMINUS : @empty ;
+            }
+            @parser {
+            @precedence {
+            @left : "-" ;
+            @precedence : UMINUS ;
+            }
+            expression : "-" expression @precedence("-") ;
+            }
+            """.trimIndent()
+        myFixture.configureByText("test.golr", text)
+        for (offset in listOf(text.indexOf("@left") + 8, text.lastIndexOf("\"-\""))) {
+            val target = myFixture.file.findReferenceAt(offset)?.resolve()
+            assertInstanceOf(target, GolrAliasDefinition::class.java)
+            assertEquals("MINUS", (target!!.parent as GolrSymbolDefinition).name)
+        }
+    }
+
+    // A @fragment string is not a terminal, so it declares no alias to resolve to.
+    fun testFragmentStringIsNotAnAlias() {
+        myFixture.configureByText(
+            "test.golr",
+            """
+            @scanner {
+            DOT : "." @fragment ;
+            }
+            @parser {
+            a : <caret>"." ;
+            }
+            """.trimIndent(),
+        )
+        val reference = myFixture.file.findReferenceAt(myFixture.caretOffset)
+        assertNotNull("expected a reference under the caret", reference)
+        assertNull("fragment string should not resolve", reference!!.resolve())
+    }
 }

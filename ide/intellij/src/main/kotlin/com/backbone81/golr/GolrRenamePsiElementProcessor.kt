@@ -1,6 +1,7 @@
 package com.backbone81.golr
 
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.search.SearchScope
 import com.intellij.psi.util.PsiTreeUtil
@@ -33,14 +34,16 @@ import com.intellij.refactoring.rename.RenamePsiElementProcessor
 // Registered in plugin.xml as a renamePsiElementProcessor extension.
 class GolrRenamePsiElementProcessor : RenamePsiElementProcessor() {
 
-    // Return true only for GolrSymbolDefinition; all other element types fall back to
-    // IntelliJ's default processor.
+    // Return true only for GolrSymbolDefinition and GolrAliasDefinition; all other element
+    // types fall back to IntelliJ's default processor.
     override fun canProcessElement(element: PsiElement): Boolean =
-        element is GolrSymbolDefinition
+        element is GolrSymbolDefinition || element is GolrAliasDefinition
 
     // Scans the containing file's PSI tree for every GolrSymbolReference whose text
     // equals the definition's name. These are the sites that handleElementRename()
-    // will update in phase 2.
+    // will update in phase 2. The name of a GolrAliasDefinition is its quoted string, so
+    // renaming a terminal finds only references by name and renaming a string finds only
+    // references by that string.
     //
     // GoLR grammars are self-contained single-file documents, so a file-local scan is
     // sufficient and avoids the complexity of cross-file search.
@@ -49,7 +52,7 @@ class GolrRenamePsiElementProcessor : RenamePsiElementProcessor() {
         searchScope: SearchScope,
         searchInCommentsAndStrings: Boolean,
     ): Collection<PsiReference> {
-        val definition = element as? GolrSymbolDefinition ?: return emptyList()
+        val definition = element as? PsiNamedElement ?: return emptyList()
         val name = definition.name ?: return emptyList()
         val file = definition.containingFile ?: return emptyList()
 

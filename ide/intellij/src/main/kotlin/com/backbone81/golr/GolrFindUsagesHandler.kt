@@ -19,12 +19,13 @@ import com.intellij.psi.PsiElement
 // Registered in plugin.xml as a com.intellij.findUsagesHandlerFactory extension.
 class GolrFindUsagesHandlerFactory : FindUsagesHandlerFactory() {
 
-    override fun canFindUsages(element: PsiElement): Boolean = element is GolrSymbolDefinition
+    override fun canFindUsages(element: PsiElement): Boolean =
+        element is GolrSymbolDefinition || element is GolrAliasDefinition
 
     override fun createFindUsagesHandler(element: PsiElement, forHighlightUsages: Boolean): FindUsagesHandler =
-        GolrFindUsagesHandler(element as GolrSymbolDefinition)
+        GolrFindUsagesHandler(element)
 }
 
 // Thin subclass — exists only so FindUsagesHandlerFactory can return a concrete instance.
 // All real work is done by GolrReferencesSearcher via the inherited ReferencesSearch path.
-private class GolrFindUsagesHandler(definition: GolrSymbolDefinition) : FindUsagesHandler(definition)
+private class GolrFindUsagesHandler(definition: PsiElement) : FindUsagesHandler(definition)

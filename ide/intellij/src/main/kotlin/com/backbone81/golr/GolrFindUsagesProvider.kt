@@ -4,6 +4,7 @@ import com.intellij.lang.cacheBuilder.DefaultWordsScanner
 import com.intellij.lang.cacheBuilder.WordsScanner
 import com.intellij.lang.findUsages.FindUsagesProvider
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.tree.TokenSet
 
 // Plugs GoLR into IntelliJ's "Find Usages" infrastructure.
@@ -43,17 +44,18 @@ class GolrFindUsagesProvider : FindUsagesProvider {
             // Comment content is indexed separately so that IntelliJ can optionally include
             // "usages in comments" (the "Search in comments and strings" checkbox).
             TokenSet.create(GolrTokenTypes.COMMENT_LINE, GolrTokenTypes.COMMENT_BLOCK),
-            // String literals (inline terminals like "+") could be indexed here too, but
-            // we skip them for now because resolving string-to-scanner-rule is not yet
-            // implemented.
+            // String aliases like "+" are not indexed: GolrReferencesSearcher finds them by
+            // walking the PSI tree, not through the word index.
             TokenSet.EMPTY
         )
 
-    // "Find Usages" is available when the caret is on a GolrSymbolDefinition.
+    // "Find Usages" is available when the caret is on a GolrSymbolDefinition or on the string
+    // alias of a terminal definition.
     // It is intentionally not available on GolrSymbolReference — "Find Usages" on a
     // reference is handled by first navigating to its definition (Ctrl+B) and then
     // invoking "Find Usages" from there.
-    override fun canFindUsagesFor(element: PsiElement) = element is GolrSymbolDefinition
+    override fun canFindUsagesFor(element: PsiElement) =
+        element is GolrSymbolDefinition || element is GolrAliasDefinition
 
     // Returns the HTML help topic ID for this provider.  Null means "use the default
     // IntelliJ help page".
@@ -64,15 +66,16 @@ class GolrFindUsagesProvider : FindUsagesProvider {
     override fun getType(element: PsiElement): String = when {
         element is GolrSymbolDefinition && element.isTerminal() -> "terminal"
         element is GolrSymbolDefinition -> "nonterminal"
+        element is GolrAliasDefinition -> "string"
         else -> ""
     }
 
     // The name used in the "Find Usages" panel header and in the "N usages" tooltip.
     override fun getDescriptiveName(element: PsiElement): String =
-        if (element is GolrSymbolDefinition) element.name ?: "" else ""
+        (element as? PsiNamedElement)?.name ?: ""
 
     // The full text shown for each result row in the panel when useFullName is false,
     // or with extra context when useFullName is true.
     override fun getNodeText(element: PsiElement, useFullName: Boolean): String =
-        if (element is GolrSymbolDefinition) element.name ?: "" else element.text
+        (element as? PsiNamedElement)?.name ?: element.text
 }

@@ -32,8 +32,15 @@ object GolrElementTypes {
     // text range the rename dialog should pre-fill.
     val NAME_ELEMENT: IElementType = IElementType("NAME_ELEMENT", GolrLanguage)
 
-    // An identifier used as a reference to another symbol (right-hand side of a parser
-    // rule body, operand in a precedence line, or start-symbol declaration).
+    // The string of a terminal like PLUS : "+" ; which productions may use in place of the
+    // name. It is a direct child of SYMBOL_DEFINITION, absent for @fragment rules.
+    //
+    // Mapped to GolrAliasDefinition, the target of references by alias and of renaming the
+    // string.
+    val ALIAS_DEFINITION: IElementType = IElementType("ALIAS_DEFINITION", GolrLanguage)
+
+    // An identifier or string alias used as a reference to another symbol (right-hand side
+    // of a parser rule body, operand in a precedence line, or start-symbol declaration).
     //
     // Mapped to GolrSymbolReference, which overrides getReference() to return a
     // PsiReference object. That object is what IntelliJ calls for:

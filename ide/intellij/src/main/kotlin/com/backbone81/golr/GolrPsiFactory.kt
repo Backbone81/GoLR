@@ -30,7 +30,7 @@ object GolrPsiFactory {
             ?: error("GolrPsiFactory: no name identifier found for '$name'")
     }
 
-    // Creates a GolrSymbolReference whose text is `name`.
+    // Creates a GolrSymbolReference whose text is `name`, an identifier or a quoted string.
     // Called by GolrSymbolReference.GolrRef.handleElementRename() to replace the old
     // reference node after a rename.
     fun createSymbolReference(project: Project, name: String): PsiElement {
@@ -38,6 +38,14 @@ object GolrPsiFactory {
         val file = createFile(project, "@parser { dummy : $name ; }")
         return PsiTreeUtil.findChildOfType(file, GolrSymbolReference::class.java)
             ?: error("GolrPsiFactory: failed to parse symbol reference for '$name'")
+    }
+
+    // Creates a GolrAliasDefinition whose text is the quoted string `alias`.
+    // Called by GolrAliasDefinition.setName() to replace the old string.
+    fun createAliasDefinition(project: Project, alias: String): PsiElement {
+        val file = createFile(project, "@scanner { DUMMY : $alias ; }")
+        return PsiTreeUtil.findChildOfType(file, GolrAliasDefinition::class.java)
+            ?: error("GolrPsiFactory: failed to parse alias definition for '$alias'")
     }
 
     // Parses `text` as a complete .golr file using the normal language infrastructure.

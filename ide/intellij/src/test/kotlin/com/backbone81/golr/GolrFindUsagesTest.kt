@@ -79,4 +79,40 @@ class GolrFindUsagesTest : BasePlatformTestCase() {
         assertTrue("Find Usages available on a definition", provider.canFindUsagesFor(def))
         assertFalse("Find Usages not available on a reference", provider.canFindUsagesFor(ref))
     }
+
+    // References by string alias count as usages of the terminal next to references by name.
+    fun testFindUsagesIncludesAliasReferences() {
+        myFixture.configureByText(
+            "test.golr",
+            """
+            @scanner {
+            PLUS : "+" ;
+            }
+            @parser {
+            @precedence {
+            @left : "+" ;
+            }
+            expression : expression "+" expression | expression PLUS expression ;
+            }
+            """.trimIndent(),
+        )
+        assertEquals(3, myFixture.findUsages(definition("PLUS")).size)
+    }
+
+    // Find Usages on the string of a terminal reports only the references by that string.
+    fun testFindUsagesOfAliasReportsOnlyAliasReferences() {
+        myFixture.configureByText(
+            "test.golr",
+            """
+            @scanner {
+            PLUS : "+" ;
+            }
+            @parser {
+            expression : expression "+" expression | expression PLUS expression ;
+            }
+            """.trimIndent(),
+        )
+        val alias = definition("PLUS").alias()!!
+        assertEquals(1, myFixture.findUsages(alias).size)
+    }
 }

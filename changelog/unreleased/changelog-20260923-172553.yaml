@@ -1,0 +1,3 @@
+description: The IntelliJ plugin now completes keywords like @parser, @name and @error,
+  offering those valid at the caret, and only offers symbol names where a symbol can
+  be referenced.

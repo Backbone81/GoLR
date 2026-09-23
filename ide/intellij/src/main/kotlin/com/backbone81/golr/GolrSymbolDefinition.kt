@@ -11,7 +11,7 @@ import com.intellij.psi.PsiNameIdentifierOwner
 //
 // Go to Definition:
 //   GolrSymbolReference.GolrRef.multiResolve() searches the file for GolrSymbolDefinition
-//   nodes whose name matches the reference text, and returns them as the jump targets.
+//   nodes whose name or alias matches the reference text, and returns them as the jump targets.
 //   IntelliJ lands the caret on getNameIdentifier() when it jumps here.
 //
 // Rename (Shift+F6):
@@ -48,6 +48,14 @@ class GolrSymbolDefinition(node: ASTNode) : ASTWrapperPsiElement(node), PsiNameI
         nameEl.replace(newNameEl)
         return this
     }
+
+    // Returns the string alias of a terminal like PLUS : "+" ;, or null when there is none.
+    fun alias(): GolrAliasDefinition? =
+        node.findChildByType(GolrElementTypes.ALIAS_DEFINITION)?.psi as? GolrAliasDefinition
+
+    // Returns true when a GolrSymbolReference with the given text refers to this definition,
+    // either by name or by alias.
+    fun isReferencedBy(text: String): Boolean = text == name || text == alias()?.name
 
     // Returns true when this definition is inside a @scanner { } block (i.e. it defines a
     // terminal), false when it is inside @parser { } (nonterminal).

@@ -9,20 +9,21 @@ import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
 import com.intellij.psi.util.PsiTreeUtil
 
-// Represents an identifier that refers to a symbol defined elsewhere.  Examples:
-//   expression : term "+" term ;   ← "term" appears twice as a GolrSymbolReference
+// Represents an identifier or string alias that refers to a symbol defined elsewhere.  Examples:
+//   expression : term "+" term ;   ← "term" twice and the alias "+" are GolrSymbolReferences
 //   @left : PLUS MINUS ;           ← "PLUS" and "MINUS" are GolrSymbolReferences
 //
 // Go to Definition (Ctrl+B / Cmd+B):
 //   IntelliJ calls getReference() on this element.  The returned GolrRef object's
-//   multiResolve() finds the GolrSymbolDefinition(s) with the matching name and returns
-//   them. If exactly one definition is found IntelliJ jumps there directly; if several
+//   multiResolve() finds the GolrSymbolDefinition(s) with the matching name, or for a string the
+//   GolrAliasDefinition(s) with the matching text, and returns them. If exactly one definition is found IntelliJ jumps there directly; if several
 //   are found it shows a chooser popup.
 //
 // Rename (Shift+F6):
 //   After the user renames a GolrSymbolDefinition, IntelliJ looks up all references that
 //   resolve to that definition (by calling multiResolve() on each GolrRef in the project)
-//   and calls handleElementRename() on each one to update the reference text.
+//   and calls handleElementRename() on each one to update the reference text. Renaming a
+//   terminal keeps its string, and renaming a string keeps the terminal name.
 //
 // Find Usages (Alt+F7):
 //   IntelliJ searches the file index for tokens matching the symbol name, then calls
@@ -35,6 +36,9 @@ class GolrSymbolReference(node: ASTNode) : ASTWrapperPsiElement(node) {
     // Returning a non-null PsiReference here opts this element into all reference-based
     // IDE features: navigation, rename, and usage search.
     override fun getReference() = GolrRef(this)
+
+    // Returns true when this references a terminal by its string alias rather than by name.
+    fun isAlias(): Boolean = node.firstChildNode.elementType == GolrTokenTypes.STRING
 
     // PsiReferenceBase.Poly is IntelliJ's base class for references that may resolve to
     // more than one target (poly = multiple). Compared to the simpler PsiReferenceBase,
@@ -69,17 +73,18 @@ class GolrSymbolReference(node: ASTNode) : ASTWrapperPsiElement(node) {
         //     is accidentally defined twice).
         //   - Shows an "Unresolved reference" warning when the array is empty.
         override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
-            val name = element.text
-            val file = element.containingFile
-            return PsiTreeUtil.findChildrenOfType(file, GolrSymbolDefinition::class.java)
-                .filter { it.name == name }
-                .map { PsiElementResolveResult(it) }
-                .toTypedArray()
+            val text = element.text
+            val definitions = PsiTreeUtil.findChildrenOfType(element.containingFile, GolrSymbolDefinition::class.java)
+            val targets: List<PsiElement> =
+                if (element.isAlias()) definitions.mapNotNull { it.alias() }.filter { it.name == text }
+                else definitions.filter { it.name == text }
+            return targets.map { PsiElementResolveResult(it) }.toTypedArray()
         }
 
         // Called by IntelliJ's rename refactoring for each reference site after the
         // definition has been renamed. We replace this GolrSymbolReference node with a
-        // freshly parsed one carrying the new name, keeping the PSI tree consistent.
+        // freshly parsed one carrying the new name (or quoted string), keeping the PSI tree
+        // consistent.
         override fun handleElementRename(newElementName: String): PsiElement {
             val newRef = GolrPsiFactory.createSymbolReference(element.project, newElementName)
             return element.replace(newRef)

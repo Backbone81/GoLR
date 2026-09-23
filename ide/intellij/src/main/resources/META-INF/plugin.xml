@@ -87,6 +87,10 @@
         <lang.namesValidator language="GoLR"
                              implementationClass="com.backbone81.golr.GolrNamesValidator"/>
 
+        <!-- Validates the new name when renaming a string alias such as "+", which must stay
+             a string literal. Takes precedence over the names validator above. -->
+        <renameInputValidator implementation="com.backbone81.golr.GolrAliasInputValidator"/>
+
         <!-- Declares that GoLR symbols support inline rename. This is what makes IntelliJ's
              built-in inline-rename handler activate for GoLR symbols (Shift+F6 renames in the
              editor instead of via a modal dialog). See GolrRefactoringSupportProvider. -->
@@ -102,12 +106,15 @@
         <renamePsiElementProcessor
                 implementation="com.backbone81.golr.GolrRenamePsiElementProcessor"/>
 
-        <!-- Auto-completion (Ctrl+Space / typing). Suggests every symbol defined in the
-             current .golr file when the caret is on an identifier, so rule bodies,
-             precedence lines, and the @start declaration can be filled in without retyping
-             terminal/nonterminal names. See GolrCompletionContributor. -->
+        <!-- Auto-completion (Ctrl+Space / typing). Suggests the keywords valid at the caret,
+             and every symbol defined in the current .golr file where a symbol may be
+             referenced: rule bodies, precedence lines, and the @start declaration.
+             See GolrCompletionContributor. -->
         <completion.contributor language="GoLR"
                                 implementationClass="com.backbone81.golr.GolrCompletionContributor"/>
+
+        <!-- Opens the completion popup when "@" is typed, so keywords are offered right away. -->
+        <typedHandler implementation="com.backbone81.golr.GolrTypedHandler"/>
 
         <!-- Code formatting (Reformat Code, Ctrl+Alt+L). Registers GoLR as formattable; the
              model is a no-op because the actual reformat is done by GolrPreFormatProcessor,

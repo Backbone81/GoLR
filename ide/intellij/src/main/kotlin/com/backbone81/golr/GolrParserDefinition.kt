@@ -53,11 +53,13 @@ class GolrParserDefinition : ParserDefinition {
     //   SYMBOL_DEFINITION   → GolrSymbolDefinition  (rename, find usages, jump target)
     //   NAME_ELEMENT        → GolrNameElement        (name range inside a definition)
     //   SYMBOL_REFERENCE    → GolrSymbolReference    (reference resolution, rename sites)
+    //   ALIAS_DEFINITION    → GolrAliasDefinition    (string alias of a terminal, rename)
     //   PRECEDENCE_DECLARATION → plain wrapper, no special behaviour needed
     override fun createElement(node: ASTNode): PsiElement = when (node.elementType) {
         GolrElementTypes.SYMBOL_DEFINITION     -> GolrSymbolDefinition(node)
         GolrElementTypes.NAME_ELEMENT          -> GolrNameElement(node)
         GolrElementTypes.SYMBOL_REFERENCE      -> GolrSymbolReference(node)
+        GolrElementTypes.ALIAS_DEFINITION      -> GolrAliasDefinition(node)
         GolrElementTypes.PRECEDENCE_DECLARATION -> ASTWrapperPsiElement(node)
         else -> throw UnsupportedOperationException("Unknown element type: ${node.elementType}")
     }

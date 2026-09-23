@@ -42,6 +42,7 @@ import com.intellij.psi.PsiElement
 //   - The element to rename is resolved by the platform from the caret via TargetElementUtil:
 //       * caret on a definition name  → the GolrSymbolDefinition (a PsiNameIdentifierOwner)
 //       * caret on a reference        → its resolved GolrSymbolDefinition
+//       * caret on a string alias     → the GolrAliasDefinition in the terminal definition
 //   - GolrRenamePsiElementProcessor then supplies the usage sites (findReferences) and opts
 //     into inline rename (isInplaceRenameSupported = true).
 //
@@ -52,5 +53,5 @@ class GolrRefactoringSupportProvider : RefactoringSupportProvider() {
     // local-variable inline handler declines GoLR symbols (see the class comment).
 
     override fun isMemberInplaceRenameAvailable(element: PsiElement, context: PsiElement?): Boolean =
-        element is GolrSymbolDefinition
+        element is GolrSymbolDefinition || element is GolrAliasDefinition
 }
