@@ -23,7 +23,7 @@ var _ = Describe("IELR(1)", func() {
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				parser, _, err := ielr1bisoncore.GrammarToParser(grammar)
+				parser, _, _, err := ielr1bisoncore.GrammarToParser(grammar)
 				Expect(err).ToNot(HaveOccurred())
 
 				// The parser carries the numbering of the augmented grammar and not the one GNU Bison reports.
@@ -48,7 +48,7 @@ func BenchmarkGrammarToParser(b *testing.B) {
 			}
 
 			for b.Loop() {
-				_, _, err := ielr1bisoncore.GrammarToParser(grammar)
+				_, _, _, err := ielr1bisoncore.GrammarToParser(grammar)
 				if err != nil {
 					b.Fatal(err)
 				}

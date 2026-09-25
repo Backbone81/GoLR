@@ -29,7 +29,7 @@ func wellKnownParser(wellKnownGrammar testdata.WellKnownGrammar, options ...core
 	grammar, err := bisonfrontend.ToGrammar(bytes.NewBuffer(wellKnownGrammar.Content()), wellKnownGrammar.FileName)
 	Expect(err).ToNot(HaveOccurred())
 
-	parser, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy, options...)
+	parser, _, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy, options...)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(parser.States).ToNot(BeEmpty())
 

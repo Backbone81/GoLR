@@ -8,10 +8,16 @@ import (
 	"github.com/backbone81/golr/pkg/parsergen/conflict"
 	"github.com/backbone81/golr/pkg/parsergen/core"
 	"github.com/backbone81/golr/pkg/parsergen/frontend"
+	"github.com/backbone81/golr/pkg/utils"
 )
 
 // GrammarToParser calculates a parser from the context free grammar.
-func GrammarToParser(grammar frontend.Grammar, options ...core.Option) (backend.Parser, []conflict.Conflict, error) {
+func GrammarToParser(grammar frontend.Grammar, options ...core.Option) (
+	backend.Parser,
+	[]conflict.Conflict,
+	[]utils.Warning,
+	error,
+) {
 	config := intcore.ConfigFromOptions(options...)
 	policyFactory := intconflict.SelectPolicy(config.FailOnShiftReduceConflicts, config.FailOnReduceReduceConflicts)
 	return intlr1golr.GrammarToParser(grammar, policyFactory, options...)

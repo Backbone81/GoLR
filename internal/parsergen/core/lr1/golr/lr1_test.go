@@ -41,7 +41,7 @@ func BenchmarkGrammarToParser(b *testing.B) {
 			}
 
 			for b.Loop() {
-				_, _, err := lr1golrcore.GrammarToParser(grammar)
+				_, _, _, err := lr1golrcore.GrammarToParser(grammar)
 				if err != nil {
 					b.Fatal(err)
 				}

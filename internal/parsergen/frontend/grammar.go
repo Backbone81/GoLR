@@ -73,8 +73,8 @@ func (g Grammar) Validate() ([]utils.Warning, error) {
 			return nil, fmt.Errorf(
 				"duplicate production name %q on production #%d (%s) and production #%d (%s)",
 				*production.Name,
-				previousIdx, formatProduction(g, previousIdx),
-				i, formatProduction(g, i),
+				previousIdx, FormatProduction(g, previousIdx),
+				i, FormatProduction(g, i),
 			)
 		}
 		productionIdxByName[*production.Name] = i
@@ -82,26 +82,39 @@ func (g Grammar) Validate() ([]utils.Warning, error) {
 	return checkUsefulness(g)
 }
 
-// formatProduction renders the production at the given index in the readable "LHS -> a B c" form, resolving every
-// symbol index to its name. Production.String is index only because it has no grammar to resolve against, so this is
-// the variant to use in messages meant for a grammar author.
-func formatProduction(g Grammar, productionIdx int) string {
+// itemDot marks the position of an item. It is a bullet, so it cannot be mistaken for a terminal like '.'.
+const itemDot = "•"
+
+// FormatProduction renders the production at the given index with the names of its symbols, e.g. `s -> x "b"`. An
+// empty right hand side is written as (empty).
+func FormatProduction(g Grammar, productionIdx int) string {
+	return FormatItem(g, productionIdx, -1)
+}
+
+// FormatItem renders the production at the given index like FormatProduction, with a dot in front of the symbol at the
+// given position. A position past the last symbol puts the dot at the end, a negative position omits it.
+func FormatItem(g Grammar, productionIdx int, dotPosition int) string {
 	production := g.Productions[productionIdx]
 
 	var builder strings.Builder
-	builder.WriteString(g.Nonterminals[production.NonterminalIdx].Name)
+	builder.WriteString(g.Nonterminals[production.NonterminalIdx].String())
 	builder.WriteString(" ->")
 	if len(production.SymbolRefs) == 0 {
-		builder.WriteString(" <empty>")
-		return builder.String()
+		builder.WriteString(" (empty)")
 	}
-	for _, symbolRef := range production.SymbolRefs {
+	for position, symbolRef := range production.SymbolRefs {
+		if position == dotPosition {
+			builder.WriteString(" " + itemDot)
+		}
 		builder.WriteString(" ")
 		if symbolRef.IsTerminal() {
 			builder.WriteString(g.Terminals[symbolRef.Idx()].String())
 		} else {
 			builder.WriteString(g.Nonterminals[symbolRef.Idx()].String())
 		}
+	}
+	if dotPosition == len(production.SymbolRefs) {
+		builder.WriteString(" " + itemDot)
 	}
 	return builder.String()
 }

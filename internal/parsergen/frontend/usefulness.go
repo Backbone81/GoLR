@@ -11,7 +11,7 @@ import (
 // unreachable from the start nonterminal, both in nonterminal index order. The grammar must have valid indices.
 func checkUsefulness(g Grammar) ([]utils.Warning, error) {
 	productive := productiveNonterminals(g)
-	reachable := reachableNonterminals(g)
+	reachable := ReachableNonterminals(g)
 
 	hasProductions := make([]bool, len(g.Nonterminals))
 	for _, production := range g.Productions {
@@ -123,11 +123,11 @@ func (a *productivityAnalysis) markProductive(nonterminalIdx int) {
 	a.worklist = append(a.worklist, nonterminalIdx)
 }
 
-// reachableNonterminals reports for every nonterminal if the start nonterminal derives a sentential form containing it.
+// ReachableNonterminals reports for every nonterminal if the start nonterminal derives a sentential form containing it.
 // It is a breadth-first search starting at the start nonterminal: every nonterminal on the right hand side of a
 // production of a reached nonterminal is reached as well. Every production is visited at most once, so the cost is
 // linear in the grammar size.
-func reachableNonterminals(g Grammar) []bool {
+func ReachableNonterminals(g Grammar) []bool {
 	productionIdxsByNonterminalIdx := make([][]int, len(g.Nonterminals))
 	for productionIdx, production := range g.Productions {
 		productionIdxsByNonterminalIdx[production.NonterminalIdx] = append(

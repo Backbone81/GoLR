@@ -16,26 +16,34 @@ import (
 	lr1golr "github.com/backbone81/golr/pkg/parsergen/core/lr1/golr"
 	"github.com/backbone81/golr/pkg/parsergen/frontend"
 	"github.com/backbone81/golr/pkg/parsergen/frontend/dsl"
+	"github.com/backbone81/golr/pkg/utils"
 )
 
-type grammarToParser func(frontend.Grammar, ...core.Option) (backend.Parser, []conflict.Conflict, error)
+type grammarToParser func(frontend.Grammar, ...core.Option) (
+	backend.Parser,
+	[]conflict.Conflict,
+	[]utils.Warning,
+	error,
+)
 
-var _ = Describe("Options", func() {
-	golrCores := map[string]grammarToParser{
+var (
+	golrCores = map[string]grammarToParser{
 		"ielr1-golr": ielr1golr.GrammarToParser,
 		"lalr1-golr": lalr1golr.GrammarToParser,
 		"lr1-golr":   lr1golr.GrammarToParser,
 	}
-	bisonCores := map[string]grammarToParser{
+	bisonCores = map[string]grammarToParser{
 		"ielr1-bison": ielr1bison.GrammarToParser,
 		"lalr1-bison": lalr1bison.GrammarToParser,
 		"lr1-bison":   lr1bison.GrammarToParser,
 	}
+)
 
+var _ = Describe("Options", func() {
 	DescribeTable("should make the GoLR cores fail on the selected kinds of conflicts",
 		func(grammar frontend.Grammar, options []core.Option, wantFail bool) {
 			for coreName, grammarToParser := range golrCores {
-				_, _, err := grammarToParser(grammar, options...)
+				_, _, _, err := grammarToParser(grammar, options...)
 				if wantFail {
 					Expect(conflict.UnresolvedConflictErrors(err)).ToNot(BeEmpty(), "core %s", coreName)
 				} else {
@@ -64,7 +72,7 @@ var _ = Describe("Options", func() {
 	DescribeTable("should make the Bison cores reject the options which fail on conflicts",
 		func(option core.Option, wantMessage string) {
 			for coreName, grammarToParser := range bisonCores {
-				_, _, err := grammarToParser(shiftReduceGrammar(), option)
+				_, _, _, err := grammarToParser(shiftReduceGrammar(), option)
 				Expect(err).To(MatchError(intcore.ErrOptionNotSupported), "core %s", coreName)
 				Expect(err).To(MatchError(ContainSubstring(wantMessage)), "core %s", coreName)
 			}

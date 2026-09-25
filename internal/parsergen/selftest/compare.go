@@ -153,7 +153,7 @@ func buildComparisonTables(
 	// partition that differs between the two automata. That is a correct optimization (same language, same parses, only
 	// the error is reported one or more reductions later), but it is not what this comparison is checking, so it is
 	// switched off on both sides to keep the comparison on the canonical resolved tables.
-	oracleParser, lr1Conflicts, oracleErr := lr1golrcore.GrammarToParser(
+	oracleParser, lr1Conflicts, _, oracleErr := lr1golrcore.GrammarToParser(
 		grammar, policyFactory, core.WithoutDefaultReductions(),
 	)
 	if oracleErr != nil && errors.Is(oracleErr, backend.ErrStateLimitExceeded) {
@@ -165,7 +165,7 @@ func buildComparisonTables(
 
 	// The system under test: the IELR(1) table, resolved with the same policy by its GrammarToParser and, like the
 	// oracle above, without the default-reduction compaction so the two are compared as canonical resolved tables.
-	sutParser, _, sutErr := ielr1golrcore.GrammarToParser(
+	sutParser, _, _, sutErr := ielr1golrcore.GrammarToParser(
 		grammar, policyFactory, core.WithoutDefaultReductions(),
 	)
 	if sutErr != nil && !isUnresolvedConflictError(sutErr) {
@@ -181,7 +181,7 @@ func buildComparisonTables(
 	// state limit this one does too. Under a policy which leaves conflicts unresolved it fails on the grammars whose
 	// mysterious conflicts only IELR(1) and canonical LR(1) get rid of, which is what makes such a grammar
 	// discriminating rather than a failure.
-	lalrParser, lalrConflicts, lalrErr := lalr1golrcore.GrammarToParser(grammar, policyFactory)
+	lalrParser, lalrConflicts, _, lalrErr := lalr1golrcore.GrammarToParser(grammar, policyFactory)
 	if lalrErr != nil && !isUnresolvedConflictError(lalrErr) {
 		return comparisonTables{}, false, fmt.Errorf("building the LALR(1) parser: %w", lalrErr)
 	}
@@ -190,7 +190,7 @@ func buildComparisonTables(
 		// The resolved table does not exist, but the automaton it would have been built from does, and its state count
 		// is all the split signal needs. Resolving the conflicts is also what removes the unreachable states, so this
 		// count is not the lower bound of the size invariant.
-		unresolvedLalrParser, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, policyFactory)
+		unresolvedLalrParser, _, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, policyFactory)
 		if err != nil {
 			return comparisonTables{}, false, fmt.Errorf("building the unresolved LALR(1) parser: %w", err)
 		}

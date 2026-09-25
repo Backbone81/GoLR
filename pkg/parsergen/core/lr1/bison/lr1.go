@@ -7,12 +7,18 @@ import (
 	"github.com/backbone81/golr/pkg/parsergen/conflict"
 	"github.com/backbone81/golr/pkg/parsergen/core"
 	"github.com/backbone81/golr/pkg/parsergen/frontend"
+	"github.com/backbone81/golr/pkg/utils"
 )
 
 // GrammarToParser calculates a parser from the context free grammar.
 //
 // Conflicts are resolved by GNU Bison itself, which this core shells out to, so the parser tables come back with the
 // conflicts already decided the way GNU Bison and Yacc decide them.
-func GrammarToParser(grammar frontend.Grammar, options ...core.Option) (backend.Parser, []conflict.Conflict, error) {
+func GrammarToParser(grammar frontend.Grammar, options ...core.Option) (
+	backend.Parser,
+	[]conflict.Conflict,
+	[]utils.Warning,
+	error,
+) {
 	return intlr1bison.GrammarToParser(grammar, intconflict.DefaultPolicy, options...)
 }

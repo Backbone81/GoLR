@@ -32,21 +32,23 @@ func GrammarToParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
 	options ...core.Option,
-) (backend.Parser, []conflict.Conflict, error) {
+) (backend.Parser, []conflict.Conflict, []utils.Warning, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: IELR1: GoLR: GrammarToParser").End()
 
 	config := core.ConfigFromOptions(options...)
 
 	// Phases 0 to 4 of IELR(1) build the parser.
-	parser, err := GrammarToUnresolvedParser(grammar, policyFactory)
+	parser, warnings, err := GrammarToUnresolvedParser(grammar, policyFactory)
 	if err != nil {
-		return backend.Parser{}, nil, err
+		warnings, err = config.ApplyFailOnWarnings(warnings, err)
+		return backend.Parser{}, nil, warnings, err
 	}
 
 	// Phase 5 of IELR(1) (section 3.7 of the paper).
 	conflicts, err := conflict.Resolve(&parser, policyFactory(parser.Grammar))
 	if err != nil {
-		return backend.Parser{}, conflicts, err
+		warnings, err = config.ApplyFailOnWarnings(warnings, err)
+		return backend.Parser{}, conflicts, warnings, err
 	}
 
 	if config.DefaultReductions {
@@ -56,7 +58,13 @@ func GrammarToParser(
 	// Resolving a conflict can delete the only shift into a state, which strands that state and everything behind it.
 	// This is the unreachable state removal of section 3.8.2, the optional phase 6 of the paper.
 	parser, conflicts = conflict.RemoveUnreachableStates(parser, conflicts)
-	return parser, conflicts, nil
+
+	warnings = append(warnings, backend.NeverReducedWarnings(parser)...)
+	warnings, err = config.ApplyFailOnWarnings(warnings, nil)
+	if err != nil {
+		return backend.Parser{}, conflicts, warnings, err
+	}
+	return parser, conflicts, warnings, nil
 }
 
 // GrammarToUnresolvedParser runs phases 0 to 4 of IELR(1) and stops there, so the minimal LR(1) parser tables come back
@@ -76,15 +84,24 @@ func GrammarToParser(
 func GrammarToUnresolvedParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
-) (backend.Parser, error) {
+) (backend.Parser, []utils.Warning, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: IELR1: GoLR: GrammarToUnresolvedParser").End()
+
+	warnings, err := grammar.Validate()
+	if err != nil {
+		return backend.Parser{}, warnings, err
+	}
 
 	// The whole algorithm works on the augmented grammar, where a new start symbol derives the old one followed by the
 	// end of input marker, so the caller hands us the grammar as the frontend produced it and we augment it here.
 	augmentedGrammar := frontend.AugmentGrammar(grammar)
 
 	builder := NewIELR1(augmentedGrammar, policyFactory(augmentedGrammar))
-	return builder.BuildParser()
+	parser, err := builder.BuildParser()
+	if err != nil {
+		return backend.Parser{}, warnings, err
+	}
+	return parser, warnings, nil
 }
 
 // IELR1 provides an implementation of the IELR(1) algorithm as described by Denny and Malloy in "The IELR(1) algorithm

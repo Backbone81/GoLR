@@ -57,7 +57,7 @@ func specToParser(spec string) (parserbackend.Parser, backend.DFA) {
 	rules, grammar, err := parsergolrfrontend.GrammarFromString(spec)
 	Expect(err).ToNot(HaveOccurred())
 
-	parser, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
+	parser, _, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(parser.States).ToNot(BeEmpty())
 

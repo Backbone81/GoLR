@@ -60,7 +60,7 @@ var nullablePairGrammar = frontend.Grammar{
 // a valid membership oracle for conflict-free grammars, where the resolved table accepts exactly the language; hence
 // the assertion that the grammar resolves without conflicts.
 func acceptsSentence(grammar frontend.Grammar, sentence []int) bool {
-	parser, conflicts, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
+	parser, conflicts, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(conflicts).To(BeEmpty())
 

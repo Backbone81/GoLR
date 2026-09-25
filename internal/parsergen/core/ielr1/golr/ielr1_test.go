@@ -32,7 +32,7 @@ var _ = Describe("IELR(1)", func() {
 			// The pinned table lists every reduce action explicitly, keyed on its lookahead, because this test is about
 			// the split lookahead sets, not the table compaction. WithoutDefaultReductions keeps GrammarToParser from
 			// folding one of them into the state's default arm, which would only obscure what is being checked here.
-			ielr1Parser, _, err := ielr1golrcore.GrammarToParser(
+			ielr1Parser, _, _, err := ielr1golrcore.GrammarToParser(
 				grammar,
 				conflict.DefaultPolicy,
 				core.WithoutDefaultReductions(),
@@ -53,14 +53,14 @@ var _ = Describe("IELR(1)", func() {
 	// GrammarToParser returns is free of it. The ambiguous grammar of figure 2 has such a genuine conflict and is the
 	// sharpest case for this split of responsibilities.
 	It("should resolve the genuine conflict of the ambiguous grammar only at the GrammarToParser interface", func() {
-		rawParser, err := ielr1golrcore.GrammarToUnresolvedParser(
+		rawParser, _, err := ielr1golrcore.GrammarToUnresolvedParser(
 			ielr1golrcore.AmbiguousTestGrammarFig2,
 			conflict.DefaultPolicy,
 		)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(conflict.HasConflict(rawParser)).To(BeTrue(), "the raw split table is expected to keep the genuine conflict")
 
-		resolvedParser, _, err := ielr1golrcore.GrammarToParser(
+		resolvedParser, _, _, err := ielr1golrcore.GrammarToParser(
 			ielr1golrcore.AmbiguousTestGrammarFig2,
 			conflict.DefaultPolicy,
 		)
@@ -132,14 +132,14 @@ var _ = Describe("IELR(1)", func() {
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				bisonLALR1Parser, _, err := lalr1bisoncore.GrammarToParser(grammar)
+				bisonLALR1Parser, _, _, err := lalr1bisoncore.GrammarToParser(grammar)
 				Expect(err).ToNot(HaveOccurred())
-				bisonIELR1Parser, _, err := ielr1bisoncore.GrammarToParser(grammar)
+				bisonIELR1Parser, _, _, err := ielr1bisoncore.GrammarToParser(grammar)
 				Expect(err).ToNot(HaveOccurred())
 
-				golrLALR1Parser, _, err := lalr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
+				golrLALR1Parser, _, _, err := lalr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
 				Expect(err).ToNot(HaveOccurred())
-				golrIELR1Parser, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
+				golrIELR1Parser, _, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
 				Expect(err).ToNot(HaveOccurred())
 
 				if wellKnownGrammar.IsLALR1 {
@@ -176,7 +176,7 @@ func BenchmarkGrammarToParser(b *testing.B) {
 			}
 
 			for b.Loop() {
-				_, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
+				_, _, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
 				if err != nil {
 					b.Fatal(err)
 				}

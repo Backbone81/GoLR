@@ -18,7 +18,7 @@ var _ = Describe("Resolve", func() {
 	// conflicts usable for a parser. It works on the parser tables alone, so it does not matter which algorithm
 	// computed them.
 	It("should resolve every conflict of an ambiguous grammar with the default policy", func() {
-		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		parser, _, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(conflictedTerminals(parser)).ToNot(
 			BeEmpty(),
@@ -40,7 +40,7 @@ var _ = Describe("Resolve", func() {
 	// error when it sees the terminal there. This is the one case where resolving a conflict removes every action
 	// instead of keeping the one which won.
 	It("should remove every action for a conflicted terminal which does not associate", func() {
-		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		parser, _, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 
 		// The rejected conflicts are found before resolving, because a conflict decided by precedence is not reported.
@@ -77,7 +77,7 @@ var _ = Describe("Resolve", func() {
 	// that action for every lookahead it has no explicit action for, so the rejection only survives the default
 	// reduction because the state records it separately.
 	It("should keep a rejected terminal rejected when the tables are compressed afterwards", func() {
-		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		parser, _, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 
 		// The rejected conflicts are found before resolving, because a conflict decided by precedence is not reported.
@@ -110,7 +110,7 @@ var _ = Describe("Resolve", func() {
 	// A policy which decides nothing leaves every conflict unresolved. The parser tables are left with more than one
 	// action for the conflicted terminals, which no parser can be generated from, so this is an error.
 	It("should fail on the conflicts the policy leaves unresolved", func() {
-		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		parser, _, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 		wantConflictedTerminals := conflictedTerminals(parser)
 		Expect(wantConflictedTerminals).ToNot(
@@ -153,7 +153,7 @@ var _ = Describe("Resolve", func() {
 	It("should resolve a reduce/reduce conflict in favor of the production which was declared first", func() {
 		// The LALR(1) parser tables of this grammar have a reduce/reduce conflict which is an artifact of merging
 		// states, see the canonical LR(1) tests. It gives us a reduce/reduce conflict to resolve.
-		parser, err := lalr1golr.GrammarToUnresolvedParser(
+		parser, _, err := lalr1golr.GrammarToUnresolvedParser(
 			ielr1golr.ReduceReduceConflictTestGrammar,
 			conflict.DefaultPolicy,
 		)
@@ -186,7 +186,7 @@ var _ = Describe("Resolve", func() {
 	// A conflict decided by a precedence declaration was decided by the grammar author on purpose, so only a conflict
 	// which a rule of last resort decided is reported.
 	It("should only report the conflicts which a rule of last resort decided", func() {
-		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.MultiRejecterTestGrammar, conflict.DefaultPolicy)
+		parser, _, err := lr1golr.GrammarToUnresolvedParser(conflict.MultiRejecterTestGrammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 
 		// The shift of "~" and the reduction of E -> E ~ E have the same precedence level, and "~" declares no
@@ -225,7 +225,7 @@ var _ = Describe("Resolve", func() {
 	DescribeTable("should decide a conflict between a shift and two reductions under every policy SelectPolicy returns",
 		func(failOnShiftReduceConflicts bool, failOnReduceReduceConflicts bool, wantUnresolved bool, wantReduces int) {
 			policyFactory := conflict.SelectPolicy(failOnShiftReduceConflicts, failOnReduceReduceConflicts)
-			parser, err := lalr1golr.GrammarToUnresolvedParser(
+			parser, _, err := lalr1golr.GrammarToUnresolvedParser(
 				ielr1golr.UnresolvedShiftReduceIsocoresTestGrammar,
 				policyFactory,
 			)
@@ -283,7 +283,7 @@ var _ = Describe("Detect", func() {
 	// has to see exactly the conflicts Resolve sees, because Resolve is the only other thing which reports them, and it
 	// has to leave the tables alone, because the caller still wants the conflicting actions.
 	It("should report the conflicts Resolve reports, undecided and without touching the parser tables", func() {
-		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		parser, _, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 		wantConflictedTerminals := conflictedTerminals(parser)
 		Expect(wantConflictedTerminals).ToNot(
@@ -322,7 +322,7 @@ var _ = Describe("Detect", func() {
 	})
 
 	It("should report nothing for parser tables whose conflicts were resolved", func() {
-		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		parser, _, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 
 		_, err = conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
@@ -332,7 +332,7 @@ var _ = Describe("Detect", func() {
 	})
 
 	It("should answer HasConflict for parser tables with and without conflicts", func() {
-		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		parser, _, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(conflict.HasConflict(parser)).To(BeTrue())
 

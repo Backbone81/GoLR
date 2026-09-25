@@ -34,12 +34,12 @@ var _ = Describe("Split States Builder", func() {
 	// with the default policy would leave conflict.Detect with nothing to report and defeat the comparison.
 	DescribeTable("should agree with canonical LR(1) on the state count bounds and the conflicts",
 		func(grammar frontend.Grammar) {
-			lalr1Parser, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			lalr1Parser, _, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 			Expect(err).ToNot(HaveOccurred())
-			ielr1Parser, err := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			ielr1Parser, _, err := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 			Expect(err).ToNot(HaveOccurred())
 
-			lr1Parser, err := lr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			lr1Parser, _, err := lr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(len(ielr1Parser.States)).To(BeNumerically(">=", len(lalr1Parser.States)))
@@ -63,9 +63,9 @@ var _ = Describe("Split States Builder", func() {
 	It("should split a state to remove the mysterious conflict of the reduce/reduce grammar", func() {
 		grammar := ielr1golrcore.ReduceReduceConflictTestGrammar
 
-		lalr1Parser, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+		lalr1Parser, _, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
-		ielr1Parser, err := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+		ielr1Parser, _, err := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(conflict.HasConflict(lalr1Parser)).To(
@@ -99,7 +99,7 @@ var _ = Describe("Split States Builder", func() {
 			grammarSeed := masterRng.Int63()
 			grammar := oracle.DefaultGrammarGenerator(rand.New(rand.NewSource(grammarSeed))).Generate()
 
-			lr1Parser, err := lr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			lr1Parser, _, err := lr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 			if err != nil {
 				// A grammar whose canonical LR(1) automaton exceeds the addressable state limit cannot be the oracle. It
 				// is skipped, not a failure of the builder under test.
@@ -109,9 +109,9 @@ var _ = Describe("Split States Builder", func() {
 
 			// Both are bounded above by the canonical LR(1) automaton which just fit, so neither can reach the state
 			// limit here.
-			lalr1Parser, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			lalr1Parser, _, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 			Expect(err).ToNot(HaveOccurred(), "grammar seed %d:\n%s", grammarSeed, grammar.String())
-			ielr1Parser, err := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
+			ielr1Parser, _, err := ielr1golrcore.GrammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 			Expect(err).ToNot(HaveOccurred(), "grammar seed %d:\n%s", grammarSeed, grammar.String())
 
 			Expect(len(ielr1Parser.States)).To(
@@ -163,9 +163,9 @@ var _ = Describe("Split States Builder", func() {
 		func(policyFactory conflict.PolicyFactory, expectSplit bool) {
 			grammar := ielr1golrcore.UnresolvedShiftReduceIsocoresTestGrammar
 
-			lalr1Parser, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, policyFactory)
+			lalr1Parser, _, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, policyFactory)
 			Expect(err).ToNot(HaveOccurred())
-			ielr1Parser, err := ielr1golrcore.GrammarToUnresolvedParser(grammar, policyFactory)
+			ielr1Parser, _, err := ielr1golrcore.GrammarToUnresolvedParser(grammar, policyFactory)
 			Expect(err).ToNot(HaveOccurred())
 			if expectSplit {
 				Expect(len(ielr1Parser.States)).To(
@@ -181,8 +181,8 @@ var _ = Describe("Split States Builder", func() {
 
 			// The state indexes differ between the two automatons, so the unresolved conflicts are compared by the
 			// conflicted terminal and the contributions they were left with.
-			_, ielr1Conflicts, _ := ielr1golrcore.GrammarToParser(grammar, policyFactory)
-			_, lr1Conflicts, _ := lr1golrcore.GrammarToParser(grammar, policyFactory)
+			_, ielr1Conflicts, _, _ := ielr1golrcore.GrammarToParser(grammar, policyFactory)
+			_, lr1Conflicts, _, _ := lr1golrcore.GrammarToParser(grammar, policyFactory)
 			if expectSplit {
 				// One unresolved shift/reduce conflict in each of the two isocores, so that the comparison below is not
 				// vacuous.

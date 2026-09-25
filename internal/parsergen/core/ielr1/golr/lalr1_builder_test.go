@@ -209,7 +209,7 @@ var _ = Describe("LALR(1) Builder", func() {
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				bisonParser, _, err := lalr1bisoncore.GrammarToParser(grammar)
+				bisonParser, _, _, err := lalr1bisoncore.GrammarToParser(grammar)
 				Expect(err).ToNot(HaveOccurred())
 
 				augmentedGrammar := frontend.AugmentGrammar(grammar)

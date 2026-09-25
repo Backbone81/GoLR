@@ -26,7 +26,7 @@ func WellKnownParsers() iter.Seq2[testdata.WellKnownGrammar, backend.Parser] {
 				panic(err)
 			}
 
-			parser, _, err := GrammarToParser(grammar, conflict.DefaultPolicy)
+			parser, _, _, err := GrammarToParser(grammar, conflict.DefaultPolicy)
 			if err != nil {
 				panic(err)
 			}

@@ -13,6 +13,7 @@ import (
 	"github.com/backbone81/golr/internal/parsergen/core"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	bisonfrontend "github.com/backbone81/golr/internal/parsergen/frontend/bison"
+	"github.com/backbone81/golr/internal/utils"
 	bisonutils "github.com/backbone81/golr/internal/utils/bison"
 )
 
@@ -26,17 +27,34 @@ func GrammarToParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
 	options ...core.Option,
-) (backend.Parser, []conflict.Conflict, error) {
+) (backend.Parser, []conflict.Conflict, []utils.Warning, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: LALR1: Bison: GrammarToParser").End()
 
-	if err := core.RejectFailOnConflicts(core.ConfigFromOptions(options...), "the GNU Bison cores"); err != nil {
-		return backend.Parser{}, nil, err
+	config := core.ConfigFromOptions(options...)
+	if err := core.RejectFailOnConflicts(config, "the GNU Bison cores"); err != nil {
+		return backend.Parser{}, nil, nil, err
+	}
+
+	warnings, err := grammar.Validate()
+	if err != nil {
+		warnings, err = config.ApplyFailOnWarnings(warnings, err)
+		return backend.Parser{}, nil, warnings, err
 	}
 
 	builder := NewLALR1(grammar)
 	parser, err := builder.BuildParser()
+	if err != nil {
+		warnings, err = config.ApplyFailOnWarnings(warnings, err)
+		return backend.Parser{}, nil, warnings, err
+	}
+
+	warnings = append(warnings, backend.NeverReducedWarnings(parser)...)
+	warnings, err = config.ApplyFailOnWarnings(warnings, nil)
+	if err != nil {
+		return backend.Parser{}, nil, warnings, err
+	}
 	// Note that we currently do not capture reported conflicts from GNU Bison. Therefore, we return no conflicts.
-	return parser, nil, err
+	return parser, nil, warnings, nil
 }
 
 type LALR1 struct {

@@ -97,7 +97,7 @@ var _ = Describe("Golden corpus", func() {
 
 			// The core is named explicitly rather than left to the default, for the same reason scripts/generate.sh
 			// pins one: the committed traces must not change underneath the corpus when the default core changes.
-			parser, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
+			parser, _, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy)
 			Expect(err).ToNot(HaveOccurred())
 			expectGolden(
 				filepath.Join(casePath, parserTraceFileName),

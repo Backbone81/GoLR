@@ -177,7 +177,7 @@ var _ = Describe("Parser Interpreter", func() {
 		var parser backend.Parser
 		BeforeEach(func() {
 			var err error
-			parser, _, err = ielr1golrcore.GrammarToParser(ielr1golrcore.UnambiguousTestGrammarFig1, conflict.DefaultPolicy)
+			parser, _, _, err = ielr1golrcore.GrammarToParser(ielr1golrcore.UnambiguousTestGrammarFig1, conflict.DefaultPolicy)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

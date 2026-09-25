@@ -152,7 +152,7 @@ var _ = Describe("RemoveUnreachableStates", func() {
 	// generator resolves them. Whatever resolution stranded has to be gone afterwards, and every state which is left
 	// has to be reachable and to transition into states which exist.
 	It("should leave every state of a resolved parser table reachable", func() {
-		parser, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
+		parser, _, err := lr1golr.GrammarToUnresolvedParser(conflict.PrecedenceTestGrammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
 		conflicts, err := conflict.Resolve(&parser, conflict.DefaultPolicy(parser.Grammar))
 		Expect(err).ToNot(HaveOccurred())

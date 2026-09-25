@@ -40,7 +40,7 @@ func BenchmarkGrammarToParser(b *testing.B) {
 			}
 
 			for b.Loop() {
-				if _, _, err := lalr1golrcore.GrammarToParser(grammar); err != nil {
+				if _, _, _, err := lalr1golrcore.GrammarToParser(grammar); err != nil {
 					b.Fatal(err)
 				}
 			}

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/backbone81/golr/internal/utils"
 )
 
 // Config configures how a core's GrammarToParser builds the parser tables.
@@ -104,4 +106,17 @@ func RejectFailOnConflicts(config Config, coreName string) error {
 		strings.Join(kinds, " and "),
 		coreName,
 	)
+}
+
+// ApplyFailOnWarnings turns the warnings into errors added to err when FailOnWarnings is set.
+func (c Config) ApplyFailOnWarnings(warnings []utils.Warning, err error) ([]utils.Warning, error) {
+	if !c.FailOnWarnings || len(warnings) == 0 {
+		return warnings, err
+	}
+	errs := make([]error, 0, len(warnings)+1)
+	for _, warning := range warnings {
+		errs = append(errs, warning)
+	}
+	errs = append(errs, err)
+	return nil, errors.Join(errs...)
 }

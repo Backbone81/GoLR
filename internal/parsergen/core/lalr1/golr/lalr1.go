@@ -9,6 +9,7 @@ import (
 	"github.com/backbone81/golr/internal/parsergen/core"
 	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 // GrammarToParser calculates a parser from the context free grammar.
@@ -31,20 +32,22 @@ func GrammarToParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
 	options ...core.Option,
-) (backend.Parser, []conflict.Conflict, error) {
+) (backend.Parser, []conflict.Conflict, []utils.Warning, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: LALR1: GoLR: GrammarToParser").End()
 
 	config := core.ConfigFromOptions(options...)
 
-	parser, err := GrammarToUnresolvedParser(grammar, policyFactory)
+	parser, warnings, err := GrammarToUnresolvedParser(grammar, policyFactory)
 	if err != nil {
-		return backend.Parser{}, nil, err
+		warnings, err = config.ApplyFailOnWarnings(warnings, err)
+		return backend.Parser{}, nil, warnings, err
 	}
 
 	// Phase 5 of IELR(1) (section 3.7 of the paper).
 	conflicts, err := conflict.Resolve(&parser, policyFactory(parser.Grammar))
 	if err != nil {
-		return backend.Parser{}, conflicts, err
+		warnings, err = config.ApplyFailOnWarnings(warnings, err)
+		return backend.Parser{}, conflicts, warnings, err
 	}
 
 	if config.DefaultReductions {
@@ -54,7 +57,13 @@ func GrammarToParser(
 	// Resolving a conflict can delete the only shift into a state, which strands that state and everything behind it.
 	// This is the unreachable state removal of section 3.8.2, the optional phase 6 of the paper.
 	parser, conflicts = conflict.RemoveUnreachableStates(parser, conflicts)
-	return parser, conflicts, nil
+
+	warnings = append(warnings, backend.NeverReducedWarnings(parser)...)
+	warnings, err = config.ApplyFailOnWarnings(warnings, nil)
+	if err != nil {
+		return backend.Parser{}, conflicts, warnings, err
+	}
+	return parser, conflicts, warnings, nil
 }
 
 // GrammarToUnresolvedParser calculates the LALR(1) parser tables of the grammar and stops there, so the tables come
@@ -74,8 +83,13 @@ func GrammarToParser(
 func GrammarToUnresolvedParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
-) (backend.Parser, error) {
+) (backend.Parser, []utils.Warning, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Core: LALR1: GoLR: GrammarToUnresolvedParser").End()
+
+	warnings, err := grammar.Validate()
+	if err != nil {
+		return backend.Parser{}, warnings, err
+	}
 
 	// The builder works on the augmented grammar, so the caller hands us the grammar as the frontend produced it and
 	// we augment it here.
@@ -85,7 +99,7 @@ func GrammarToUnresolvedParser(
 	// states it merged too eagerly.
 	builder := ielr1golrcore.NewLALR1Builder(augmentedGrammar)
 	if err := builder.Build(); err != nil {
-		return backend.Parser{}, err
+		return backend.Parser{}, warnings, err
 	}
-	return builder.Parser(), nil
+	return builder.Parser(), warnings, nil
 }

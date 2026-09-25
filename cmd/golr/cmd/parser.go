@@ -35,6 +35,7 @@ import (
 	golrfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/golr"
 	jsonfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/json"
 	yamlfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/yaml"
+	"github.com/backbone81/golr/pkg/utils"
 )
 
 var (
@@ -86,7 +87,7 @@ var parserCmd = &cobra.Command{
 			WithStateNumbers: parserWithStateNumbers,
 		}
 
-		parser, conflicts, err := executeParserCore(grammar, parserCoreOptions()...)
+		parser, conflicts, _, err := executeParserCore(grammar, parserCoreOptions()...)
 		if err != nil {
 			return reportUnresolvedConflicts(err, conflicts, reportConfig)
 		}
@@ -168,7 +169,12 @@ func executeParserFrontend() (frontend.Grammar, error) {
 	}
 }
 
-func executeParserCore(grammar frontend.Grammar, options ...core.Option) (backend.Parser, []conflict.Conflict, error) {
+func executeParserCore(grammar frontend.Grammar, options ...core.Option) (
+	backend.Parser,
+	[]conflict.Conflict,
+	[]utils.Warning,
+	error,
+) {
 	switch parserCore {
 	case "ielr1", "ielr1-golr":
 		return ielr1golrcore.GrammarToParser(grammar, options...)
@@ -183,7 +189,7 @@ func executeParserCore(grammar frontend.Grammar, options ...core.Option) (backen
 	case "lr1-bison":
 		return lr1bisoncore.GrammarToParser(grammar, options...)
 	default:
-		return backend.Parser{}, nil, fmt.Errorf("unsupported parser core %q", parserCore)
+		return backend.Parser{}, nil, nil, fmt.Errorf("unsupported parser core %q", parserCore)
 	}
 }
 

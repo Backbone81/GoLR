@@ -57,7 +57,7 @@ var _ = Describe("WriteConflictReport", func() {
 
 			// The core is named explicitly, so the reports do not change underneath the cases when the default core
 			// changes.
-			parser, conflicts, err := ielr1golr.GrammarToParser(grammar, policyFactory)
+			parser, conflicts, _, err := ielr1golr.GrammarToParser(grammar, policyFactory)
 			if err != nil {
 				// An unresolved conflict makes the core fail, and the unresolved conflict report is what reports the
 				// conflicts then.
@@ -166,7 +166,7 @@ func writeReport(specPath string, config conflict.ReportConfig) string {
 	_, grammar, err := golrfrontend.GrammarFromFile(specPath)
 	Expect(err).ToNot(HaveOccurred())
 
-	parser, conflicts, err := ielr1golr.GrammarToParser(grammar, conflict.DefaultPolicy)
+	parser, conflicts, _, err := ielr1golr.GrammarToParser(grammar, conflict.DefaultPolicy)
 	Expect(err).ToNot(HaveOccurred())
 
 	var builder strings.Builder

@@ -8,7 +8,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
 
@@ -379,14 +378,14 @@ func buildConflictReport(grammar frontend.Grammar, c Conflict) ConflictReport {
 		StateIdx: c.StateIdx,
 	}
 	for _, core := range c.KernelItems.All() {
-		report.KernelItems = append(report.KernelItems, formatKernelItem(grammar, core))
+		report.KernelItems = append(report.KernelItems, frontend.FormatItem(grammar, core.ProductionIdx(), core.Position()))
 	}
 	slices.Sort(report.KernelItems)
 
 	lookaheadsByItem := make(map[string][]string)
 	for _, reduceAction := range c.ReduceActions.All() {
 		production := grammar.Productions[reduceAction.ProductionIdx]
-		item := formatSymbols(grammar, production, len(production.SymbolRefs))
+		item := frontend.FormatItem(grammar, reduceAction.ProductionIdx, len(production.SymbolRefs))
 		for terminalIdx := range reduceAction.LookaheadSet.All() {
 			lookaheadsByItem[item] = append(lookaheadsByItem[item], grammar.Terminals[terminalIdx].String())
 		}
@@ -531,9 +530,6 @@ func formatDecision(grammar frontend.Grammar, decision Decision) (string, string
 // chosenMarker follows the action which won a conflict.
 const chosenMarker = " (chosen)"
 
-// itemDot marks the position of an item.
-const itemDot = "•"
-
 // shiftText is how a shift is rendered in the report.
 const shiftText = "shift"
 
@@ -554,45 +550,5 @@ func formatContribution(grammar frontend.Grammar, contribution Contribution) str
 	if contribution.IsShiftAction() {
 		return shiftText
 	}
-	return "reduce: " + formatProduction(grammar, contribution.ProductionIdx())
-}
-
-// formatProduction renders a production with the names of its symbols instead of their indexes, which is what makes the
-// report readable next to the grammar file the author wrote.
-func formatProduction(grammar frontend.Grammar, productionIdx int) string {
-	return formatSymbols(grammar, grammar.Productions[productionIdx], -1)
-}
-
-// formatKernelItem renders a kernel item as its production with a dot at the position of the item.
-func formatKernelItem(grammar frontend.Grammar, core backend.Core) string {
-	return formatSymbols(grammar, grammar.Productions[core.ProductionIdx()], core.Position())
-}
-
-// formatSymbols renders the production with the names of its symbols, and with a dot in front of the symbol at the
-// given position. A position past the last symbol puts the dot at the end, a negative position omits it. The dot is a
-// bullet, so it cannot be mistaken for a terminal like '.'. An empty right hand side is written as (empty), so that a
-// production reads the same with and without a dot.
-func formatSymbols(grammar frontend.Grammar, production frontend.Production, dotPosition int) string {
-	var builder strings.Builder
-	builder.WriteString(grammar.Nonterminals[production.NonterminalIdx].String())
-	builder.WriteString(" ->")
-	if len(production.SymbolRefs) == 0 {
-		// An empty right hand side reduces on the empty string, which is easy to miss without a hint.
-		builder.WriteString(" (empty)")
-	}
-	for position, symbolRef := range production.SymbolRefs {
-		if position == dotPosition {
-			builder.WriteString(" " + itemDot)
-		}
-		builder.WriteString(" ")
-		if symbolRef.IsTerminal() {
-			builder.WriteString(grammar.Terminals[symbolRef.Idx()].String())
-		} else {
-			builder.WriteString(grammar.Nonterminals[symbolRef.Idx()].String())
-		}
-	}
-	if dotPosition == len(production.SymbolRefs) {
-		builder.WriteString(" " + itemDot)
-	}
-	return builder.String()
+	return "reduce: " + frontend.FormatProduction(grammar, contribution.ProductionIdx())
 }
