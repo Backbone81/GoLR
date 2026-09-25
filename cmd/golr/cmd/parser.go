@@ -66,6 +66,7 @@ var (
 	parserFailOnConflicts             bool
 	parserFailOnShiftReduceConflicts  bool
 	parserFailOnReduceReduceConflicts bool
+	parserFailOnWarnings              bool
 )
 
 var parserCmd = &cobra.Command{
@@ -87,7 +88,11 @@ var parserCmd = &cobra.Command{
 			WithStateNumbers: parserWithStateNumbers,
 		}
 
-		parser, conflicts, _, err := executeParserCore(grammar, parserCoreOptions()...)
+		parser, conflicts, warnings, err := executeParserCore(grammar, parserCoreOptions()...)
+		// The warnings come first, also when the core fails, so that none of them gets lost.
+		if err := writeWarnings(os.Stderr, warnings); err != nil {
+			return err
+		}
 		if err != nil {
 			return reportUnresolvedConflicts(err, conflicts, reportConfig)
 		}
@@ -115,12 +120,25 @@ func parserCoreOptions() []core.Option {
 	if parserFailOnReduceReduceConflicts {
 		options = append(options, core.FailOnReduceReduceConflicts())
 	}
+	if parserFailOnWarnings {
+		options = append(options, core.FailOnWarnings())
+	}
 	return options
 }
 
+// writeWarnings writes every warning on a line of its own.
+func writeWarnings(w io.Writer, warnings []utils.Warning) error {
+	for _, warning := range warnings {
+		if _, err := fmt.Fprintf(w, "warning: %s\n", warning.Error()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // reportUnresolvedConflicts writes the report of the unresolved conflicts the error holds to stderr, headed by the
-// counts of all conflicts, and returns an error which only counts the unresolved ones, so they are not printed a second
-// time. Any other error is returned unchanged.
+// counts of all conflicts. It returns the other errors of the error, followed by the count of the unresolved conflicts,
+// so they are not printed a second time. An error without unresolved conflicts is returned unchanged.
 func reportUnresolvedConflicts(err error, conflicts []conflict.Conflict, config conflict.ReportConfig) error {
 	unresolvedConflictErrors := conflict.UnresolvedConflictErrors(err)
 	if len(unresolvedConflictErrors) == 0 {
@@ -134,10 +152,28 @@ func reportUnresolvedConflicts(err error, conflicts []conflict.Conflict, config 
 	if _, err := io.WriteString(os.Stderr, "\n"); err != nil {
 		return err
 	}
+	countErr := fmt.Errorf("%d unresolved conflicts", len(unresolvedConflictErrors))
 	if len(unresolvedConflictErrors) == 1 {
-		return errors.New("1 unresolved conflict")
+		countErr = errors.New("1 unresolved conflict")
 	}
-	return fmt.Errorf("%d unresolved conflicts", len(unresolvedConflictErrors))
+	return errors.Join(append(otherErrors(err), countErr)...)
+}
+
+// otherErrors returns the errors of the error tree which are not an unresolved conflict, in the order they were
+// joined.
+func otherErrors(err error) []error {
+	//nolint:errorlint // errors.As stops at the first match, but every error of a join is needed. The recursion unwraps.
+	switch typedErr := err.(type) {
+	case conflict.UnresolvedConflictError:
+		return nil
+	case interface{ Unwrap() []error }:
+		var result []error
+		for _, wrappedErr := range typedErr.Unwrap() {
+			result = append(result, otherErrors(wrappedErr)...)
+		}
+		return result
+	}
+	return []error{err}
 }
 
 func executeParserFrontend() (frontend.Grammar, error) {
@@ -464,6 +500,12 @@ func init() {
 		"fail-on-rr-conflicts",
 		false,
 		"Fail if a reduce/reduce conflict is not resolved by precedence or associativity.",
+	)
+	parserCmd.PersistentFlags().BoolVar(
+		&parserFailOnWarnings,
+		"fail-on-warnings",
+		false,
+		"Fail if there are warnings.",
 	)
 
 	parserCmd.PersistentFlags().BoolVar(

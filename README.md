@@ -132,6 +132,7 @@ Flags:
       --fail-on-conflicts                          Fail if a shift/reduce or reduce/reduce conflict is not resolved by precedence or associativity.
       --fail-on-rr-conflicts                       Fail if a reduce/reduce conflict is not resolved by precedence or associativity.
       --fail-on-sr-conflicts                       Fail if a shift/reduce conflict is not resolved by precedence or associativity.
+      --fail-on-warnings                           Fail if there are warnings.
       --frontend string                            The frontend to use for reading the context free grammar. One of: bison, golr, json, yaml. (default "golr")
       --frontend-file-path string                  The file path to read the context free grammar from. Can be '-' to read from stdin.
   -h, --help                                       help for parser
