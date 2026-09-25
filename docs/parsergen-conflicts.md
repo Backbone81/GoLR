@@ -73,6 +73,39 @@ Error: 1 unresolved conflict
 
 A failing run does not list the resolved conflicts. Fix the unresolved ones first.
 
+## Productions which are never reduced
+
+Deciding a conflict can remove every reduction of a production. The parser then never reduces it, and the parser
+generator warns about it:
+
+```
+@parser {
+    expression
+        : variable
+        | function
+        ;
+
+    variable
+        : NAME
+        ;
+
+    function
+        : NAME
+        ;
+}
+```
+
+```text
+warning: production function -> NAME is never reduced after conflict resolution
+1 reduce/reduce conflict resolved
+```
+
+Earliest production decides the reduce/reduce conflict on `NAME` for `variable`, so `function` never matches. A
+precedence declaration can have the same effect when it decides every conflict of a production against it.
+
+The production stays in the grammar and in the generated parser. Only the production which lost its reductions is
+reported, not the productions which can no longer be reduced as a consequence, like one which contains `function`.
+
 ## Keeping conflicts under control
 
 Depending on how restrictive you want to deal with conflicts in your grammar, choose one of the following approaches:
@@ -80,6 +113,8 @@ Depending on how restrictive you want to deal with conflicts in your grammar, ch
 - A grammar which should have no conflicts beyond those decided by precedence builds with `--fail-on-conflicts`.
 - A grammar which relies on shift over reduce, like the dangling `else`, but should never have a reduce/reduce conflict
   builds with `--fail-on-rr-conflicts`.
+- A grammar which should not lose any production to conflict resolution builds with `--fail-on-warnings`, which also
+  fails on the other [warnings](parsergen-grammar-checks.md#warnings).
 - To track the accepted conflicts themselves, check the output of `--verbose` into source control and diff it in CI.
   The report is stable across grammar changes which do not touch the conflicts, so a diff shows exactly which conflict
   was added or removed.

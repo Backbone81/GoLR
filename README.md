@@ -243,7 +243,8 @@ The parser generator constructs an LR(1) parser from a context free grammar. Ple
 [limitations](docs/limitations.md).
 
 See [conflicts](docs/parsergen-conflicts.md) for how conflicts are decided, how they are reported, and how to make a
-build fail on them.
+build fail on them. See [grammar checks](docs/parsergen-grammar-checks.md) for the errors and warnings about
+nonterminals which cannot be used.
 
 ### Parser Generator Frontends
 

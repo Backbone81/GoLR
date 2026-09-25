@@ -350,3 +350,6 @@ The production the generator adds around the grammar's own start symbol has no n
 - Cyclic fragment references (where a fragment directly or indirectly references itself) are not allowed.
 - The grammar must contain at least one production rule.
 - `@name` values must be unique across all production rules.
+
+The parser generator checks every grammar for nonterminals which cannot be used, see
+[grammar checks](parsergen-grammar-checks.md).

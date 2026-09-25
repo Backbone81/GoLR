@@ -1,0 +1,2 @@
+description: 'BREAKING: GrammarToParser of every core and Grammar.Validate now return
+  a slice of warnings.'
