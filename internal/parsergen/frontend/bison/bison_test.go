@@ -1675,6 +1675,11 @@ var _ = Describe("Bison Grammar Files", func() {
 				Expect(grammar.Terminals).To(HaveLen(wellKnownGrammar.Terminals))
 				Expect(grammar.Nonterminals).To(HaveLen(wellKnownGrammar.Nonterminals))
 				Expect(grammar.Productions).To(HaveLen(wellKnownGrammar.Productions))
+
+				warnings, err := grammar.Validate()
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(warnings).To(BeEmpty())
 			})
 		}
 	})

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/backbone81/golr/internal/utils"
 )
 
 // Grammar is a context free grammar.
@@ -22,33 +24,40 @@ type Grammar struct {
 	StartNonterminalIdx int `json:"startNonterminalIdx" yaml:"startNonterminalIdx"`
 }
 
-// Validate checks if the grammar is correct. If the validation fails, an error with the details about the failure is
-// returned.
-func (g Grammar) Validate() error {
+// Validate checks if the grammar is correct. It returns an error when the grammar cannot be built: indices out of
+// bounds, duplicate production names, or nonterminals which do not derive any finite string. It returns a warning for
+// every nonterminal which is unreachable from the start nonterminal. The warnings are returned even when there is an
+// error, unless indices are out of bounds or production names are duplicated. Errors and warnings are in nonterminal
+// index order.
+func (g Grammar) Validate() ([]utils.Warning, error) {
 	// we expect the start nonterminal to reference an existing nonterminal
 	if g.StartNonterminalIdx < 0 || len(g.Nonterminals) <= g.StartNonterminalIdx {
-		return errors.New("start nonterminal index out of bounds")
+		return nil, errors.New("start nonterminal index out of bounds")
 	}
 
 	// we expect to have at least one production
 	if len(g.Productions) < 1 {
-		return errors.New("at least one production is required for a valid grammar")
+		return nil, errors.New("at least one production is required for a valid grammar")
 	}
 	for i, production := range g.Productions {
 		// we expect the left hand side to reference an existing nonterminal
 		if production.NonterminalIdx < 0 || len(g.Nonterminals) <= production.NonterminalIdx {
-			return fmt.Errorf("nonterminal index out of bounds on the left hand side on production #%d", i)
+			return nil, fmt.Errorf("nonterminal index out of bounds on the left hand side on production #%d", i)
 		}
 		for j, symbolRef := range production.SymbolRefs {
 			if symbolRef.IsTerminal() {
 				// we expect the right hand side to reference existing terminals
 				if len(g.Terminals) <= symbolRef.Idx() {
-					return fmt.Errorf("terminal index out of bounds on the right hand side for symbol #%d on production #%d", j, i)
+					return nil, fmt.Errorf(
+						"terminal index out of bounds on the right hand side for symbol #%d on production #%d", j, i,
+					)
 				}
 			} else {
 				// we expect the right hand side to reference existing nonterminals
 				if len(g.Nonterminals) <= symbolRef.Idx() {
-					return fmt.Errorf("nonterminal index out of bounds on the right hand side for symbol #%d on production #%d", j, i)
+					return nil, fmt.Errorf(
+						"nonterminal index out of bounds on the right hand side for symbol #%d on production #%d", j, i,
+					)
 				}
 			}
 		}
@@ -61,7 +70,7 @@ func (g Grammar) Validate() error {
 			continue
 		}
 		if previousIdx, exists := productionIdxByName[*production.Name]; exists {
-			return fmt.Errorf(
+			return nil, fmt.Errorf(
 				"duplicate production name %q on production #%d (%s) and production #%d (%s)",
 				*production.Name,
 				previousIdx, formatProduction(g, previousIdx),
@@ -70,7 +79,7 @@ func (g Grammar) Validate() error {
 		}
 		productionIdxByName[*production.Name] = i
 	}
-	return nil
+	return checkUsefulness(g)
 }
 
 // formatProduction renders the production at the given index in the readable "LHS -> a B c" form, resolving every

@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"math/rand"
@@ -240,7 +241,15 @@ func (g *GrammarGenerator) Generate() frontend.Grammar {
 
 	g.run()
 
-	utils.DebugAssert(g.grammar.Validate)
+	// The generated grammars are reachable and productive, so a warning is an assertion failure as well.
+	utils.DebugAssert(func() error {
+		warnings, err := g.grammar.Validate()
+		errs := []error{err} //nolint:prealloc
+		for _, warning := range warnings {
+			errs = append(errs, warning)
+		}
+		return errors.Join(errs...)
+	})
 	return g.grammar
 }
 

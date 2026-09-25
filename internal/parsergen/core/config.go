@@ -17,6 +17,9 @@ type Config struct {
 
 	// FailOnReduceReduceConflicts leaves a reduce/reduce conflict unresolved.
 	FailOnReduceReduceConflicts bool
+
+	// FailOnWarnings joins the warnings into the error.
+	FailOnWarnings bool
 }
 
 // DefaultConfig provides the standard configuration which can be modified by options.
@@ -67,6 +70,14 @@ func FailOnConflicts() Option {
 	return func(options *Config) {
 		options.FailOnShiftReduceConflicts = true
 		options.FailOnReduceReduceConflicts = true
+	}
+}
+
+// FailOnWarnings makes GrammarToParser fail if there are warnings. The warnings are joined into the error instead of
+// being returned on their own.
+func FailOnWarnings() Option {
+	return func(options *Config) {
+		options.FailOnWarnings = true
 	}
 }
 

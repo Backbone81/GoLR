@@ -167,8 +167,9 @@ var _ = Describe("Grammar", func() {
 				StartNonterminalIdx: 0,
 			}
 
-			err := grammar.Validate()
+			warnings, err := grammar.Validate()
 
+			Expect(warnings).To(BeEmpty())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring(`"dup"`))
 			// The message spells both colliding productions out so the author can find them.
@@ -200,7 +201,407 @@ var _ = Describe("Grammar", func() {
 				StartNonterminalIdx: 0,
 			}
 
-			Expect(grammar.Validate()).To(Succeed())
+			Expect(grammar.Validate()).Error().To(Succeed())
+		})
+	})
+
+	Context("Validate usefulness", func() {
+		// s: x | s A x; x: B;
+		It("should accept a grammar where every nonterminal is productive and reachable", func() {
+			grammar := frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{Name: "A"},
+					{Name: "B"},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+					{Name: "x"},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs:     []frontend.SymbolRef{frontend.NewNonterminalRef(1)},
+					},
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(0),
+							frontend.NewTerminalRef(0),
+							frontend.NewNonterminalRef(1),
+						},
+					},
+					{
+						NonterminalIdx: 1,
+						SymbolRefs:     []frontend.SymbolRef{frontend.NewTerminalRef(1)},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}
+
+			warnings, err := grammar.Validate()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(warnings).To(BeEmpty())
+		})
+
+		DescribeTable("should reject unproductive nonterminals",
+			func(grammar frontend.Grammar, expectedMessage string) {
+				warnings, err := grammar.Validate()
+
+				Expect(err).To(MatchError(expectedMessage))
+				Expect(warnings).To(BeEmpty())
+			},
+			// s: A | x; x: x B;
+			Entry("left recursion without a base case",
+				frontend.Grammar{
+					Terminals: []frontend.Symbol{
+						{Name: "A"},
+						{Name: "B"},
+					},
+					Nonterminals: []frontend.Symbol{
+						{Name: "s"},
+						{Name: "x"},
+					},
+					Productions: []frontend.Production{
+						{
+							NonterminalIdx: 0,
+							SymbolRefs:     []frontend.SymbolRef{frontend.NewTerminalRef(0)},
+						},
+						{
+							NonterminalIdx: 0,
+							SymbolRefs:     []frontend.SymbolRef{frontend.NewNonterminalRef(1)},
+						},
+						{
+							NonterminalIdx: 1,
+							SymbolRefs: []frontend.SymbolRef{
+								frontend.NewNonterminalRef(1),
+								frontend.NewTerminalRef(1),
+							},
+						},
+					},
+					StartNonterminalIdx: 0,
+				},
+				`nonterminal "x" does not derive any finite string`,
+			),
+			// s: A | x; x: B x;
+			Entry("right recursion without a base case",
+				frontend.Grammar{
+					Terminals: []frontend.Symbol{
+						{Name: "A"},
+						{Name: "B"},
+					},
+					Nonterminals: []frontend.Symbol{
+						{Name: "s"},
+						{Name: "x"},
+					},
+					Productions: []frontend.Production{
+						{
+							NonterminalIdx: 0,
+							SymbolRefs:     []frontend.SymbolRef{frontend.NewTerminalRef(0)},
+						},
+						{
+							NonterminalIdx: 0,
+							SymbolRefs:     []frontend.SymbolRef{frontend.NewNonterminalRef(1)},
+						},
+						{
+							NonterminalIdx: 1,
+							SymbolRefs: []frontend.SymbolRef{
+								frontend.NewTerminalRef(1),
+								frontend.NewNonterminalRef(1),
+							},
+						},
+					},
+					StartNonterminalIdx: 0,
+				},
+				`nonterminal "x" does not derive any finite string`,
+			),
+			// s: A | x; x: A y; y: x B;
+			Entry("mutual recursion without a base case",
+				frontend.Grammar{
+					Terminals: []frontend.Symbol{
+						{Name: "A"},
+						{Name: "B"},
+					},
+					Nonterminals: []frontend.Symbol{
+						{Name: "s"},
+						{Name: "x"},
+						{Name: "y"},
+					},
+					Productions: []frontend.Production{
+						{
+							NonterminalIdx: 0,
+							SymbolRefs:     []frontend.SymbolRef{frontend.NewTerminalRef(0)},
+						},
+						{
+							NonterminalIdx: 0,
+							SymbolRefs:     []frontend.SymbolRef{frontend.NewNonterminalRef(1)},
+						},
+						{
+							NonterminalIdx: 1,
+							SymbolRefs: []frontend.SymbolRef{
+								frontend.NewTerminalRef(0),
+								frontend.NewNonterminalRef(2),
+							},
+						},
+						{
+							NonterminalIdx: 2,
+							SymbolRefs: []frontend.SymbolRef{
+								frontend.NewNonterminalRef(1),
+								frontend.NewTerminalRef(1),
+							},
+						},
+					},
+					StartNonterminalIdx: 0,
+				},
+				"nonterminal \"x\" does not derive any finite string\n"+
+					`nonterminal "y" does not derive any finite string`,
+			),
+			// s: A | undef;
+			Entry("a nonterminal without productions",
+				frontend.Grammar{
+					Terminals: []frontend.Symbol{
+						{Name: "A"},
+					},
+					Nonterminals: []frontend.Symbol{
+						{Name: "s"},
+						{Name: "undef"},
+					},
+					Productions: []frontend.Production{
+						{
+							NonterminalIdx: 0,
+							SymbolRefs:     []frontend.SymbolRef{frontend.NewTerminalRef(0)},
+						},
+						{
+							NonterminalIdx: 0,
+							SymbolRefs:     []frontend.SymbolRef{frontend.NewNonterminalRef(1)},
+						},
+					},
+					StartNonterminalIdx: 0,
+				},
+				`nonterminal "undef" has no productions`,
+			),
+			// s: s A;
+			Entry("an unproductive start nonterminal",
+				frontend.Grammar{
+					Terminals: []frontend.Symbol{
+						{Name: "A"},
+					},
+					Nonterminals: []frontend.Symbol{
+						{Name: "s"},
+					},
+					Productions: []frontend.Production{
+						{
+							NonterminalIdx: 0,
+							SymbolRefs: []frontend.SymbolRef{
+								frontend.NewNonterminalRef(0),
+								frontend.NewTerminalRef(0),
+							},
+						},
+					},
+					StartNonterminalIdx: 0,
+				},
+				`start nonterminal "s" does not derive any finite string`,
+			),
+		)
+
+		// s: x A; x: <empty> | x A;
+		It("should accept a nonterminal which is productive through an empty right hand side", func() {
+			grammar := frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{Name: "A"},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+					{Name: "x"},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(1),
+							frontend.NewTerminalRef(0),
+						},
+					},
+					{
+						NonterminalIdx: 1,
+					},
+					{
+						NonterminalIdx: 1,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(1),
+							frontend.NewTerminalRef(0),
+						},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}
+
+			warnings, err := grammar.Validate()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(warnings).To(BeEmpty())
+		})
+
+		// s: A | x; x: $error;
+		It("should accept a nonterminal which is productive through the error symbol", func() {
+			grammar := frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{Name: "A"},
+					frontend.SymbolError,
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+					{Name: "x"},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs:     []frontend.SymbolRef{frontend.NewTerminalRef(0)},
+					},
+					{
+						NonterminalIdx: 0,
+						SymbolRefs:     []frontend.SymbolRef{frontend.NewNonterminalRef(1)},
+					},
+					{
+						NonterminalIdx: 1,
+						SymbolRefs:     []frontend.SymbolRef{frontend.NewTerminalRef(1)},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}
+
+			warnings, err := grammar.Validate()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(warnings).To(BeEmpty())
+		})
+
+		// s: A; orphan: B;
+		It("should warn about an unreachable nonterminal", func() {
+			grammar := frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{Name: "A"},
+					{Name: "B"},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+					{Name: "orphan"},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs:     []frontend.SymbolRef{frontend.NewTerminalRef(0)},
+					},
+					{
+						NonterminalIdx: 1,
+						SymbolRefs:     []frontend.SymbolRef{frontend.NewTerminalRef(1)},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}
+
+			warnings, err := grammar.Validate()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(warnings).To(HaveExactElements(
+				MatchError(`nonterminal "orphan" is unreachable from the start nonterminal "s"`),
+			))
+		})
+
+		// s: A; x: y B | A; y: x A | B;
+		It("should warn about every nonterminal of an unreachable cluster", func() {
+			grammar := frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{Name: "A"},
+					{Name: "B"},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+					{Name: "x"},
+					{Name: "y"},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs:     []frontend.SymbolRef{frontend.NewTerminalRef(0)},
+					},
+					{
+						NonterminalIdx: 1,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(2),
+							frontend.NewTerminalRef(1),
+						},
+					},
+					{
+						NonterminalIdx: 1,
+						SymbolRefs:     []frontend.SymbolRef{frontend.NewTerminalRef(0)},
+					},
+					{
+						NonterminalIdx: 2,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(1),
+							frontend.NewTerminalRef(0),
+						},
+					},
+					{
+						NonterminalIdx: 2,
+						SymbolRefs:     []frontend.SymbolRef{frontend.NewTerminalRef(1)},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}
+
+			warnings, err := grammar.Validate()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(warnings).To(HaveExactElements(
+				MatchError(`nonterminal "x" is unreachable from the start nonterminal "s"`),
+				MatchError(`nonterminal "y" is unreachable from the start nonterminal "s"`),
+			))
+		})
+
+		// s: A | loop; loop: loop B; orphan: B;
+		It("should return the warnings together with the error", func() {
+			grammar := frontend.Grammar{
+				Terminals: []frontend.Symbol{
+					{Name: "A"},
+					{Name: "B"},
+				},
+				Nonterminals: []frontend.Symbol{
+					{Name: "s"},
+					{Name: "loop"},
+					{Name: "orphan"},
+				},
+				Productions: []frontend.Production{
+					{
+						NonterminalIdx: 0,
+						SymbolRefs:     []frontend.SymbolRef{frontend.NewTerminalRef(0)},
+					},
+					{
+						NonterminalIdx: 0,
+						SymbolRefs:     []frontend.SymbolRef{frontend.NewNonterminalRef(1)},
+					},
+					{
+						NonterminalIdx: 1,
+						SymbolRefs: []frontend.SymbolRef{
+							frontend.NewNonterminalRef(1),
+							frontend.NewTerminalRef(1),
+						},
+					},
+					{
+						NonterminalIdx: 2,
+						SymbolRefs:     []frontend.SymbolRef{frontend.NewTerminalRef(1)},
+					},
+				},
+				StartNonterminalIdx: 0,
+			}
+
+			warnings, err := grammar.Validate()
+
+			Expect(err).To(MatchError(`nonterminal "loop" does not derive any finite string`))
+			Expect(warnings).To(HaveExactElements(
+				MatchError(`nonterminal "orphan" is unreachable from the start nonterminal "s"`),
+			))
 		})
 	})
 })

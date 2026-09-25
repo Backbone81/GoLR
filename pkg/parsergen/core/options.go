@@ -19,4 +19,8 @@ var (
 	// FailOnReduceReduceConflicts makes GrammarToParser fail if a reduce/reduce conflict is not resolved by precedence
 	// or associativity.
 	FailOnReduceReduceConflicts = intcore.FailOnReduceReduceConflicts
+
+	// FailOnWarnings makes GrammarToParser fail if there are warnings. The warnings are joined into the error instead
+	// of being returned on their own.
+	FailOnWarnings = intcore.FailOnWarnings
 )
