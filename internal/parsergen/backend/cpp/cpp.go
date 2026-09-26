@@ -21,9 +21,11 @@ import (
 var parserTemplate string
 
 var parsedTemplate = template.Must(template.New("parser.hpp.template").Funcs(template.FuncMap{
+	"terminalName":        terminalName,
 	"nonterminalName":     nonterminalName,
 	"isAcceptNonterminal": isAcceptNonterminal,
 	"productionName":      productionName,
+	"stringLiteral":       utils.CStringLiteral,
 }).Parse(parserTemplate))
 
 // DefaultScannerInclude is the header the generated parser includes the token type from when the caller names none. It

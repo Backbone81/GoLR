@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -194,6 +195,7 @@ public:
         node_stack_.clear();
         errors_.clear();
         error_recovery_shifts_remaining_ = 0;
+        exploratory_parse_passed_ = false;
 
         // A source with no tokens at all reports false right away. That is not an error: the token is the end of input
         // either way, and whether a parse of nothing but that is legal is for the table to decide.
@@ -247,6 +249,10 @@ private:
     /// it.
     static constexpr std::size_t ERROR_RECOVERY_SHIFTS = 3;
 
+    /// The largest number of expected tokens a syntax error lists. With more of them, the list is left out, because it
+    /// would not help the reader any more.
+    static constexpr std::size_t EXPECTED_TOKENS_MAX = 4;
+
     // The parse table is held in lookup tables. A token is translated into the column of the action table which holds
     // the decisions for it, and the rows of that table are displaced into a single array so that the entries of one
     // row fall into the holes of another. This is the row displacement method of "Storing a Sparse Table" by Tarjan
@@ -284,6 +290,14 @@ private:
     /// The column holding the shifts of the error symbol, where the recovery reads the state to resume in.
     static constexpr std::size_t ERROR_TERMINAL_COLUMN = {{ .Tables.ErrorTerminalColumn }};
 
+    /// Translates a column of the action table back into the token of its terminal. NO_TERMINAL_COLUMN stands for no
+    /// token and holds Token{}.
+    static constexpr Token TOKEN_BY_TERMINAL_COLUMN[] = {
+{{- range .Tables.TokenByTerminalColumn }}
+        {{ if . }}Token::{{ . }}{{ else }}Token{}{{ end }},
+{{- end }}
+    };
+
     /// Maps a state to the displacement of its row within ACTION_NEXT.
     static constexpr {{ .Tables.ActionBase.Type }} ACTION_BASE[] = {
     {{- .Tables.ActionBase.Literal "        " }}    };
@@ -302,6 +316,11 @@ private:
     /// the error action.
     static constexpr {{ .Tables.DefaultActionByState.Type }} DEFAULT_ACTION_BY_STATE[] = {
     {{- .Tables.DefaultActionByState.Literal "        " }}    };
+
+    /// Holds 1 for a state which reduces by the same production whatever the lookahead is, and 0 otherwise. A
+    /// consistent state needs no lookahead, so it never starts an exploratory parse.
+    static constexpr {{ .Tables.ConsistentByState.Type }} CONSISTENT_BY_STATE[] = {
+    {{- .Tables.ConsistentByState.Literal "        " }}    };
 
     /// Maps a state to the displacement of its row within GOTO_NEXT.
     static constexpr {{ .Tables.GotoBase.Type }} GOTO_BASE[] = {
@@ -338,14 +357,7 @@ private:
         const std::size_t column = terminal_column(terminal);
 
         const std::size_t state = current_state();
-        const std::size_t cell_idx = ACTION_BASE[state] + column;
-        const std::size_t cell_column = ACTION_CHECK[cell_idx];
-        std::size_t action = DEFAULT_ACTION_BY_STATE[state];
-        if (cell_column == column) {
-            // An entry the state has of its own beats its default action, which is what keeps a token the grammar
-            // rejects on purpose an error even in a state which reduces on everything else.
-            action = ACTION_NEXT[cell_idx];
-        }
+        const std::size_t action = action_of(state, column);
 
         switch (action & ACTION_KIND_MASK) {
         case ACTION_KIND_SHIFT:
@@ -360,12 +372,21 @@ private:
             node_stack_.push_back(
                 ParseNode{terminal, scanner.byte_offset(), scanner.byte_length(), {}, std::nullopt});
             scanner.next();
+            exploratory_parse_passed_ = false;
             if (error_recovery_shifts_remaining_ > 0) {
                 // Getting tokens of the input shifted again is what makes the parser trust its position.
                 error_recovery_shifts_remaining_--;
             }
             return StepContinue{};
         case ACTION_KIND_REDUCE:
+            if (!exploratory_parse_passed_ && CONSISTENT_BY_STATE[state] == 0) {
+                // The state reduces because of the lookahead, which might be one it only accepts because states were
+                // merged or a default reduction was chosen. Reducing on it would leave the state the error belongs to.
+                if (!exploratory_parse(column)) {
+                    return raise_syntax_error(scanner, terminal);
+                }
+                exploratory_parse_passed_ = true;
+            }
             reduce(scanner, action >> ACTION_KIND_BITS);
             return StepContinue{};
         case ACTION_KIND_ACCEPT:
@@ -374,13 +395,7 @@ private:
             }
             return StepAccept{};
         case ACTION_KIND_ERROR:
-            if (trace_) {
-                emit_error_trace(scanner, std::string("unexpected token ").append(terminal_trace_name(terminal)));
-            }
-            return ParseError(
-                std::string("unexpected token ").append(to_string(terminal)),
-                ErrorKind::Syntax,
-                scanner);
+            return raise_syntax_error(scanner, terminal);
         default:
             // Every value the mask selects has a case of its own, so this is never reached. It is here to make the
             // switch complete.
@@ -411,16 +426,7 @@ private:
 
         state_stack_.resize(state_stack_.size() - pop_count);
 
-        const std::size_t state = current_state();
-        // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
-        // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
-        std::size_t goto_state = DEFAULT_GOTO_BY_NONTERMINAL[nonterminal];
-        const std::size_t cell_idx = GOTO_BASE[state] + nonterminal;
-        const std::size_t cell_nonterminal = GOTO_CHECK[cell_idx];
-        if (cell_nonterminal == nonterminal) {
-            goto_state = GOTO_NEXT[cell_idx];
-        }
-        state_stack_.push_back(goto_state);
+        state_stack_.push_back(goto_state(current_state(), nonterminal));
 
         // The node starts where its first child starts and ends where its last child ends.
         std::size_t byte_offset = 0;
@@ -450,6 +456,97 @@ private:
             std::move(children),
             static_cast<Production>(production_idx),
         });
+    }
+
+    /// Reports whether the parse from the current stack shifts the terminal of the given column eventually, instead of
+    /// running into an error. It performs the reductions the terminal leads to on the states alone and without
+    /// building nodes, so the stacks of the parse are still intact when the terminal turns out to be an error.
+    ///
+    /// This is the lookahead correction of section 3.5.2 "Parser" of "PSLR(1): Pseudo-Scannerless Minimal LR(1) for
+    /// the Deterministic Parsing of Composite Languages" by Joel E. Denny. It deviates from the paper in two ways. The
+    /// paper runs an exploratory parse as soon as a lookahead arrives, step runs it only before the first reduction the
+    /// lookahead decides in a state which is not consistent, because a shift or an error action needs no exploring.
+    /// And the paper explores on a copy of the stack, while this reads the stack in place, see exploratory_pop.
+    [[nodiscard]] bool exploratory_parse(std::size_t column) {
+        exploratory_stack_.clear();
+        exploratory_stack_base_ = state_stack_.size();
+        while (true) {
+            const std::size_t action = action_of(exploratory_top(), column);
+            switch (action & ACTION_KIND_MASK) {
+            case ACTION_KIND_REDUCE: {
+                const std::size_t production_idx = action >> ACTION_KIND_BITS;
+                exploratory_pop(POP_COUNT_BY_PRODUCTION[production_idx]);
+                exploratory_push(goto_state(exploratory_top(), NONTERMINAL_BY_PRODUCTION[production_idx]));
+                break;
+            }
+            case ACTION_KIND_SHIFT:
+            case ACTION_KIND_ACCEPT:
+                return true;
+            default:
+                return false;
+            }
+        }
+    }
+
+    /// Returns the state on top of the stack of the exploratory parse.
+    [[nodiscard]] std::size_t exploratory_top() const noexcept {
+        if (!exploratory_stack_.empty()) {
+            return exploratory_stack_.back();
+        }
+        return state_stack_[exploratory_stack_base_ - 1];
+    }
+
+    /// Takes the given number of states off the stack of the exploratory parse. The states it pushed itself go first.
+    /// Below them, it lowers the base index into state_stack_ instead of popping, so the stack of the parse is never
+    /// written and needs no copy.
+    void exploratory_pop(std::size_t count) {
+        const std::size_t pushed_count = std::min(count, exploratory_stack_.size());
+        exploratory_stack_.resize(exploratory_stack_.size() - pushed_count);
+        exploratory_stack_base_ -= count - pushed_count;
+    }
+
+    /// Puts the given state on top of the stack of the exploratory parse.
+    void exploratory_push(std::size_t state) { exploratory_stack_.push_back(state); }
+
+    /// Returns the tokens which the parse from the current stack would shift eventually, in the order of their
+    /// columns. It runs an exploratory parse per terminal of the grammar and leaves out the error symbol, which no
+    /// scanner delivers. More than EXPECTED_TOKENS_MAX of them are not returned at all.
+    [[nodiscard]] std::vector<Token> expected_tokens() {
+        std::vector<Token> result;
+        for (std::size_t column = 0; column < std::size(TOKEN_BY_TERMINAL_COLUMN); ++column) {
+            if (column == NO_TERMINAL_COLUMN || column == ERROR_TERMINAL_COLUMN || !exploratory_parse(column)) {
+                continue;
+            }
+            if (result.size() == EXPECTED_TOKENS_MAX) {
+                return {};
+            }
+            result.push_back(TOKEN_BY_TERMINAL_COLUMN[column]);
+        }
+        return result;
+    }
+
+    /// Returns the error for the given token being unexpected on the current stack, listing the tokens which would
+    /// have been expected instead.
+    template <typename ScannerT>
+    ParseError raise_syntax_error(const ScannerT& scanner, Token terminal) {
+        std::string message = unexpected_token_message(terminal, expected_tokens());
+        if (trace_) {
+            emit_error_trace(scanner, message);
+        }
+        return ParseError(std::move(message), ErrorKind::Syntax, scanner);
+    }
+
+    /// Describes the given token as unexpected in place of the expected ones, naming each token by its alias.
+    [[nodiscard]] static std::string unexpected_token_message(Token terminal, const std::vector<Token>& expected) {
+        std::string message = std::string("unexpected ").append(terminal_name(terminal));
+        for (std::size_t i = 0; i < expected.size(); ++i) {
+            if (i == 0) {
+                message.append(", expecting ").append(terminal_name(expected[i]));
+            } else {
+                message.append(" or ").append(terminal_name(expected[i]));
+            }
+        }
+        return message;
     }
 
     /// Puts the parser back where it can carry on with the remaining input after a syntax error. Once it reports
@@ -493,6 +590,7 @@ private:
             // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
             dropped_length = scanner.byte_length();
             scanner.next();
+            exploratory_parse_passed_ = false;
         }
         error_recovery_shifts_remaining_ = ERROR_RECOVERY_SHIFTS;
 
@@ -510,6 +608,7 @@ private:
                 }
                 // Shift the error symbol. Its node covers what this round dropped.
                 state_stack_.push_back(*next_state);
+                exploratory_parse_passed_ = false;
                 node_stack_.push_back(ParseNode{Token::ErrorToken, dropped_offset, dropped_length, {}, std::nullopt});
                 return true;
             }
@@ -547,6 +646,28 @@ private:
         default:
             return NO_TERMINAL_COLUMN;
         }
+    }
+
+    /// Returns the action the given state takes for the terminal of the given column.
+    [[nodiscard]] static constexpr std::size_t action_of(std::size_t state, std::size_t column) noexcept {
+        const std::size_t cell_idx = ACTION_BASE[state] + column;
+        if (ACTION_CHECK[cell_idx] == column) {
+            // An entry the state has of its own beats its default action, which is what keeps a token the grammar
+            // rejects on purpose an error even in a state which reduces on everything else.
+            return ACTION_NEXT[cell_idx];
+        }
+        return DEFAULT_ACTION_BY_STATE[state];
+    }
+
+    /// Returns the state the parse continues in when it reduced to the given nonterminal and uncovered the given state.
+    [[nodiscard]] static constexpr std::size_t goto_state(std::size_t state, std::size_t nonterminal) noexcept {
+        const std::size_t cell_idx = GOTO_BASE[state] + nonterminal;
+        if (GOTO_CHECK[cell_idx] == nonterminal) {
+            return GOTO_NEXT[cell_idx];
+        }
+        // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
+        // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
+        return DEFAULT_GOTO_BY_NONTERMINAL[nonterminal];
     }
 
     /// Returns the state to continue in when the error symbol is shifted in the given state, or no value when the
@@ -621,6 +742,22 @@ private:
         return std::string(to_string(std::get<Nonterminal>(symbol)));
     }
 
+    /// Names a terminal by the alias the grammar gives it, or by its name if it has none.
+    [[nodiscard]] static constexpr std::string_view terminal_name(Token token) noexcept {
+        switch (token) {
+        case Token::EndToken:
+            return "end of input";
+        case Token::InvalidToken:
+            return "invalid input";
+{{- range .Parser.Grammar.Terminals }}{{ if .Alias }}
+        case Token::{{ terminalName . }}:
+            return {{ stringLiteral .Alias }};
+{{- end }}{{ end }}
+        default:
+            return to_string(token);
+        }
+    }
+
     /// Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name.
     [[nodiscard]] static constexpr std::string_view terminal_trace_name(Token token) noexcept {
         switch (token) {
@@ -686,6 +823,15 @@ private:
     /// Counts down the tokens which still have to be shifted before syntax errors are reported again. Zero while the
     /// parser is in sync with the input.
     std::size_t error_recovery_shifts_remaining_ = 0;
+
+    /// Whether an exploratory parse found the current lookahead to be shifted eventually, so the reductions leading
+    /// there need no further check. Cleared on every shift and on every token discarded.
+    bool exploratory_parse_passed_ = false;
+
+    /// The states an exploratory parse pushes. The states below them are the ones of state_stack_ below
+    /// exploratory_stack_base_, which the exploratory parse reads but never writes.
+    std::vector<std::size_t> exploratory_stack_;
+    std::size_t exploratory_stack_base_ = 0;
 };
 
 }  // namespace {{ .Config.Namespace }}
