@@ -27,4 +27,27 @@ var _ = Describe("Python", func() {
 			Expect(utils.NewPythonIntArray([]int{0, 1, 300}).Values).To(Equal([]int{0, 1, 300}))
 		})
 	})
+
+	Context("PythonStringLiteral", func() {
+		It("should quote a string which needs no escaping", func() {
+			Expect(utils.PythonStringLiteral("end of input")).To(Equal(`"end of input"`))
+			Expect(utils.PythonStringLiteral("")).To(Equal(`""`))
+		})
+
+		It("should escape the quote and the backslash", func() {
+			Expect(utils.PythonStringLiteral(`";"`)).To(Equal(`"\";\""`))
+			Expect(utils.PythonStringLiteral(`\`)).To(Equal(`"\\"`))
+		})
+
+		It("should escape control characters", func() {
+			Expect(utils.PythonStringLiteral("a\nb\tc\r")).To(Equal(`"a\nb\tc\r"`))
+			// A \x escape takes exactly two digits, so the hex digit after it stays a character of its own.
+			Expect(utils.PythonStringLiteral("\x00a")).To(Equal(`"\x00a"`))
+			Expect(utils.PythonStringLiteral("\x7f")).To(Equal(`"\x7f"`))
+		})
+
+		It("should keep UTF-8 as it is", func() {
+			Expect(utils.PythonStringLiteral("größer")).To(Equal(`"größer"`))
+		})
+	})
 })

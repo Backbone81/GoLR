@@ -21,9 +21,11 @@ import (
 var parserTemplate string
 
 var parsedTemplate = template.Must(template.New("parser.py.template").Funcs(template.FuncMap{
+	"terminalName":        terminalName,
 	"nonterminalName":     nonterminalName,
 	"isAcceptNonterminal": isAcceptNonterminal,
 	"productionName":      productionName,
+	"stringLiteral":       utils.PythonStringLiteral,
 }).Parse(parserTemplate))
 
 // DefaultScannerModule is the module the generated parser imports the token constants from when the caller names none.

@@ -265,6 +265,12 @@ Suppressing the errors in between keeps one mistake in the input from producing 
 follow from it.
 """
 
+_EXPECTED_TOKENS_MAX: Final = 4
+"""The largest number of expected tokens a syntax error lists.
+
+With more of them, the list is left out, because it would not help the reader any more.
+"""
+
 
 # The parse table is held in lookup tables. A token is translated into the column of the action table which holds the
 # decisions for it, and the rows of that table are displaced into a single array so that the entries of one row fall
@@ -321,6 +327,24 @@ _TERMINAL_COLUMN_BY_TOKEN: Final[dict[Token, int]] = {
 A token the grammar does not have is not in here.
 """
 
+_TOKEN_BY_TERMINAL_COLUMN: Final[tuple[Token, ...]] = (
+    Token.INVALID_TOKEN,
+    Token.END_TOKEN,
+    Token.TOKEN_WHITESPACE,
+    Token.TOKEN_INTEGER,
+    Token.TOKEN_PLUS,
+    Token.TOKEN_MINUS,
+    Token.TOKEN_MULTIPLY,
+    Token.TOKEN_DIVIDE,
+    Token.TOKEN_LPAREN,
+    Token.TOKEN_RPAREN,
+    Token.TOKEN_UMINUS,
+)
+"""Translates a column of the action table back into the token of its terminal.
+
+The `_NO_TERMINAL_COLUMN` stands for no token and holds `Token.INVALID_TOKEN`.
+"""
+
 _ACTION_BASE: Final[tuple[int, ...]] = (
     9, 1, 9, 9, 0, 1, 4, 1, 9, 9, 9, 9, 1, 12, 12, 1,
     1,
@@ -354,6 +378,15 @@ _DEFAULT_ACTION_BY_STATE: Final[tuple[int, ...]] = (
 """Holds the action a state takes for every column it has no entry of its own for.
 
 A state which has none carries the error action.
+"""
+
+_CONSISTENT_BY_STATE: Final[tuple[int, ...]] = (
+    0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1,
+    1,
+)
+"""Holds 1 for a state which reduces by the same production whatever the lookahead is, and 0 otherwise.
+
+A consistent state needs no lookahead, so it never starts an exploratory parse.
 """
 
 _GOTO_BASE: Final[tuple[int, ...]] = (
@@ -409,6 +442,9 @@ class Parser:
         "_node_stack",
         "_errors",
         "_error_recovery_shifts_remaining",
+        "_exploratory_parse_passed",
+        "_exploratory_stack",
+        "_exploratory_stack_base",
     )
 
     trace: TraceFunc | None
@@ -429,12 +465,31 @@ class Parser:
     Zero while the parser is in sync with the input.
     """
 
+    _exploratory_parse_passed: bool
+    """Whether an exploratory parse found the current lookahead to be shifted eventually, so the reductions leading
+    there need no further check.
+
+    Cleared on every shift and on every token discarded.
+    """
+
+    _exploratory_stack: list[int]
+    """The states an exploratory parse pushes.
+
+    The states below them are the ones of `_state_stack` below `_exploratory_stack_base`, which the exploratory parse
+    reads but never writes.
+    """
+
+    _exploratory_stack_base: int
+    """How many entries of `_state_stack` the exploratory parse still reads."""
+
     def __init__(self) -> None:
         """Creates a parser which is ready to be given a scanner to parse."""
         self.trace = None
         self._state_stack = []
         self._node_stack = []
         self._errors = []
+        self._exploratory_stack = []
+        self._exploratory_stack_base = 0
         self._reset()
 
     def parse(self, scanner: TokenSource) -> ParseResult:
@@ -482,6 +537,7 @@ class Parser:
         self._node_stack.clear()
         self._errors.clear()
         self._error_recovery_shifts_remaining = 0
+        self._exploratory_parse_passed = False
 
     def _step(self, scanner: TokenSource) -> _StepResult | ParseError:
         """Performs the one action the state on top of the stack takes for the current token.
@@ -494,13 +550,7 @@ class Parser:
         column = self._terminal_column(terminal)
 
         state = self._current_state()
-        cell_idx = _ACTION_BASE[state] + column
-        if _ACTION_CHECK[cell_idx] == column:
-            # An entry the state has of its own beats its default action, which is what keeps a token the grammar
-            # rejects on purpose an error even in a state which reduces on everything else.
-            action = _ACTION_NEXT[cell_idx]
-        else:
-            action = _DEFAULT_ACTION_BY_STATE[state]
+        action = self._action(state, column)
 
         action_kind = action & _ACTION_KIND_MASK
         if action_kind == _ACTION_KIND_SHIFT:
@@ -509,11 +559,18 @@ class Parser:
             self._state_stack.append(action >> _ACTION_KIND_BITS)
             self._node_stack.append(ParseNode(TerminalSymbol(terminal), scanner.byte_offset, scanner.byte_length))
             scanner.next()
+            self._exploratory_parse_passed = False
             if self._error_recovery_shifts_remaining > 0:
                 # Getting tokens of the input shifted again is what makes the parser trust its position.
                 self._error_recovery_shifts_remaining -= 1
             return _StepResult.CONTINUE
         if action_kind == _ACTION_KIND_REDUCE:
+            if not self._exploratory_parse_passed and _CONSISTENT_BY_STATE[state] == 0:
+                # The state reduces because of the lookahead, which might be one it only accepts because states were
+                # merged or a default reduction was chosen. Reducing on it would leave the state the error belongs to.
+                if not self._exploratory_parse(column):
+                    return self._raise_syntax_error(scanner, terminal)
+                self._exploratory_parse_passed = True
             self._reduce(scanner, action >> _ACTION_KIND_BITS)
             return _StepResult.CONTINUE
         if action_kind == _ACTION_KIND_ACCEPT:
@@ -521,9 +578,7 @@ class Parser:
                 self._emit_trace(scanner, "ACCEPT", "")
             return _StepResult.ACCEPT
         if action_kind == _ACTION_KIND_ERROR:
-            if self.trace is not None:
-                self._emit_error_trace(scanner, f"unexpected token {_terminal_trace_name(terminal)}")
-            return ParseError.from_scanner(f"unexpected token {terminal}", ErrorKind.SYNTAX, scanner)
+            return self._raise_syntax_error(scanner, terminal)
         if self.trace is not None:
             self._emit_error_trace(scanner, f"unexpected action {action} in state {state}")
         return ParseError.from_scanner(f"unexpected action {action} in state {state}", ErrorKind.INTERNAL, scanner)
@@ -545,16 +600,7 @@ class Parser:
             )
 
         del self._state_stack[len(self._state_stack) - pop_count:]
-
-        state = self._current_state()
-        cell_idx = _GOTO_BASE[state] + nonterminal
-        if _GOTO_CHECK[cell_idx] == nonterminal:
-            goto_state = _GOTO_NEXT[cell_idx]
-        else:
-            # A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
-            # reduction uncovers always has one, so there is no case for a nonterminal missing from both.
-            goto_state = _DEFAULT_GOTO_BY_NONTERMINAL[nonterminal]
-        self._state_stack.append(goto_state)
+        self._state_stack.append(self._goto_state(self._current_state(), nonterminal))
 
         # The node starts where its first child starts and ends where its last child ends.
         split_idx = len(self._node_stack) - pop_count
@@ -584,6 +630,92 @@ class Parser:
                 production=Production(production_idx),
             )
         )
+
+    def _exploratory_parse(self, column: int) -> bool:
+        """Reports whether the parse from the current stack shifts the terminal of the given column eventually, instead
+        of running into an error.
+
+        It performs the reductions the terminal leads to on the states alone and without building nodes, so the stacks
+        of the parse are still intact when the terminal turns out to be an error.
+
+        This is the lookahead correction of section 3.5.2 "Parser" of "PSLR(1): Pseudo-Scannerless Minimal LR(1) for
+        the Deterministic Parsing of Composite Languages" by Joel E. Denny. It deviates from the paper in two ways. The
+        paper runs an exploratory parse as soon as a lookahead arrives, `_step` runs it only before the first reduction
+        the lookahead decides in a state which is not consistent, because a shift or an error action needs no
+        exploring. And the paper explores on a copy of the stack, while this reads the stack in place, see
+        `_exploratory_pop`.
+        """
+        self._exploratory_stack.clear()
+        self._exploratory_stack_base = len(self._state_stack)
+        while True:
+            action = self._action(self._exploratory_top(), column)
+            action_kind = action & _ACTION_KIND_MASK
+            if action_kind == _ACTION_KIND_REDUCE:
+                production_idx = action >> _ACTION_KIND_BITS
+                self._exploratory_pop(_POP_COUNT_BY_PRODUCTION[production_idx])
+                self._exploratory_push(
+                    self._goto_state(self._exploratory_top(), _NONTERMINAL_BY_PRODUCTION[production_idx])
+                )
+            elif action_kind in (_ACTION_KIND_SHIFT, _ACTION_KIND_ACCEPT):
+                return True
+            else:
+                return False
+
+    def _exploratory_top(self) -> int:
+        """Returns the state on top of the stack of the exploratory parse."""
+        if self._exploratory_stack:
+            return self._exploratory_stack[-1]
+        return self._state_stack[self._exploratory_stack_base - 1]
+
+    def _exploratory_pop(self, count: int) -> None:
+        """Takes the given number of states off the stack of the exploratory parse.
+
+        The states it pushed itself go first. Below them, it lowers the base index into `_state_stack` instead of
+        popping, so the stack of the parse is never written and needs no copy.
+        """
+        pushed_count = min(count, len(self._exploratory_stack))
+        del self._exploratory_stack[len(self._exploratory_stack) - pushed_count:]
+        self._exploratory_stack_base -= count - pushed_count
+
+    def _exploratory_push(self, state: int) -> None:
+        """Puts the given state on top of the stack of the exploratory parse."""
+        self._exploratory_stack.append(state)
+
+    def _expected_tokens(self) -> list[Token]:
+        """Returns the tokens which the parse from the current stack would shift eventually, in the order of their
+        columns.
+
+        It runs an exploratory parse per terminal of the grammar and leaves out the error symbol, which no scanner
+        delivers. More than `_EXPECTED_TOKENS_MAX` of them are not returned at all.
+        """
+        result: list[Token] = []
+        for column, token in enumerate(_TOKEN_BY_TERMINAL_COLUMN):
+            if column in (_NO_TERMINAL_COLUMN, _ERROR_TERMINAL_COLUMN) or not self._exploratory_parse(column):
+                continue
+            if len(result) == _EXPECTED_TOKENS_MAX:
+                return []
+            result.append(token)
+        return result
+
+    def _raise_syntax_error(self, scanner: TokenSource, terminal: Token) -> ParseError:
+        """Returns the error for the given token being unexpected on the current stack, listing the tokens which would
+        have been expected instead.
+        """
+        message = self._unexpected_token_message(terminal, self._expected_tokens())
+        if self.trace is not None:
+            self._emit_error_trace(scanner, message)
+        return ParseError.from_scanner(message, ErrorKind.SYNTAX, scanner)
+
+    @staticmethod
+    def _unexpected_token_message(terminal: Token, expected: list[Token]) -> str:
+        """Describes the given token as unexpected in place of the expected ones, naming each token by its alias."""
+        message = "unexpected " + _terminal_name(terminal)
+        for i, token in enumerate(expected):
+            if i == 0:
+                message += ", expecting " + _terminal_name(token)
+            else:
+                message += " or " + _terminal_name(token)
+        return message
 
     def _recover_from_error(self, scanner: TokenSource) -> bool:
         """Puts the parser back where it can carry on with the remaining input after a syntax error.
@@ -622,6 +754,7 @@ class Parser:
             # The discarded token is thrown away as well, so the span reaches to its end and not to its start.
             dropped_length = scanner.byte_length
             scanner.next()
+            self._exploratory_parse_passed = False
         self._error_recovery_shifts_remaining = _ERROR_RECOVERY_SHIFTS
 
         while True:
@@ -636,6 +769,7 @@ class Parser:
                     dropped_offset = left.byte_offset + left.byte_length
                 # Shift the error symbol. Its node covers what this round dropped.
                 self._state_stack.append(next_state)
+                self._exploratory_parse_passed = False
                 self._node_stack.append(ParseNode(TerminalSymbol(Token.ERROR_TOKEN), dropped_offset, dropped_length))
                 return True
             if len(self._state_stack) == 1:
@@ -664,6 +798,28 @@ class Parser:
         A token the grammar does not have gets `_NO_TERMINAL_COLUMN`.
         """
         return _TERMINAL_COLUMN_BY_TOKEN.get(token, _NO_TERMINAL_COLUMN)
+
+    @staticmethod
+    def _action(state: int, column: int) -> int:
+        """Returns the action the given state takes for the terminal of the given column."""
+        cell_idx = _ACTION_BASE[state] + column
+        if _ACTION_CHECK[cell_idx] == column:
+            # An entry the state has of its own beats its default action, which is what keeps a token the grammar
+            # rejects on purpose an error even in a state which reduces on everything else.
+            return _ACTION_NEXT[cell_idx]
+        return _DEFAULT_ACTION_BY_STATE[state]
+
+    @staticmethod
+    def _goto_state(state: int, nonterminal: int) -> int:
+        """Returns the state the parse continues in when it reduced to the given nonterminal and uncovered the given
+        state.
+        """
+        cell_idx = _GOTO_BASE[state] + nonterminal
+        if _GOTO_CHECK[cell_idx] == nonterminal:
+            return _GOTO_NEXT[cell_idx]
+        # A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
+        # reduction uncovers always has one, so there is no case for a nonterminal missing from both.
+        return _DEFAULT_GOTO_BY_NONTERMINAL[nonterminal]
 
     @staticmethod
     def _error_shift_state(state: int) -> int | None:
@@ -717,6 +873,27 @@ def _symbol_trace_name(symbol: ParseSymbol) -> str:
     if isinstance(symbol, NonterminalSymbol):
         return str(symbol.nonterminal)
     return _terminal_trace_name(symbol.token)
+
+
+def _terminal_name(terminal: Token) -> str:
+    """Names a terminal by the alias the grammar gives it, or by its name if it has none."""
+    if terminal == Token.END_TOKEN:
+        return "end of input"
+    if terminal == Token.INVALID_TOKEN:
+        return "invalid input"
+    if terminal == Token.TOKEN_PLUS:
+        return "\"+\""
+    if terminal == Token.TOKEN_MINUS:
+        return "\"-\""
+    if terminal == Token.TOKEN_MULTIPLY:
+        return "\"*\""
+    if terminal == Token.TOKEN_DIVIDE:
+        return "\"/\""
+    if terminal == Token.TOKEN_LPAREN:
+        return "\"(\""
+    if terminal == Token.TOKEN_RPAREN:
+        return "\")\""
+    return str(terminal)
 
 
 def _terminal_trace_name(terminal: Token) -> str:
