@@ -21,9 +21,11 @@ import (
 var parserTemplate string
 
 var parsedTemplate = template.Must(template.New("parser.ts.template").Funcs(template.FuncMap{
+	"terminalName":        terminalName,
 	"nonterminalName":     nonterminalName,
 	"isAcceptNonterminal": isAcceptNonterminal,
 	"productionName":      productionName,
+	"stringLiteral":       utils.JavaScriptStringLiteral,
 }).Parse(parserTemplate))
 
 // DefaultScannerModule is the module specifier the generated parser imports the token constants from when the caller
