@@ -1,0 +1,17 @@
+// Backing up at the very end of the input. The first "ab" is followed by "c", so the scanner walks past the accepting
+// state of AB, runs out of transitions and backs up, as in longest-match-backup. The second "ab" is the last two bytes
+// of the input, which has no trailing newline: the scanner is still on the accepting state of AB when the input runs
+// out, and has to emit AB rather than report the stretch as an error.
+//
+// The parser is not what this case is about, so the grammar is the single empty production the file format requires.
+
+@scanner {
+    AB:   "ab";
+    ABCD: "abcd";
+}
+
+@parser {
+    tokens
+        : @empty
+        ;
+}

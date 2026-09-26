@@ -1,0 +1,4 @@
+1:1     TOKEN   AB "ab"
+1:3     ERROR   "c"
+1:4     TOKEN   AB "ab"
+1:6     EOF

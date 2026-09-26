@@ -103,9 +103,9 @@ test-coverage: prepare
 test-examples: build-examples
 	$(MAKE) -C examples test
 
-# test-backends proves that the code every language backend emits behaves like the reference implementation in Go. It
-# is separate from test, because it generates, compiles and runs the code in a container per language, which needs
-# docker and takes considerably longer than the unit tests. Which of the two runs a spec belongs to is the
+# test-backends proves that the code every language backend emits reproduces the committed traces of the golden
+# corpus. It is separate from test, because it generates, compiles and runs the code in a container per language, which
+# needs docker and takes considerably longer than the unit tests. Which of the two runs a spec belongs to is the
 # BACKEND_LABEL on the spec: test deselects it, this target selects it and nothing else, so the same package is covered
 # by both targets without either running the other's specs.
 #
@@ -131,6 +131,12 @@ test-backends: build
 			run --rm --no-deps --no-TTY --build "$$language" || exit 1; \
 	done
 	go test ./internal/backendtest/... -args --ginkgo.label-filter='$(BACKEND_LABEL_FILTER)'
+
+# update-golden rewrites the committed traces of the golden corpus with what the Go backend produces. Review the result
+# with git diff before committing it, because the committed traces are what every backend is held to.
+.PHONY: update-golden
+update-golden:
+	UPDATE_GOLDEN=1 $(MAKE) test-backends LANGUAGE=go
 
 .PHONY: benchmark
 benchmark: prepare

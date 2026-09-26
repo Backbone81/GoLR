@@ -15,6 +15,9 @@ import (
 // instead of in an environment variable which nothing in the tree mentions.
 const backendsLabel = "backends"
 
+// goldenLanguage is the backend whose traces are written over the committed ones.
+const goldenLanguage = "go"
+
 // Every language the harness has a runner for is held to the whole corpus. This tree is built from the runner
 // directories and the corpus directories, so a new language or a new case is a directory and never a spec written by
 // hand. Nothing here knows a language: the list of them comes from the runner directories on disk, the code is
@@ -66,9 +69,9 @@ var _ = Describe("Language backends", func() {
 // afternoon. A raw carriage return means a runner wrote CRLF, and a missing final newline means it wrote its lines one
 // at a time and lost the last one.
 //
-// UPDATE_GOLDEN deliberately has no effect here. A committed trace states what the Go reference produces, so rewriting
-// one from the output of a runner would let a backend define its own expectation and the comparison would prove
-// nothing.
+// With UPDATE_GOLDEN set, the trace of the Go backend is written over the committed one instead, which is what
+// "make update-golden" does. Only the Go backend writes the committed traces, because a backend which defines its own
+// expectation proves nothing.
 func expectTrace(language string, caseName string, role string, goldenFileName string) {
 	workPath, err := backendtest.WorkPath(language)
 	Expect(err).ToNot(HaveOccurred())
@@ -100,7 +103,15 @@ func expectTrace(language string, caseName string, role string, goldenFileName s
 			"the %s trace does not end in a newline, which every canonical trace does", role)
 	}
 
-	expected, err := os.ReadFile(filepath.Join(goldenRootPath, caseName, goldenFileName))
+	goldenPath := filepath.Join(goldenRootPath, caseName, goldenFileName)
+	if os.Getenv(updateGoldenEnvVar) == "1" {
+		Expect(language).To(Equal(goldenLanguage),
+			"only the %s backend writes the committed traces, run 'make update-golden'", goldenLanguage)
+		Expect(os.WriteFile(goldenPath, actual, 0o644)).To(Succeed())
+		return
+	}
+
+	expected, err := os.ReadFile(goldenPath)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(string(actual)).To(Equal(string(expected)))
 }

@@ -1,0 +1,34 @@
+// The exact boundary of the three shift countdown. error-recovery-suppression shows an error inside the countdown and
+// one long after it ran out; this case puts the next error right at both sides of the boundary.
+//
+// The first statement fails and starts the countdown. Its recovery shifts ";", the second statement shifts "1", and the
+// second "1" fails after exactly two shifts, so its error is suppressed. That recovery starts the countdown again. It
+// shifts ";", the third statement shifts "2" and "+", and the final ";" fails after exactly three shifts, so its error
+// is reported.
+//
+// The scanner is not what this case is about, so its rules are single characters and runs of digits.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NUMBER:    /[0-9]+/;
+    PLUS:      "+";
+    SEMICOLON: ";";
+}
+
+@parser {
+    statements
+        : statements statement
+        | statement
+        ;
+
+    statement
+        : expression ";"
+        | @error ";"
+        ;
+
+    expression
+        : NUMBER
+        | expression "+" NUMBER
+        ;
+}
