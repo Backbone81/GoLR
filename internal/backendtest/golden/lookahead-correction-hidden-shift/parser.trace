@@ -1,0 +1,8 @@
+1:1     SHIFT   NAME "a"
+1:3     SHIFT   ASSIGN "="
+1:5     SHIFT   NAME "b"
+1:7     ERROR   unexpected ")", expecting end of input or "("
+1:7     POP     NAME
+1:7     POP     ASSIGN
+1:7     POP     NAME
+1:7     FAIL

@@ -1,0 +1,9 @@
+1:1     TOKEN   NAME "a"
+1:2     TOKEN   WHITESPACE " "
+1:3     TOKEN   ASSIGN "="
+1:4     TOKEN   WHITESPACE " "
+1:5     TOKEN   NAME "b"
+1:6     TOKEN   WHITESPACE " "
+1:7     TOKEN   RPAREN ")"
+1:8     TOKEN   WHITESPACE "\n"
+2:1     EOF

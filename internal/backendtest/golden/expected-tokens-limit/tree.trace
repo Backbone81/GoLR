@@ -1,0 +1,8 @@
+1:1     0+11    statements => statements statement
+1:1     0+5       statements => statement
+1:1     0+5         statement => $error SEMICOLON
+1:1     0+4           $error
+1:5     4+1           SEMICOLON ";"
+2:1     6+5       statement => $error SEMICOLON
+2:1     6+4         $error
+2:5     10+1        SEMICOLON ";"

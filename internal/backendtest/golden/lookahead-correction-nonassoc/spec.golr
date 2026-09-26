@@ -1,0 +1,36 @@
+// A @none operator rejects the second "<" of `1 < 2 < 3` with an error action, and lookahead correction finds that error
+// before the reductions which lead to it. Canonical LR(1) reduces here as well: "<" does follow an operand and a
+// comparison, it is only the error action of the state after `comparison "<" comparison` which refuses it. So without
+// lookahead correction the parser reduces the "2" to an operand and a comparison and reports the error in a state which
+// expects only the end of input.
+//
+// The state after a number is not consistent, because it shifts "!" as well. Lookahead correction checks the "<" there,
+// runs into the error action on the side, and reports the error with the number still on the stack. The message lists
+// the "!" which would have been accepted. Compare nonassoc-error, where the state after a number is consistent and the
+// reductions happen before the error.
+//
+// The scanner is not what this case is about, so its rules are single characters and runs of digits.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NUMBER: /[0-9]+/;
+    LESS:   "<";
+    BANG:   "!";
+}
+
+@parser {
+    @precedence {
+        @none: "<";
+    }
+
+    comparison
+        : operand
+        | comparison "<" comparison
+        ;
+
+    operand
+        : NUMBER
+        | NUMBER "!"
+        ;
+}

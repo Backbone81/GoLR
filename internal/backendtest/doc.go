@@ -32,13 +32,18 @@
 //
 //	SHIFT   terminal "lexeme"                 a terminal was shifted, "$end" with an empty lexeme included
 //	REDUCE  lhs => rhs                        a production was reduced
-//	ERROR   unexpected token terminal         a syntax error at the lookahead
-//	ERROR   (suppressed) unexpected token t   one hit before three tokens were shifted after the previous error
+//	ERROR   unexpected t, expecting a or b    a syntax error at the lookahead, see below for the message
+//	ERROR   (suppressed) unexpected t, ...    one hit before three tokens were shifted after the previous error
 //	POP     symbol                            recovery dropped a state and the symbol it had parsed
 //	RESYNC                                    recovery shifted the error symbol and resumed
 //	DISCARD terminal "lexeme"                 recovery dropped the lookahead it keeps failing on
 //	ACCEPT                                    the input was accepted
 //	FAIL                                      the parse was given up
+//
+// The message of an ERROR line names a terminal by its string alias, or by its name if it has none, and the end of
+// input and a token no scanner rule matched as "end of input" and "invalid input". It lists the terminals the parser
+// would have shifted instead, in the order of their columns, joined by "or". It lists at most four, and none if there
+// are more.
 //
 // The tree trace is the parse tree in pre-order, one node per line, and empty for a parse which was given up. The
 // keyword column holds the span of the input a node covers, as "byteOffset+byteLength", and the payload is the node

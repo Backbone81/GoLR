@@ -1,0 +1,57 @@
+// A syntax error lists at most four expected tokens, and drops the list entirely when there are more. A list of five or
+// more rarely helps the reader, so the message is only "unexpected" followed by the token then.
+//
+// The two statements sit on either side of the limit. After the colon one of the four type names is expected, which are
+// all listed. After the equals sign one of five values is expected, so the list is dropped. A backend which lists five
+// tokens or drops a list of four is off by one.
+//
+// The recovery is not what this case is about. It is there so that both errors fit into one parse: three tokens are
+// shifted between them, so the second error is reported rather than suppressed.
+//
+// The scanner is not what this case is about. The keywords come before NAME, so a keyword wins over a name of the same
+// length.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    INT:       "int";
+    STRING:    "string";
+    BOOL:      "bool";
+    ANY:       "any";
+    TRUE:      "true";
+    FALSE:     "false";
+    NAME:      /[a-z]+/;
+    NUMBER:    /[0-9]+/;
+    TEXT:      /'[a-z]*'/;
+    ASSIGN:    "=";
+    COLON:     ":";
+    SEMICOLON: ";";
+}
+
+@parser {
+    statements
+        : statements statement
+        | statement
+        ;
+
+    statement
+        : NAME ":" type ";"
+        | NAME "=" value ";"
+        | @error ";"
+        ;
+
+    type
+        : "int"
+        | "string"
+        | "bool"
+        | "any"
+        ;
+
+    value
+        : NUMBER
+        | TEXT
+        | NAME
+        | "true"
+        | "false"
+        ;
+}

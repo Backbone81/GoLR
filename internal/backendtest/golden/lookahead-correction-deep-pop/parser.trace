@@ -1,0 +1,23 @@
+1:1     SHIFT   LET "let"
+1:5     SHIFT   NAME "x"
+1:7     SHIFT   ASSIGN "="
+1:9     SHIFT   NUMBER "1"
+1:11    REDUCE  factor => NUMBER
+1:11    REDUCE  term => factor
+1:11    REDUCE  expression => term
+1:11    SHIFT   PLUS "+"
+1:13    SHIFT   NUMBER "2"
+1:15    REDUCE  factor => NUMBER
+1:15    REDUCE  term => factor
+1:15    SHIFT   TIMES "*"
+1:17    SHIFT   NUMBER "3"
+1:19    ERROR   unexpected ")", expecting "+" or "*" or "!" or ";"
+1:19    POP     NUMBER
+1:19    POP     TIMES
+1:19    POP     term
+1:19    POP     PLUS
+1:19    POP     expression
+1:19    POP     ASSIGN
+1:19    POP     NAME
+1:19    POP     LET
+1:19    FAIL

@@ -1,0 +1,46 @@
+// Lookahead correction keeps a place to resume at on the stack which a reduction on the lookahead would have popped. The
+// state after the statements of a body shifts the error symbol, and it reduces the body on "}", because the same state
+// is reached inside a block, where "}" ends the body. At the top level that reduction pops the state and leaves only
+// states which cannot shift the error symbol, so the recovery would unwind the whole stack and give up.
+//
+// With lookahead correction the reduction is checked first and the error is reported in the state which shifts the
+// error symbol, so the recovery resumes right there without popping anything. It then fails on the "}" once more,
+// discards it and resumes again, and the ";" completes the error statement. The statement after it is parsed normally
+// and the input is accepted.
+//
+// The scanner is not what this case is about, so its rules are single characters and runs of letters.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NAME:      /[a-z]+/;
+    ASSIGN:    "=";
+    LBRACE:    "{";
+    RBRACE:    "}";
+    SEMICOLON: ";";
+}
+
+@parser {
+    program
+        : body
+        ;
+
+    block
+        : "{" body "}"
+        ;
+
+    body
+        : statements
+        ;
+
+    statements
+        : @empty
+        | statements statement
+        ;
+
+    statement
+        : NAME "=" NAME ";"
+        | block
+        | @error ";"
+        ;
+}

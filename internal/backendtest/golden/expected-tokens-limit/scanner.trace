@@ -1,0 +1,13 @@
+1:1     TOKEN   NAME "a"
+1:2     TOKEN   WHITESPACE " "
+1:3     TOKEN   COLON ":"
+1:4     TOKEN   WHITESPACE " "
+1:5     TOKEN   SEMICOLON ";"
+1:6     TOKEN   WHITESPACE "\n"
+2:1     TOKEN   NAME "b"
+2:2     TOKEN   WHITESPACE " "
+2:3     TOKEN   ASSIGN "="
+2:4     TOKEN   WHITESPACE " "
+2:5     TOKEN   SEMICOLON ";"
+2:6     TOKEN   WHITESPACE "\n"
+3:1     EOF

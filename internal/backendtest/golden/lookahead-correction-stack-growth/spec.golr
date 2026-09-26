@@ -1,0 +1,31 @@
+// An exploratory parse which pushes more states than its scratch stack starts with room for. Every gap is an empty
+// production, so reducing it pops nothing and pushes a state, and the 70 gaps push 70 states onto the scratch stack
+// without taking any off again. The stacks of the parsers start with room for 64 entries.
+//
+// The start state shifts "w" and reduces a gap on every other token, so it is not consistent and checks the "x" before
+// reducing. The check pushes all 70 states and fails on the "x". Collecting the expected tokens pushes all 70 once more
+// for ";", which succeeds. A backend whose scratch stack does not grow fails or writes past its end.
+//
+// The error is reported before a single gap is reduced, so the trace is two lines. Without lookahead correction the
+// parse would reduce all 70 gaps and pop them again before giving up.
+//
+// The scanner is not what this case is about. The "x" is a token of the scanner but no terminal of the grammar.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    WORD:      "w";
+    SEMICOLON: ";";
+    OTHER:     /[a-z]/;
+}
+
+@parser {
+    line
+        : "w"
+        | gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap gap ";"
+        ;
+
+    gap
+        : @empty
+        ;
+}

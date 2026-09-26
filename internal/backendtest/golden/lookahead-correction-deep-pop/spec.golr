@@ -1,0 +1,49 @@
+// An exploratory parse reads the state stack of the parse below its own scratch stack, and this case makes it pop
+// through the scratch stack into the state stack several times. On the ")" after `1 + 2 * 3` it reduces the "3" to a
+// factor, which pops a state of the parse. The term and the expression it reduces next each pop the one state the
+// previous reduction pushed onto the scratch stack and then two states of the parse below it. Only the state after
+// `"let" NAME "=" expression` refuses the ")", so the error is reported with the whole stack intact.
+//
+// The state stack is never written by the exploratory parse. A backend which pops the scratch stack and the state stack
+// the wrong way round, or loses count of how far it lowered into the state stack, arrives in the wrong state and either
+// accepts the ")" or lists different tokens. The expected tokens take the same paths: "!" is shifted in the state after
+// the number, "*" after the first two reductions, and "+" and ";" only after all three.
+//
+// The scanner is not what this case is about, so its rules are keywords, single characters, names and runs of digits.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    LET:       "let";
+    NAME:      /[a-z]+/;
+    NUMBER:    /[0-9]+/;
+    ASSIGN:    "=";
+    PLUS:      "+";
+    TIMES:     "*";
+    BANG:      "!";
+    LPAREN:    "(";
+    RPAREN:    ")";
+    SEMICOLON: ";";
+}
+
+@parser {
+    statement
+        : "let" NAME "=" expression ";"
+        ;
+
+    expression
+        : term
+        | expression "+" term
+        ;
+
+    term
+        : factor
+        | term "*" factor
+        ;
+
+    factor
+        : NUMBER
+        | NUMBER "!"
+        | "(" expression ")"
+        ;
+}

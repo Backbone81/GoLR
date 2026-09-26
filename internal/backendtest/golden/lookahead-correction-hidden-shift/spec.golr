@@ -1,0 +1,38 @@
+// A state which reduces on a token it does not accept hides the tokens it does accept, unless the parser checks the
+// lookahead before it reduces. The state after the name "b" shifts "(" for a call and reduces the name to an expression
+// on ")", because the same state is reached inside an argument list, where ")" does follow an expression. The default
+// reduction extends that to every other token as well.
+//
+// Reducing on the ")" would reduce the expression and the assignment and report the error in a state which expects only
+// the end of input, so the "(" which would have continued the input would be missing from the message. Lookahead
+// correction tries the reductions on the side first. They end in an error, so the error is reported right after the name
+// was shifted, with the name still on the stack, and the message lists both "(" and the end of input. A backend which
+// shows a REDUCE line before the ERROR does not check the lookahead before reducing.
+//
+// The scanner is not what this case is about, so its rules are single characters and runs of letters.
+
+@scanner {
+    WHITESPACE: /[ \t\n]+/ @skip;
+
+    NAME:   /[a-z]+/;
+    ASSIGN: "=";
+    LPAREN: "(";
+    RPAREN: ")";
+    COMMA:  ",";
+}
+
+@parser {
+    assignment
+        : NAME "=" expression
+        ;
+
+    expression
+        : NAME
+        | NAME "(" arguments ")"
+        ;
+
+    arguments
+        : expression
+        | arguments "," expression
+        ;
+}

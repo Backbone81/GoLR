@@ -1,0 +1,11 @@
+1:1     TOKEN   NUMBER "1"
+1:2     TOKEN   WHITESPACE " "
+1:3     TOKEN   LESS "<"
+1:4     TOKEN   WHITESPACE " "
+1:5     TOKEN   NUMBER "2"
+1:6     TOKEN   WHITESPACE " "
+1:7     TOKEN   LESS "<"
+1:8     TOKEN   WHITESPACE " "
+1:9     TOKEN   NUMBER "3"
+1:10    TOKEN   WHITESPACE "\n"
+2:1     EOF

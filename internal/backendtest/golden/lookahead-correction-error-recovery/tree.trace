@@ -1,0 +1,19 @@
+1:1     0+17    program => body
+1:1     0+17      body => statements
+1:1     0+17        statements => statements statement
+1:1     0+10          statements => statements statement
+1:1     0+6             statements => statements statement
+1:1     0+0               statements => ε
+1:1     0+6               statement => NAME ASSIGN NAME SEMICOLON
+1:1     0+1                 NAME "a"
+1:3     2+1                 ASSIGN "="
+1:5     4+1                 NAME "b"
+1:6     5+1                 SEMICOLON ";"
+1:7     6+4             statement => $error SEMICOLON
+1:7     6+2               $error
+1:10    9+1               SEMICOLON ";"
+1:12    11+6          statement => NAME ASSIGN NAME SEMICOLON
+1:12    11+1            NAME "c"
+1:14    13+1            ASSIGN "="
+1:16    15+1            NAME "d"
+1:17    16+1            SEMICOLON ";"

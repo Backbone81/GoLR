@@ -1,0 +1,20 @@
+1:1     SHIFT   NAME "a"
+1:3     SHIFT   COLON ":"
+1:5     ERROR   unexpected ";", expecting "int" or "string" or "bool" or "any"
+1:5     POP     COLON
+1:5     POP     NAME
+1:5     RESYNC
+1:5     SHIFT   SEMICOLON ";"
+2:1     REDUCE  statement => $error SEMICOLON
+2:1     REDUCE  statements => statement
+2:1     SHIFT   NAME "b"
+2:3     SHIFT   ASSIGN "="
+2:5     ERROR   unexpected ";"
+2:5     POP     ASSIGN
+2:5     POP     NAME
+2:5     RESYNC
+2:5     SHIFT   SEMICOLON ";"
+3:1     REDUCE  statement => $error SEMICOLON
+3:1     REDUCE  statements => statements statement
+3:1     SHIFT   $end ""
+3:1     ACCEPT
