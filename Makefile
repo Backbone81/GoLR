@@ -148,6 +148,12 @@ clean:
 	rm -rf tmp
 	rm -f golr
 
+# GoReleaser takes the current and previous tag from git, which would also pick up the tags of the IDE plugins
+# (vscode/v*, intellij/v*). Only the golr tags are handed to it.
+GOLR_TAG_PATTERN := v[0-9]*
+release-test release-notes release: export GORELEASER_CURRENT_TAG = $(shell git describe --tags --abbrev=0 --match '$(GOLR_TAG_PATTERN)')
+release-test release-notes release: export GORELEASER_PREVIOUS_TAG = $(shell git describe --tags --abbrev=0 --match '$(GOLR_TAG_PATTERN)' '$(GORELEASER_CURRENT_TAG)^')
+
 .PHONY: release-test
 release-test:
 	goreleaser check

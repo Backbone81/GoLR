@@ -9,11 +9,12 @@
 #
 # Usage: scripts/release-notes.sh [TAG]
 #
-# TAG defaults to the tag GoReleaser is currently building, or to the most recent tag reachable from HEAD.
+# TAG defaults to the tag GoReleaser is currently building, or to the most recent golr tag reachable from HEAD. The tags
+# of the IDE plugins (vscode/v*, intellij/v*) are not golr releases and are skipped.
 
 set -e
 
-TAG="${1:-${GORELEASER_CURRENT_TAG:-$(git describe --tags --abbrev=0)}}"
+TAG="${1:-${GORELEASER_CURRENT_TAG:-$(git describe --tags --abbrev=0 --match 'v[0-9]*')}}"
 CHANGELOG_FILE_PATH="$(dirname "$0")/../CHANGELOG.md"
 
 NOTES="$(awk -v tag="${TAG}" '

@@ -11,12 +11,6 @@ It provides:
 - Code completion for terminal names, nonterminal names and keywords in the context they are valid
 - Reformat file
 
-## Release Notes
-
-### v0.1.0
-
-Initial release.
-
 ## Development
 
 The plugin is developed in Kotlin.
@@ -46,3 +40,10 @@ make package
 ```
 
 The installation file can then be found in the `build/distributions` folder.
+
+To release a new version:
+
+1. Set `version` in `gradle.properties` to `X.Y.Z`.
+2. Run `changelog release` in this directory and enter the version as `vX.Y.Z`.
+3. Commit the changes, tag the commit with `intellij/vX.Y.Z` and push the tag.
+4. Publish the file built by `make package` on the JetBrains Marketplace.
