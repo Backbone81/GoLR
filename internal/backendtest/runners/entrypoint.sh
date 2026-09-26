@@ -131,10 +131,6 @@ for casePath in /cases/*/; do
     # here keeps that out of every language which needs it.
     mkdir -p "$(dirname "$caseName/$SCANNER_FILE_NAME")" "$(dirname "$caseName/$PARSER_FILE_NAME")"
 
-    # The core is pinned rather than left to the default, for the same reason scripts/generate.sh pins one: a change of
-    # the default must not silently change what every backend is held to. It is the native Go core and never the bison
-    # backed one, which shells out to a GNU Bison no language image carries, and which numbers symbols differently.
-    #
     # The file names come from language.sh, so this script names no extension and no language ever renames anything.
     golr scanner \
         --frontend golr \

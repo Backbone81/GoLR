@@ -15,6 +15,27 @@ import (
 // instead of in an environment variable which nothing in the tree mentions.
 const backendsLabel = "backends"
 
+// The corpus is a directory per case, and every file in it has a fixed name: spec.golr, input.txt and the three
+// committed traces.
+const (
+	// goldenRootPath is the directory holding one directory per case.
+	goldenRootPath = "golden"
+
+	// scannerTraceFileName is the trace every backend has to reproduce for the scanner.
+	scannerTraceFileName = "scanner.trace"
+
+	// parserTraceFileName is the trace every backend has to reproduce for the parser.
+	parserTraceFileName = "parser.trace"
+
+	// treeTraceFileName is the parse tree every backend has to reproduce, one line per node. It is empty for a case
+	// whose parse is given up, because a parse which fails builds no tree.
+	treeTraceFileName = "tree.trace"
+)
+
+// updateGoldenEnvVar makes the specs rewrite the committed traces instead of comparing against them. It is set by
+// "make update-golden".
+const updateGoldenEnvVar = "UPDATE_GOLDEN"
+
 // goldenLanguage is the backend whose traces are written over the committed ones.
 const goldenLanguage = "go"
 
@@ -114,4 +135,20 @@ func expectTrace(language string, caseName string, role string, goldenFileName s
 	expected, err := os.ReadFile(goldenPath)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(string(actual)).To(Equal(string(expected)))
+}
+
+// goldenCaseNames returns the name of every case in the corpus, which is the name of its directory. It runs while the
+// spec tree is built rather than inside a spec, so every case is a spec of its own and a failure names the case which
+// produced it.
+func goldenCaseNames() []string {
+	entries, err := os.ReadDir(goldenRootPath)
+	Expect(err).ToNot(HaveOccurred())
+
+	var result []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			result = append(result, entry.Name())
+		}
+	}
+	return result
 }
