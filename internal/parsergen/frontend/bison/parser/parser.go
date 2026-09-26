@@ -1266,22 +1266,22 @@ func (p *Parser) expectedTokens() []Token {
 // raiseSyntaxError returns the error for the given token being unexpected on the current stack, listing the tokens
 // which would have been expected instead.
 func (p *Parser) raiseSyntaxError(scanner TokenSource, terminal Token) error {
-	expected := p.expectedTokens()
+	message := p.unexpectedTokenMessage(terminal, p.expectedTokens())
 	if p.Trace != nil {
-		p.emitErrorTrace(scanner, p.unexpectedTokenMessage(terminal, expected, p.terminalTraceName))
+		p.emitErrorTrace(scanner, message)
 	}
-	return p.raiseError(scanner, fmt.Errorf("%w: %s", ErrSyntax, p.unexpectedTokenMessage(terminal, expected, Token.String)))
+	return p.raiseError(scanner, fmt.Errorf("%w: %s", ErrSyntax, message))
 }
 
-// unexpectedTokenMessage describes the given token as unexpected in place of the expected ones, naming each token with
-// the given function.
-func (p *Parser) unexpectedTokenMessage(terminal Token, expected []Token, name func(Token) string) string {
-	message := "unexpected token " + name(terminal)
+// unexpectedTokenMessage describes the given token as unexpected in place of the expected ones, naming each token by
+// its alias.
+func (p *Parser) unexpectedTokenMessage(terminal Token, expected []Token) string {
+	message := "unexpected " + p.terminalName(terminal)
 	for i, token := range expected {
 		if i == 0 {
-			message += ", expecting " + name(token)
+			message += ", expecting " + p.terminalName(token)
 		} else {
-			message += " or " + name(token)
+			message += " or " + p.terminalName(token)
 		}
 	}
 	return message
@@ -1510,6 +1510,134 @@ func (p *Parser) symbolTraceName(symbol Symbol) string {
 	}
 	terminal, _ := symbol.Terminal()
 	return p.terminalTraceName(terminal)
+}
+
+// terminalName names a terminal by the alias the grammar gives it, or by its name if it has none.
+func (p *Parser) terminalName(terminal Token) string {
+	switch terminal {
+	case EndToken:
+		return "end of input"
+	case InvalidToken:
+		return "invalid input"
+	case TokenString:
+		return `_("string")`
+	case TokenTstring:
+		return `_("translatable string")`
+	case TokenPercentToken:
+		return `"%token"`
+	case TokenPercentNterm:
+		return `"%nterm"`
+	case TokenPercentType:
+		return `"%type"`
+	case TokenPercentDestructor:
+		return `"%destructor"`
+	case TokenPercentPrinter:
+		return `"%printer"`
+	case TokenPercentLeft:
+		return `"%left"`
+	case TokenPercentRight:
+		return `"%right"`
+	case TokenPercentNonassoc:
+		return `"%nonassoc"`
+	case TokenPercentPrecedence:
+		return `"%precedence"`
+	case TokenPercentPrec:
+		return `"%prec"`
+	case TokenPercentDprec:
+		return `"%dprec"`
+	case TokenPercentMerge:
+		return `"%merge"`
+	case TokenPercentCode:
+		return `"%code"`
+	case TokenPercentDefaultPrec:
+		return `"%default-prec"`
+	case TokenPercentDefine:
+		return `"%define"`
+	case TokenPercentErrorVerbose:
+		return `"%error-verbose"`
+	case TokenPercentExpect:
+		return `"%expect"`
+	case TokenPercentExpectRr:
+		return `"%expect-rr"`
+	case TokenPercentFilePrefix:
+		return `"%file-prefix"`
+	case TokenPercentFlag:
+		return `"%<flag>"`
+	case TokenPercentGlrParser:
+		return `"%glr-parser"`
+	case TokenPercentHeader:
+		return `"%header"`
+	case TokenPercentInitialAction:
+		return `"%initial-action"`
+	case TokenPercentLanguage:
+		return `"%language"`
+	case TokenPercentNamePrefix:
+		return `"%name-prefix"`
+	case TokenPercentNoDefaultPrec:
+		return `"%no-default-prec"`
+	case TokenPercentNoLines:
+		return `"%no-lines"`
+	case TokenPercentNondeterministicParser:
+		return `"%nondeterministic-parser"`
+	case TokenPercentOutput:
+		return `"%output"`
+	case TokenPercentPureParser:
+		return `"%pure-parser"`
+	case TokenPercentRequire:
+		return `"%require"`
+	case TokenPercentSkeleton:
+		return `"%skeleton"`
+	case TokenPercentStart:
+		return `"%start"`
+	case TokenPercentTokenTable:
+		return `"%token-table"`
+	case TokenPercentVerbose:
+		return `"%verbose"`
+	case TokenPercentYacc:
+		return `"%yacc"`
+	case TokenBracedCode:
+		return `"{...}"`
+	case TokenBracedPredicate:
+		return `"%?{...}"`
+	case TokenBracketedId:
+		return `_("[identifier]")`
+	case TokenCharLiteral:
+		return `_("character literal")`
+	case TokenColon:
+		return `":"`
+	case TokenEpilogue:
+		return `_("epilogue")`
+	case TokenEqual:
+		return `"="`
+	case TokenId:
+		return `_("identifier")`
+	case TokenIdColon:
+		return `_("identifier:")`
+	case TokenPercentPercent:
+		return `"%%"`
+	case TokenPipe:
+		return `"|"`
+	case TokenPrologue:
+		return `"%{...%}"`
+	case TokenSemicolon:
+		return `";"`
+	case TokenTag:
+		return `_("<tag>")`
+	case TokenTagAny:
+		return `"<*>"`
+	case TokenTagNone:
+		return `"<>"`
+	case TokenIntLiteral:
+		return `_("integer literal")`
+	case TokenPercentParam:
+		return `"%param"`
+	case TokenPercentUnion:
+		return `"%union"`
+	case TokenPercentEmpty:
+		return `"%empty"`
+	default:
+		return terminal.String()
+	}
 }
 
 // terminalTraceName names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name.

@@ -1,4 +1,4 @@
 1:1     REDUCE  tokens => ε
-1:1     ERROR   unexpected token MAYBE
+1:1     ERROR   unexpected MAYBE, expecting end of input
 1:1     POP     tokens
 1:1     FAIL

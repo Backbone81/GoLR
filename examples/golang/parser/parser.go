@@ -3492,22 +3492,22 @@ func (p *Parser) expectedTokens() []Token {
 // raiseSyntaxError returns the error for the given token being unexpected on the current stack, listing the tokens
 // which would have been expected instead.
 func (p *Parser) raiseSyntaxError(scanner TokenSource, terminal Token) error {
-	expected := p.expectedTokens()
+	message := p.unexpectedTokenMessage(terminal, p.expectedTokens())
 	if p.Trace != nil {
-		p.emitErrorTrace(scanner, p.unexpectedTokenMessage(terminal, expected, p.terminalTraceName))
+		p.emitErrorTrace(scanner, message)
 	}
-	return p.raiseError(scanner, fmt.Errorf("%w: %s", ErrSyntax, p.unexpectedTokenMessage(terminal, expected, Token.String)))
+	return p.raiseError(scanner, fmt.Errorf("%w: %s", ErrSyntax, message))
 }
 
-// unexpectedTokenMessage describes the given token as unexpected in place of the expected ones, naming each token with
-// the given function.
-func (p *Parser) unexpectedTokenMessage(terminal Token, expected []Token, name func(Token) string) string {
-	message := "unexpected token " + name(terminal)
+// unexpectedTokenMessage describes the given token as unexpected in place of the expected ones, naming each token by
+// its alias.
+func (p *Parser) unexpectedTokenMessage(terminal Token, expected []Token) string {
+	message := "unexpected " + p.terminalName(terminal)
 	for i, token := range expected {
 		if i == 0 {
-			message += ", expecting " + name(token)
+			message += ", expecting " + p.terminalName(token)
 		} else {
-			message += " or " + name(token)
+			message += " or " + p.terminalName(token)
 		}
 	}
 	return message
@@ -3736,6 +3736,174 @@ func (p *Parser) symbolTraceName(symbol Symbol) string {
 	}
 	terminal, _ := symbol.Terminal()
 	return p.terminalTraceName(terminal)
+}
+
+// terminalName names a terminal by the alias the grammar gives it, or by its name if it has none.
+func (p *Parser) terminalName(terminal Token) string {
+	switch terminal {
+	case EndToken:
+		return "end of input"
+	case InvalidToken:
+		return "invalid input"
+	case TokenBreak:
+		return `"break"`
+	case TokenCase:
+		return `"case"`
+	case TokenChan:
+		return `"chan"`
+	case TokenConst:
+		return `"const"`
+	case TokenContinue:
+		return `"continue"`
+	case TokenDefault:
+		return `"default"`
+	case TokenDefer:
+		return `"defer"`
+	case TokenElse:
+		return `"else"`
+	case TokenFallthrough:
+		return `"fallthrough"`
+	case TokenFor:
+		return `"for"`
+	case TokenFunc:
+		return `"func"`
+	case TokenGo:
+		return `"go"`
+	case TokenGoto:
+		return `"goto"`
+	case TokenIf:
+		return `"if"`
+	case TokenImport:
+		return `"import"`
+	case TokenInterface:
+		return `"interface"`
+	case TokenMap:
+		return `"map"`
+	case TokenPackage:
+		return `"package"`
+	case TokenRange:
+		return `"range"`
+	case TokenReturn:
+		return `"return"`
+	case TokenSelect:
+		return `"select"`
+	case TokenStruct:
+		return `"struct"`
+	case TokenSwitch:
+		return `"switch"`
+	case TokenType:
+		return `"type"`
+	case TokenVar:
+		return `"var"`
+	case TokenAdd:
+		return `"+"`
+	case TokenSub:
+		return `"-"`
+	case TokenMul:
+		return `"*"`
+	case TokenQuo:
+		return `"/"`
+	case TokenRem:
+		return `"%"`
+	case TokenAnd:
+		return `"&"`
+	case TokenOr:
+		return `"|"`
+	case TokenXor:
+		return `"^"`
+	case TokenShiftLeft:
+		return `"<<"`
+	case TokenShiftRight:
+		return `">>"`
+	case TokenAndNot:
+		return `"&^"`
+	case TokenAddAssign:
+		return `"+="`
+	case TokenSubAssign:
+		return `"-="`
+	case TokenMulAssign:
+		return `"*="`
+	case TokenQuoAssign:
+		return `"/="`
+	case TokenRemAssign:
+		return `"%="`
+	case TokenAndAssign:
+		return `"&="`
+	case TokenOrAssign:
+		return `"|="`
+	case TokenXorAssign:
+		return `"^="`
+	case TokenShiftLeftAssign:
+		return `"<<="`
+	case TokenShiftRightAssign:
+		return `">>="`
+	case TokenAndNotAssign:
+		return `"&^="`
+	case TokenLogicalAnd:
+		return `"&&"`
+	case TokenLogicalOr:
+		return `"||"`
+	case TokenArrow:
+		return `"<-"`
+	case TokenIncrement:
+		return `"++"`
+	case TokenDecrement:
+		return `"--"`
+	case TokenEqual:
+		return `"=="`
+	case TokenLessThan:
+		return `"<"`
+	case TokenGreaterThan:
+		return `">"`
+	case TokenAssign:
+		return `"="`
+	case TokenNot:
+		return `"!"`
+	case TokenTilde:
+		return `"~"`
+	case TokenNotEqual:
+		return `"!="`
+	case TokenLessEqual:
+		return `"<="`
+	case TokenGreaterEqual:
+		return `">="`
+	case TokenDefine:
+		return `":="`
+	case TokenEllipsis:
+		return `"..."`
+	case TokenLeftParen:
+		return `"("`
+	case TokenLeftBracket:
+		return `"["`
+	case TokenLeftBrace:
+		return `"{"`
+	case TokenComma:
+		return `","`
+	case TokenPeriod:
+		return `"."`
+	case TokenRightParen:
+		return `")"`
+	case TokenRightBracket:
+		return `"]"`
+	case TokenRightBrace:
+		return `"}"`
+	case TokenSemicolon:
+		return `";"`
+	case TokenColon:
+		return `":"`
+	case TokenTestBasicLit:
+		return `"@TestBasicLit"`
+	case TokenTestExpression:
+		return `"@TestExpression"`
+	case TokenTestType:
+		return `"@TestType"`
+	case TokenTestStatement:
+		return `"@TestStatement"`
+	case TokenTestDecl:
+		return `"@TestDecl"`
+	default:
+		return terminal.String()
+	}
 }
 
 // terminalTraceName names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name.

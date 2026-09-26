@@ -90,7 +90,7 @@ A line is the position of the current lookahead, a keyword, and a payload:
 1:1     SHIFT   ID "a"
 1:3     REDUCE  term => ID
 1:3     REDUCE  expr => term
-1:3     ERROR   unexpected token PLUS
+1:3     ERROR   unexpected "+", expecting end of input
 1:3     POP     expr
 1:3     FAIL
 ```

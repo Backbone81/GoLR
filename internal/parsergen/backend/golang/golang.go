@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"runtime/trace"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -22,9 +23,11 @@ import (
 var parserTemplate string
 
 var parsedTemplate = template.Must(template.New("parser.go.template").Funcs(template.FuncMap{
+	"terminalName":        terminalName,
 	"nonterminalName":     nonterminalName,
 	"isAcceptNonterminal": isAcceptNonterminal,
 	"productionName":      productionName,
+	"stringLiteral":       stringLiteral,
 }).Parse(parserTemplate))
 
 // DefaultPackageName is the Go package the generated parser is declared in when the caller names none.
@@ -147,4 +150,13 @@ func isAcceptNonterminal(symbol frontend.Symbol) bool {
 // productionName returns the name of the constant which stands for the production of the given name.
 func productionName(name string) string {
 	return "Production" + utils.GoIdentifier(name)
+}
+
+// stringLiteral returns the given string as a Go string literal, as a raw string where it can be one because that
+// keeps the quotes of an alias readable.
+func stringLiteral(value string) string {
+	if strconv.CanBackquote(value) {
+		return "`" + value + "`"
+	}
+	return strconv.Quote(value)
 }

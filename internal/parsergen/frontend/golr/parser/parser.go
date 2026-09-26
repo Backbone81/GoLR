@@ -903,22 +903,22 @@ func (p *Parser) expectedTokens() []Token {
 // raiseSyntaxError returns the error for the given token being unexpected on the current stack, listing the tokens
 // which would have been expected instead.
 func (p *Parser) raiseSyntaxError(scanner TokenSource, terminal Token) error {
-	expected := p.expectedTokens()
+	message := p.unexpectedTokenMessage(terminal, p.expectedTokens())
 	if p.Trace != nil {
-		p.emitErrorTrace(scanner, p.unexpectedTokenMessage(terminal, expected, p.terminalTraceName))
+		p.emitErrorTrace(scanner, message)
 	}
-	return p.raiseError(scanner, fmt.Errorf("%w: %s", ErrSyntax, p.unexpectedTokenMessage(terminal, expected, Token.String)))
+	return p.raiseError(scanner, fmt.Errorf("%w: %s", ErrSyntax, message))
 }
 
-// unexpectedTokenMessage describes the given token as unexpected in place of the expected ones, naming each token with
-// the given function.
-func (p *Parser) unexpectedTokenMessage(terminal Token, expected []Token, name func(Token) string) string {
-	message := "unexpected token " + name(terminal)
+// unexpectedTokenMessage describes the given token as unexpected in place of the expected ones, naming each token by
+// its alias.
+func (p *Parser) unexpectedTokenMessage(terminal Token, expected []Token) string {
+	message := "unexpected " + p.terminalName(terminal)
 	for i, token := range expected {
 		if i == 0 {
-			message += ", expecting " + name(token)
+			message += ", expecting " + p.terminalName(token)
 		} else {
-			message += " or " + name(token)
+			message += " or " + p.terminalName(token)
 		}
 	}
 	return message
@@ -1147,6 +1147,58 @@ func (p *Parser) symbolTraceName(symbol Symbol) string {
 	}
 	terminal, _ := symbol.Terminal()
 	return p.terminalTraceName(terminal)
+}
+
+// terminalName names a terminal by the alias the grammar gives it, or by its name if it has none.
+func (p *Parser) terminalName(terminal Token) string {
+	switch terminal {
+	case EndToken:
+		return "end of input"
+	case InvalidToken:
+		return "invalid input"
+	case TokenScanner:
+		return `"@scanner"`
+	case TokenParser:
+		return `"@parser"`
+	case TokenPrecedence:
+		return `"@precedence"`
+	case TokenName:
+		return `"@name"`
+	case TokenStart:
+		return `"@start"`
+	case TokenLeft:
+		return `"@left"`
+	case TokenRight:
+		return `"@right"`
+	case TokenNone:
+		return `"@none"`
+	case TokenSkip:
+		return `"@skip"`
+	case TokenEmpty:
+		return `"@empty"`
+	case TokenError:
+		return `"@error"`
+	case TokenFragment:
+		return `"@fragment"`
+	case TokenLbrace:
+		return `"{"`
+	case TokenRbrace:
+		return `"}"`
+	case TokenLparen:
+		return `"("`
+	case TokenRparen:
+		return `")"`
+	case TokenColon:
+		return `":"`
+	case TokenSemi:
+		return `";"`
+	case TokenPipe:
+		return `"|"`
+	case TokenComma:
+		return `","`
+	default:
+		return terminal.String()
+	}
 }
 
 // terminalTraceName names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name.

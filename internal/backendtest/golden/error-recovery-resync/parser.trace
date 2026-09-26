@@ -9,15 +9,15 @@
 1:8     SHIFT   NUMBER "3"
 1:10    REDUCE  expression => NUMBER
 1:10    SHIFT   PLUS "+"
-1:12    ERROR   unexpected token PLUS
+1:12    ERROR   unexpected "+", expecting NUMBER
 1:12    POP     PLUS
 1:12    POP     expression
 1:12    RESYNC
-1:12    ERROR   (suppressed) unexpected token PLUS
+1:12    ERROR   (suppressed) unexpected "+", expecting ";"
 1:12    DISCARD PLUS "+"
 1:14    POP     $error
 1:14    RESYNC
-1:14    ERROR   (suppressed) unexpected token NUMBER
+1:14    ERROR   (suppressed) unexpected NUMBER, expecting ";"
 1:14    DISCARD NUMBER "4"
 1:15    POP     $error
 1:15    RESYNC

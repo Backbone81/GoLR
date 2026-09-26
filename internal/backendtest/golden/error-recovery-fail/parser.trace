@@ -3,6 +3,6 @@
 1:5     REDUCE  body => NUMBER
 1:5     SHIFT   CLOSE ")"
 1:7     REDUCE  program => OPEN body CLOSE
-1:7     ERROR   unexpected token SEMICOLON
+1:7     ERROR   unexpected ";", expecting end of input
 1:7     POP     program
 1:7     FAIL
