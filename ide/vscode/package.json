@@ -4,15 +4,36 @@
   "description": "Language support for GoLR grammar files (.golr).",
   "version": "0.1.0",
   "publisher": "backbone81",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/backbone81/golr",
+  "bugs": {
+    "url": "https://github.com/backbone81/golr/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/backbone81/golr"
+    "url": "https://github.com/backbone81/golr",
+    "directory": "ide/vscode"
   },
   "engines": {
     "vscode": "^1.120.0"
   },
   "categories": [
-    "Programming Languages"
+    "Programming Languages",
+    "Formatters"
+  ],
+  "keywords": [
+    "golr",
+    "grammar",
+    "parser",
+    "parser generator",
+    "scanner generator",
+    "lexer generator",
+    "lr",
+    "lr1",
+    "lalr",
+    "lalr1",
+    "ielr",
+    "ielr1"
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
