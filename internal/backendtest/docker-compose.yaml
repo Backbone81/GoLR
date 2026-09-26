@@ -110,7 +110,7 @@ services:
 
   javascript:
     <<: *common
-    image: node:26.9
+    image: node:26.10
     command: ["javascript"]
 
   typescript:
