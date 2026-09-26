@@ -222,6 +222,17 @@ typedef struct CalculatorParser {
     size_t error_recovery_shifts_remaining;
     bool out_of_memory;
 
+    /// Whether an exploratory parse found the current lookahead to be shifted eventually, so the reductions leading
+    /// there need no further check. Cleared on every shift and on every token discarded.
+    bool exploratory_parse_passed;
+
+    /// The states an exploratory parse pushes. The states below them are the ones of state_stack below
+    /// exploratory_stack_base, which the exploratory parse reads but never writes.
+    size_t *exploratory_stack;
+    size_t exploratory_count;
+    size_t exploratory_capacity;
+    size_t exploratory_stack_base;
+
     /// Reused scratch for the assembled trace line and, while it is built, its payload.
     char trace_line[CALCULATOR_TRACE_LINE_SIZE];
     char trace_payload[CALCULATOR_TRACE_LINE_SIZE];
@@ -258,6 +269,10 @@ CalculatorParseResult calculator_parser_parse(CalculatorParser *parser, const Ca
 /// How many tokens have to be shifted after a syntax error before errors are reported again. Suppressing the errors in
 /// between keeps one mistake in the input from producing an avalanche of messages which all follow from it.
 #define CALCULATOR_ERROR_RECOVERY_SHIFTS 3
+
+/// The largest number of expected tokens a syntax error lists. With more of them, the list is left out, because it
+/// would not help the reader any more.
+#define CALCULATOR_EXPECTED_TOKENS_MAX 4
 
 /// How many nodes a block of the arena holds. A reduction takes as many nodes as the production is long, so a block
 /// serves many of them.
@@ -305,6 +320,21 @@ CalculatorParseResult calculator_parser_parse(CalculatorParser *parser, const Ca
 /// The column holding the shifts of the error symbol, where the recovery reads the state to resume in.
 #define CALCULATOR_ERROR_TERMINAL_COLUMN 0
 
+/// Translates a column of the action table back into the token of its terminal. The
+/// CALCULATOR_NO_TERMINAL_COLUMN stands for no token.
+static const CalculatorToken CALCULATOR_TOKEN_BY_TERMINAL_COLUMN[11] = {
+    [1] = CALCULATOR_TOKEN_END_TOKEN,
+    [2] = CALCULATOR_TOKEN_WHITESPACE,
+    [3] = CALCULATOR_TOKEN_INTEGER,
+    [4] = CALCULATOR_TOKEN_PLUS,
+    [5] = CALCULATOR_TOKEN_MINUS,
+    [6] = CALCULATOR_TOKEN_MULTIPLY,
+    [7] = CALCULATOR_TOKEN_DIVIDE,
+    [8] = CALCULATOR_TOKEN_LPAREN,
+    [9] = CALCULATOR_TOKEN_RPAREN,
+    [10] = CALCULATOR_TOKEN_UMINUS,
+};
+
 /// Maps a state to the displacement of its row within CALCULATOR_ACTION_NEXT.
 static const uint8_t CALCULATOR_ACTION_BASE[] = {
     9, 1, 9, 9, 0, 1, 4, 1, 9, 9, 9, 9, 1, 12, 12, 1,
@@ -330,6 +360,13 @@ static const uint8_t CALCULATOR_ACTION_CHECK[] = {
 static const uint8_t CALCULATOR_DEFAULT_ACTION_BY_STATE[] = {
     3, 5, 3, 3, 3, 25, 3, 2, 3, 3, 3, 3, 29, 9, 13, 17,
     21,
+};
+
+/// Holds 1 for a state which reduces by the same production whatever the lookahead is, and 0 otherwise. A consistent
+/// state needs no lookahead, so it never starts an exploratory parse.
+static const uint8_t CALCULATOR_CONSISTENT_BY_STATE[] = {
+    0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1,
+    1,
 };
 
 /// Maps a state to the displacement of its row within CALCULATOR_GOTO_NEXT.
@@ -501,6 +538,29 @@ static bool calculator_parser_reserve_states(CalculatorParser *parser, size_t co
     return true;
 }
 
+/// Grows the stack of the exploratory parse to hold at least the given number of entries. Returns false when the
+/// allocation failed.
+static bool calculator_parser_reserve_exploratory_states(CalculatorParser *parser, size_t count) {
+    size_t capacity;
+    size_t *states;
+
+    if (count <= parser->exploratory_capacity) {
+        return true;
+    }
+    capacity = parser->exploratory_capacity == 0 ? CALCULATOR_INITIAL_STACK_CAPACITY : parser->exploratory_capacity * 2;
+    while (capacity < count) {
+        capacity *= 2;
+    }
+    states = (size_t *)realloc(parser->exploratory_stack, capacity * sizeof(size_t));
+    if (states == NULL) {
+        parser->out_of_memory = true;
+        return false;
+    }
+    parser->exploratory_stack = states;
+    parser->exploratory_capacity = capacity;
+    return true;
+}
+
 /// Grows the node stack to hold at least the given number of entries. Returns false when the allocation failed.
 static bool calculator_parser_reserve_nodes(CalculatorParser *parser, size_t count) {
     size_t capacity;
@@ -640,6 +700,28 @@ static size_t calculator_terminal_column(CalculatorToken token) {
     }
 }
 
+/// Returns the action the given state takes for the terminal of the given column.
+static size_t calculator_action(size_t state, size_t column) {
+    size_t cell_idx = CALCULATOR_ACTION_BASE[state] + column;
+    if (CALCULATOR_ACTION_CHECK[cell_idx] == column) {
+        /* An entry the state has of its own beats its default action, which is what keeps a token the grammar rejects
+           on purpose an error even in a state which reduces on everything else. */
+        return CALCULATOR_ACTION_NEXT[cell_idx];
+    }
+    return CALCULATOR_DEFAULT_ACTION_BY_STATE[state];
+}
+
+/// Returns the state the parse continues in when it reduced to the given nonterminal and uncovered the given state.
+static size_t calculator_goto_state(size_t state, size_t nonterminal) {
+    size_t cell_idx = CALCULATOR_GOTO_BASE[state] + nonterminal;
+    if (CALCULATOR_GOTO_CHECK[cell_idx] == nonterminal) {
+        return CALCULATOR_GOTO_NEXT[cell_idx];
+    }
+    /* A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
+       reduction uncovers always has one, so there is no case for a nonterminal missing from both. */
+    return CALCULATOR_DEFAULT_GOTO_BY_NONTERMINAL[nonterminal];
+}
+
 /// Returns the state to continue in when the error symbol is shifted in the given state, and whether the state can
 /// shift it at all. The states which can are the places the grammar marked to resume at after a syntax error.
 ///
@@ -660,6 +742,30 @@ static bool calculator_error_shift_state(size_t state, size_t *next_state) {
     }
     *next_state = action >> CALCULATOR_ACTION_KIND_BITS;
     return true;
+}
+
+/// Names a terminal by the alias the grammar gives it, or by its name if it has none.
+static const char *calculator_terminal_name(CalculatorToken token) {
+    switch (token) {
+    case CALCULATOR_TOKEN_END_TOKEN:
+        return "end of input";
+    case CALCULATOR_TOKEN_INVALID_TOKEN:
+        return "invalid input";
+    case CALCULATOR_TOKEN_PLUS:
+        return "\"+\"";
+    case CALCULATOR_TOKEN_MINUS:
+        return "\"-\"";
+    case CALCULATOR_TOKEN_MULTIPLY:
+        return "\"*\"";
+    case CALCULATOR_TOKEN_DIVIDE:
+        return "\"/\"";
+    case CALCULATOR_TOKEN_LPAREN:
+        return "\"(\"";
+    case CALCULATOR_TOKEN_RPAREN:
+        return "\")\"";
+    default:
+        return calculator_token_to_string(token);
+    }
 }
 
 /// Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name.
@@ -804,10 +910,6 @@ static bool calculator_parser_reduce(CalculatorParser *parser, const CalculatorT
     CalculatorParseNode node;
     size_t byte_offset = 0;
     size_t byte_length = 0;
-    size_t state;
-    size_t goto_state;
-    size_t cell_idx;
-    size_t cell_nonterminal;
 
     if (parser->trace != NULL) {
         /* The right hand side is still on the node stack here, before it is cut back below. */
@@ -817,16 +919,7 @@ static bool calculator_parser_reduce(CalculatorParser *parser, const CalculatorT
 
     parser->state_count -= pop_count;
 
-    state = calculator_parser_current_state(parser);
-    /* A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
-       reduction uncovers always has one, so there is no case for a nonterminal missing from both. */
-    goto_state = CALCULATOR_DEFAULT_GOTO_BY_NONTERMINAL[nonterminal];
-    cell_idx = CALCULATOR_GOTO_BASE[state] + nonterminal;
-    cell_nonterminal = CALCULATOR_GOTO_CHECK[cell_idx];
-    if (cell_nonterminal == nonterminal) {
-        goto_state = CALCULATOR_GOTO_NEXT[cell_idx];
-    }
-    if (!calculator_parser_push_state(parser, goto_state)) {
+    if (!calculator_parser_push_state(parser, calculator_goto_state(calculator_parser_current_state(parser), nonterminal))) {
         return false;
     }
 
@@ -867,6 +960,121 @@ static bool calculator_parser_reduce(CalculatorParser *parser, const CalculatorT
     return calculator_parser_push_node(parser, &node);
 }
 
+/// Returns the state on top of the stack of the exploratory parse.
+static size_t calculator_parser_exploratory_top(const CalculatorParser *parser) {
+    if (parser->exploratory_count != 0) {
+        return parser->exploratory_stack[parser->exploratory_count - 1];
+    }
+    return parser->state_stack[parser->exploratory_stack_base - 1];
+}
+
+/// Takes the given number of states off the stack of the exploratory parse. The states it pushed itself go first.
+/// Below them, it lowers the base index into state_stack instead of popping, so the stack of the parse is never written
+/// and needs no copy.
+static void calculator_parser_exploratory_pop(CalculatorParser *parser, size_t count) {
+    size_t pushed_count = count < parser->exploratory_count ? count : parser->exploratory_count;
+    parser->exploratory_count -= pushed_count;
+    parser->exploratory_stack_base -= count - pushed_count;
+}
+
+/// Puts the given state on top of the stack of the exploratory parse. Returns false when the allocation failed.
+static bool calculator_parser_exploratory_push(CalculatorParser *parser, size_t state) {
+    if (!calculator_parser_reserve_exploratory_states(parser, parser->exploratory_count + 1)) {
+        return false;
+    }
+    parser->exploratory_stack[parser->exploratory_count] = state;
+    parser->exploratory_count++;
+    return true;
+}
+
+/// Reports whether the parse from the current stack shifts the terminal of the given column eventually, instead of
+/// running into an error. It performs the reductions the terminal leads to on the states alone and without building
+/// nodes, so the stacks of the parse are still intact when the terminal turns out to be an error. Reports false as well
+/// when an allocation failed, which the parse then reports.
+///
+/// This is the lookahead correction of section 3.5.2 "Parser" of "PSLR(1): Pseudo-Scannerless Minimal LR(1) for the
+/// Deterministic Parsing of Composite Languages" by Joel E. Denny. It deviates from the paper in two ways. The paper
+/// runs an exploratory parse as soon as a lookahead arrives, the step runs it only before the first reduction the
+/// lookahead decides in a state which is not consistent, because a shift or an error action needs no exploring. And
+/// the paper explores on a copy of the stack, while this reads the stack in place, see
+/// calculator_parser_exploratory_pop.
+static bool calculator_parser_exploratory_parse(CalculatorParser *parser, size_t column) {
+    size_t action;
+    size_t production_idx;
+
+    parser->exploratory_count = 0;
+    parser->exploratory_stack_base = parser->state_count;
+    for (;;) {
+        action = calculator_action(calculator_parser_exploratory_top(parser), column);
+        switch (action & CALCULATOR_ACTION_KIND_MASK) {
+        case CALCULATOR_ACTION_KIND_REDUCE:
+            production_idx = action >> CALCULATOR_ACTION_KIND_BITS;
+            calculator_parser_exploratory_pop(parser, CALCULATOR_POP_COUNT_BY_PRODUCTION[production_idx]);
+            if (!calculator_parser_exploratory_push(parser, calculator_goto_state(calculator_parser_exploratory_top(parser), CALCULATOR_NONTERMINAL_BY_PRODUCTION[production_idx]))) {
+                return false;
+            }
+            break;
+        case CALCULATOR_ACTION_KIND_SHIFT:
+        case CALCULATOR_ACTION_KIND_ACCEPT:
+            return true;
+        default:
+            return false;
+        }
+    }
+}
+
+/// Writes the tokens which the parse from the current stack would shift eventually into the given array, in the order
+/// of their columns, and returns their number. It runs an exploratory parse per terminal of the grammar and leaves out
+/// the error symbol, which no scanner delivers. More than CALCULATOR_EXPECTED_TOKENS_MAX of them are not returned at
+/// all.
+static size_t calculator_parser_expected_tokens(CalculatorParser *parser, CalculatorToken expected[CALCULATOR_EXPECTED_TOKENS_MAX]) {
+    size_t count = 0;
+    size_t column;
+
+    for (column = 0; column < sizeof(CALCULATOR_TOKEN_BY_TERMINAL_COLUMN) / sizeof(CALCULATOR_TOKEN_BY_TERMINAL_COLUMN[0]); column++) {
+        if (column == CALCULATOR_NO_TERMINAL_COLUMN || column == CALCULATOR_ERROR_TERMINAL_COLUMN || !calculator_parser_exploratory_parse(parser, column)) {
+            continue;
+        }
+        if (count == CALCULATOR_EXPECTED_TOKENS_MAX) {
+            return 0;
+        }
+        expected[count] = CALCULATOR_TOKEN_BY_TERMINAL_COLUMN[column];
+        count++;
+    }
+    return count;
+}
+
+/// Writes into the given buffer a description of the given token as unexpected in place of the expected ones, naming
+/// each token by its alias, and cuts it short when it does not fit.
+static void calculator_unexpected_token_message(CalculatorToken terminal, const CalculatorToken *expected, size_t expected_count, char *buffer, size_t buffer_size) {
+    int written = snprintf(buffer, buffer_size, "unexpected %s", calculator_terminal_name(terminal));
+    size_t length = written < 0 ? 0 : (size_t)written;
+    size_t idx;
+
+    for (idx = 0; idx < expected_count && length < buffer_size; idx++) {
+        const char *separator = idx == 0 ? ", expecting " : " or ";
+        written = snprintf(buffer + length, buffer_size - length, "%s%s", separator, calculator_terminal_name(expected[idx]));
+        if (written < 0) {
+            return;
+        }
+        length += (size_t)written;
+    }
+}
+
+/// Raises the error for the given token being unexpected on the current stack, listing the tokens which would have
+/// been expected instead.
+static void calculator_parser_raise_syntax_error(CalculatorParser *parser, const CalculatorTokenSource *scanner, CalculatorToken terminal, CalculatorParseError *error) {
+    CalculatorToken expected[CALCULATOR_EXPECTED_TOKENS_MAX];
+    size_t expected_count = calculator_parser_expected_tokens(parser, expected);
+    char message[CALCULATOR_PARSE_ERROR_REASON_SIZE];
+
+    calculator_unexpected_token_message(terminal, expected, expected_count, message, sizeof(message));
+    if (parser->trace != NULL) {
+        calculator_parser_emit_error_trace(parser, scanner, message);
+    }
+    *error = calculator_parse_error_at(message, CALCULATOR_ERROR_KIND_SYNTAX, scanner);
+}
+
 /// What one step of a parse ended with.
 typedef enum CalculatorStepResult {
     /// The step performed an action and the parse goes on.
@@ -887,17 +1095,9 @@ static CalculatorStepResult calculator_parser_step(CalculatorParser *parser, con
     size_t column = calculator_terminal_column(terminal);
 
     size_t state = calculator_parser_current_state(parser);
-    size_t cell_idx = CALCULATOR_ACTION_BASE[state] + column;
-    size_t cell_column = CALCULATOR_ACTION_CHECK[cell_idx];
-    size_t action = CALCULATOR_DEFAULT_ACTION_BY_STATE[state];
+    size_t action = calculator_action(state, column);
     CalculatorParseNode node;
     char reason[CALCULATOR_PARSE_ERROR_REASON_SIZE];
-
-    if (cell_column == column) {
-        /* An entry the state has of its own beats its default action, which is what keeps a token the grammar rejects
-           on purpose an error even in a state which reduces on everything else. */
-        action = CALCULATOR_ACTION_NEXT[cell_idx];
-    }
 
     switch (action & CALCULATOR_ACTION_KIND_MASK) {
     case CALCULATOR_ACTION_KIND_SHIFT:
@@ -920,12 +1120,22 @@ static CalculatorStepResult calculator_parser_step(CalculatorParser *parser, con
             return CALCULATOR_STEP_FAILED;
         }
         scanner->next(scanner->context);
+        parser->exploratory_parse_passed = false;
         if (parser->error_recovery_shifts_remaining > 0) {
             /* Getting tokens of the input shifted again is what makes the parser trust its position. */
             parser->error_recovery_shifts_remaining--;
         }
         return CALCULATOR_STEP_CONTINUE;
     case CALCULATOR_ACTION_KIND_REDUCE:
+        if (!parser->exploratory_parse_passed && CALCULATOR_CONSISTENT_BY_STATE[state] == 0) {
+            /* The state reduces because of the lookahead, which might be one it only accepts because states were
+               merged or a default reduction was chosen. Reducing on it would leave the state the error belongs to. */
+            if (!calculator_parser_exploratory_parse(parser, column)) {
+                calculator_parser_raise_syntax_error(parser, scanner, terminal, error);
+                return CALCULATOR_STEP_FAILED;
+            }
+            parser->exploratory_parse_passed = true;
+        }
         if (!calculator_parser_reduce(parser, scanner, action >> CALCULATOR_ACTION_KIND_BITS)) {
             return CALCULATOR_STEP_FAILED;
         }
@@ -936,12 +1146,7 @@ static CalculatorStepResult calculator_parser_step(CalculatorParser *parser, con
         }
         return CALCULATOR_STEP_ACCEPT;
     case CALCULATOR_ACTION_KIND_ERROR:
-        snprintf(reason, sizeof(reason), "unexpected token %s", calculator_token_to_string(terminal));
-        *error = calculator_parse_error_at(reason, CALCULATOR_ERROR_KIND_SYNTAX, scanner);
-        if (parser->trace != NULL) {
-            snprintf(reason, sizeof(reason), "unexpected token %s", calculator_terminal_trace_name(terminal));
-            calculator_parser_emit_error_trace(parser, scanner, reason);
-        }
+        calculator_parser_raise_syntax_error(parser, scanner, terminal, error);
         return CALCULATOR_STEP_FAILED;
     default:
         /* Every value the mask selects has a case of its own, so this is never reached. It is here to make the switch
@@ -997,6 +1202,7 @@ static bool calculator_parser_recover_from_error(CalculatorParser *parser, const
         /* The discarded token is thrown away as well, so the span reaches to its end and not to its start. */
         dropped_length = scanner->byte_length(scanner->context);
         scanner->next(scanner->context);
+        parser->exploratory_parse_passed = false;
     }
     parser->error_recovery_shifts_remaining = CALCULATOR_ERROR_RECOVERY_SHIFTS;
 
@@ -1015,6 +1221,7 @@ static bool calculator_parser_recover_from_error(CalculatorParser *parser, const
             if (!calculator_parser_push_state(parser, next_state)) {
                 return false;
             }
+            parser->exploratory_parse_passed = false;
             node.symbol.kind = CALCULATOR_SYMBOL_KIND_TERMINAL;
             node.symbol.value.terminal = CALCULATOR_TOKEN_ERROR_TOKEN;
             node.byte_offset = dropped_offset;
@@ -1060,11 +1267,17 @@ void calculator_parser_init(CalculatorParser *parser) {
     parser->arena = NULL;
     parser->error_recovery_shifts_remaining = 0;
     parser->out_of_memory = false;
+    parser->exploratory_parse_passed = false;
+    parser->exploratory_stack = NULL;
+    parser->exploratory_count = 0;
+    parser->exploratory_capacity = 0;
+    parser->exploratory_stack_base = 0;
 }
 
 void calculator_parser_free(CalculatorParser *parser) {
     free(parser->state_stack);
     free(parser->node_stack);
+    free(parser->exploratory_stack);
     calculator_parser_init(parser);
 }
 
@@ -1095,6 +1308,7 @@ CalculatorParseResult calculator_parser_parse(CalculatorParser *parser, const Ca
     parser->arena = NULL;
     parser->error_recovery_shifts_remaining = 0;
     parser->out_of_memory = false;
+    parser->exploratory_parse_passed = false;
 
     /* One error slot up front, so that running out of memory later can always be reported. */
     if (!calculator_parser_reserve_errors(parser, 1) || !calculator_parser_push_state(parser, 0)) {

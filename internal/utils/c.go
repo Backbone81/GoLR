@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"math"
 	"strings"
 )
@@ -62,4 +63,35 @@ func CConstantName(prefix string, name string) string {
 // transition_base. It is upperSnakeName in the other case, and shares its notion of a word boundary.
 func lowerSnakeName(identifier string) string {
 	return strings.ToLower(upperSnakeName(identifier))
+}
+
+// CStringLiteral returns the given string as a C string literal. Control bytes are written as three digit octal
+// escapes, which unlike a hex escape cannot run into a digit following them, and a question mark after another one is
+// escaped so that no trigraph forms. Every other byte is written as it is, so UTF-8 stays readable.
+func CStringLiteral(value string) string {
+	var builder strings.Builder
+	builder.WriteByte('"')
+	for i := range len(value) {
+		char := value[i]
+		switch {
+		case char == '\\':
+			builder.WriteString(`\\`)
+		case char == '"':
+			builder.WriteString(`\"`)
+		case char == '\n':
+			builder.WriteString(`\n`)
+		case char == '\r':
+			builder.WriteString(`\r`)
+		case char == '\t':
+			builder.WriteString(`\t`)
+		case char == '?' && i > 0 && value[i-1] == '?':
+			builder.WriteString(`\?`)
+		case char < 0x20 || char == 0x7f:
+			fmt.Fprintf(&builder, `\%03o`, char)
+		default:
+			builder.WriteByte(char)
+		}
+	}
+	builder.WriteByte('"')
+	return builder.String()
 }

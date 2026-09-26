@@ -63,6 +63,11 @@ func (c TemplateContext) Const(name string) string {
 	return utils.CConstantName(c.Config.Prefix, name)
 }
 
+// TerminalName returns the name of the enumerator which stands for the given terminal.
+func (c TemplateContext) TerminalName(symbol frontend.Symbol) string {
+	return terminalName(c.Config.Prefix, symbol)
+}
+
 // NonterminalName returns the name of the enumerator which stands for the given nonterminal.
 func (c TemplateContext) NonterminalName(symbol frontend.Symbol) string {
 	return nonterminalName(c.Config.Prefix, symbol)
@@ -77,6 +82,11 @@ func (c TemplateContext) IsAcceptNonterminal(symbol frontend.Symbol) bool {
 // ProductionName returns the name of the enumerator which stands for the production of the given name.
 func (c TemplateContext) ProductionName(name string) string {
 	return productionName(c.Config.Prefix, name)
+}
+
+// StringLiteral returns the given string as a C string literal.
+func (c TemplateContext) StringLiteral(value string) string {
+	return utils.CStringLiteral(value)
 }
 
 // FromParser writes the parser as C source code to the given writer. Returns an error if the C source code can not be
