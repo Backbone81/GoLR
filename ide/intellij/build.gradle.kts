@@ -1,3 +1,5 @@
+import org.jetbrains.changelog.Changelog
+import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 plugins {
@@ -27,8 +29,40 @@ dependencies {
     }
 }
 
+// CHANGELOG.md is written by the changelog utility. The Gradle changelog plugin only reads it for the change notes.
+changelog {
+    groups.empty()
+    // Release headings carry the version with a leading "v", like "## v0.1.0 (2026-09-26)".
+    headerParserRegex.set(Regex("""v?(\d+\.\d+\.\d+)"""))
+}
+
 intellijPlatform {
     pluginConfiguration {
+        // The Marketplace description is the part of README.md between the title and the first section heading.
+        description = providers.fileContents(layout.projectDirectory.file("README.md")).asText.map {
+            val lines = it.lines()
+            val start = lines.indexOfFirst { line -> line.startsWith("# ") }
+            val end = lines.indexOfFirst { line -> line.startsWith("## ") }
+            val text = if (start >= 0 && end > start) lines.subList(start + 1, end).joinToString("\n").trim() else ""
+            if (text.isEmpty()) {
+                throw GradleException("README.md has no text between the title and the first section heading")
+            }
+            markdownToHTML(text)
+        }
+
+        // The change notes are the changelog section of this version, or the unreleased section before its release.
+        // The changelog is read into a local variable, so the lambda does not capture the project, which the
+        // configuration cache cannot store.
+        val changelog = project.changelog
+        changeNotes = providers.gradleProperty("version").map { version ->
+            with(changelog) {
+                renderItem(
+                    (getOrNull(version) ?: getUnreleased()).withHeader(false).withEmptySections(false),
+                    Changelog.OutputType.HTML,
+                )
+            }
+        }
+
         ideaVersion {
             // since-build stays derived from the compile-time platform floor. No until-build: the
             // plugin uses only core platform API (it depends on com.intellij.modules.platform), and

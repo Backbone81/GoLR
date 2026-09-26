@@ -1,49 +1,35 @@
 # GoLR Plugin
 
-This plugin for IntelliJ provides language support for [GoLR](https://github.com/backbone81/golr) grammar files (`.golr`).
-
-It provides:
+This plugin for IntelliJ provides language support for [GoLR](https://github.com/Backbone81/GoLR) grammar files
+(`.golr`) with:
 
 - Syntax highlighting
-- Go to declaration for terminal names, terminal string aliases and nonterminal names
-- Rename for terminal names, terminal string aliases and nonterminal names
-- Find usage for terminal names, terminal string aliases and nonterminal names
 - Code completion for terminal names, nonterminal names and keywords in the context they are valid
-- Reformat file
+- Rename for terminal names, terminal string aliases and nonterminal names
+- Go to declaration for terminal names, terminal string aliases and nonterminal names
+- Usage count above every terminal and nonterminal declaration, which opens the usages on click
+- Find usages for terminal names, terminal string aliases and nonterminal names
+- Reformat code
+- Comment with line comment and block comment
+- Brace matching
 
-## Development
+## Requirements
 
-The plugin is developed in Kotlin.
+IntelliJ IDEA 2025.3 or later. The plugin only depends on the IntelliJ Platform, so other JetBrains IDEs of the same
+versions work too.
 
-To run the plugin with a new instance of the IDE:
+## Supported Grammar Syntax
 
-```shell
-make run
-```
+The plugin supports the `.golr` syntax of GoLR v0.5.0, which is described in
+[Parser Generator Frontend GoLR](https://github.com/Backbone81/GoLR/blob/main/docs/parsergen-frontend-golr.md) and
+[Scanner Generator Frontend GoLR](https://github.com/Backbone81/GoLR/blob/main/docs/scannergen-frontend-golr.md).
 
-To only build the plugin:
+## Installation
 
-```shell
-make build
-```
+Install the plugin in Settings | Plugins | Marketplace by searching for "GoLR".
 
-To run the tests:
+To install it from a `.zip` file, select "Install Plugin from Disk..." from the gear icon in Settings | Plugins.
 
-```shell
-make test
-```
+## Limitations
 
-To package the plugin as a file for manual installation from disk:
-
-```shell
-make package
-```
-
-The installation file can then be found in the `build/distributions` folder.
-
-To release a new version:
-
-1. Set `version` in `gradle.properties` to `X.Y.Z`.
-2. Run `changelog release` in this directory and enter the version as `vX.Y.Z`.
-3. Commit the changes, tag the commit with `intellij/vX.Y.Z` and push the tag.
-4. Publish the file built by `make package` on the JetBrains Marketplace.
+Errors in the grammar file are not reported in the editor. Run `golr parser` or `golr scanner` on the file to see them.

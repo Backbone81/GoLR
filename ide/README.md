@@ -1,10 +1,9 @@
-# IDE Integrations
+# IDE Plugins
 
-This folder contains IDE integrations to make working with GoLR files easier. The intended feature set is:
+This directory contains the IDE plugins for GoLR grammar files (`.golr`):
 
-- Syntax highlighting
-- Go to definition
-- Rename symbol
-- Find usage
-- Auto complete
-- Code formatting
+- [IntelliJ Plugin](intellij/README.md)
+- [Visual Studio Code Extension](vscode/README.md)
+
+Both provide syntax highlighting, navigation between declarations and references, rename, code completion and
+formatting.

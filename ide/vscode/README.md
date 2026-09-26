@@ -1,50 +1,35 @@
 # GoLR Extension
 
-This extension for Visual Studio Code provides language support for [GoLR](https://github.com/backbone81/golr) grammar files (`.golr`).
-
-It provides:
+This extension for Visual Studio Code provides language support for [GoLR](https://github.com/Backbone81/GoLR) grammar
+files (`.golr`) with:
 
 - Syntax highlighting
-- Go to definition for terminal names, terminal string aliases and nonterminal names
-- Rename symbol for terminal names, terminal string aliases and nonterminal names
-- Find all references for terminal names, terminal string aliases and nonterminal names
 - Code completion for terminal names, nonterminal names and keywords in the context they are valid
+- Rename symbol for terminal names, terminal string aliases and nonterminal names
+- Go to definition for terminal names, terminal string aliases and nonterminal names
+- Reference count above every terminal and nonterminal declaration, which opens the references on click
+- Find all references for terminal names, terminal string aliases and nonterminal names
 - Format document
+- Toggle line and block comments
+- Bracket matching and auto closing of brackets and quotes
 
-## Development
+## Requirements
 
-The plugin is developed in TypeScript.
+Visual Studio Code 1.120 or later.
 
-To run the plugin with a new instance of the IDE:
+## Supported Grammar Syntax
 
-```shell
-make run
-```
+The extension supports the `.golr` syntax of GoLR v0.5.0, which is described in
+[Parser Generator Frontend GoLR](https://github.com/Backbone81/GoLR/blob/main/docs/parsergen-frontend-golr.md) and
+[Scanner Generator Frontend GoLR](https://github.com/Backbone81/GoLR/blob/main/docs/scannergen-frontend-golr.md).
 
-To only build the plugin:
+## Installation
 
-```shell
-make build
-```
+Install the extension from the Extensions view by searching for "GoLR".
 
-To run the tests:
+To install it from a `.vsix` file, select "Install from VSIX..." from the "..." menu of the
+Extensions view.
 
-```shell
-make test
-```
+## Limitations
 
-To package the plugin as a file for manual installation from disk:
-
-```shell
-make package
-```
-
-The installation file can then be found in the root of the plugin.
-
-To release a new version:
-
-1. Set the version with `npm version X.Y.Z --no-git-tag-version`, which updates `package.json` and
-   `package-lock.json`.
-2. Run `changelog release` in this directory and enter the version as `vX.Y.Z`.
-3. Commit the changes, tag the commit with `vscode/vX.Y.Z` and push the tag.
-4. Publish the file built by `make package` on the Visual Studio Marketplace.
+Errors in the grammar file are not reported in the editor. Run `golr parser` or `golr scanner` on the file to see them.

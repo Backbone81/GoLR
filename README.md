@@ -78,6 +78,11 @@ See the [Calculator Example](examples/calculator/README.md) for a simple and com
 
 See the `examples` directory for parsers generated with GoLR.
 
+## IDE Plugins
+
+The [IntelliJ Plugin](ide/intellij/README.md) and the [Visual Studio Code Extension](ide/vscode/README.md) provide
+syntax highlighting, navigation, rename, code completion and formatting for `.golr` grammar files.
+
 ## Command Line Parameters
 
 The GoLR CLI supports several command line parameters. Use `--help` for a help screen.
