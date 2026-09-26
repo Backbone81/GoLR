@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"math"
 	"strings"
 )
@@ -56,14 +57,34 @@ func KotlinConstantName(identifier string) string {
 //
 // Kotlin reads a dollar sign in a string literal as the start of a template expression, so a name which carries one -
 // the augmented start symbol $accept and the end of input terminal $end both do - has to be escaped or the generated
-// file does not compile.
+// file does not compile. Control characters are written as \u escapes, which unlike in Java are only read inside a
+// literal and take exactly four digits. Every other byte is written as it is, so UTF-8 stays readable.
 func KotlinString(text string) string {
-	replacer := strings.NewReplacer(
-		`\`, `\\`,
-		`"`, `\"`,
-		`$`, `\$`,
-	)
-	return `"` + replacer.Replace(text) + `"`
+	var builder strings.Builder
+	builder.WriteByte('"')
+	for i := range len(text) {
+		char := text[i]
+		switch {
+		case char == '\\':
+			builder.WriteString(`\\`)
+		case char == '"':
+			builder.WriteString(`\"`)
+		case char == '$':
+			builder.WriteString(`\$`)
+		case char == '\n':
+			builder.WriteString(`\n`)
+		case char == '\r':
+			builder.WriteString(`\r`)
+		case char == '\t':
+			builder.WriteString(`\t`)
+		case char < 0x20 || char == 0x7f:
+			fmt.Fprintf(&builder, `\u%04x`, char)
+		default:
+			builder.WriteByte(char)
+		}
+	}
+	builder.WriteByte('"')
+	return builder.String()
 }
 
 // KotlinArray is how the generated Kotlin code spells an array of one of the integer types KotlinIntType returns.

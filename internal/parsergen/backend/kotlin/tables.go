@@ -29,6 +29,10 @@ type Tables struct {
 	// DefaultActionByState holds, for every state, the action it takes for a terminal ActionNext has no entry for.
 	DefaultActionByState utils.KotlinTable
 
+	// ConsistentByState holds, for every state, 1 when it reduces by the same production whatever the lookahead is,
+	// and 0 otherwise.
+	ConsistentByState utils.KotlinTable
+
 	// GotoBase maps a state to the displacement of its row within GotoNext.
 	GotoBase utils.KotlinTable
 
@@ -66,6 +70,7 @@ func NewTables(parser backend.Parser) Tables {
 		ActionNext:               utils.NewKotlinTable("actionNext", shared.ActionNext),
 		ActionCheck:              utils.NewKotlinTable("actionCheck", shared.ActionCheck),
 		DefaultActionByState:     utils.NewKotlinTable("defaultActionByState", shared.DefaultActionByState),
+		ConsistentByState:        utils.NewKotlinTable("consistentByState", shared.ConsistentByState),
 		GotoBase:                 utils.NewKotlinTable("gotoBase", shared.GotoBase),
 		GotoNext:                 utils.NewKotlinTable("gotoNext", shared.GotoNext),
 		GotoCheck:                utils.NewKotlinTable("gotoCheck", shared.GotoCheck),

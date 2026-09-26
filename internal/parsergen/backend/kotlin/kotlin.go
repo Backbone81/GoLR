@@ -21,6 +21,7 @@ import (
 var parserTemplate string
 
 var parsedTemplate = template.Must(template.New("parser.kt.template").Funcs(template.FuncMap{
+	"terminalName":        terminalName,
 	"nonterminalName":     nonterminalName,
 	"isAcceptNonterminal": isAcceptNonterminal,
 	"kotlinString":        utils.KotlinString,

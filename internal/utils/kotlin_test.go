@@ -54,6 +54,17 @@ var _ = Describe("Kotlin", func() {
 			Expect(utils.KotlinString(`a"b`)).To(Equal(`"a\"b"`))
 			Expect(utils.KotlinString(`a\b`)).To(Equal(`"a\\b"`))
 		})
+
+		It("should escape control characters", func() {
+			Expect(utils.KotlinString("a\nb\tc\r")).To(Equal(`"a\nb\tc\r"`))
+			// A \u escape takes exactly four digits, so the hex digit after it stays a character of its own.
+			Expect(utils.KotlinString("\x00a")).To(Equal(`"\u0000a"`))
+			Expect(utils.KotlinString("\x7f")).To(Equal(`"\u007f"`))
+		})
+
+		It("should keep UTF-8 as it is", func() {
+			Expect(utils.KotlinString("größer")).To(Equal(`"größer"`))
+		})
 	})
 
 	Context("NewKotlinArray", func() {

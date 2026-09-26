@@ -205,6 +205,12 @@ private sealed interface StepResult {
  */
 private const val ERROR_RECOVERY_SHIFTS = 3
 
+/**
+ * The largest number of expected tokens a syntax error lists. With more of them, the list is left out, because it would
+ * not help the reader any more.
+ */
+private const val EXPECTED_TOKENS_MAX = 4
+
 /** How many states the stacks start with room for. They grow as a deeper parse needs them to. */
 private const val INITIAL_STACK_CAPACITY = 64
 
@@ -255,6 +261,24 @@ private const val ERROR_TERMINAL_COLUMN = 0
  */
 private val TERMINAL_COLUMN_BY_TOKEN: ByteArray = newTerminalColumnByToken()
 
+/**
+ * Translates a column of the action table back into the token of its terminal. The [NO_TERMINAL_COLUMN] stands for no
+ * token and holds [Token.INVALID_TOKEN].
+ */
+private val TOKEN_BY_TERMINAL_COLUMN: Array<Token> = arrayOf(
+    Token.INVALID_TOKEN,
+    Token.END_TOKEN,
+    Token.TOKEN_WHITESPACE,
+    Token.TOKEN_INTEGER,
+    Token.TOKEN_PLUS,
+    Token.TOKEN_MINUS,
+    Token.TOKEN_MULTIPLY,
+    Token.TOKEN_DIVIDE,
+    Token.TOKEN_LPAREN,
+    Token.TOKEN_RPAREN,
+    Token.TOKEN_UMINUS,
+)
+
 /** Maps a state to the displacement of its row within [ACTION_NEXT]. */
 private val ACTION_BASE: ByteArray = actionBase0()
 
@@ -275,6 +299,12 @@ private val ACTION_CHECK: ByteArray = actionCheck0()
  * error action.
  */
 private val DEFAULT_ACTION_BY_STATE: ByteArray = defaultActionByState0()
+
+/**
+ * Holds 1 for a state which reduces by the same production whatever the lookahead is, and 0 otherwise. A consistent
+ * state needs no lookahead, so it never starts an exploratory parse.
+ */
+private val CONSISTENT_BY_STATE: ByteArray = consistentByState0()
 
 /** Maps a state to the displacement of its row within [GOTO_NEXT]. */
 private val GOTO_BASE: ByteArray = gotoBase0()
@@ -327,6 +357,24 @@ class Parser {
     private var errorRecoveryShiftsRemaining = 0
 
     /**
+     * Whether an exploratory parse found the current lookahead to be shifted eventually, so the reductions leading
+     * there need no further check. Cleared on every shift and on every token discarded.
+     */
+    private var exploratoryParsePassed = false
+
+    /**
+     * The states an exploratory parse pushes. The states below them are the ones of [stateStack] below
+     * [exploratoryStackBase], which the exploratory parse reads but never writes.
+     */
+    private var exploratoryStack = IntArray(INITIAL_STACK_CAPACITY)
+
+    /** How many entries of [exploratoryStack] are in use. */
+    private var exploratoryStackSize = 0
+
+    /** How many entries of [stateStack] the exploratory parse still reads. */
+    private var exploratoryStackBase = 0
+
+    /**
      * Parses the tokens the scanner delivers. Can be called more than once, with a different scanner each time.
      *
      * When the grammar marks places to resume at with the error symbol, a syntax error does not end the parse: the
@@ -342,6 +390,7 @@ class Parser {
         nodeStack.clear()
         errors.clear()
         errorRecoveryShiftsRemaining = 0
+        exploratoryParsePassed = false
 
         pushState(0)
 
@@ -387,14 +436,7 @@ class Parser {
         val column = terminalColumn(terminal)
 
         val state = currentState()
-        val cellIdx = ACTION_BASE[state].toInt() + column
-        // An entry the state has of its own beats its default action, which is what keeps a token the grammar rejects
-        // on purpose an error even in a state which reduces on everything else.
-        val action = if (ACTION_CHECK[cellIdx].toInt() == column) {
-            ACTION_NEXT[cellIdx].toInt()
-        } else {
-            DEFAULT_ACTION_BY_STATE[state].toInt()
-        }
+        val action = action(state, column)
 
         return when (action and ACTION_KIND_MASK) {
             ACTION_KIND_SHIFT -> {
@@ -406,6 +448,7 @@ class Parser {
                     ParseNode(TerminalSymbol(terminal), scanner.byteOffset, scanner.byteLength, emptyList(), null),
                 )
                 scanner.next()
+                exploratoryParsePassed = false
                 if (errorRecoveryShiftsRemaining > 0) {
                     // Getting tokens of the input shifted again is what makes the parser trust its position.
                     errorRecoveryShiftsRemaining--
@@ -414,6 +457,15 @@ class Parser {
             }
 
             ACTION_KIND_REDUCE -> {
+                if (!exploratoryParsePassed && CONSISTENT_BY_STATE[state].toInt() == 0) {
+                    // The state reduces because of the lookahead, which might be one it only accepts because states
+                    // were merged or a default reduction was chosen. Reducing on it would leave the state the error
+                    // belongs to.
+                    if (!exploratoryParse(column)) {
+                        return StepResult.Failed(raiseSyntaxError(scanner, terminal))
+                    }
+                    exploratoryParsePassed = true
+                }
                 reduce(scanner, action shr ACTION_KIND_BITS)
                 StepResult.Continue
             }
@@ -425,12 +477,7 @@ class Parser {
                 StepResult.Accept
             }
 
-            ACTION_KIND_ERROR -> {
-                if (trace != null) {
-                    emitErrorTrace(scanner, "unexpected token ${terminalTraceName(terminal)}")
-                }
-                StepResult.Failed(ParseError("unexpected token $terminal", ErrorKind.SYNTAX, scanner))
-            }
+            ACTION_KIND_ERROR -> StepResult.Failed(raiseSyntaxError(scanner, terminal))
 
             else -> {
                 if (trace != null) {
@@ -465,16 +512,7 @@ class Parser {
 
         stateStackSize -= popCount
 
-        val state = currentState()
-        val cellIdx = GOTO_BASE[state].toInt() + nonterminal
-        // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
-        // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
-        val gotoState = if (GOTO_CHECK[cellIdx].toInt() == nonterminal) {
-            GOTO_NEXT[cellIdx].toInt()
-        } else {
-            DEFAULT_GOTO_BY_NONTERMINAL[nonterminal].toInt()
-        }
-        pushState(gotoState)
+        pushState(gotoState(currentState(), nonterminal))
 
         // The node starts where its first child starts and ends where its last child ends.
         var byteOffset = 0
@@ -506,6 +544,97 @@ class Parser {
                 Production.forIdx(productionIdx),
             ),
         )
+    }
+
+    /**
+     * Reports whether the parse from the current stack shifts the terminal of the given column eventually, instead of
+     * running into an error. It performs the reductions the terminal leads to on the states alone and without building
+     * nodes, so the stacks of the parse are still intact when the terminal turns out to be an error.
+     *
+     * This is the lookahead correction of section 3.5.2 "Parser" of "PSLR(1): Pseudo-Scannerless Minimal LR(1) for the
+     * Deterministic Parsing of Composite Languages" by Joel E. Denny. It deviates from the paper in two ways. The paper
+     * runs an exploratory parse as soon as a lookahead arrives, [step] runs it only before the first reduction the
+     * lookahead decides in a state which is not consistent, because a shift or an error action needs no exploring. And
+     * the paper explores on a copy of the stack, while this reads the stack in place, see [exploratoryPop].
+     */
+    private fun exploratoryParse(column: Int): Boolean {
+        exploratoryStackSize = 0
+        exploratoryStackBase = stateStackSize
+        while (true) {
+            val action = action(exploratoryTop(), column)
+            when (action and ACTION_KIND_MASK) {
+                ACTION_KIND_REDUCE -> {
+                    val productionIdx = action shr ACTION_KIND_BITS
+                    exploratoryPop(POP_COUNT_BY_PRODUCTION[productionIdx].toInt())
+                    exploratoryPush(
+                        gotoState(exploratoryTop(), NONTERMINAL_BY_PRODUCTION[productionIdx].toInt()),
+                    )
+                }
+
+                ACTION_KIND_SHIFT, ACTION_KIND_ACCEPT -> return true
+
+                else -> return false
+            }
+        }
+    }
+
+    /** Returns the state on top of the stack of the exploratory parse. */
+    private fun exploratoryTop(): Int =
+        if (exploratoryStackSize != 0) {
+            exploratoryStack[exploratoryStackSize - 1]
+        } else {
+            stateStack[exploratoryStackBase - 1]
+        }
+
+    /**
+     * Takes the given number of states off the stack of the exploratory parse. The states it pushed itself go first.
+     * Below them, it lowers the base index into [stateStack] instead of popping, so the stack of the parse is never
+     * written and needs no copy.
+     */
+    private fun exploratoryPop(count: Int) {
+        val pushedCount = minOf(count, exploratoryStackSize)
+        exploratoryStackSize -= pushedCount
+        exploratoryStackBase -= count - pushedCount
+    }
+
+    /** Puts the given state on top of the stack of the exploratory parse, growing it when it is full. */
+    private fun exploratoryPush(state: Int) {
+        if (exploratoryStackSize == exploratoryStack.size) {
+            exploratoryStack = exploratoryStack.copyOf(exploratoryStack.size * 2)
+        }
+        exploratoryStack[exploratoryStackSize] = state
+        exploratoryStackSize++
+    }
+
+    /**
+     * Returns the tokens which the parse from the current stack would shift eventually, in the order of their columns.
+     * It runs an exploratory parse per terminal of the grammar and leaves out the error symbol, which no scanner
+     * delivers. More than [EXPECTED_TOKENS_MAX] of them are not returned at all.
+     */
+    private fun expectedTokens(): List<Token> {
+        val result = ArrayList<Token>(EXPECTED_TOKENS_MAX)
+        for (column in TOKEN_BY_TERMINAL_COLUMN.indices) {
+            if (column == NO_TERMINAL_COLUMN || column == ERROR_TERMINAL_COLUMN || !exploratoryParse(column)) {
+                continue
+            }
+            if (result.size == EXPECTED_TOKENS_MAX) {
+                return emptyList()
+            }
+            result.add(TOKEN_BY_TERMINAL_COLUMN[column])
+        }
+        return result
+    }
+
+    /**
+     * Returns the error for the given token being unexpected on the current stack, listing the tokens which would have
+     * been expected instead.
+     */
+    private fun raiseSyntaxError(scanner: TokenSource, terminal: Token): ParseError {
+        val message = unexpectedTokenMessage(terminal, expectedTokens())
+        if (trace != null) {
+            emitErrorTrace(scanner, message)
+        }
+        return ParseError(message, ErrorKind.SYNTAX, scanner)
     }
 
     /**
@@ -546,6 +675,7 @@ class Parser {
             // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
             droppedLength = scanner.byteLength
             scanner.next()
+            exploratoryParsePassed = false
         }
         errorRecoveryShiftsRemaining = ERROR_RECOVERY_SHIFTS
 
@@ -563,6 +693,7 @@ class Parser {
                 }
                 // Shift the error symbol. Its node covers what this round dropped.
                 pushState(nextState)
+                exploratoryParsePassed = false
                 nodeStack.add(
                     ParseNode(TerminalSymbol(Token.ERROR_TOKEN), droppedOffset, droppedLength, emptyList(), null),
                 )
@@ -622,12 +753,47 @@ class Parser {
     }
 }
 
+/** Describes the given token as unexpected in place of the expected ones, naming each token by its alias. */
+private fun unexpectedTokenMessage(terminal: Token, expected: List<Token>): String {
+    val message = StringBuilder("unexpected ").append(terminalName(terminal))
+    for ((i, token) in expected.withIndex()) {
+        if (i == 0) {
+            message.append(", expecting ").append(terminalName(token))
+        } else {
+            message.append(" or ").append(terminalName(token))
+        }
+    }
+    return message.toString()
+}
+
 /**
  * Returns the column of the action table which holds the decisions for the given token. A token the grammar does not
  * have, and one outside the range the scanner promises, both get [NO_TERMINAL_COLUMN].
  */
 private fun terminalColumn(terminal: Token): Int =
     TERMINAL_COLUMN_BY_TOKEN.getOrElse(terminal.ordinal) { NO_TERMINAL_COLUMN.toByte() }.toInt()
+
+/** Returns the action the given state takes for the terminal of the given column. */
+private fun action(state: Int, column: Int): Int {
+    val cellIdx = ACTION_BASE[state].toInt() + column
+    if (ACTION_CHECK[cellIdx].toInt() == column) {
+        // An entry the state has of its own beats its default action, which is what keeps a token the grammar rejects
+        // on purpose an error even in a state which reduces on everything else.
+        return ACTION_NEXT[cellIdx].toInt()
+    }
+    return DEFAULT_ACTION_BY_STATE[state].toInt()
+}
+
+/** Returns the state the parse continues in when it reduced to the given nonterminal and uncovered the given state. */
+private fun gotoState(state: Int, nonterminal: Int): Int {
+    val cellIdx = GOTO_BASE[state].toInt() + nonterminal
+    if (GOTO_CHECK[cellIdx].toInt() == nonterminal) {
+        return GOTO_NEXT[cellIdx].toInt()
+    }
+    // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a reduction
+    // uncovers always has one, so there is no case for a nonterminal missing from both.
+    return DEFAULT_GOTO_BY_NONTERMINAL[nonterminal].toInt()
+}
 
 /**
  * Returns the state to continue in when the error symbol is shifted in the given state, or null when the state cannot
@@ -666,6 +832,20 @@ private fun symbolTraceName(symbol: ParseSymbol): String =
     when (symbol) {
         is NonterminalSymbol -> symbol.nonterminal.toString()
         is TerminalSymbol -> terminalTraceName(symbol.token)
+    }
+
+/** Names a terminal by the alias the grammar gives it, or by its name if it has none. */
+private fun terminalName(terminal: Token): String =
+    when (terminal) {
+        Token.END_TOKEN -> "end of input"
+        Token.INVALID_TOKEN -> "invalid input"
+        Token.TOKEN_PLUS -> "\"+\""
+        Token.TOKEN_MINUS -> "\"-\""
+        Token.TOKEN_MULTIPLY -> "\"*\""
+        Token.TOKEN_DIVIDE -> "\"/\""
+        Token.TOKEN_LPAREN -> "\"(\""
+        Token.TOKEN_RPAREN -> "\")\""
+        else -> terminal.toString()
     }
 
 /** Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name. */
@@ -741,6 +921,12 @@ private fun actionCheck0(): ByteArray = byteArrayOf(
 private fun defaultActionByState0(): ByteArray = byteArrayOf(
     3, 5, 3, 3, 3, 25, 3, 2, 3, 3, 3, 3, 29, 9, 13, 17,
     21,
+)
+
+/** Returns chunk 0 of [CONSISTENT_BY_STATE]. */
+private fun consistentByState0(): ByteArray = byteArrayOf(
+    0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1,
+    1,
 )
 
 /** Returns chunk 0 of [GOTO_BASE]. */
