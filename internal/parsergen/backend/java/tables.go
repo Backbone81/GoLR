@@ -31,6 +31,10 @@ type Tables struct {
 	// DefaultActionByState holds, for every state, the action it takes for a terminal ActionNext has no entry for.
 	DefaultActionByState utils.JavaTable
 
+	// ConsistentByState holds, for every state, 1 when it reduces by the same production whatever the lookahead is,
+	// and 0 otherwise.
+	ConsistentByState utils.JavaTable
+
 	// GotoBase maps a state to the displacement of its row within GotoNext.
 	GotoBase utils.JavaTable
 
@@ -71,6 +75,7 @@ func NewTables(parser backend.Parser) Tables {
 		ActionNext:               utils.NewJavaTable("actionNext", shared.ActionNext),
 		ActionCheck:              utils.NewJavaTable("actionCheck", shared.ActionCheck),
 		DefaultActionByState:     utils.NewJavaTable("defaultActionByState", shared.DefaultActionByState),
+		ConsistentByState:        utils.NewJavaTable("consistentByState", shared.ConsistentByState),
 		GotoBase:                 utils.NewJavaTable("gotoBase", shared.GotoBase),
 		GotoNext:                 utils.NewJavaTable("gotoNext", shared.GotoNext),
 		GotoCheck:                utils.NewJavaTable("gotoCheck", shared.GotoCheck),
@@ -91,6 +96,7 @@ func concatTypes(tables Tables) []string {
 		tables.ActionNext.Type,
 		tables.ActionCheck.Type,
 		tables.DefaultActionByState.Type,
+		tables.ConsistentByState.Type,
 		tables.GotoBase.Type,
 		tables.GotoNext.Type,
 		tables.GotoCheck.Type,

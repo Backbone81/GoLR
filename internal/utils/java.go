@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"fmt"
 	"math"
+	"strings"
 )
 
 // javaValuesPerMethod is the number of table entries one generated method holds.
@@ -47,6 +49,36 @@ func NewJavaIntArray(values []int) IntArray {
 // so that TransitionBase becomes TRANSITION_BASE.
 func JavaConstantName(identifier string) string {
 	return upperSnakeName(identifier)
+}
+
+// JavaStringLiteral returns the given string as a Java string literal. Control characters are written as octal
+// escapes of three digits, which cannot run into a digit following them. A \u escape would not do, because the compiler
+// translates it before it reads the literal, so \u000a would end the line in the middle of it. Every other byte is
+// written as it is, so UTF-8 stays readable.
+func JavaStringLiteral(value string) string {
+	var builder strings.Builder
+	builder.WriteByte('"')
+	for i := range len(value) {
+		char := value[i]
+		switch {
+		case char == '\\':
+			builder.WriteString(`\\`)
+		case char == '"':
+			builder.WriteString(`\"`)
+		case char == '\n':
+			builder.WriteString(`\n`)
+		case char == '\r':
+			builder.WriteString(`\r`)
+		case char == '\t':
+			builder.WriteString(`\t`)
+		case char < 0x20 || char == 0x7f:
+			fmt.Fprintf(&builder, `\%03o`, char)
+		default:
+			builder.WriteByte(char)
+		}
+	}
+	builder.WriteByte('"')
+	return builder.String()
 }
 
 // JavaNameTable is a lookup table whose entries are the names of constants rather than numbers. It is chunked the same

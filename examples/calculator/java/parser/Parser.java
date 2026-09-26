@@ -225,6 +225,12 @@ public final class Parser {
      */
     private static final int ERROR_RECOVERY_SHIFTS = 3;
 
+    /**
+     * The largest number of expected tokens a syntax error lists. With more of them, the list is left out, because it
+     * would not help the reader any more.
+     */
+    private static final int EXPECTED_TOKENS_MAX = 4;
+
     /** What {@link #errorShiftState} returns for a state which cannot shift the error symbol. */
     private static final int NO_ERROR_SHIFT_STATE = -1;
 
@@ -293,6 +299,24 @@ public final class Parser {
      */
     private static final byte[] TERMINAL_COLUMN_BY_TOKEN = newTerminalColumnByToken();
 
+    /**
+     * Translates a column of the action table back into the token of its terminal. The {@link #NO_TERMINAL_COLUMN}
+     * stands for no token and holds null.
+     */
+    private static final Scanner.Token[] TOKEN_BY_TERMINAL_COLUMN = {
+        null,
+        Scanner.Token.END_TOKEN,
+        Scanner.Token.TOKEN_WHITESPACE,
+        Scanner.Token.TOKEN_INTEGER,
+        Scanner.Token.TOKEN_PLUS,
+        Scanner.Token.TOKEN_MINUS,
+        Scanner.Token.TOKEN_MULTIPLY,
+        Scanner.Token.TOKEN_DIVIDE,
+        Scanner.Token.TOKEN_LPAREN,
+        Scanner.Token.TOKEN_RPAREN,
+        Scanner.Token.TOKEN_UMINUS,
+    };
+
     /** Maps a state to the displacement of its row within {@link #ACTION_NEXT}. */
     private static final byte[] ACTION_BASE = concat(
             actionBase0());
@@ -317,6 +341,13 @@ public final class Parser {
      */
     private static final byte[] DEFAULT_ACTION_BY_STATE = concat(
             defaultActionByState0());
+
+    /**
+     * Holds 1 for a state which reduces by the same production whatever the lookahead is, and 0 otherwise. A
+     * consistent state needs no lookahead, so it never starts an exploratory parse.
+     */
+    private static final byte[] CONSISTENT_BY_STATE = concat(
+            consistentByState0());
 
     /** Maps a state to the displacement of its row within {@link #GOTO_NEXT}. */
     private static final byte[] GOTO_BASE = concat(
@@ -374,6 +405,24 @@ public final class Parser {
     private int errorRecoveryShiftsRemaining;
 
     /**
+     * Whether an exploratory parse found the current lookahead to be shifted eventually, so the reductions leading
+     * there need no further check. Cleared on every shift and on every token discarded.
+     */
+    private boolean exploratoryParsePassed;
+
+    /**
+     * The states an exploratory parse pushes. The states below them are the ones of {@link #stateStack} below
+     * {@link #exploratoryStackBase}, which the exploratory parse reads but never writes.
+     */
+    private int[] exploratoryStack = new int[INITIAL_STACK_CAPACITY];
+
+    /** How many entries of {@link #exploratoryStack} are in use. */
+    private int exploratoryStackSize;
+
+    /** How many entries of {@link #stateStack} the exploratory parse still reads. */
+    private int exploratoryStackBase;
+
+    /**
      * Parses the tokens the scanner delivers. Can be called more than once, with a different scanner each time.
      *
      * <p>When the grammar marks places to resume at with the error symbol, a syntax error does not end the parse: the
@@ -387,6 +436,7 @@ public final class Parser {
         nodeStack.clear();
         errors.clear();
         errorRecoveryShiftsRemaining = 0;
+        exploratoryParsePassed = false;
 
         pushState(0);
 
@@ -434,13 +484,7 @@ public final class Parser {
         int column = terminalColumn(terminal);
 
         int state = currentState();
-        int cellIdx = ACTION_BASE[state] + column;
-        int action = DEFAULT_ACTION_BY_STATE[state];
-        if (ACTION_CHECK[cellIdx] == column) {
-            // An entry the state has of its own beats its default action, which is what keeps a token the grammar
-            // rejects on purpose an error even in a state which reduces on everything else.
-            action = ACTION_NEXT[cellIdx];
-        }
+        int action = action(state, column);
 
         return switch (action & ACTION_KIND_MASK) {
             case ACTION_KIND_SHIFT -> {
@@ -459,6 +503,7 @@ public final class Parser {
                                 List.of(),
                                 null));
                 scanner.next();
+                exploratoryParsePassed = false;
                 if (errorRecoveryShiftsRemaining > 0) {
                     // Getting tokens of the input shifted again is what makes the parser trust its position.
                     errorRecoveryShiftsRemaining--;
@@ -466,6 +511,15 @@ public final class Parser {
                 yield CONTINUE;
             }
             case ACTION_KIND_REDUCE -> {
+                if (!exploratoryParsePassed && CONSISTENT_BY_STATE[state] == 0) {
+                    // The state reduces because of the lookahead, which might be one it only accepts because states
+                    // were merged or a default reduction was chosen. Reducing on it would leave the state the error
+                    // belongs to.
+                    if (!exploratoryParse(column)) {
+                        yield new StepResult.Failed(raiseSyntaxError(scanner, terminal));
+                    }
+                    exploratoryParsePassed = true;
+                }
                 reduce(scanner, action >> ACTION_KIND_BITS);
                 yield CONTINUE;
             }
@@ -475,12 +529,7 @@ public final class Parser {
                 }
                 yield ACCEPT;
             }
-            case ACTION_KIND_ERROR -> {
-                if (trace != null) {
-                    emitErrorTrace(scanner, "unexpected token " + terminalTraceName(terminal));
-                }
-                yield new StepResult.Failed(new ParseError("unexpected token " + terminal, ErrorKind.SYNTAX, scanner));
-            }
+            case ACTION_KIND_ERROR -> new StepResult.Failed(raiseSyntaxError(scanner, terminal));
             default -> {
                 if (trace != null) {
                     emitErrorTrace(scanner, "unexpected action " + action + " in state " + state);
@@ -512,15 +561,7 @@ public final class Parser {
 
         stateStackSize -= popCount;
 
-        int state = currentState();
-        // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
-        // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
-        int gotoState = DEFAULT_GOTO_BY_NONTERMINAL[nonterminal];
-        int cellIdx = GOTO_BASE[state] + nonterminal;
-        if (GOTO_CHECK[cellIdx] == nonterminal) {
-            gotoState = GOTO_NEXT[cellIdx];
-        }
-        pushState(gotoState);
+        pushState(gotoState(currentState(), nonterminal));
 
         // The node starts where its first child starts and ends where its last child ends.
         int byteOffset = 0;
@@ -550,6 +591,111 @@ public final class Parser {
                         byteLength,
                         children,
                         PRODUCTIONS[productionIdx - 1]));
+    }
+
+    /**
+     * Reports whether the parse from the current stack shifts the terminal of the given column eventually, instead of
+     * running into an error. It performs the reductions the terminal leads to on the states alone and without building
+     * nodes, so the stacks of the parse are still intact when the terminal turns out to be an error.
+     *
+     * <p>This is the lookahead correction of section 3.5.2 "Parser" of "PSLR(1): Pseudo-Scannerless Minimal LR(1) for
+     * the Deterministic Parsing of Composite Languages" by Joel E. Denny. It deviates from the paper in two ways. The
+     * paper runs an exploratory parse as soon as a lookahead arrives, {@link #step} runs it only before the first
+     * reduction the lookahead decides in a state which is not consistent, because a shift or an error action needs no
+     * exploring. And the paper explores on a copy of the stack, while this reads the stack in place, see
+     * {@link #exploratoryPop}.
+     */
+    private boolean exploratoryParse(int column) {
+        exploratoryStackSize = 0;
+        exploratoryStackBase = stateStackSize;
+        while (true) {
+            int action = action(exploratoryTop(), column);
+            switch (action & ACTION_KIND_MASK) {
+                case ACTION_KIND_REDUCE -> {
+                    int productionIdx = action >> ACTION_KIND_BITS;
+                    exploratoryPop(POP_COUNT_BY_PRODUCTION[productionIdx]);
+                    exploratoryPush(gotoState(exploratoryTop(), NONTERMINAL_BY_PRODUCTION[productionIdx]));
+                }
+                case ACTION_KIND_SHIFT, ACTION_KIND_ACCEPT -> {
+                    return true;
+                }
+                default -> {
+                    return false;
+                }
+            }
+        }
+    }
+
+    /** Returns the state on top of the stack of the exploratory parse. */
+    private int exploratoryTop() {
+        if (exploratoryStackSize != 0) {
+            return exploratoryStack[exploratoryStackSize - 1];
+        }
+        return stateStack[exploratoryStackBase - 1];
+    }
+
+    /**
+     * Takes the given number of states off the stack of the exploratory parse. The states it pushed itself go first.
+     * Below them, it lowers the base index into {@link #stateStack} instead of popping, so the stack of the parse is
+     * never written and needs no copy.
+     */
+    private void exploratoryPop(int count) {
+        int pushedCount = Math.min(count, exploratoryStackSize);
+        exploratoryStackSize -= pushedCount;
+        exploratoryStackBase -= count - pushedCount;
+    }
+
+    /** Puts the given state on top of the stack of the exploratory parse, growing it when it is full. */
+    private void exploratoryPush(int state) {
+        if (exploratoryStackSize == exploratoryStack.length) {
+            exploratoryStack = Arrays.copyOf(exploratoryStack, exploratoryStack.length * 2);
+        }
+        exploratoryStack[exploratoryStackSize] = state;
+        exploratoryStackSize++;
+    }
+
+    /**
+     * Returns the tokens which the parse from the current stack would shift eventually, in the order of their columns.
+     * It runs an exploratory parse per terminal of the grammar and leaves out the error symbol, which no scanner
+     * delivers. More than {@link #EXPECTED_TOKENS_MAX} of them are not returned at all.
+     */
+    private List<Scanner.Token> expectedTokens() {
+        List<Scanner.Token> result = new ArrayList<>(EXPECTED_TOKENS_MAX);
+        for (int column = 0; column < TOKEN_BY_TERMINAL_COLUMN.length; column++) {
+            if (column == NO_TERMINAL_COLUMN || column == ERROR_TERMINAL_COLUMN || !exploratoryParse(column)) {
+                continue;
+            }
+            if (result.size() == EXPECTED_TOKENS_MAX) {
+                return List.of();
+            }
+            result.add(TOKEN_BY_TERMINAL_COLUMN[column]);
+        }
+        return result;
+    }
+
+    /**
+     * Returns the error for the given token being unexpected on the current stack, listing the tokens which would have
+     * been expected instead.
+     */
+    private ParseError raiseSyntaxError(TokenSource scanner, Scanner.Token terminal) {
+        String message = unexpectedTokenMessage(terminal, expectedTokens());
+        if (trace != null) {
+            emitErrorTrace(scanner, message);
+        }
+        return new ParseError(message, ErrorKind.SYNTAX, scanner);
+    }
+
+    /** Describes the given token as unexpected in place of the expected ones, naming each token by its alias. */
+    private static String unexpectedTokenMessage(Scanner.Token terminal, List<Scanner.Token> expected) {
+        StringBuilder message = new StringBuilder("unexpected ").append(terminalName(terminal));
+        for (int i = 0; i < expected.size(); i++) {
+            if (i == 0) {
+                message.append(", expecting ").append(terminalName(expected.get(i)));
+            } else {
+                message.append(" or ").append(terminalName(expected.get(i)));
+            }
+        }
+        return message.toString();
     }
 
     /**
@@ -593,6 +739,7 @@ public final class Parser {
             // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
             droppedLength = scanner.byteLength();
             scanner.next();
+            exploratoryParsePassed = false;
         }
         errorRecoveryShiftsRemaining = ERROR_RECOVERY_SHIFTS;
 
@@ -610,6 +757,7 @@ public final class Parser {
                 }
                 // Shift the error symbol. Its node covers what this round dropped.
                 pushState(nextState);
+                exploratoryParsePassed = false;
                 nodeStack.add(
                         new ParseNode(
                                 new TerminalSymbol(Scanner.Token.ERROR_TOKEN),
@@ -662,6 +810,30 @@ public final class Parser {
             return TERMINAL_COLUMN_BY_TOKEN[terminal.ordinal()];
         }
         return NO_TERMINAL_COLUMN;
+    }
+
+    /** Returns the action the given state takes for the terminal of the given column. */
+    private static int action(int state, int column) {
+        int cellIdx = ACTION_BASE[state] + column;
+        if (ACTION_CHECK[cellIdx] == column) {
+            // An entry the state has of its own beats its default action, which is what keeps a token the grammar
+            // rejects on purpose an error even in a state which reduces on everything else.
+            return ACTION_NEXT[cellIdx];
+        }
+        return DEFAULT_ACTION_BY_STATE[state];
+    }
+
+    /**
+     * Returns the state the parse continues in when it reduced to the given nonterminal and uncovered the given state.
+     */
+    private static int gotoState(int state, int nonterminal) {
+        int cellIdx = GOTO_BASE[state] + nonterminal;
+        if (GOTO_CHECK[cellIdx] == nonterminal) {
+            return GOTO_NEXT[cellIdx];
+        }
+        // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
+        // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
+        return DEFAULT_GOTO_BY_NONTERMINAL[nonterminal];
     }
 
     /**
@@ -725,6 +897,21 @@ public final class Parser {
             return nonterminal.nonterminal().toString();
         }
         return terminalTraceName(((TerminalSymbol) symbol).token());
+    }
+
+    /** Names a terminal by the alias the grammar gives it, or by its name if it has none. */
+    private static String terminalName(Scanner.Token terminal) {
+        return switch (terminal) {
+            case END_TOKEN -> "end of input";
+            case INVALID_TOKEN -> "invalid input";
+            case TOKEN_PLUS -> "\"+\"";
+            case TOKEN_MINUS -> "\"-\"";
+            case TOKEN_MULTIPLY -> "\"*\"";
+            case TOKEN_DIVIDE -> "\"/\"";
+            case TOKEN_LPAREN -> "\"(\"";
+            case TOKEN_RPAREN -> "\")\"";
+            default -> terminal.toString();
+        };
     }
 
     /** Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name. */
@@ -831,6 +1018,14 @@ public final class Parser {
         return new byte[] {
             3, 5, 3, 3, 3, 25, 3, 2, 3, 3, 3, 3, 29, 9, 13, 17,
             21,
+        };
+    }
+
+    /** Returns chunk 0 of {@link #CONSISTENT_BY_STATE}. */
+    private static byte[] consistentByState0() {
+        return new byte[] {
+            0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1,
+            1,
         };
     }
 

@@ -41,6 +41,31 @@ var _ = Describe("Java", func() {
 		})
 	})
 
+	Context("JavaStringLiteral", func() {
+		It("should quote a string which needs no escaping", func() {
+			Expect(utils.JavaStringLiteral("end of input")).To(Equal(`"end of input"`))
+			Expect(utils.JavaStringLiteral("")).To(Equal(`""`))
+		})
+
+		It("should escape the quote and the backslash", func() {
+			Expect(utils.JavaStringLiteral(`";"`)).To(Equal(`"\";\""`))
+			Expect(utils.JavaStringLiteral(`\`)).To(Equal(`"\\"`))
+			// The compiler only translates a \u which follows an even number of backslashes.
+			Expect(utils.JavaStringLiteral(`\u000a`)).To(Equal(`"\\u000a"`))
+		})
+
+		It("should escape control characters", func() {
+			Expect(utils.JavaStringLiteral("a\nb\tc\r")).To(Equal(`"a\nb\tc\r"`))
+			// An octal escape takes at most three digits, so the digit after it stays a character of its own.
+			Expect(utils.JavaStringLiteral("\x001")).To(Equal(`"\0001"`))
+			Expect(utils.JavaStringLiteral("\x7f")).To(Equal(`"\177"`))
+		})
+
+		It("should keep UTF-8 as it is", func() {
+			Expect(utils.JavaStringLiteral("größer")).To(Equal(`"größer"`))
+		})
+	})
+
 	Context("NewJavaTable", func() {
 		It("should name the constant after the method", func() {
 			result := utils.NewJavaTable("transitionBase", utils.NewJavaIntArray([]int{1, 2, 3}))

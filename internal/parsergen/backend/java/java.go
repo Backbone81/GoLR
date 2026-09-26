@@ -21,9 +21,11 @@ import (
 var parserTemplate string
 
 var parsedTemplate = template.Must(template.New("parser.java.template").Funcs(template.FuncMap{
+	"terminalName":        terminalName,
 	"nonterminalName":     nonterminalName,
 	"isAcceptNonterminal": isAcceptNonterminal,
 	"productionName":      productionName,
+	"stringLiteral":       utils.JavaStringLiteral,
 }).Parse(parserTemplate))
 
 // DefaultPackageName is the Java package the generated parser is declared in when the caller names none.
