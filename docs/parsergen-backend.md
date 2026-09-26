@@ -111,6 +111,21 @@ language says otherwise.
 A parser is a parse in progress and not safe to use from several threads at once. Give every thread its own; since the
 tables are read only, nothing has to be shared or locked between them.
 
+## Syntax errors
+
+A syntax error names the unexpected token and the tokens which would have been accepted in its place:
+
+```
+unexpected ")", expecting NUMBER or "("
+```
+
+A token is named by its string alias in the grammar, or by its name if it has none. The end of the input reads as
+`end of input`, and input which no scanner rule matches as `invalid input`. With more than four expected tokens, the list
+is left out and only the unexpected token is named.
+
+The parser checks a token before it reduces on it. This is the lookahead correction (LAC) of section 3.5.2 of "PSLR(1):
+Pseudo-Scannerless Minimal LR(1) for the Deterministic Parsing of Composite Languages" by Joel E. Denny.
+
 ## Error recovery
 
 A grammar which marks places to resume at with the error symbol makes the parser continue after a syntax error instead

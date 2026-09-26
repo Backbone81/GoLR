@@ -4,6 +4,28 @@
 
 ## Unreleased
 
+- Conflicts decided by precedence and associativity declarations are no longer reported. The conflict summary and --verbose listing of golr parser, and the conflicts returned by the GrammarToParser functions of the GoLR cores, now only cover conflicts resolved by shift over reduce or by the earliest production, plus unresolved ones.
+- Fixed the Bison frontend reading a string literal which was not declared as a token alias, like "+", as a nonterminal without productions instead of as a terminal.
+- Adjusted conflict reporting to be stable. This allows conflict reports to be diffed reliably, even with the grammar being modified.
+- Unresolved conflicts are now reported in full.
+- Added --with-state-number to golr parser, which adds the state number to every state of the conflict report.
+- BREAKING: Parse tree nodes carry the byte offset and length of the source they cover instead of a lexeme. Scanners resolve these through the new Position and Text methods, which replace Line and Column.
+- BREAKING: Custom token sources have to provide Position and Text. A token they insert needs an empty lexeme at the offset where it is inserted.
+- BREAKING: C scanners allocate a line table on the first position lookup. Call <prefix>_scanner_free once a scanner is done with, or the table leaks.
+- BREAKING: The Rust ParseNode no longer has a lifetime parameter, and the Rust Scanner is no longer Sync.
+- Semantic errors in GoLR and GNU Bison grammar files, like undeclared terminals or duplicate declarations, now report the file, line and column they occur at.
+- BREAKING: The column reported by the Position method of generated scanners now counts UTF-8 characters instead of bytes, and a tab counts as one column. Use the byte offset to get at the bytes of the source.
+- Added --fail-on-sr-conflicts, --fail-on-rr-conflicts and --fail-on-conflicts to golr parser, which make the run fail on a shift/reduce or reduce/reduce conflict that precedence and associativity do not resolve.
+- The conflict summary of golr parser now counts resolved and unresolved conflicts separately, and a conflict decided by shift over reduce no longer also counts as a reduce/reduce conflict.
+- The IntelliJ and vscode plugin now support Go to Definition and Find Usages on terminals referenced by their string alias, like "+", and counts them in the usage count of the terminal.
+- The IntelliJ and vscode plugins can rename the string alias of a terminal, which renames the string in the terminal declaration and every reference by that string.
+- The IntelliJ and vscode plugins now completes keywords like @parser, @name and @error, offering those valid at the caret, and only offer symbol names where a symbol can be referenced.
+- BREAKING: The parser generator now fails on nonterminals which do not derive any finite string, including nonterminals which are used but never defined.
+- BREAKING: GrammarToParser of every core and Grammar.Validate now return a slice of warnings.
+- The parser generator now warns about nonterminals which are unreachable from the start nonterminal.
+- The parser generator now warns about productions which are never reduced after conflict resolution.
+- Added --fail-on-warnings to golr parser and core.FailOnWarnings, which make the run fail on warnings.
+- Syntax errors of generated parsers now list the expected tokens and name tokens by their string alias, like: unexpected "+", expecting NUMBER.
 
 ## v0.4.0 (2026-09-13)
 
