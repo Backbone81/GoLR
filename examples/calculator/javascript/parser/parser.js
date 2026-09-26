@@ -279,6 +279,12 @@ export class ParseError {
  */
 const errorRecoveryShifts = 3;
 
+/**
+ * The largest number of expected tokens a syntax error lists. With more of them, the list is left out, because it would
+ * not help the reader any more.
+ */
+const expectedTokensMax = 4;
+
 /** Signals the successful end of a parse. Never leaves this module. */
 const accept = Symbol("accept");
 
@@ -359,6 +365,24 @@ function newTerminalColumnByToken(entries) {
     return result;
 }
 
+/**
+ * Translates a column of the action table back into the token of its terminal. The noTerminalColumn stands for no token
+ * and holds Token.InvalidToken.
+ */
+const tokenByTerminalColumn = [
+    Token.InvalidToken,
+    Token.EndToken,
+    Token.TokenWhitespace,
+    Token.TokenInteger,
+    Token.TokenPlus,
+    Token.TokenMinus,
+    Token.TokenMultiply,
+    Token.TokenDivide,
+    Token.TokenLparen,
+    Token.TokenRparen,
+    Token.TokenUminus,
+];
+
 /** Maps a state to the displacement of its row within actionNext. */
 const actionBase = new Uint8Array([
     9, 1, 9, 9, 0, 1, 4, 1, 9, 9, 9, 9, 1, 12, 12, 1,
@@ -390,6 +414,15 @@ const actionCheck = new Uint8Array([
 const defaultActionByState = new Uint8Array([
     3, 5, 3, 3, 3, 25, 3, 2, 3, 3, 3, 3, 29, 9, 13, 17,
     21,
+]);
+
+/**
+ * Holds 1 for a state which reduces by the same production whatever the lookahead is, and 0 otherwise. A consistent
+ * state needs no lookahead, so it never starts an exploratory parse.
+ */
+const consistentByState = new Uint8Array([
+    0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1,
+    1,
 ]);
 
 /** Maps a state to the displacement of its row within gotoNext. */
@@ -478,6 +511,29 @@ export class Parser {
     #errorRecoveryShiftsRemaining;
 
     /**
+     * Whether an exploratory parse found the current lookahead to be shifted eventually, so the reductions leading
+     * there need no further check. Cleared on every shift and on every token discarded.
+     *
+     * @type {boolean}
+     */
+    #exploratoryParsePassed = false;
+
+    /**
+     * The states an exploratory parse pushes. The states below them are the ones of stateStack below
+     * exploratoryStackBase, which the exploratory parse reads but never writes.
+     *
+     * @type {number[]}
+     */
+    #exploratoryStack = [];
+
+    /**
+     * How many entries of stateStack the exploratory parse still reads.
+     *
+     * @type {number}
+     */
+    #exploratoryStackBase = 0;
+
+    /**
      * Parses the tokens the scanner delivers. Can be called more than once, with a different scanner each time.
      *
      * When the grammar marks places to resume at with the error symbol, a syntax error does not end the parse: the
@@ -495,6 +551,7 @@ export class Parser {
         this.#nodeStack.length = 0;
         this.#errors.length = 0;
         this.#errorRecoveryShiftsRemaining = 0;
+        this.#exploratoryParsePassed = false;
 
         // A source with no tokens at all reports false right away. That is not an error: the token is the end of input
         // either way, and whether a parse of nothing but that is legal is for the table to decide.
@@ -540,13 +597,7 @@ export class Parser {
         const column = Parser.#terminalColumn(terminal);
 
         const state = this.#currentState();
-        const cellIdx = actionBase[state] + column;
-        let action = defaultActionByState[state];
-        if (actionCheck[cellIdx] === column) {
-            // An entry the state has of its own beats its default action, which is what keeps a token the grammar
-            // rejects on purpose an error even in a state which reduces on everything else.
-            action = actionNext[cellIdx];
-        }
+        const action = Parser.#action(state, column);
 
         switch (action & actionKindMask) {
             case actionKindShift:
@@ -558,12 +609,22 @@ export class Parser {
                     new ParseNode(ParseSymbol.newTerminal(terminal), scanner.byteOffset(), scanner.byteLength(), [], null),
                 );
                 scanner.next();
+                this.#exploratoryParsePassed = false;
                 if (this.#errorRecoveryShiftsRemaining > 0) {
                     // Getting tokens of the input shifted again is what makes the parser trust its position.
                     this.#errorRecoveryShiftsRemaining--;
                 }
                 return null;
             case actionKindReduce:
+                if (!this.#exploratoryParsePassed && consistentByState[state] === 0) {
+                    // The state reduces because of the lookahead, which might be one it only accepts because states
+                    // were merged or a default reduction was chosen. Reducing on it would leave the state the error
+                    // belongs to.
+                    if (!this.#exploratoryParse(column)) {
+                        return this.#raiseSyntaxError(scanner, terminal);
+                    }
+                    this.#exploratoryParsePassed = true;
+                }
                 this.#reduce(scanner, action >>> actionKindBits);
                 return null;
             case actionKindAccept:
@@ -572,10 +633,7 @@ export class Parser {
                 }
                 return accept;
             case actionKindError:
-                if (this.trace !== null) {
-                    this.#emitErrorTrace(scanner, `unexpected token ${terminalTraceName(terminal)}`);
-                }
-                return new ParseError(`unexpected token ${tokenToString(terminal)}`, ErrorKind.Syntax, scanner);
+                return this.#raiseSyntaxError(scanner, terminal);
             default:
                 if (this.trace !== null) {
                     this.#emitErrorTrace(scanner, `unexpected action ${action} in state ${state}`);
@@ -610,15 +668,7 @@ export class Parser {
 
         this.#stateStack.length -= popCount;
 
-        const state = this.#currentState();
-        // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
-        // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
-        let gotoState = defaultGotoByNonterminal[nonterminal];
-        const cellIdx = gotoBase[state] + nonterminal;
-        if (gotoCheck[cellIdx] === nonterminal) {
-            gotoState = gotoNext[cellIdx];
-        }
-        this.#stateStack.push(gotoState);
+        this.#stateStack.push(Parser.#gotoState(this.#currentState(), nonterminal));
 
         // The node starts where its first child starts and ends where its last child ends.
         let byteOffset = 0;
@@ -643,6 +693,133 @@ export class Parser {
         this.#nodeStack.push(
             new ParseNode(ParseSymbol.newNonterminal(nonterminal), byteOffset, byteLength, children, productionIdx),
         );
+    }
+
+    /**
+     * Reports whether the parse from the current stack shifts the terminal of the given column eventually, instead of
+     * running into an error. It performs the reductions the terminal leads to on the states alone and without building
+     * nodes, so the stacks of the parse are still intact when the terminal turns out to be an error.
+     *
+     * This is the lookahead correction of section 3.5.2 "Parser" of "PSLR(1): Pseudo-Scannerless Minimal LR(1) for the
+     * Deterministic Parsing of Composite Languages" by Joel E. Denny. It deviates from the paper in two ways. The paper
+     * runs an exploratory parse as soon as a lookahead arrives, step runs it only before the first reduction the
+     * lookahead decides in a state which is not consistent, because a shift or an error action needs no exploring. And
+     * the paper explores on a copy of the stack, while this reads the stack in place, see exploratoryPop.
+     *
+     * @param {number} column
+     * @returns {boolean}
+     */
+    #exploratoryParse(column) {
+        this.#exploratoryStack.length = 0;
+        this.#exploratoryStackBase = this.#stateStack.length;
+        for (;;) {
+            const action = Parser.#action(this.#exploratoryTop(), column);
+            switch (action & actionKindMask) {
+                case actionKindReduce: {
+                    const productionIdx = action >>> actionKindBits;
+                    this.#exploratoryPop(popCountByProduction[productionIdx]);
+                    this.#exploratoryPush(
+                        Parser.#gotoState(this.#exploratoryTop(), nonterminalByProduction[productionIdx]),
+                    );
+                    break;
+                }
+                case actionKindShift:
+                case actionKindAccept:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+    }
+
+    /**
+     * Returns the state on top of the stack of the exploratory parse.
+     *
+     * @returns {number}
+     */
+    #exploratoryTop() {
+        if (this.#exploratoryStack.length !== 0) {
+            return this.#exploratoryStack[this.#exploratoryStack.length - 1];
+        }
+        return this.#stateStack[this.#exploratoryStackBase - 1];
+    }
+
+    /**
+     * Takes the given number of states off the stack of the exploratory parse. The states it pushed itself go first.
+     * Below them, it lowers the base index into stateStack instead of popping, so the stack of the parse is never
+     * written and needs no copy.
+     *
+     * @param {number} count
+     */
+    #exploratoryPop(count) {
+        const pushedCount = Math.min(count, this.#exploratoryStack.length);
+        this.#exploratoryStack.length -= pushedCount;
+        this.#exploratoryStackBase -= count - pushedCount;
+    }
+
+    /**
+     * Puts the given state on top of the stack of the exploratory parse.
+     *
+     * @param {number} state
+     */
+    #exploratoryPush(state) {
+        this.#exploratoryStack.push(state);
+    }
+
+    /**
+     * Returns the tokens which the parse from the current stack would shift eventually, in the order of their columns.
+     * It runs an exploratory parse per terminal of the grammar and leaves out the error symbol, which no scanner
+     * delivers. More than expectedTokensMax of them are not returned at all.
+     *
+     * @returns {number[]}
+     */
+    #expectedTokens() {
+        const result = [];
+        for (let column = 0; column < tokenByTerminalColumn.length; column++) {
+            if (column === noTerminalColumn || column === errorTerminalColumn || !this.#exploratoryParse(column)) {
+                continue;
+            }
+            if (result.length === expectedTokensMax) {
+                return [];
+            }
+            result.push(tokenByTerminalColumn[column]);
+        }
+        return result;
+    }
+
+    /**
+     * Returns the error for the given token being unexpected on the current stack, listing the tokens which would have
+     * been expected instead.
+     *
+     * @param {TokenSource} scanner
+     * @param {number} terminal
+     * @returns {ParseError}
+     */
+    #raiseSyntaxError(scanner, terminal) {
+        const message = Parser.#unexpectedTokenMessage(terminal, this.#expectedTokens());
+        if (this.trace !== null) {
+            this.#emitErrorTrace(scanner, message);
+        }
+        return new ParseError(message, ErrorKind.Syntax, scanner);
+    }
+
+    /**
+     * Describes the given token as unexpected in place of the expected ones, naming each token by its alias.
+     *
+     * @param {number} terminal
+     * @param {number[]} expected
+     * @returns {string}
+     */
+    static #unexpectedTokenMessage(terminal, expected) {
+        let message = `unexpected ${terminalName(terminal)}`;
+        for (let i = 0; i < expected.length; i++) {
+            if (i === 0) {
+                message += `, expecting ${terminalName(expected[i])}`;
+            } else {
+                message += ` or ${terminalName(expected[i])}`;
+            }
+        }
+        return message;
     }
 
     /**
@@ -686,6 +863,7 @@ export class Parser {
             // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
             droppedLength = scanner.byteLength();
             scanner.next();
+            this.#exploratoryParsePassed = false;
         }
         this.#errorRecoveryShiftsRemaining = errorRecoveryShifts;
 
@@ -703,6 +881,7 @@ export class Parser {
                 }
                 // Shift the error symbol. Its node covers what this round dropped.
                 this.#stateStack.push(nextState);
+                this.#exploratoryParsePassed = false;
                 this.#nodeStack.push(
                     new ParseNode(ParseSymbol.newTerminal(Token.ErrorToken), droppedOffset, droppedLength, [], null),
                 );
@@ -749,6 +928,40 @@ export class Parser {
             return terminalColumnByToken[terminal];
         }
         return noTerminalColumn;
+    }
+
+    /**
+     * Returns the action the given state takes for the terminal of the given column.
+     *
+     * @param {number} state
+     * @param {number} column
+     * @returns {number}
+     */
+    static #action(state, column) {
+        const cellIdx = actionBase[state] + column;
+        if (actionCheck[cellIdx] === column) {
+            // An entry the state has of its own beats its default action, which is what keeps a token the grammar
+            // rejects on purpose an error even in a state which reduces on everything else.
+            return actionNext[cellIdx];
+        }
+        return defaultActionByState[state];
+    }
+
+    /**
+     * Returns the state the parse continues in when it reduced to the given nonterminal and uncovered the given state.
+     *
+     * @param {number} state
+     * @param {number} nonterminal
+     * @returns {number}
+     */
+    static #gotoState(state, nonterminal) {
+        const cellIdx = gotoBase[state] + nonterminal;
+        if (gotoCheck[cellIdx] === nonterminal) {
+            return gotoNext[cellIdx];
+        }
+        // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
+        // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
+        return defaultGotoByNonterminal[nonterminal];
     }
 
     /**
@@ -837,6 +1050,26 @@ function symbolTraceName(symbol) {
         return nonterminalToString(nonterminal);
     }
     return terminalTraceName(ParseSymbol.terminal(symbol));
+}
+
+/**
+ * Names a terminal by the alias the grammar gives it, or by its name if it has none.
+ *
+ * @param {number} terminal
+ * @returns {string}
+ */
+function terminalName(terminal) {
+    switch (terminal) {
+        case Token.EndToken: return "end of input";
+        case Token.InvalidToken: return "invalid input";
+        case Token.TokenPlus: return "\"+\"";
+        case Token.TokenMinus: return "\"-\"";
+        case Token.TokenMultiply: return "\"*\"";
+        case Token.TokenDivide: return "\"/\"";
+        case Token.TokenLparen: return "\"(\"";
+        case Token.TokenRparen: return "\")\"";
+        default: return tokenToString(terminal);
+    }
 }
 
 /**

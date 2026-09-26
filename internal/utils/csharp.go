@@ -53,7 +53,7 @@ func CSharpStringLiteral(value string) string {
 		case char == '\t':
 			builder.WriteString(`\t`)
 		case char < 0x20 || char == 0x7f:
-			builder.WriteString(fmt.Sprintf(`\u%04x`, char))
+			fmt.Fprintf(&builder, `\u%04x`, char)
 		default:
 			builder.WriteByte(char)
 		}

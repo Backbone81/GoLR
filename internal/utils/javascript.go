@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"fmt"
 	"math"
+	"strings"
 )
 
 // JavaScriptUintArrayType returns the name of the narrowest unsigned JavaScript typed array constructor which can hold
@@ -29,4 +31,33 @@ func NewJavaScriptIntArray(values []int) IntArray {
 		maxValue = max(maxValue, value)
 	}
 	return NewTypedIntArray(JavaScriptUintArrayType(maxValue), values)
+}
+
+// JavaScriptStringLiteral returns the given string as a JavaScript string literal. Control characters are written as \x
+// escapes, which always take two digits and cannot run into a hex digit following them. Every other byte is written as
+// it is, so UTF-8 stays readable.
+func JavaScriptStringLiteral(value string) string {
+	var builder strings.Builder
+	builder.WriteByte('"')
+	for i := range len(value) {
+		char := value[i]
+		switch {
+		case char == '\\':
+			builder.WriteString(`\\`)
+		case char == '"':
+			builder.WriteString(`\"`)
+		case char == '\n':
+			builder.WriteString(`\n`)
+		case char == '\r':
+			builder.WriteString(`\r`)
+		case char == '\t':
+			builder.WriteString(`\t`)
+		case char < 0x20 || char == 0x7f:
+			fmt.Fprintf(&builder, `\x%02x`, char)
+		default:
+			builder.WriteByte(char)
+		}
+	}
+	builder.WriteByte('"')
+	return builder.String()
 }
