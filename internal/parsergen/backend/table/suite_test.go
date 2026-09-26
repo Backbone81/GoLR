@@ -94,6 +94,21 @@ func referenceDefaultAction(state backend.State) table.Action {
 	return table.NoAction
 }
 
+// referenceConsistent returns whether the given state reduces by the same production whatever the lookahead is, by
+// reading the state directly.
+func referenceConsistent(state backend.State, terminalCount int, errorTerminalIdx int) bool {
+	defaultAction := referenceDefaultAction(state)
+	if defaultAction == table.NoAction || defaultAction.Kind() != table.ActionKindReduce {
+		return false
+	}
+	for terminalIdx := range terminalCount {
+		if referenceAction(state, terminalIdx, errorTerminalIdx) != defaultAction {
+			return false
+		}
+	}
+	return true
+}
+
 // referenceGoto returns the state the parser continues in when it reduced to the given nonterminal and uncovered the
 // given state, by reading the state directly.
 func referenceGoto(state backend.State, nonterminalIdx int) int {

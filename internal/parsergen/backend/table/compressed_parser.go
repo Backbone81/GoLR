@@ -24,6 +24,10 @@ type CompressedParser struct {
 	// NoAction when such a terminal is a syntax error there.
 	DefaultActionByStateIdx []Action
 
+	// ConsistentByStateIdx holds, for every state, whether it reduces by the same production whatever the lookahead
+	// is, see NewConsistentStates.
+	ConsistentByStateIdx []bool
+
 	// Gotos holds the gotos of all states packed into a single array, indexed by state and nonterminal. An entry is
 	// the index of the state the goto leads to. A nonterminal without an entry is one the state takes the default
 	// goto of that nonterminal for.
@@ -43,10 +47,13 @@ func NewCompressedParser(parser backend.Parser) CompressedParser {
 	defaultGotoByNonterminalIdx := NewDefaultGotos(parser)
 	gotoRows := NewGotoTable(parser)
 	ApplyDefaultGotos(gotoRows, defaultGotoByNonterminalIdx)
+	actionRows := NewActionTable(parser)
+	defaultActionByStateIdx := NewDefaultActions(parser)
 
 	return CompressedParser{
-		Actions:                     utils.NewRowDisplacement(NewActionTable(parser), int(NoAction)),
-		DefaultActionByStateIdx:     NewDefaultActions(parser),
+		Actions:                     utils.NewRowDisplacement(actionRows, int(NoAction)),
+		DefaultActionByStateIdx:     defaultActionByStateIdx,
+		ConsistentByStateIdx:        NewConsistentStates(actionRows, defaultActionByStateIdx),
 		Gotos:                       utils.NewRowDisplacement(gotoRows, NoGoto),
 		DefaultGotoByNonterminalIdx: defaultGotoByNonterminalIdx,
 		ErrorTerminalIdx:            errorTerminalIdx(parser.Grammar),

@@ -56,6 +56,17 @@ func DefaultActions(compressed CompressedParser) []int {
 	return result
 }
 
+// ConsistentStates returns, for every state, 1 when it is consistent and 0 otherwise, see NewConsistentStates.
+func ConsistentStates(compressed CompressedParser) []int {
+	result := make([]int, len(compressed.ConsistentByStateIdx))
+	for stateIdx, consistent := range compressed.ConsistentByStateIdx {
+		if consistent {
+			result[stateIdx] = 1
+		}
+	}
+	return result
+}
+
 // PopCounts returns, for every production, the number of symbols a reduction by it takes off the stacks. This is the
 // length of the right hand side of the production and needs no compression, so it is read off the grammar rather than
 // built from the compressed tables.

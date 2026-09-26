@@ -15,6 +15,11 @@ type Tables struct {
 	// NoTerminalColumn, see TokenColumn.
 	TerminalColumnByToken []TokenColumn
 
+	// TokenByTerminalColumn holds, for every column of the action table, the name of the token constant which stands
+	// for its terminal. NoTerminalColumn stands for no terminal and holds the empty name. The error symbol is in here
+	// like every other terminal.
+	TokenByTerminalColumn []string
+
 	// ActionBase maps a state to the displacement of its row within ActionNext.
 	ActionBase utils.IntArray
 
@@ -38,6 +43,10 @@ type Tables struct {
 	// DefaultActionByState holds, for every state, the action it takes for a terminal ActionNext has no entry for. A
 	// state which has no default action carries the error action here, which makes such a terminal a syntax error.
 	DefaultActionByState utils.IntArray
+
+	// ConsistentByState holds, for every state, 1 when it reduces by the same production whatever the lookahead is,
+	// and 0 otherwise. A consistent state needs no lookahead, so the lookahead correction does not check it.
+	ConsistentByState utils.IntArray
 
 	// GotoBase maps a state to the displacement of its row within GotoNext.
 	GotoBase utils.IntArray
@@ -141,6 +150,7 @@ func NewTables(parser backend.Parser, opts TablesOptions) Tables {
 
 	return Tables{
 		TerminalColumnByToken: terminalColumnByToken(parser, opts.TerminalName),
+		TokenByTerminalColumn: tokenByTerminalColumn(parser, opts.TerminalName),
 
 		ActionBase:  opts.NewIntArray(compressed.Actions.Base),
 		ActionNext:  opts.NewIntArray(FillHoles(compressed.Actions.Next)),
@@ -150,6 +160,7 @@ func NewTables(parser backend.Parser, opts TablesOptions) Tables {
 		NoTerminalColumn: NoTerminalColumn,
 
 		DefaultActionByState: opts.NewIntArray(DefaultActions(compressed)),
+		ConsistentByState:    opts.NewIntArray(ConsistentStates(compressed)),
 
 		GotoBase:  opts.NewIntArray(compressed.Gotos.Base),
 		GotoNext:  opts.NewIntArray(FillHoles(compressed.Gotos.Next)),
@@ -191,6 +202,16 @@ func terminalColumnByToken(parser backend.Parser, terminalName func(symbol front
 			Name:   terminalName(terminal),
 			Column: TerminalColumn(terminalIdx),
 		})
+	}
+	return result
+}
+
+// tokenByTerminalColumn returns, for every column of the action table, the name of the token constant which stands for
+// its terminal, or the empty name for NoTerminalColumn.
+func tokenByTerminalColumn(parser backend.Parser, terminalName func(symbol frontend.Symbol) string) []string {
+	result := make([]string, terminalColumnCount(parser.Grammar))
+	for terminalIdx, terminal := range parser.Grammar.Terminals {
+		result[TerminalColumn(terminalIdx)] = terminalName(terminal)
 	}
 	return result
 }

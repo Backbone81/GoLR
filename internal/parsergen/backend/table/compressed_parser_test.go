@@ -91,6 +91,11 @@ func expectDecodeEquivalence(parser backend.Parser) table.CompressedParser {
 			}
 		}
 
+		wantConsistent := referenceConsistent(state, len(parser.Grammar.Terminals), errorIdx)
+		if got := compressed.ConsistentByStateIdx[stateIdx]; got != wantConsistent {
+			Expect(got).To(Equal(wantConsistent), "state %d being consistent", stateIdx)
+		}
+
 		for nonterminalIdx := range parser.Grammar.Nonterminals {
 			want := referenceGoto(state, nonterminalIdx)
 			if want == table.NoGoto {
@@ -186,6 +191,69 @@ var _ = Describe("CompressedParser", func() {
 
 		Expect(bisonCompressed.Action(0, 1)).To(Equal(table.NewAcceptAction()))
 		Expect(golrCompressed.Action(0, 1)).To(Equal(table.NewAcceptAction()))
+	})
+
+	It("marks a state consistent which reduces by the same production on every lookahead", func() {
+		parser := backend.Parser{
+			Grammar: handBuiltGrammar(4, 2),
+			States: []backend.State{
+				{DefaultReduceProductionIdx: ptr(3)},
+				// An explicit reduce which the default covers as well does not make the lookahead matter.
+				{
+					ReduceActions:              backend.NewReduceActionSet(backend.NewReduceAction(backend.NewLookaheadSet(1), 3)),
+					DefaultReduceProductionIdx: ptr(3),
+				},
+			},
+		}
+
+		compressed := expectDecodeEquivalence(parser)
+
+		Expect(compressed.ConsistentByStateIdx).To(Equal([]bool{true, true}))
+	})
+
+	It("does not mark a state consistent whose action depends on the lookahead", func() {
+		grammar := handBuiltGrammar(4, 2)
+		errorRef, _ := frontend.ErrorTerminalRef(grammar)
+		parser := backend.Parser{
+			Grammar: grammar,
+			States: []backend.State{
+				{
+					TransitionActions: backend.NewTransitionActionSet(
+						backend.NewTransitionAction(frontend.NewTerminalRef(0), 0),
+					),
+					DefaultReduceProductionIdx: ptr(3),
+				},
+				{
+					ReduceActions:              backend.NewReduceActionSet(backend.NewReduceAction(backend.NewLookaheadSet(1), 2)),
+					DefaultReduceProductionIdx: ptr(3),
+				},
+				{
+					DefaultReduceProductionIdx: ptr(3),
+					RejectedTerminals:          backend.NewLookaheadSet(2),
+				},
+				// The shift of the error symbol is a resynchronization point the check has to protect.
+				{
+					TransitionActions:          backend.NewTransitionActionSet(backend.NewTransitionAction(errorRef, 0)),
+					DefaultReduceProductionIdx: ptr(3),
+				},
+				{},
+			},
+		}
+
+		compressed := expectDecodeEquivalence(parser)
+
+		Expect(compressed.ConsistentByStateIdx).To(Equal([]bool{false, false, false, false, false}))
+	})
+
+	It("does not mark the accept consistent", func() {
+		parser := backend.Parser{
+			Grammar: handBuiltGrammar(4, 2),
+			States:  []backend.State{{DefaultReduceProductionIdx: ptr(0)}},
+		}
+
+		compressed := expectDecodeEquivalence(parser)
+
+		Expect(compressed.ConsistentByStateIdx).To(Equal([]bool{false}))
 	})
 
 	It("takes the default goto of the nonterminal for a state whose goto agrees with it", func() {
