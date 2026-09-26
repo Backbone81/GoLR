@@ -1,2 +1,0 @@
-description: Added --fail-on-warnings to golr parser and core.FailOnWarnings, which
-  make the run fail on warnings.

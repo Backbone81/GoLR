@@ -1,1 +1,0 @@
-description: "BREAKING: The Rust ParseNode no longer has a lifetime parameter, and the Rust Scanner is no longer Sync."

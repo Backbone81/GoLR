@@ -1,2 +1,0 @@
-description: The IntelliJ and vscode plugins can rename the string alias of a terminal, which
-  renames the string in the terminal declaration and every reference by that string.

@@ -1,3 +1,0 @@
-description: The IntelliJ and vscode plugins now completes keywords like @parser, @name and @error,
-  offering those valid at the caret, and only offer symbol names where a symbol can
-  be referenced.

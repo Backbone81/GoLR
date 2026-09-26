@@ -1,3 +1,0 @@
-description: The IntelliJ and vscode plugin now support Go to Definition and Find Usages on
-  terminals referenced by their string alias, like "+", and counts them in the usage
-  count of the terminal.

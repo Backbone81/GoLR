@@ -1,5 +1,0 @@
-description: Conflicts decided by precedence and associativity declarations are no
-  longer reported. The conflict summary and --verbose listing of golr parser, and
-  the conflicts returned by the GrammarToParser functions of the GoLR cores, now only
-  cover conflicts resolved by shift over reduce or by the earliest production, plus
-  unresolved ones.

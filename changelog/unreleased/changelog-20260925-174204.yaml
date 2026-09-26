@@ -1,2 +1,0 @@
-description: 'BREAKING: The parser generator now fails on nonterminals which do not
-  derive any finite string, including nonterminals which are used but never defined.'

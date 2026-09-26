@@ -1,2 +1,0 @@
-description: The parser generator now warns about productions which are never reduced
-  after conflict resolution.

@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+
+## v0.5.0 (2026-09-26)
+
 - Conflicts decided by precedence and associativity declarations are no longer reported. The conflict summary and --verbose listing of golr parser, and the conflicts returned by the GrammarToParser functions of the GoLR cores, now only cover conflicts resolved by shift over reduce or by the earliest production, plus unresolved ones.
 - Fixed the Bison frontend reading a string literal which was not declared as a token alias, like "+", as a nonterminal without productions instead of as a terminal.
 - Adjusted conflict reporting to be stable. This allows conflict reports to be diffed reliably, even with the grammar being modified.

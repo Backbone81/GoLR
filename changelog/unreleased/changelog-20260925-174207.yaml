@@ -1,2 +1,0 @@
-description: The parser generator now warns about nonterminals which are unreachable
-  from the start nonterminal.

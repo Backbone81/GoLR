@@ -1,1 +1,0 @@
-description: "BREAKING: Custom token sources have to provide Position and Text. A token they insert needs an empty lexeme at the offset where it is inserted."

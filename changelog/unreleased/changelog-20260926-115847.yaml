@@ -1,2 +1,0 @@
-description: 'Syntax errors of generated parsers now list the expected tokens and
-  name tokens by their string alias, like: unexpected "+", expecting NUMBER.'

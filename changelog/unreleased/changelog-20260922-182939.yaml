@@ -1,3 +1,0 @@
-description: Added --fail-on-sr-conflicts, --fail-on-rr-conflicts and --fail-on-conflicts
-  to golr parser, which make the run fail on a shift/reduce or reduce/reduce conflict
-  that precedence and associativity do not resolve.
