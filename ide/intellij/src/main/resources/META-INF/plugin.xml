@@ -1,27 +1,27 @@
 <idea-plugin>
-    <id>com.backbone81.golr</id>
+    <id>com.github.backbone81.golr</id>
     <name>GoLR</name>
     <vendor url="https://github.com/backbone81/golr">backbone81</vendor>
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <fileType name="GoLR"
-                  implementationClass="com.backbone81.golr.GolrLanguageFileType"
+                  implementationClass="com.github.backbone81.golr.GolrLanguageFileType"
                   fieldName="INSTANCE"
                   language="GoLR"
                   extensions="golr"/>
 
         <lang.parserDefinition language="GoLR"
-                               implementationClass="com.backbone81.golr.GolrParserDefinition"/>
+                               implementationClass="com.github.backbone81.golr.GolrParserDefinition"/>
 
         <lang.syntaxHighlighterFactory language="GoLR"
-                                  implementationClass="com.backbone81.golr.GolrSyntaxHighlighterFactory"/>
+                                  implementationClass="com.github.backbone81.golr.GolrSyntaxHighlighterFactory"/>
 
         <lang.commenter language="GoLR"
-                        implementationClass="com.backbone81.golr.GolrCommenter"/>
+                        implementationClass="com.github.backbone81.golr.GolrCommenter"/>
 
         <lang.braceMatcher language="GoLR"
-                           implementationClass="com.backbone81.golr.GolrPairedBraceMatcher"/>
+                           implementationClass="com.github.backbone81.golr.GolrPairedBraceMatcher"/>
 
         <!-- Provides the "Find Usages" panel (Alt+F7) and the word-index scanner used by
              the indexing phase of the reference search.
@@ -29,11 +29,11 @@
              getWordsScanner() to build the file index, and getType()/getDescriptiveName()
              to compose the panel header text. -->
         <lang.findUsagesProvider language="GoLR"
-                                 implementationClass="com.backbone81.golr.GolrFindUsagesProvider"/>
+                                 implementationClass="com.github.backbone81.golr.GolrFindUsagesProvider"/>
 
         <!-- Provides the FindUsagesHandler for Alt+F7. The handler itself is a thin wrapper;
              the actual reference search is done by GolrReferencesSearcher via ReferencesSearch. -->
-        <findUsagesHandlerFactory implementation="com.backbone81.golr.GolrFindUsagesHandlerFactory"
+        <findUsagesHandlerFactory implementation="com.github.backbone81.golr.GolrFindUsagesHandlerFactory"
                                    order="first"/>
 
         <!-- Hooks into ReferencesSearch.search() for GolrSymbolDefinition targets.
@@ -44,7 +44,7 @@
              This is what makes Find Usages report confirmed usages, and it is also the
              source of the count that GolrReferencesCodeVisionProvider renders as the
              "N usages" inlay (the provider calls ReferencesSearch.search()). -->
-        <referencesSearch implementation="com.backbone81.golr.GolrReferencesSearcher"/>
+        <referencesSearch implementation="com.github.backbone81.golr.GolrReferencesSearcher"/>
 
         <!-- Draws the clickable "N usages" Code Vision indicator above every symbol
              definition. This is a dedicated, language-specific feature: the platform does
@@ -53,34 +53,34 @@
              via ReferencesSearch (routed through GolrReferencesSearcher) and delegates the
              click to the Find Usages stack. -->
         <codeInsight.daemonBoundCodeVisionProvider
-                implementation="com.backbone81.golr.GolrReferencesCodeVisionProvider"/>
+                implementation="com.github.backbone81.golr.GolrReferencesCodeVisionProvider"/>
 
         <!-- Gives the provider above its own "GoLR usages" group in the Code Vision settings,
              so it is enabled by default and independent of the shared platform "Usages"
              toggle (which a user may have turned off for Java/Kotlin). -->
         <config.codeVisionGroupSettingProvider
-                implementation="com.backbone81.golr.GolrCodeVisionGroupSettingProvider"/>
+                implementation="com.github.backbone81.golr.GolrCodeVisionGroupSettingProvider"/>
 
         <!-- Assigns the group label "Symbol reference" to GolrSymbolReference usages in the
              Find Usages panel. Without this, IntelliJ falls back to "Unclassified" because
              it has no built-in knowledge of GoLR node types. -->
-        <usageTypeProvider implementation="com.backbone81.golr.GolrUsageTypeProvider"/>
+        <usageTypeProvider implementation="com.github.backbone81.golr.GolrUsageTypeProvider"/>
 
         <!-- Validates the name the user types in the Rename dialog (Shift+F6).
              IntelliJ calls isIdentifier() on every keystroke; returning false disables
              the "Refactor" button and shows a validation error in the dialog. -->
         <lang.namesValidator language="GoLR"
-                             implementationClass="com.backbone81.golr.GolrNamesValidator"/>
+                             implementationClass="com.github.backbone81.golr.GolrNamesValidator"/>
 
         <!-- Validates the new name when renaming a string alias such as "+", which must stay
              a string literal. Takes precedence over the names validator above. -->
-        <renameInputValidator implementation="com.backbone81.golr.GolrAliasInputValidator"/>
+        <renameInputValidator implementation="com.github.backbone81.golr.GolrAliasInputValidator"/>
 
         <!-- Declares that GoLR symbols support inline rename. This is what makes IntelliJ's
              built-in inline-rename handler activate for GoLR symbols (Shift+F6 renames in the
              editor instead of via a modal dialog). See GolrRefactoringSupportProvider. -->
         <lang.refactoringSupport language="GoLR"
-                                 implementationClass="com.backbone81.golr.GolrRefactoringSupportProvider"/>
+                                 implementationClass="com.github.backbone81.golr.GolrRefactoringSupportProvider"/>
 
         <!-- Drives the rename refactoring (Shift+F6) for GoLR symbol definitions.
              canProcessElement() opts in for GolrSymbolDefinition elements.
@@ -89,23 +89,23 @@
              are found and updated.
              isInplaceRenameSupported() enables inline (in-editor) rename. -->
         <renamePsiElementProcessor
-                implementation="com.backbone81.golr.GolrRenamePsiElementProcessor"/>
+                implementation="com.github.backbone81.golr.GolrRenamePsiElementProcessor"/>
 
         <!-- Auto-completion (Ctrl+Space / typing). Suggests the keywords valid at the caret,
              and every symbol defined in the current .golr file where a symbol may be
              referenced: rule bodies, precedence lines, and the @start declaration.
              See GolrCompletionContributor. -->
         <completion.contributor language="GoLR"
-                                implementationClass="com.backbone81.golr.GolrCompletionContributor"/>
+                                implementationClass="com.github.backbone81.golr.GolrCompletionContributor"/>
 
         <!-- Opens the completion popup when "@" is typed, so keywords are offered right away. -->
-        <typedHandler implementation="com.backbone81.golr.GolrTypedHandler"/>
+        <typedHandler implementation="com.github.backbone81.golr.GolrTypedHandler"/>
 
         <!-- Code formatting (Reformat Code, Ctrl+Alt+L). Registers GoLR as formattable; the
              model is a no-op because the actual reformat is done by GolrPreFormatProcessor,
              which rewrites the file into the canonical layout via GolrFormatter. -->
         <lang.formatter language="GoLR"
-                        implementationClass="com.backbone81.golr.GolrFormattingModelBuilder"/>
-        <preFormatProcessor implementation="com.backbone81.golr.GolrPreFormatProcessor"/>
+                        implementationClass="com.github.backbone81.golr.GolrFormattingModelBuilder"/>
+        <preFormatProcessor implementation="com.github.backbone81.golr.GolrPreFormatProcessor"/>
     </extensions>
 </idea-plugin>

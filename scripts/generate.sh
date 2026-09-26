@@ -34,8 +34,8 @@ go run ./cmd/golr scanner \
   --frontend golr \
   --frontend-file-path internal/parsergen/frontend/golr/spec/golr.golr \
   --backend kotlin \
-  --backend-kotlin-package-name com.backbone81.golr.generated \
-  --backend-file-path ide/intellij/src/main/kotlin/com/backbone81/golr/generated/Scanner.kt
+  --backend-kotlin-package-name com.github.backbone81.golr.generated \
+  --backend-file-path ide/intellij/src/main/kotlin/com/github/backbone81/golr/generated/Scanner.kt
 go run ./cmd/golr scanner \
   --frontend golr \
   --frontend-file-path internal/parsergen/frontend/golr/spec/golr.golr \
