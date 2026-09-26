@@ -2018,6 +2018,10 @@ func (e *Error) Unwrap() error {
 // section 7 "Error Handling" of the yacc report.
 const errorRecoveryShifts = 3
 
+// expectedTokensMax is the largest number of expected tokens a syntax error lists. With more of them, the list is left
+// out, because it would not help the reader any more.
+const expectedTokensMax = 4
+
 // arenaChunkSize is the number of nodes the arena allocator hands out from a single chunk. A parse which needs more
 // nodes than one chunk holds takes further chunks of the same size and keeps them for the parses after it.
 const arenaChunkSize = 16 * 1024
@@ -2159,6 +2163,98 @@ var (
 		TokenTestType:         85,
 		TokenTestStatement:    86,
 		TokenTestDecl:         87,
+	}
+
+	// tokenByTerminalColumn translates a column of the action table back into the token of its terminal. The
+	// noTerminalColumn stands for no token.
+	tokenByTerminalColumn = [...]Token{
+		1:  EndToken,
+		2:  TokenWhitespace,
+		3:  TokenComment,
+		4:  TokenBreak,
+		5:  TokenCase,
+		6:  TokenChan,
+		7:  TokenConst,
+		8:  TokenContinue,
+		9:  TokenDefault,
+		10: TokenDefer,
+		11: TokenElse,
+		12: TokenFallthrough,
+		13: TokenFor,
+		14: TokenFunc,
+		15: TokenGo,
+		16: TokenGoto,
+		17: TokenIf,
+		18: TokenImport,
+		19: TokenInterface,
+		20: TokenMap,
+		21: TokenPackage,
+		22: TokenRange,
+		23: TokenReturn,
+		24: TokenSelect,
+		25: TokenStruct,
+		26: TokenSwitch,
+		27: TokenType,
+		28: TokenVar,
+		29: TokenIdentifier,
+		30: TokenAdd,
+		31: TokenSub,
+		32: TokenMul,
+		33: TokenQuo,
+		34: TokenRem,
+		35: TokenAnd,
+		36: TokenOr,
+		37: TokenXor,
+		38: TokenShiftLeft,
+		39: TokenShiftRight,
+		40: TokenAndNot,
+		41: TokenAddAssign,
+		42: TokenSubAssign,
+		43: TokenMulAssign,
+		44: TokenQuoAssign,
+		45: TokenRemAssign,
+		46: TokenAndAssign,
+		47: TokenOrAssign,
+		48: TokenXorAssign,
+		49: TokenShiftLeftAssign,
+		50: TokenShiftRightAssign,
+		51: TokenAndNotAssign,
+		52: TokenLogicalAnd,
+		53: TokenLogicalOr,
+		54: TokenArrow,
+		55: TokenIncrement,
+		56: TokenDecrement,
+		57: TokenEqual,
+		58: TokenLessThan,
+		59: TokenGreaterThan,
+		60: TokenAssign,
+		61: TokenNot,
+		62: TokenTilde,
+		63: TokenNotEqual,
+		64: TokenLessEqual,
+		65: TokenGreaterEqual,
+		66: TokenDefine,
+		67: TokenEllipsis,
+		68: TokenLeftParen,
+		69: TokenLeftBracket,
+		70: TokenLeftBrace,
+		71: TokenComma,
+		72: TokenPeriod,
+		73: TokenRightParen,
+		74: TokenRightBracket,
+		75: TokenRightBrace,
+		76: TokenSemicolon,
+		77: TokenColon,
+		78: TokenIntLit,
+		79: TokenFloatLit,
+		80: TokenImaginaryLit,
+		81: TokenRuneLit,
+		82: TokenStringLit,
+		83: TokenTestBasicLit,
+		84: TokenTestExpression,
+		85: TokenTestType,
+		86: TokenTestStatement,
+		87: TokenTestDecl,
 	}
 
 	// actionBase maps a state to the displacement of its row within actionNext.
@@ -2736,6 +2832,64 @@ var (
 		1553, 1805, 3, 1813,
 	}
 
+	// consistentByState holds 1 for a state which reduces by the same production whatever the lookahead is, and 0
+	// otherwise. A consistent state needs no lookahead, so it never starts an exploratory parse.
+	consistentByState = [836]uint8{
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
+		0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+		1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1,
+		1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+		1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1,
+		1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+		0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1,
+		1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
+		0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1,
+		0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0,
+		0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0,
+		1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0,
+		1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+		1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0,
+		0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0,
+		1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0,
+		0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0,
+		0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1,
+		0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1,
+		1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1,
+		0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+		0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0,
+		1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0,
+		0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0,
+		0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1,
+		1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1,
+		1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0,
+		0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0,
+		1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+		0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0,
+		1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0,
+		1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1,
+		0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0,
+		1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0,
+		0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1,
+		1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1,
+		1, 0, 0, 1,
+	}
+
 	// gotoBase maps a state to the displacement of its row within gotoNext.
 	gotoBase = [836]uint16{
 		13, 13, 4, 25, 322, 10, 12, 13, 13, 13, 13, 13, 13, 13, 13, 13,
@@ -3088,14 +3242,25 @@ type Parser struct {
 	// reported again. It is zero while the parser is in sync with the input and errorRecoveryShifts right after the
 	// error symbol was shifted.
 	errorRecoveryShiftsRemaining int
+
+	// exploratoryParsePassed reports that an exploratory parse found the current lookahead to be shifted eventually,
+	// so the reductions leading there need no further check. It is cleared whenever the lookahead or the stack below
+	// the reductions changes, which is on every shift and on every token discarded.
+	exploratoryParsePassed bool
+
+	// exploratoryStack holds the states an exploratory parse pushes. The states below them are the ones of stateStack
+	// below exploratoryStackBase, which the exploratory parse reads but never writes.
+	exploratoryStack     []int
+	exploratoryStackBase int
 }
 
 // NewParser creates a new parser.
 func NewParser() *Parser {
 	parser := Parser{
-		stateStack:  make([]int, 0, initialStackCapacity),
-		nodeStack:   make([]Node, 0, initialStackCapacity),
-		arenaChunks: [][]Node{make([]Node, arenaChunkSize)},
+		stateStack:       make([]int, 0, initialStackCapacity),
+		nodeStack:        make([]Node, 0, initialStackCapacity),
+		arenaChunks:      [][]Node{make([]Node, arenaChunkSize)},
+		exploratoryStack: make([]int, 0, initialStackCapacity),
 	}
 	parser.resetArena()
 	return &parser
@@ -3124,6 +3289,7 @@ func (p *Parser) Parse(scanner TokenSource) (Node, error) {
 	p.nodeStack = p.nodeStack[:0]
 	p.errors = p.errors[:0]
 	p.errorRecoveryShiftsRemaining = 0
+	p.exploratoryParsePassed = false
 
 	// A source with no tokens at all reports false right away. That is not an error: the token is the end of input
 	// either way, and whether a parse of nothing but that is legal is for the table to decide.
@@ -3163,13 +3329,7 @@ func (p *Parser) step(scanner TokenSource) error {
 	column := p.terminalColumn(terminal)
 
 	state := p.currentState()
-	cellIdx := uint32(actionBase[state]) + column
-	action := uint32(defaultActionByState[state])
-	if uint32(actionCheck[cellIdx]) == column {
-		// An entry the state has of its own beats its default action, which is what keeps a token the grammar
-		// rejects on purpose an error even in a state which reduces on everything else.
-		action = uint32(actionNext[cellIdx])
-	}
+	action := p.action(state, column)
 
 	switch action & actionKindMask {
 	case actionKindShift:
@@ -3183,12 +3343,21 @@ func (p *Parser) step(scanner TokenSource) error {
 			ByteLength: scanner.ByteLength(),
 		})
 		scanner.Next()
+		p.exploratoryParsePassed = false
 		if p.errorRecoveryShiftsRemaining > 0 {
 			// Getting tokens of the input shifted again is what makes the parser trust its position.
 			p.errorRecoveryShiftsRemaining--
 		}
 		return nil
 	case actionKindReduce:
+		if !p.exploratoryParsePassed && consistentByState[state] == 0 {
+			// The state reduces because of the lookahead, which might be one it only accepts because states were
+			// merged or a default reduction was chosen. Reducing on it would leave the state the error belongs to.
+			if !p.exploratoryParse(column) {
+				return p.raiseSyntaxError(scanner, terminal)
+			}
+			p.exploratoryParsePassed = true
+		}
 		p.reduce(scanner, action>>actionKindBits)
 		return nil
 	case actionKindAccept:
@@ -3198,10 +3367,7 @@ func (p *Parser) step(scanner TokenSource) error {
 		// The parse is successfully finished.
 		return errAccept
 	case actionKindError:
-		if p.Trace != nil {
-			p.emitErrorTrace(scanner, "unexpected token "+p.terminalTraceName(terminal))
-		}
-		return p.raiseError(scanner, fmt.Errorf("%w: unexpected token %s", ErrSyntax, terminal))
+		return p.raiseSyntaxError(scanner, terminal)
 	default:
 		if p.Trace != nil {
 			p.emitErrorTrace(scanner, fmt.Sprintf("unexpected action %d in state %d", action, state))
@@ -3223,15 +3389,7 @@ func (p *Parser) reduce(scanner TokenSource, productionIdx uint32) {
 
 	p.stateStack = p.stateStack[:len(p.stateStack)-popCount]
 
-	state := p.currentState()
-	// A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
-	// reduction uncovers always has one, so there is no case for a nonterminal missing from both.
-	gotoState := uint32(defaultGotoByNonterminal[nonterminal])
-	cellIdx := uint32(gotoBase[state]) + nonterminal
-	if uint32(gotoCheck[cellIdx]) == nonterminal {
-		gotoState = uint32(gotoNext[cellIdx])
-	}
-	p.stateStack = append(p.stateStack, int(gotoState))
+	p.stateStack = append(p.stateStack, p.gotoState(p.currentState(), nonterminal))
 
 	// The node starts where its first child starts and ends where its last child ends.
 	rightHandSide := p.nodeStack[len(p.nodeStack)-popCount:]
@@ -3263,6 +3421,96 @@ func (p *Parser) reduce(scanner TokenSource, productionIdx uint32) {
 		p.nodeStack = p.nodeStack[:len(p.nodeStack)-popCount]
 	}
 	p.nodeStack = append(p.nodeStack, newNode)
+}
+
+// exploratoryParse reports whether the parse from the current stack shifts the terminal of the given column eventually,
+// instead of running into an error. It performs the reductions the terminal leads to on the states alone and without
+// building nodes, so the stacks of the parse are still intact when the terminal turns out to be an error.
+//
+// This is the lookahead correction of section 3.5.2 "Parser" of "PSLR(1): Pseudo-Scannerless Minimal LR(1) for the
+// Deterministic Parsing of Composite Languages" by Joel E. Denny. It deviates from the paper in two ways. The paper
+// runs an exploratory parse as soon as a lookahead arrives, step runs it only before the first reduction the
+// lookahead decides in a state which is not consistent, because a shift or an error action needs no exploring. And
+// the paper explores on a copy of the stack, while this reads the stack in place, see exploratoryPop.
+func (p *Parser) exploratoryParse(column uint32) bool {
+	p.exploratoryStack = p.exploratoryStack[:0]
+	p.exploratoryStackBase = len(p.stateStack)
+	for {
+		action := p.action(p.exploratoryTop(), column)
+		switch action & actionKindMask {
+		case actionKindReduce:
+			productionIdx := action >> actionKindBits
+			p.exploratoryPop(int(popCountByProduction[productionIdx]))
+			p.exploratoryPush(p.gotoState(p.exploratoryTop(), uint32(nonterminalByProduction[productionIdx])))
+		case actionKindShift, actionKindAccept:
+			return true
+		default:
+			return false
+		}
+	}
+}
+
+// exploratoryTop returns the state on top of the stack of the exploratory parse.
+func (p *Parser) exploratoryTop() int {
+	if len(p.exploratoryStack) != 0 {
+		return p.exploratoryStack[len(p.exploratoryStack)-1]
+	}
+	return p.stateStack[p.exploratoryStackBase-1]
+}
+
+// exploratoryPop takes the given number of states off the stack of the exploratory parse. The states it pushed itself
+// go first. Below them, it lowers the base index into stateStack instead of popping, so the stack of the parse is never
+// written and needs no copy.
+func (p *Parser) exploratoryPop(count int) {
+	pushedCount := min(count, len(p.exploratoryStack))
+	p.exploratoryStack = p.exploratoryStack[:len(p.exploratoryStack)-pushedCount]
+	p.exploratoryStackBase -= count - pushedCount
+}
+
+// exploratoryPush puts the given state on top of the stack of the exploratory parse.
+func (p *Parser) exploratoryPush(state int) {
+	p.exploratoryStack = append(p.exploratoryStack, state)
+}
+
+// expectedTokens returns the tokens which the parse from the current stack would shift eventually, in the order of
+// their columns. It runs an exploratory parse per terminal of the grammar and leaves out the error symbol, which no
+// scanner delivers. More than expectedTokensMax of them are not returned at all.
+func (p *Parser) expectedTokens() []Token {
+	var result []Token
+	for column := range uint32(len(tokenByTerminalColumn)) {
+		if column == noTerminalColumn || column == errorTerminalColumn || !p.exploratoryParse(column) {
+			continue
+		}
+		if len(result) == expectedTokensMax {
+			return nil
+		}
+		result = append(result, tokenByTerminalColumn[column])
+	}
+	return result
+}
+
+// raiseSyntaxError returns the error for the given token being unexpected on the current stack, listing the tokens
+// which would have been expected instead.
+func (p *Parser) raiseSyntaxError(scanner TokenSource, terminal Token) error {
+	expected := p.expectedTokens()
+	if p.Trace != nil {
+		p.emitErrorTrace(scanner, p.unexpectedTokenMessage(terminal, expected, p.terminalTraceName))
+	}
+	return p.raiseError(scanner, fmt.Errorf("%w: %s", ErrSyntax, p.unexpectedTokenMessage(terminal, expected, Token.String)))
+}
+
+// unexpectedTokenMessage describes the given token as unexpected in place of the expected ones, naming each token with
+// the given function.
+func (p *Parser) unexpectedTokenMessage(terminal Token, expected []Token, name func(Token) string) string {
+	message := "unexpected token " + name(terminal)
+	for i, token := range expected {
+		if i == 0 {
+			message += ", expecting " + name(token)
+		} else {
+			message += " or " + name(token)
+		}
+	}
+	return message
 }
 
 // recoverFromError puts the parser back where it can carry on with the remaining input after a syntax error. Once it
@@ -3299,6 +3547,7 @@ func (p *Parser) recoverFromError(scanner TokenSource) bool {
 		// The discarded token is thrown away as well, so the span reaches to its end and not to its start.
 		droppedLength = scanner.ByteLength()
 		scanner.Next()
+		p.exploratoryParsePassed = false
 	}
 	p.errorRecoveryShiftsRemaining = errorRecoveryShifts
 
@@ -3315,6 +3564,7 @@ func (p *Parser) recoverFromError(scanner TokenSource) bool {
 			}
 			// Shift the error symbol. Its node covers what this round dropped.
 			p.stateStack = append(p.stateStack, nextState)
+			p.exploratoryParsePassed = false
 			p.nodeStack = append(p.nodeStack, Node{
 				Symbol:     NewTerminal(ErrorToken),
 				ByteOffset: droppedOffset,
@@ -3354,6 +3604,29 @@ func (p *Parser) terminalColumn(terminal Token) uint32 {
 		return uint32(terminalColumnByToken[terminal])
 	}
 	return noTerminalColumn
+}
+
+// action returns the action the given state takes for the terminal of the given column.
+func (p *Parser) action(state int, column uint32) uint32 {
+	cellIdx := uint32(actionBase[state]) + column
+	if uint32(actionCheck[cellIdx]) == column {
+		// An entry the state has of its own beats its default action, which is what keeps a token the grammar
+		// rejects on purpose an error even in a state which reduces on everything else.
+		return uint32(actionNext[cellIdx])
+	}
+	return uint32(defaultActionByState[state])
+}
+
+// gotoState returns the state the parse continues in when it reduced to the given nonterminal and uncovered the given
+// state.
+func (p *Parser) gotoState(state int, nonterminal uint32) int {
+	cellIdx := uint32(gotoBase[state]) + nonterminal
+	if uint32(gotoCheck[cellIdx]) == nonterminal {
+		return int(gotoNext[cellIdx])
+	}
+	// A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
+	// reduction uncovers always has one, so there is no case for a nonterminal missing from both.
+	return int(defaultGotoByNonterminal[nonterminal])
 }
 
 // errorShiftState returns the state to continue in when the error symbol is shifted in the given state, and reports if
