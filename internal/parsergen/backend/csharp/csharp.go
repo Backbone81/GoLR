@@ -21,9 +21,11 @@ import (
 var parserTemplate string
 
 var parsedTemplate = template.Must(template.New("parser.cs.template").Funcs(template.FuncMap{
+	"terminalName":        terminalName,
 	"nonterminalName":     nonterminalName,
 	"isAcceptNonterminal": isAcceptNonterminal,
 	"productionName":      productionName,
+	"stringLiteral":       utils.CSharpStringLiteral,
 }).Parse(parserTemplate))
 
 // DefaultNamespace is the C# namespace the generated parser is declared in when the caller names none.

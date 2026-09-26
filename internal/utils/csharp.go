@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"fmt"
 	"math"
+	"strings"
 )
 
 // CSharpIntType returns the name of the narrowest C# integer type which can hold every value from zero up to the given
@@ -29,4 +31,33 @@ func NewCSharpIntArray(values []int) IntArray {
 		maxValue = max(maxValue, value)
 	}
 	return NewTypedIntArray(CSharpIntType(maxValue), values)
+}
+
+// CSharpStringLiteral returns the given string as a C# string literal. Control characters are written as \u escapes,
+// which unlike a \x escape have a fixed length and cannot run into a hex digit following them. Every other byte is
+// written as it is, so UTF-8 stays readable.
+func CSharpStringLiteral(value string) string {
+	var builder strings.Builder
+	builder.WriteByte('"')
+	for i := range len(value) {
+		char := value[i]
+		switch {
+		case char == '\\':
+			builder.WriteString(`\\`)
+		case char == '"':
+			builder.WriteString(`\"`)
+		case char == '\n':
+			builder.WriteString(`\n`)
+		case char == '\r':
+			builder.WriteString(`\r`)
+		case char == '\t':
+			builder.WriteString(`\t`)
+		case char < 0x20 || char == 0x7f:
+			builder.WriteString(fmt.Sprintf(`\u%04x`, char))
+		default:
+			builder.WriteByte(char)
+		}
+	}
+	builder.WriteByte('"')
+	return builder.String()
 }

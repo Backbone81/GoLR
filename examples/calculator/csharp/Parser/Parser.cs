@@ -302,6 +302,12 @@ public sealed class Parser
     /// </summary>
     private const int ErrorRecoveryShifts = 3;
 
+    /// <summary>
+    /// The largest number of expected tokens a syntax error lists. With more of them, the list is left out, because it
+    /// would not help the reader any more.
+    /// </summary>
+    private const int ExpectedTokensMax = 4;
+
     /// <summary>What <see cref="ErrorShiftState"/> returns for a state which cannot shift the error symbol.</summary>
     private const int NoErrorShiftState = -1;
 
@@ -354,6 +360,25 @@ public sealed class Parser
     /// </summary>
     private static readonly byte[] TerminalColumnByToken = NewTerminalColumnByToken();
 
+    /// <summary>
+    /// Translates a column of the action table back into the token of its terminal. The
+    /// <see cref="NoTerminalColumn"/> stands for no token and holds the default.
+    /// </summary>
+    private static readonly Token[] TokenByTerminalColumn =
+    {
+        default,
+        Token.EndToken,
+        Token.TokenWhitespace,
+        Token.TokenInteger,
+        Token.TokenPlus,
+        Token.TokenMinus,
+        Token.TokenMultiply,
+        Token.TokenDivide,
+        Token.TokenLparen,
+        Token.TokenRparen,
+        Token.TokenUminus,
+    };
+
     /// <summary>Maps a state to the displacement of its row within <see cref="ActionNext"/>.</summary>
     private static readonly byte[] ActionBase =
     {
@@ -389,6 +414,16 @@ public sealed class Parser
     {
         3, 5, 3, 3, 3, 25, 3, 2, 3, 3, 3, 3, 29, 9, 13, 17,
         21,
+    };
+
+    /// <summary>
+    /// Holds 1 for a state which reduces by the same production whatever the lookahead is, and 0 otherwise. A
+    /// consistent state needs no lookahead, so it never starts an exploratory parse.
+    /// </summary>
+    private static readonly byte[] ConsistentByState =
+    {
+        0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1,
+        1,
     };
 
     /// <summary>Maps a state to the displacement of its row within <see cref="GotoNext"/>.</summary>
@@ -461,6 +496,19 @@ public sealed class Parser
     private int _errorRecoveryShiftsRemaining;
 
     /// <summary>
+    /// Whether an exploratory parse found the current lookahead to be shifted eventually, so the reductions leading
+    /// there need no further check. Cleared on every shift and on every token discarded.
+    /// </summary>
+    private bool _exploratoryParsePassed;
+
+    /// <summary>
+    /// The states an exploratory parse pushes. The states below them are the ones of <see cref="_stateStack"/> below
+    /// <see cref="_exploratoryStackBase"/>, which the exploratory parse reads but never writes.
+    /// </summary>
+    private readonly List<int> _exploratoryStack = new();
+    private int _exploratoryStackBase;
+
+    /// <summary>
     /// Parses the tokens the scanner delivers. Can be called more than once, with a different scanner each time.
     ///
     /// When the grammar marks places to resume at with the error symbol, a syntax error does not end the parse: the
@@ -477,6 +525,7 @@ public sealed class Parser
         _nodeStack.Clear();
         _errors.Clear();
         _errorRecoveryShiftsRemaining = 0;
+        _exploratoryParsePassed = false;
 
         // A source with no tokens at all reports false right away. That is not an error: the token is the end of input
         // either way, and whether a parse of nothing but that is legal is for the table to decide.
@@ -532,14 +581,7 @@ public sealed class Parser
         int column = TerminalColumn(terminal);
 
         int state = CurrentState();
-        int cellIdx = ActionBase[state] + column;
-        int action = DefaultActionByState[state];
-        if (ActionCheck[cellIdx] == column)
-        {
-            // An entry the state has of its own beats its default action, which is what keeps a token the grammar
-            // rejects on purpose an error even in a state which reduces on everything else.
-            action = ActionNext[cellIdx];
-        }
+        int action = Action(state, column);
 
         switch (action & ActionKindMask)
         {
@@ -552,6 +594,7 @@ public sealed class Parser
                 _nodeStack.Add(new ParseNode(
                     ParseSymbol.NewTerminal(terminal), scanner.ByteOffset, scanner.ByteLength, Array.Empty<ParseNode>(), null));
                 scanner.Next();
+                _exploratoryParsePassed = false;
                 if (_errorRecoveryShiftsRemaining > 0)
                 {
                     // Getting tokens of the input shifted again is what makes the parser trust its position.
@@ -559,6 +602,18 @@ public sealed class Parser
                 }
                 return StepResult.Continue;
             case ActionKindReduce:
+                if (!_exploratoryParsePassed && ConsistentByState[state] == 0)
+                {
+                    // The state reduces because of the lookahead, which might be one it only accepts because states
+                    // were merged or a default reduction was chosen. Reducing on it would leave the state the error
+                    // belongs to.
+                    if (!ExploratoryParse(column))
+                    {
+                        error = RaiseSyntaxError(scanner, terminal);
+                        return StepResult.Failed;
+                    }
+                    _exploratoryParsePassed = true;
+                }
                 Reduce(scanner, action >> ActionKindBits);
                 return StepResult.Continue;
             case ActionKindAccept:
@@ -568,11 +623,7 @@ public sealed class Parser
                 }
                 return StepResult.Accept;
             case ActionKindError:
-                if (Trace != null)
-                {
-                    EmitErrorTrace(scanner, $"unexpected token {TerminalTraceName(terminal)}");
-                }
-                error = new ParseError($"unexpected token {terminal.ToDisplayString()}", ErrorKind.Syntax, scanner);
+                error = RaiseSyntaxError(scanner, terminal);
                 return StepResult.Failed;
             default:
                 if (Trace != null)
@@ -604,16 +655,7 @@ public sealed class Parser
 
         _stateStack.RemoveRange(_stateStack.Count - popCount, popCount);
 
-        int state = CurrentState();
-        // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
-        // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
-        int gotoState = DefaultGotoByNonterminal[nonterminal];
-        int cellIdx = GotoBase[state] + nonterminal;
-        if (GotoCheck[cellIdx] == nonterminal)
-        {
-            gotoState = GotoNext[cellIdx];
-        }
-        _stateStack.Add(gotoState);
+        _stateStack.Add(GotoState(CurrentState(), nonterminal));
 
         // The node starts where its first child starts and ends where its last child ends.
         int byteOffset = 0;
@@ -644,6 +686,130 @@ public sealed class Parser
         _nodeStack.RemoveRange(_nodeStack.Count - popCount, popCount);
         _nodeStack.Add(new ParseNode(
             ParseSymbol.NewNonterminal((Nonterminal)nonterminal), byteOffset, byteLength, children, (Production)productionIdx));
+    }
+
+    /// <summary>
+    /// Reports whether the parse from the current stack shifts the terminal of the given column eventually, instead of
+    /// running into an error. It performs the reductions the terminal leads to on the states alone and without
+    /// building nodes, so the stacks of the parse are still intact when the terminal turns out to be an error.
+    ///
+    /// This is the lookahead correction of section 3.5.2 "Parser" of "PSLR(1): Pseudo-Scannerless Minimal LR(1) for
+    /// the Deterministic Parsing of Composite Languages" by Joel E. Denny. It deviates from the paper in two ways. The
+    /// paper runs an exploratory parse as soon as a lookahead arrives, <see cref="Step"/> runs it only before the
+    /// first reduction the lookahead decides in a state which is not consistent, because a shift or an error action
+    /// needs no exploring. And the paper explores on a copy of the stack, while this reads the stack in place, see
+    /// <see cref="ExploratoryPop"/>.
+    /// </summary>
+    /// <param name="column">The column of the terminal to explore.</param>
+    private bool ExploratoryParse(int column)
+    {
+        _exploratoryStack.Clear();
+        _exploratoryStackBase = _stateStack.Count;
+        while (true)
+        {
+            int action = Action(ExploratoryTop(), column);
+            switch (action & ActionKindMask)
+            {
+                case ActionKindReduce:
+                    int productionIdx = action >> ActionKindBits;
+                    ExploratoryPop(PopCountByProduction[productionIdx]);
+                    ExploratoryPush(GotoState(ExploratoryTop(), NonterminalByProduction[productionIdx]));
+                    break;
+                case ActionKindShift:
+                case ActionKindAccept:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+    }
+
+    /// <summary>Returns the state on top of the stack of the exploratory parse.</summary>
+    private int ExploratoryTop()
+    {
+        if (_exploratoryStack.Count != 0)
+        {
+            return _exploratoryStack[^1];
+        }
+        return _stateStack[_exploratoryStackBase - 1];
+    }
+
+    /// <summary>
+    /// Takes the given number of states off the stack of the exploratory parse. The states it pushed itself go first.
+    /// Below them, it lowers the base index into <see cref="_stateStack"/> instead of popping, so the stack of the
+    /// parse is never written and needs no copy.
+    /// </summary>
+    /// <param name="count">The number of states to take off.</param>
+    private void ExploratoryPop(int count)
+    {
+        int pushedCount = Math.Min(count, _exploratoryStack.Count);
+        _exploratoryStack.RemoveRange(_exploratoryStack.Count - pushedCount, pushedCount);
+        _exploratoryStackBase -= count - pushedCount;
+    }
+
+    /// <summary>Puts the given state on top of the stack of the exploratory parse.</summary>
+    /// <param name="state">The state to put on top.</param>
+    private void ExploratoryPush(int state) => _exploratoryStack.Add(state);
+
+    /// <summary>
+    /// Returns the tokens which the parse from the current stack would shift eventually, in the order of their
+    /// columns. It runs an exploratory parse per terminal of the grammar and leaves out the error symbol, which no
+    /// scanner delivers. More than <see cref="ExpectedTokensMax"/> of them are not returned at all.
+    /// </summary>
+    private List<Token> ExpectedTokens()
+    {
+        List<Token> result = new();
+        for (int column = 0; column < TokenByTerminalColumn.Length; column++)
+        {
+            if (column == NoTerminalColumn || column == ErrorTerminalColumn || !ExploratoryParse(column))
+            {
+                continue;
+            }
+            if (result.Count == ExpectedTokensMax)
+            {
+                return new List<Token>();
+            }
+            result.Add(TokenByTerminalColumn[column]);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Returns the error for the given token being unexpected on the current stack, listing the tokens which would have
+    /// been expected instead.
+    /// </summary>
+    /// <param name="scanner">The scanner the position of the error is taken from.</param>
+    /// <param name="terminal">The unexpected token.</param>
+    private ParseError RaiseSyntaxError(ITokenSource scanner, Token terminal)
+    {
+        string message = UnexpectedTokenMessage(terminal, ExpectedTokens());
+        if (Trace != null)
+        {
+            EmitErrorTrace(scanner, message);
+        }
+        return new ParseError(message, ErrorKind.Syntax, scanner);
+    }
+
+    /// <summary>
+    /// Describes the given token as unexpected in place of the expected ones, naming each token by its alias.
+    /// </summary>
+    /// <param name="terminal">The unexpected token.</param>
+    /// <param name="expected">The tokens which would have been expected instead.</param>
+    private static string UnexpectedTokenMessage(Token terminal, List<Token> expected)
+    {
+        StringBuilder message = new StringBuilder("unexpected ").Append(TerminalName(terminal));
+        for (int i = 0; i < expected.Count; i++)
+        {
+            if (i == 0)
+            {
+                message.Append(", expecting ").Append(TerminalName(expected[i]));
+            }
+            else
+            {
+                message.Append(" or ").Append(TerminalName(expected[i]));
+            }
+        }
+        return message.ToString();
     }
 
     /// <summary>
@@ -689,6 +855,7 @@ public sealed class Parser
             // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
             droppedLength = scanner.ByteLength;
             scanner.Next();
+            _exploratoryParsePassed = false;
         }
         _errorRecoveryShiftsRemaining = ErrorRecoveryShifts;
 
@@ -710,6 +877,7 @@ public sealed class Parser
                 }
                 // Shift the error symbol. Its node covers what this round dropped.
                 _stateStack.Add(nextState);
+                _exploratoryParsePassed = false;
                 _nodeStack.Add(new ParseNode(
                     ParseSymbol.NewTerminal(Token.ErrorToken), droppedOffset, droppedLength, Array.Empty<ParseNode>(), null));
                 return true;
@@ -752,6 +920,38 @@ public sealed class Parser
             return TerminalColumnByToken[(int)terminal];
         }
         return NoTerminalColumn;
+    }
+
+    /// <summary>Returns the action the given state takes for the terminal of the given column.</summary>
+    /// <param name="state">The state to look up.</param>
+    /// <param name="column">The column of the terminal to look up.</param>
+    private static int Action(int state, int column)
+    {
+        int cellIdx = ActionBase[state] + column;
+        if (ActionCheck[cellIdx] == column)
+        {
+            // An entry the state has of its own beats its default action, which is what keeps a token the grammar
+            // rejects on purpose an error even in a state which reduces on everything else.
+            return ActionNext[cellIdx];
+        }
+        return DefaultActionByState[state];
+    }
+
+    /// <summary>
+    /// Returns the state the parse continues in when it reduced to the given nonterminal and uncovered the given state.
+    /// </summary>
+    /// <param name="state">The state the reduction uncovered.</param>
+    /// <param name="nonterminal">The nonterminal the reduction reduced to.</param>
+    private static int GotoState(int state, int nonterminal)
+    {
+        int cellIdx = GotoBase[state] + nonterminal;
+        if (GotoCheck[cellIdx] == nonterminal)
+        {
+            return GotoNext[cellIdx];
+        }
+        // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
+        // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
+        return DefaultGotoByNonterminal[nonterminal];
     }
 
     /// <summary>
@@ -838,6 +1038,21 @@ public sealed class Parser
         _ = symbol.TryGetTerminal(out Token terminal);
         return TerminalTraceName(terminal);
     }
+
+    /// <summary>Names a terminal by the alias the grammar gives it, or by its name if it has none.</summary>
+    /// <param name="terminal">The terminal to name.</param>
+    private static string TerminalName(Token terminal) => terminal switch
+    {
+        Token.EndToken => "end of input",
+        Token.InvalidToken => "invalid input",
+        Token.TokenPlus => "\"+\"",
+        Token.TokenMinus => "\"-\"",
+        Token.TokenMultiply => "\"*\"",
+        Token.TokenDivide => "\"/\"",
+        Token.TokenLparen => "\"(\"",
+        Token.TokenRparen => "\")\"",
+        _ => terminal.ToDisplayString(),
+    };
 
     /// <summary>Names a terminal for a trace line, giving the three tokens the grammar cannot spell a dollar name.</summary>
     /// <param name="terminal">The terminal to name.</param>
