@@ -202,6 +202,10 @@ enum StepResult<'a> {
 /// between keeps one mistake in the input from producing an avalanche of messages which all follow from it.
 const ERROR_RECOVERY_SHIFTS: usize = 3;
 
+/// The largest number of expected tokens a syntax error lists. With more of them, the list is left out, because it would
+/// not help the reader any more.
+const EXPECTED_TOKENS_MAX: usize = 4;
+
 // The parse table is held in lookup tables. A token is translated into the column of the action table which holds the
 // decisions for it, and the rows of that table are displaced into a single array so that the entries of one row fall
 // into the holes of another. This is the row displacement method of "Storing a Sparse Table" by Tarjan and Yao. The
@@ -257,6 +261,23 @@ static PRODUCTIONS: [Production; 7] = [
     Production::ProductionExpression7,
 ];
 
+/// Translates a column of the action table back into the token of its terminal. The [`NO_TERMINAL_COLUMN`] stands for no
+/// token and holds [`Token::InvalidToken`].
+#[rustfmt::skip]
+static TOKEN_BY_TERMINAL_COLUMN: [Token; 11] = [
+    Token::InvalidToken,
+    Token::EndToken,
+    Token::TokenWhitespace,
+    Token::TokenInteger,
+    Token::TokenPlus,
+    Token::TokenMinus,
+    Token::TokenMultiply,
+    Token::TokenDivide,
+    Token::TokenLparen,
+    Token::TokenRparen,
+    Token::TokenUminus,
+];
+
 /// Maps a state to the displacement of its row within [`ACTION_NEXT`].
 #[rustfmt::skip]
 static ACTION_BASE: [u8; 17] = [
@@ -286,6 +307,14 @@ static ACTION_CHECK: [u8; 23] = [
 static DEFAULT_ACTION_BY_STATE: [u8; 17] = [
     3, 5, 3, 3, 3, 25, 3, 2, 3, 3, 3, 3, 29, 9, 13, 17,
     21,
+];
+
+/// Holds 1 for a state which reduces by the same production whatever the lookahead is, and 0 otherwise. A consistent
+/// state needs no lookahead, so it never starts an exploratory parse.
+#[rustfmt::skip]
+static CONSISTENT_BY_STATE: [u8; 17] = [
+    0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1,
+    1,
 ];
 
 /// Maps a state to the displacement of its row within [`GOTO_NEXT`].
@@ -384,6 +413,17 @@ struct ParseState<'a, 't> {
     /// Counts down the tokens which still have to be shifted before syntax errors are reported again. Zero while the
     /// parser is in sync with the input.
     error_recovery_shifts_remaining: usize,
+
+    /// Whether an exploratory parse found the current lookahead to be shifted eventually, so the reductions leading
+    /// there need no further check. Cleared on every shift and on every token discarded.
+    exploratory_parse_passed: bool,
+
+    /// The states an exploratory parse pushes. The states below them are the ones of `state_stack` below
+    /// `exploratory_stack_base`, which the exploratory parse reads but never writes.
+    exploratory_stack: Vec<usize>,
+
+    /// How many entries of `state_stack` the exploratory parse still reads.
+    exploratory_stack_base: usize,
 }
 
 impl<'a, 't> ParseState<'a, 't> {
@@ -440,14 +480,7 @@ impl<'a, 't> ParseState<'a, 't> {
         let column = Self::terminal_column(terminal);
 
         let state = self.current_state();
-        let cell_idx = ACTION_BASE[state] as usize + column;
-        // An entry the state has of its own beats its default action, which is what keeps a token the grammar rejects
-        // on purpose an error even in a state which reduces on everything else.
-        let action = if ACTION_CHECK[cell_idx] as usize == column {
-            ACTION_NEXT[cell_idx] as usize
-        } else {
-            DEFAULT_ACTION_BY_STATE[state] as usize
-        };
+        let action = Self::action(state, column);
 
         match action & ACTION_KIND_MASK {
             ACTION_KIND_SHIFT => {
@@ -468,6 +501,7 @@ impl<'a, 't> ParseState<'a, 't> {
                     production: None,
                 });
                 scanner.next();
+                self.exploratory_parse_passed = false;
                 if self.error_recovery_shifts_remaining > 0 {
                     // Getting tokens of the input shifted again is what makes the parser trust its position.
                     self.error_recovery_shifts_remaining -= 1;
@@ -475,6 +509,15 @@ impl<'a, 't> ParseState<'a, 't> {
                 StepResult::Continue
             }
             ACTION_KIND_REDUCE => {
+                if !self.exploratory_parse_passed && CONSISTENT_BY_STATE[state] == 0 {
+                    // The state reduces because of the lookahead, which might be one it only accepts because states
+                    // were merged or a default reduction was chosen. Reducing on it would leave the state the error
+                    // belongs to.
+                    if !self.exploratory_parse(column) {
+                        return StepResult::Failed(self.raise_syntax_error(scanner, terminal));
+                    }
+                    self.exploratory_parse_passed = true;
+                }
                 self.reduce(scanner, action >> ACTION_KIND_BITS);
                 StepResult::Continue
             }
@@ -484,17 +527,7 @@ impl<'a, 't> ParseState<'a, 't> {
                 }
                 StepResult::Accept
             }
-            ACTION_KIND_ERROR => {
-                if self.trace.is_some() {
-                    let detail = format!("unexpected token {}", terminal_trace_name(terminal));
-                    self.emit_error_trace(scanner, &detail);
-                }
-                StepResult::Failed(ParseError::new(
-                    format!("unexpected token {terminal}"),
-                    ErrorKind::Syntax,
-                    scanner,
-                ))
-            }
+            ACTION_KIND_ERROR => StepResult::Failed(self.raise_syntax_error(scanner, terminal)),
             _ => {
                 if self.trace.is_some() {
                     let detail = format!("unexpected action {action} in state {state}");
@@ -526,17 +559,7 @@ impl<'a, 't> ParseState<'a, 't> {
 
         let uncovered_len = self.state_stack.len() - pop_count;
         self.state_stack.truncate(uncovered_len);
-
-        let state = self.current_state();
-        let cell_idx = GOTO_BASE[state] as usize + nonterminal;
-        // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
-        // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
-        let goto_state = if GOTO_CHECK[cell_idx] as usize == nonterminal {
-            GOTO_NEXT[cell_idx] as usize
-        } else {
-            DEFAULT_GOTO_BY_NONTERMINAL[nonterminal] as usize
-        };
-        self.state_stack.push(goto_state);
+        self.state_stack.push(Self::goto_state(self.current_state(), nonterminal));
 
         // The node starts where its first child starts and ends where its last child ends.
         let (byte_offset, byte_length) = if pop_count != 0 {
@@ -565,6 +588,107 @@ impl<'a, 't> ParseState<'a, 't> {
             children,
             production: Some(PRODUCTIONS[production_idx - 1]),
         });
+    }
+
+    /// Reports whether the parse from the current stack shifts the terminal of the given column eventually, instead of
+    /// running into an error. It performs the reductions the terminal leads to on the states alone and without building
+    /// nodes, so the stacks of the parse are still intact when the terminal turns out to be an error.
+    ///
+    /// This is the lookahead correction of section 3.5.2 "Parser" of "PSLR(1): Pseudo-Scannerless Minimal LR(1) for the
+    /// Deterministic Parsing of Composite Languages" by Joel E. Denny. It deviates from the paper in two ways. The paper
+    /// runs an exploratory parse as soon as a lookahead arrives, [`Self::step`] runs it only before the first reduction
+    /// the lookahead decides in a state which is not consistent, because a shift or an error action needs no exploring.
+    /// And the paper explores on a copy of the stack, while this reads the stack in place, see
+    /// [`Self::exploratory_pop`].
+    fn exploratory_parse(&mut self, column: usize) -> bool {
+        self.exploratory_stack.clear();
+        self.exploratory_stack_base = self.state_stack.len();
+        loop {
+            let action = Self::action(self.exploratory_top(), column);
+            match action & ACTION_KIND_MASK {
+                ACTION_KIND_REDUCE => {
+                    let production_idx = action >> ACTION_KIND_BITS;
+                    self.exploratory_pop(POP_COUNT_BY_PRODUCTION[production_idx] as usize);
+                    self.exploratory_push(Self::goto_state(
+                        self.exploratory_top(),
+                        NONTERMINAL_BY_PRODUCTION[production_idx] as usize,
+                    ));
+                }
+                ACTION_KIND_SHIFT | ACTION_KIND_ACCEPT => return true,
+                _ => return false,
+            }
+        }
+    }
+
+    /// Returns the state on top of the stack of the exploratory parse.
+    fn exploratory_top(&self) -> usize {
+        if let Some(&state) = self.exploratory_stack.last() {
+            return state;
+        }
+        self.state_stack[self.exploratory_stack_base - 1]
+    }
+
+    /// Takes the given number of states off the stack of the exploratory parse. The states it pushed itself go first.
+    /// Below them, it lowers the base index into `state_stack` instead of popping, so the stack of the parse is never
+    /// written and needs no copy.
+    fn exploratory_pop(&mut self, count: usize) {
+        let pushed_count = count.min(self.exploratory_stack.len());
+        self.exploratory_stack.truncate(self.exploratory_stack.len() - pushed_count);
+        self.exploratory_stack_base -= count - pushed_count;
+    }
+
+    /// Puts the given state on top of the stack of the exploratory parse.
+    fn exploratory_push(&mut self, state: usize) {
+        self.exploratory_stack.push(state);
+    }
+
+    /// Returns the tokens which the parse from the current stack would shift eventually, in the order of their columns.
+    /// It runs an exploratory parse per terminal of the grammar and leaves out the error symbol, which no scanner
+    /// delivers. More than [`EXPECTED_TOKENS_MAX`] of them are not returned at all.
+    fn expected_tokens(&mut self) -> Vec<Token> {
+        let mut result = Vec::new();
+        for (column, &token) in TOKEN_BY_TERMINAL_COLUMN.iter().enumerate() {
+            if column == NO_TERMINAL_COLUMN
+                || column == ERROR_TERMINAL_COLUMN
+                || !self.exploratory_parse(column)
+            {
+                continue;
+            }
+            if result.len() == EXPECTED_TOKENS_MAX {
+                return Vec::new();
+            }
+            result.push(token);
+        }
+        result
+    }
+
+    /// Returns the error for the given token being unexpected on the current stack, listing the tokens which would
+    /// have been expected instead.
+    fn raise_syntax_error<S: TokenSource<'a> + ?Sized>(
+        &mut self,
+        scanner: &S,
+        terminal: Token,
+    ) -> ParseError<'a> {
+        let expected = self.expected_tokens();
+        let message = Self::unexpected_token_message(terminal, &expected);
+        if self.trace.is_some() {
+            self.emit_error_trace(scanner, &message);
+        }
+        ParseError::new(message, ErrorKind::Syntax, scanner)
+    }
+
+    /// Describes the given token as unexpected in place of the expected ones, naming each token by its alias.
+    fn unexpected_token_message(terminal: Token, expected: &[Token]) -> String {
+        let mut message = format!("unexpected {}", terminal_name(terminal));
+        for (i, &token) in expected.iter().enumerate() {
+            if i == 0 {
+                message.push_str(", expecting ");
+            } else {
+                message.push_str(" or ");
+            }
+            message.push_str(&terminal_name(token));
+        }
+        message
     }
 
     /// Puts the parser back where it can carry on with the remaining input after a syntax error. Once it reports
@@ -608,6 +732,7 @@ impl<'a, 't> ParseState<'a, 't> {
             // The discarded token is thrown away as well, so the span reaches to its end and not to its start.
             dropped_length = scanner.byte_length();
             scanner.next();
+            self.exploratory_parse_passed = false;
         }
         self.error_recovery_shifts_remaining = ERROR_RECOVERY_SHIFTS;
 
@@ -625,6 +750,7 @@ impl<'a, 't> ParseState<'a, 't> {
                 }
                 // Shift the error symbol. Its node covers what this round dropped.
                 self.state_stack.push(next_state);
+                self.exploratory_parse_passed = false;
                 self.node_stack.push(ParseNode {
                     symbol: ParseSymbol::Terminal(Token::ErrorToken),
                     byte_offset: dropped_offset,
@@ -681,6 +807,29 @@ impl<'a, 't> ParseState<'a, 't> {
             Token::TokenUminus => 10,
             _ => NO_TERMINAL_COLUMN,
         }
+    }
+
+    /// Returns the action the given state takes for the terminal of the given column.
+    fn action(state: usize, column: usize) -> usize {
+        let cell_idx = ACTION_BASE[state] as usize + column;
+        if ACTION_CHECK[cell_idx] as usize == column {
+            // An entry the state has of its own beats its default action, which is what keeps a token the grammar
+            // rejects on purpose an error even in a state which reduces on everything else.
+            return ACTION_NEXT[cell_idx] as usize;
+        }
+        DEFAULT_ACTION_BY_STATE[state] as usize
+    }
+
+    /// Returns the state the parse continues in when it reduced to the given nonterminal and uncovered the given
+    /// state.
+    fn goto_state(state: usize, nonterminal: usize) -> usize {
+        let cell_idx = GOTO_BASE[state] as usize + nonterminal;
+        if GOTO_CHECK[cell_idx] as usize == nonterminal {
+            return GOTO_NEXT[cell_idx] as usize;
+        }
+        // A state without a goto of its own on the nonterminal goes where most states go with it. A state which a
+        // reduction uncovers always has one, so there is no case for a nonterminal missing from both.
+        DEFAULT_GOTO_BY_NONTERMINAL[nonterminal] as usize
     }
 
     /// Returns the state to continue in when the error symbol is shifted in the given state, or `None` when the state
@@ -744,6 +893,21 @@ fn symbol_trace_name(symbol: ParseSymbol) -> String {
     match symbol {
         ParseSymbol::Nonterminal(nonterminal) => nonterminal.to_string(),
         ParseSymbol::Terminal(terminal) => terminal_trace_name(terminal),
+    }
+}
+
+/// Names a terminal by the alias the grammar gives it, or by its name if it has none.
+fn terminal_name(terminal: Token) -> String {
+    match terminal {
+        Token::EndToken => "end of input".to_string(),
+        Token::InvalidToken => "invalid input".to_string(),
+        Token::TokenPlus => "\"+\"".to_string(),
+        Token::TokenMinus => "\"-\"".to_string(),
+        Token::TokenMultiply => "\"*\"".to_string(),
+        Token::TokenDivide => "\"/\"".to_string(),
+        Token::TokenLparen => "\"(\"".to_string(),
+        Token::TokenRparen => "\")\"".to_string(),
+        _ => terminal.to_string(),
     }
 }
 

@@ -21,10 +21,12 @@ import (
 var parserTemplate string
 
 var parsedTemplate = template.Must(template.New("parser.rs.template").Funcs(template.FuncMap{
+	"terminalName":        terminalName,
 	"nonterminalName":     nonterminalName,
 	"isAcceptNonterminal": isAcceptNonterminal,
 	"productionName":      productionName,
 	"productionCount":     productionCount,
+	"stringLiteral":       utils.RustStringLiteral,
 }).Parse(parserTemplate))
 
 // DefaultScannerModule is the module path the generated parser takes the token type from when the caller names none.
