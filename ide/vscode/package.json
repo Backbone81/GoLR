@@ -5,6 +5,7 @@
   "version": "0.1.0",
   "publisher": "backbone81",
   "license": "Apache-2.0",
+  "icon": "images/icon.png",
   "homepage": "https://github.com/backbone81/golr",
   "bugs": {
     "url": "https://github.com/backbone81/golr/issues"
@@ -45,7 +46,11 @@
         "id": "golr",
         "aliases": ["GoLR", "golr"],
         "extensions": [".golr"],
-        "configuration": "./language-configuration.json"
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./images/golr.png",
+          "dark": "./images/golr_dark.png"
+        }
       }
     ],
     "grammars": [
