@@ -25,4 +25,7 @@ run:
 
 .PHONY: clean
 clean:
-	./gradlew clean
+	rm -rf .gradle/
+	rm -rf .intellijPlatform/
+	rm -rf .kotlin/
+	rm -rf build/
