@@ -24,12 +24,6 @@ The plugin supports the `.golr` syntax of GoLR v0.5.0, which is described in
 [Parser Generator Frontend GoLR](https://github.com/Backbone81/GoLR/blob/main/docs/parsergen-frontend-golr.md) and
 [Scanner Generator Frontend GoLR](https://github.com/Backbone81/GoLR/blob/main/docs/scannergen-frontend-golr.md).
 
-## Installation
-
-Install the plugin in Settings | Plugins | Marketplace by searching for "GoLR".
-
-To install it from a `.zip` file, select "Install Plugin from Disk..." from the gear icon in Settings | Plugins.
-
 ## Limitations
 
 Errors in the grammar file are not reported in the editor. Run `golr parser` or `golr scanner` on the file to see them.

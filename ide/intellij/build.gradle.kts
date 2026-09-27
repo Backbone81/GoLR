@@ -38,14 +38,13 @@ changelog {
 
 intellijPlatform {
     pluginConfiguration {
-        // The Marketplace description is the part of README.md between the title and the first section heading.
+        // The Marketplace description is README.md without its title.
         description = providers.fileContents(layout.projectDirectory.file("README.md")).asText.map {
             val lines = it.lines()
             val start = lines.indexOfFirst { line -> line.startsWith("# ") }
-            val end = lines.indexOfFirst { line -> line.startsWith("## ") }
-            val text = if (start >= 0 && end > start) lines.subList(start + 1, end).joinToString("\n").trim() else ""
+            val text = if (start >= 0) lines.drop(start + 1).joinToString("\n").trim() else ""
             if (text.isEmpty()) {
-                throw GradleException("README.md has no text between the title and the first section heading")
+                throw GradleException("README.md has no text after the title")
             }
             markdownToHTML(text)
         }

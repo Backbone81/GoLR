@@ -13,6 +13,8 @@ files (`.golr`) with:
 - Toggle line and block comments
 - Bracket matching and auto closing of brackets and quotes
 
+![Syntax highlighting of a GoLR grammar](https://raw.githubusercontent.com/Backbone81/GoLR/main/assets/screenshots/vscode-syntax-highlighting.png)
+
 ## Requirements
 
 Visual Studio Code 1.120 or later.
@@ -22,13 +24,6 @@ Visual Studio Code 1.120 or later.
 The extension supports the `.golr` syntax of GoLR v0.5.0, which is described in
 [Parser Generator Frontend GoLR](https://github.com/Backbone81/GoLR/blob/main/docs/parsergen-frontend-golr.md) and
 [Scanner Generator Frontend GoLR](https://github.com/Backbone81/GoLR/blob/main/docs/scannergen-frontend-golr.md).
-
-## Installation
-
-Install the extension from the Extensions view by searching for "GoLR".
-
-To install it from a `.vsix` file, select "Install from VSIX..." from the "..." menu of the
-Extensions view.
 
 ## Limitations
 
