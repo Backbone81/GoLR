@@ -80,8 +80,11 @@ See the `examples` directory for parsers generated with GoLR.
 
 ## IDE Plugins
 
-The [IntelliJ Plugin](ide/intellij/README.md) and the [Visual Studio Code Extension](ide/vscode/README.md) provide
-syntax highlighting, navigation, rename, code completion and formatting for `.golr` grammar files.
+The [IntelliJ Plugin](https://plugins.jetbrains.com/plugin/34604-golr) and the
+[Visual Studio Code Extension](https://marketplace.visualstudio.com/items?itemName=backbone81.golr) provide syntax
+highlighting, navigation, rename, code completion and formatting for `.golr` grammar files.
+
+See the `ide/` folder for the source code of those IDE plugins.
 
 ## Command Line Parameters
 

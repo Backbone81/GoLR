@@ -7,7 +7,13 @@ The goal for designing this format was to make things as explicit as possible an
 mechanics. We want users which are unfamiliar with the format to quickly understand the grammar. All tokens need to be
 declared and given a technical name. This provides reliable and good names when generating code in the backend.
 
-See the `ide` folder for IDE extensions providing syntax highlighting for GoLR files.
+## IDE Plugins
+
+The [IntelliJ Plugin](https://plugins.jetbrains.com/plugin/34604-golr) and the
+[Visual Studio Code Extension](https://marketplace.visualstudio.com/items?itemName=backbone81.golr) provide syntax
+highlighting, navigation, rename, code completion and formatting for `.golr` grammar files.
+
+See the `ide/` folder for the source code of those IDE plugins.
 
 ## Basic Structure
 
