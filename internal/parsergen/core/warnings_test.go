@@ -184,10 +184,18 @@ var _ = Describe("Warnings", func() {
 			}
 		`)
 		for coreName, grammarToParser := range allCores() {
-			parser, _, warnings, err := grammarToParser(grammar, core.FailOnWarnings())
+			_, _, warnings, err := grammarToParser(grammar, core.FailOnWarnings())
 			Expect(err).To(MatchError(unreachableWarning), "core %s", coreName)
-			Expect(parser).To(BeZero(), "core %s", coreName)
 			Expect(warnings).To(BeEmpty(), "core %s", coreName)
+		}
+		// The GoLR cores built the tables before the warnings made them fail, so they return them.
+		for coreName, grammarToParser := range golrCores {
+			parser, _, _, _ := grammarToParser(grammar, core.FailOnWarnings())
+			Expect(parser.States).ToNot(BeEmpty(), "core %s", coreName)
+		}
+		for coreName, grammarToParser := range bisonCores {
+			parser, _, _, _ := grammarToParser(grammar, core.FailOnWarnings())
+			Expect(parser).To(BeZero(), "core %s", coreName)
 		}
 	})
 
@@ -277,8 +285,9 @@ var _ = Describe("Warnings", func() {
 			parser, conflicts, warnings, err := grammarToParser(grammar, core.FailOnConflicts(), core.FailOnWarnings())
 			Expect(err).To(MatchError(ContainSubstring(unreachableWarning)), "core %s", coreName)
 			Expect(conflict.UnresolvedConflictErrors(err)).To(HaveLen(1), "core %s", coreName)
-			Expect(parser).To(BeZero(), "core %s", coreName)
+			Expect(parser.States).ToNot(BeEmpty(), "core %s", coreName)
 			Expect(conflicts).To(HaveLen(1), "core %s", coreName)
+			Expect(conflicts[0].StateIdx).To(BeNumerically("<", len(parser.States)), "core %s", coreName)
 			Expect(warnings).To(BeEmpty(), "core %s", coreName)
 		}
 	})

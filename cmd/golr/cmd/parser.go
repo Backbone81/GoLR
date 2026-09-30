@@ -35,6 +35,7 @@ import (
 	golrfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/golr"
 	jsonfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/json"
 	yamlfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/yaml"
+	"github.com/backbone81/golr/pkg/parsergen/report"
 	"github.com/backbone81/golr/pkg/utils"
 )
 
@@ -83,7 +84,7 @@ var parserCmd = &cobra.Command{
 		// The conflicts are reported to stderr so they do not corrupt a backend which writes its output to stdout. The
 		// conflicts the policy resolved on its own are only summarized unless --verbose also asks for the full listing, so
 		// the report stays readable for a large grammar.
-		reportConfig := conflict.ReportConfig{
+		reportConfig := report.Config{
 			Verbose:          parserVerbose,
 			WithStateNumbers: parserWithStateNumbers,
 		}
@@ -94,10 +95,10 @@ var parserCmd = &cobra.Command{
 			return err
 		}
 		if err != nil {
-			return reportUnresolvedConflicts(err, conflicts, reportConfig)
+			return reportUnresolvedConflicts(err, parser.Grammar, conflicts, reportConfig)
 		}
 
-		if err := conflict.WriteConflictReport(os.Stderr, parser.Grammar, conflicts, reportConfig); err != nil {
+		if err := report.WriteConflictReport(os.Stderr, parser.Grammar, conflicts, reportConfig); err != nil {
 			return err
 		}
 
@@ -139,13 +140,18 @@ func writeWarnings(w io.Writer, warnings []utils.Warning) error {
 // reportUnresolvedConflicts writes the report of the unresolved conflicts the error holds to stderr, headed by the
 // counts of all conflicts. It returns the other errors of the error, followed by the count of the unresolved conflicts,
 // so they are not printed a second time. An error without unresolved conflicts is returned unchanged.
-func reportUnresolvedConflicts(err error, conflicts []conflict.Conflict, config conflict.ReportConfig) error {
+func reportUnresolvedConflicts(
+	err error,
+	grammar frontend.Grammar,
+	conflicts []conflict.Conflict,
+	config report.Config,
+) error {
 	unresolvedConflictErrors := conflict.UnresolvedConflictErrors(err)
 	if len(unresolvedConflictErrors) == 0 {
 		return err
 	}
 
-	if err := conflict.WriteUnresolvedConflictReport(os.Stderr, conflicts, err, config); err != nil {
+	if err := report.WriteUnresolvedConflictReport(os.Stderr, grammar, conflicts, config); err != nil {
 		return err
 	}
 	// The error which follows is separated from the last report by an empty line, so it does not read as part of it.

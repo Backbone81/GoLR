@@ -1,4 +1,4 @@
-package conflict
+package report
 
 import (
 	"cmp"
@@ -8,11 +8,12 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
 
-// ReportConfig controls what WriteConflictReport writes.
-type ReportConfig struct {
+// Config controls what WriteConflictReport writes.
+type Config struct {
 	// Verbose lists every conflict the policy resolved on its own in full, instead of only summarizing them.
 	Verbose bool
 
@@ -28,11 +29,11 @@ type ReportConfig struct {
 // They can run into the hundreds for a large grammar, so they are only summarized by default and listed in full after
 // the summary when verbose is set. Conflicts decided by precedence declarations are not reported at all, and conflicts
 // the policy could not decide are reported by WriteUnresolvedConflictReport.
-func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []Conflict, config ReportConfig) error {
+func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []conflict.Conflict, config Config) error {
 	var builder strings.Builder
 
-	resolved := slices.DeleteFunc(slices.Clone(conflicts), func(c Conflict) bool {
-		return c.Decision.Kind == DecisionUnresolved
+	resolved := slices.DeleteFunc(slices.Clone(conflicts), func(c conflict.Conflict) bool {
+		return c.Decision.Kind == conflict.DecisionUnresolved
 	})
 
 	// The summary always comes first, so that it sits at the same place in every report.
@@ -65,22 +66,41 @@ func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []Conf
 }
 
 // WriteUnresolvedConflictReport writes the report of a core which failed on unresolved conflicts: the summary of the
-// conflicts the core returned, followed by the report of every UnresolvedConflictError in err. The resolved conflicts
-// are only counted, never listed, because the unresolved ones have to be fixed first.
-func WriteUnresolvedConflictReport(w io.Writer, conflicts []Conflict, err error, config ReportConfig) error {
+// conflicts, followed by the report of every unresolved one. The resolved conflicts are only counted, never listed,
+// because the unresolved ones have to be fixed first.
+func WriteUnresolvedConflictReport(
+	w io.Writer,
+	grammar frontend.Grammar,
+	conflicts []conflict.Conflict,
+	config Config,
+) error {
 	var builder strings.Builder
 	writeConflictSummary(&builder, CountConflicts(conflicts))
-	for _, unresolvedConflictError := range UnresolvedConflictErrors(err) {
+	for _, report := range UnresolvedConflictReports(grammar, conflicts) {
 		// The summary and the reports of the states are separated by an empty line.
 		if builder.Len() > 0 {
 			builder.WriteString("\n")
 		}
-		if err := unresolvedConflictError.Report.Write(&builder, config); err != nil {
+		if err := report.Write(&builder, config); err != nil {
 			return err
 		}
 	}
-	_, writeErr := io.WriteString(w, builder.String())
-	return writeErr
+	_, err := io.WriteString(w, builder.String())
+	return err
+}
+
+// UnresolvedConflictReports returns one report per unresolved conflict, each holding the single conflicted terminal, in
+// the order of the conflicts.
+func UnresolvedConflictReports(grammar frontend.Grammar, conflicts []conflict.Conflict) []ConflictReport {
+	var reports []ConflictReport
+	for _, c := range conflicts {
+		if c.Decision.Kind != conflict.DecisionUnresolved {
+			continue
+		}
+		reports = append(reports, buildConflictReports(grammar, []conflict.Conflict{c})[0])
+	}
+	keepDistinguishingLookaheads(reports)
+	return reports
 }
 
 // ConflictCounts are the numbers of reported conflicts per kind, separately for the conflicts a rule of last resort
@@ -94,7 +114,7 @@ type ConflictCounts struct {
 }
 
 // CountConflicts counts the conflicts per kind, see classifyConflict.
-func CountConflicts(conflicts []Conflict) ConflictCounts {
+func CountConflicts(conflicts []conflict.Conflict) ConflictCounts {
 	var result ConflictCounts
 	for _, c := range conflicts {
 		kinds := classifyConflict(c)
@@ -173,7 +193,7 @@ type ConflictReportEntry struct {
 // conflicted terminal, all separated by an empty line. The action which won a conflict is marked in place, so the
 // decision does not repeat it. The report ends with a single newline, so a caller which writes
 // several reports separates them by an empty line of its own.
-func (r ConflictReport) Write(w io.Writer, config ReportConfig) error {
+func (r ConflictReport) Write(w io.Writer, config Config) error {
 	var builder strings.Builder
 	if config.WithStateNumbers {
 		fmt.Fprintf(&builder, "state %d:\n", r.StateIdx)
@@ -217,7 +237,7 @@ func (r ConflictReport) Write(w io.Writer, config ReportConfig) error {
 
 // buildConflictReports builds one report per state from the conflicts. The conflicts of a state are adjacent, because
 // Resolve returns them in state order.
-func buildConflictReports(grammar frontend.Grammar, conflicts []Conflict) []ConflictReport {
+func buildConflictReports(grammar frontend.Grammar, conflicts []conflict.Conflict) []ConflictReport {
 	var reports []ConflictReport
 	for _, c := range conflicts {
 		if len(reports) == 0 || reports[len(reports)-1].StateIdx != c.StateIdx {
@@ -373,7 +393,7 @@ func subtractSorted(a []string, b []string) []string {
 
 // buildConflictReport builds the report of the state of the conflict, without any entry yet. It holds every reduction
 // of the state with its complete lookaheads, which keepDistinguishingLookaheads reduces to what is needed.
-func buildConflictReport(grammar frontend.Grammar, c Conflict) ConflictReport {
+func buildConflictReport(grammar frontend.Grammar, c conflict.Conflict) ConflictReport {
 	report := ConflictReport{
 		StateIdx: c.StateIdx,
 	}
@@ -403,7 +423,7 @@ func buildConflictReport(grammar frontend.Grammar, c Conflict) ConflictReport {
 
 // buildConflictReportEntry renders a single conflict: the terminal it occurred on, the actions which competed for that
 // terminal once precedence and associativity had decided what they could, and what the policy decided about them.
-func buildConflictReportEntry(grammar frontend.Grammar, c Conflict) ConflictReportEntry {
+func buildConflictReportEntry(grammar frontend.Grammar, c conflict.Conflict) ConflictReportEntry {
 	entry := ConflictReportEntry{
 		Terminal: grammar.Terminals[c.TerminalIdx].String(),
 		Kind:     conflictKind(c),
@@ -454,9 +474,9 @@ type conflictKinds struct {
 // every reduction, and earliest production decides a reduce/reduce conflict by removing reductions while another one
 // survives. So a conflict can count as a resolved reduce/reduce conflict and an unresolved shift/reduce conflict at
 // once. This only holds for the policies SelectPolicy returns, which have no other rule of last resort.
-func classifyConflict(c Conflict) conflictKinds {
+func classifyConflict(c conflict.Conflict) conflictKinds {
 	var result conflictKinds
-	if c.Decision.Kind == DecisionUnresolved {
+	if c.Decision.Kind == conflict.DecisionUnresolved {
 		shift, reduces := countContributions(c.Decision.Unresolved)
 		result.unresolvedShiftReduce = shift && reduces > 0
 		result.unresolvedReduceReduce = reduces > 1
@@ -472,10 +492,10 @@ func classifyConflict(c Conflict) conflictKinds {
 
 // conflictKind names the kind of the conflict for its report entry: the unresolved kinds of an unresolved conflict, and
 // the resolved kinds otherwise, see classifyConflict.
-func conflictKind(c Conflict) string {
+func conflictKind(c conflict.Conflict) string {
 	kinds := classifyConflict(c)
 	shiftReduce, reduceReduce := kinds.resolvedShiftReduce, kinds.resolvedReduceReduce
-	if c.Decision.Kind == DecisionUnresolved {
+	if c.Decision.Kind == conflict.DecisionUnresolved {
 		shiftReduce, reduceReduce = kinds.unresolvedShiftReduce, kinds.unresolvedReduceReduce
 	}
 	switch {
@@ -492,7 +512,7 @@ func conflictKind(c Conflict) string {
 }
 
 // countContributions reports whether the contributions hold a shift, and how many reductions they hold.
-func countContributions(contributions ContributionSet) (bool, int) {
+func countContributions(contributions conflict.ContributionSet) (bool, int) {
 	var shift bool
 	var reduces int
 	for _, contribution := range contributions.All() {
@@ -508,20 +528,20 @@ func countContributions(contributions ContributionSet) (bool, int) {
 // formatDecision renders what the policy decided about a conflict in a way a grammar author can read without knowing
 // the internals of the resolution. It returns the action which won, or else the decision and the sorted actions the
 // decision is about.
-func formatDecision(grammar frontend.Grammar, decision Decision) (string, string, []string) {
+func formatDecision(grammar frontend.Grammar, decision conflict.Decision) (string, string, []string) {
 	switch decision.Kind {
-	case DecisionDominant:
+	case conflict.DecisionDominant:
 		return formatContribution(grammar, decision.Dominant), "", nil
-	case DecisionError:
+	case conflict.DecisionError:
 		return "", "resolved by rejecting the terminal, so the parser reports a syntax error on it", nil
-	case DecisionUnresolved:
+	case conflict.DecisionUnresolved:
 		var contributions []string
 		for _, contribution := range decision.Unresolved.All() {
 			contributions = append(contributions, formatContribution(grammar, contribution))
 		}
 		slices.SortFunc(contributions, compareContributions)
 		return "", "unresolved between:", contributions
-	case DecisionUndefined:
+	case conflict.DecisionUndefined:
 		return "", "no action to decide about", nil
 	}
 	return "", "unknown decision", nil
@@ -546,7 +566,7 @@ func compareContributions(a string, b string) int {
 
 // formatContribution renders a single competing action of a conflict. A shift is just a shift, and a reduction is
 // spelled out with the production it reduces, because a production index changes with unrelated grammar edits.
-func formatContribution(grammar frontend.Grammar, contribution Contribution) string {
+func formatContribution(grammar frontend.Grammar, contribution conflict.Contribution) string {
 	if contribution.IsShiftAction() {
 		return shiftText
 	}

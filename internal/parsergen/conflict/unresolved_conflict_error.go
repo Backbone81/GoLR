@@ -1,9 +1,5 @@
 package conflict
 
-import (
-	"strings"
-)
-
 // UnresolvedConflictError reports a conflict which the policies did not decide, so the state is left with more than one
 // action for the conflicted terminal. A parser cannot be generated from such a state, because it would not know which
 // of the actions to take, which is why an unresolved conflict is an error and not just something to report.
@@ -17,22 +13,17 @@ type UnresolvedConflictError struct {
 	// left undecided between.
 	Conflict Conflict
 
-	// Report is the rendered report of the conflict, holding the single conflicted terminal. It can be written without
-	// the grammar at hand, which the caller does not get back when a conflict is left unresolved.
-	Report ConflictReport
+	// message names the conflicted terminal and state, see Error.
+	message string
 }
 
 // UnresolvedConflictError implements error.
 var _ error = (*UnresolvedConflictError)(nil)
 
-// Error returns the error message, which is the report of the conflict written with the default configuration. It is
-// multi-line and ends with a newline, so the errors.Join of several of them separates the conflicts by an empty line,
-// the same way the report does.
+// Error returns a single line naming the conflicted terminal and state. The full report of the conflict is written by
+// the report package.
 func (e UnresolvedConflictError) Error() string {
-	var builder strings.Builder
-	// Writing to a strings.Builder does not fail.
-	_ = e.Report.Write(&builder, ReportConfig{})
-	return builder.String()
+	return e.message
 }
 
 // UnresolvedConflictErrors returns every UnresolvedConflictError in the error tree, in the order they were joined.

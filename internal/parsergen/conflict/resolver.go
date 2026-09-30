@@ -3,8 +3,8 @@ package conflict
 import (
 	"context"
 	"errors"
+	"fmt"
 	"runtime/trace"
-	"slices"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
@@ -81,22 +81,17 @@ func Resolve(parser *backend.Parser, policy Policy) ([]Conflict, error) {
 // newUnresolvedConflictErrors joins one UnresolvedConflictError per unresolved conflict into a single error, or returns
 // nil when every conflict was resolved.
 func newUnresolvedConflictErrors(grammar frontend.Grammar, conflicts []Conflict) error {
-	unresolved := slices.DeleteFunc(slices.Clone(conflicts), func(c Conflict) bool {
-		return c.Decision.Kind != DecisionUnresolved
-	})
-
-	// Every error gets a report of its own, so that the error can be written without the grammar at hand.
-	reports := make([]ConflictReport, 0, len(unresolved))
-	for _, c := range unresolved {
-		reports = append(reports, buildConflictReports(grammar, []Conflict{c})[0])
-	}
-	keepDistinguishingLookaheads(reports)
-
-	errs := make([]error, 0, len(unresolved))
-	for i, c := range unresolved {
+	var errs []error
+	for _, c := range conflicts {
+		if c.Decision.Kind != DecisionUnresolved {
+			continue
+		}
 		errs = append(errs, UnresolvedConflictError{
 			Conflict: c,
-			Report:   reports[i],
+			message: fmt.Sprintf(
+				"unresolved conflict on terminal %s in state %d",
+				grammar.Terminals[c.TerminalIdx].String(), c.StateIdx,
+			),
 		})
 	}
 	return errors.Join(errs...)

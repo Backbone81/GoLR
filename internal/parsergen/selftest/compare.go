@@ -15,6 +15,7 @@ import (
 	lalr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lalr1/golr"
 	lr1golrcore "github.com/backbone81/golr/internal/parsergen/core/lr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
+	"github.com/backbone81/golr/internal/parsergen/report"
 )
 
 // GrammarOutcome reports what a single grammar contributed to a corpus. Compared is false when the three tables could
@@ -75,8 +76,8 @@ func CompareBehavior(
 		return GrammarOutcome{Compared: built}, err
 	}
 	if tables.unresolved {
-		// Neither table exists, because both cores gave up on the conflicts they were left with. The conflicts were
-		// compared while building, so there is nothing left to do for this grammar.
+		// Both cores gave up on the conflicts they were left with, so their tables are no parsers to drive. The
+		// conflicts were compared while building, so there is nothing left to do for this grammar.
 		return GrammarOutcome{Compared: true, Discriminating: tables.discriminating}, nil
 	}
 
@@ -121,11 +122,11 @@ type comparisonTables struct {
 	hasLalrParser bool
 
 	// lalrStateCount is the number of states of the LALR(1) automaton, which is what tells whether phase 3 split a
-	// state. It is taken from the unresolved table when the resolved one does not exist, because those grammars are
-	// where splitting matters most.
+	// state. It is also known when LALR(1) failed on unresolved conflicts, because those grammars are where splitting
+	// matters most.
 	lalrStateCount int
 
-	// unresolved reports that both cores failed on unresolved conflicts, so there are no tables to compare any further.
+	// unresolved reports that both cores failed on unresolved conflicts, so their tables are not compared any further.
 	unresolved bool
 
 	// discriminating is true when LALR(1) reports more conflicts than canonical LR(1): the surplus are the mysterious
@@ -165,14 +166,18 @@ func buildComparisonTables(
 
 	// The system under test: the IELR(1) table, resolved with the same policy by its GrammarToParser and, like the
 	// oracle above, without the default-reduction compaction so the two are compared as canonical resolved tables.
-	sutParser, _, _, sutErr := ielr1golrcore.GrammarToParser(
+	sutParser, sutConflicts, _, sutErr := ielr1golrcore.GrammarToParser(
 		grammar, policyFactory, core.WithoutDefaultReductions(),
 	)
 	if sutErr != nil && !isUnresolvedConflictError(sutErr) {
 		return comparisonTables{}, false, fmt.Errorf("building the IELR(1) parser under test: %w", sutErr)
 	}
 
-	if err := compareUnresolvedConflicts(oracleErr, sutErr); err != nil {
+	err := compareUnresolvedConflicts(
+		oracleErr, unresolvedConflictKeys(oracleParser.Grammar, lr1Conflicts),
+		sutErr, unresolvedConflictKeys(sutParser.Grammar, sutConflicts),
+	)
+	if err != nil {
 		return comparisonTables{}, true, err
 	}
 
@@ -185,24 +190,16 @@ func buildComparisonTables(
 	if lalrErr != nil && !isUnresolvedConflictError(lalrErr) {
 		return comparisonTables{}, false, fmt.Errorf("building the LALR(1) parser: %w", lalrErr)
 	}
-	lalrStateCount := len(lalrParser.States)
-	if lalrErr != nil {
-		// The resolved table does not exist, but the automaton it would have been built from does, and its state count
-		// is all the split signal needs. Resolving the conflicts is also what removes the unreachable states, so this
-		// count is not the lower bound of the size invariant.
-		unresolvedLalrParser, _, err := lalr1golrcore.GrammarToUnresolvedParser(grammar, policyFactory)
-		if err != nil {
-			return comparisonTables{}, false, fmt.Errorf("building the unresolved LALR(1) parser: %w", err)
-		}
-		lalrStateCount = len(unresolvedLalrParser.States)
-	}
 
 	return comparisonTables{
-		oracleParser:   oracleParser,
-		sutParser:      sutParser,
-		lalrParser:     lalrParser,
-		hasLalrParser:  lalrErr == nil,
-		lalrStateCount: lalrStateCount,
+		oracleParser:  oracleParser,
+		sutParser:     sutParser,
+		lalrParser:    lalrParser,
+		hasLalrParser: lalrErr == nil,
+		// On unresolved conflicts the core returns the tables with their conflicts, whose state count is all the split
+		// signal needs. Resolving the conflicts is also what removes the unreachable states, so this count is not the
+		// lower bound of the size invariant then.
+		lalrStateCount: len(lalrParser.States),
 		unresolved:     oracleErr != nil,
 		// The conflicts a core reports come back with the error as well, so this reads the same for a grammar which
 		// failed to generate as for one which did not.
@@ -217,9 +214,9 @@ func isUnresolvedConflictError(err error) bool {
 }
 
 // compareUnresolvedConflicts checks that IELR(1) gave up on the grammar exactly when canonical LR(1) did, and on the
-// same conflicts. A conflict which only one of them reports means that IELR(1) either lost a conflict canonical LR(1)
-// has, or invented one it does not have.
-func compareUnresolvedConflicts(oracleErr error, sutErr error) error {
+// same conflicts, given by unresolvedConflictKeys. A conflict which only one of them reports means that IELR(1) either
+// lost a conflict canonical LR(1) has, or invented one it does not have.
+func compareUnresolvedConflicts(oracleErr error, oracleConflicts []string, sutErr error, sutConflicts []string) error {
 	if (oracleErr == nil) != (sutErr == nil) {
 		return fmt.Errorf(
 			"IELR(1) and canonical LR(1) disagree on whether the grammar can be generated:"+
@@ -227,8 +224,6 @@ func compareUnresolvedConflicts(oracleErr error, sutErr error) error {
 			oracleErr, sutErr,
 		)
 	}
-	oracleConflicts := unresolvedConflictKeys(oracleErr)
-	sutConflicts := unresolvedConflictKeys(sutErr)
 	if !slices.Equal(oracleConflicts, sutConflicts) {
 		return fmt.Errorf(
 			"IELR(1) and canonical LR(1) report different unresolved conflicts:"+
@@ -239,7 +234,7 @@ func compareUnresolvedConflicts(oracleErr error, sutErr error) error {
 	return nil
 }
 
-// unresolvedConflictKeys describes every unresolved conflict of the error by its kind, its terminal and the actions the
+// unresolvedConflictKeys describes every unresolved conflict by its kind, its terminal and the actions the
 // parser is left undecided between, sorted and without duplicates.
 //
 // Two things are deliberately not part of the description. The state is not, because the two automatons number their
@@ -248,10 +243,10 @@ func compareUnresolvedConflicts(oracleErr error, sutErr error) error {
 // undecided between the same actions as each isocore, while more actions competed for the terminal than in either of
 // them. That merging is what IELR(1) is for, so what has to agree is which conflicts are left and what each of them is
 // undecided between.
-func unresolvedConflictKeys(err error) []string {
+func unresolvedConflictKeys(grammar frontend.Grammar, conflicts []conflict.Conflict) []string {
 	var result []string
-	for _, unresolvedConflictError := range conflict.UnresolvedConflictErrors(err) {
-		for _, entry := range unresolvedConflictError.Report.Entries {
+	for _, conflictReport := range report.UnresolvedConflictReports(grammar, conflicts) {
+		for _, entry := range conflictReport.Entries {
 			result = append(result, fmt.Sprintf(
 				"%s on terminal %s: %s",
 				entry.Kind, entry.Terminal, strings.Join(entry.DecisionContributions, ", "),

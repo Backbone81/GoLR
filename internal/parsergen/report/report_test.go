@@ -1,4 +1,4 @@
-package conflict_test
+package report_test
 
 import (
 	"fmt"
@@ -13,6 +13,7 @@ import (
 	ielr1golr "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	golrfrontend "github.com/backbone81/golr/internal/parsergen/frontend/golr"
+	"github.com/backbone81/golr/internal/parsergen/report"
 )
 
 // The report cases are a directory per case under reportRootPath, holding the grammar and the report it is expected to
@@ -61,8 +62,9 @@ var _ = Describe("WriteConflictReport", func() {
 			if err != nil {
 				// An unresolved conflict makes the core fail, and the unresolved conflict report is what reports the
 				// conflicts then.
+				Expect(conflict.UnresolvedConflictErrors(err)).ToNot(BeEmpty())
 				var builder strings.Builder
-				err := conflict.WriteUnresolvedConflictReport(&builder, conflicts, err, conflict.ReportConfig{})
+				err := report.WriteUnresolvedConflictReport(&builder, parser.Grammar, conflicts, report.Config{})
 				Expect(err).ToNot(HaveOccurred())
 				expectGoldenFile(filepath.Join(goldenPath, reportErrorFileName), builder.String())
 				return
@@ -72,13 +74,13 @@ var _ = Describe("WriteConflictReport", func() {
 				filepath.Join(goldenPath, reportFileName),
 				parser.Grammar,
 				conflicts,
-				conflict.ReportConfig{},
+				report.Config{},
 			)
 			expectGoldenReport(
 				filepath.Join(goldenPath, reportVerboseFileName),
 				parser.Grammar,
 				conflicts,
-				conflict.ReportConfig{Verbose: true},
+				report.Config{Verbose: true},
 			)
 		},
 		Entry("with shift/reduce conflicts", "shift-reduce", "", conflict.PolicyFactory(conflict.DefaultPolicy)),
@@ -127,10 +129,10 @@ func expectGoldenReport(
 	goldenPath string,
 	grammar frontend.Grammar,
 	conflicts []conflict.Conflict,
-	config conflict.ReportConfig,
+	config report.Config,
 ) {
 	var builder strings.Builder
-	Expect(conflict.WriteConflictReport(&builder, grammar, conflicts, config)).To(Succeed())
+	Expect(report.WriteConflictReport(&builder, grammar, conflicts, config)).To(Succeed())
 	expectGoldenFile(goldenPath, builder.String())
 }
 
@@ -153,16 +155,16 @@ var _ = Describe("WriteConflictReport stability", func() {
 		extendedPath := filepath.Join("testdata", "report-stability", "unrelated-edits.golr")
 
 		// The state numbers are expected to differ, otherwise the added production does not prove anything.
-		withStateNumbers := conflict.ReportConfig{Verbose: true, WithStateNumbers: true}
+		withStateNumbers := report.Config{Verbose: true, WithStateNumbers: true}
 		Expect(writeReport(extendedPath, withStateNumbers)).ToNot(Equal(writeReport(basePath, withStateNumbers)))
 
-		verbose := conflict.ReportConfig{Verbose: true}
+		verbose := report.Config{Verbose: true}
 		Expect(writeReport(extendedPath, verbose)).To(Equal(writeReport(basePath, verbose)))
 	})
 })
 
 // writeReport writes the report of the grammar in the spec file, built by the same core as the golden reports.
-func writeReport(specPath string, config conflict.ReportConfig) string {
+func writeReport(specPath string, config report.Config) string {
 	_, grammar, err := golrfrontend.GrammarFromFile(specPath)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -170,6 +172,6 @@ func writeReport(specPath string, config conflict.ReportConfig) string {
 	Expect(err).ToNot(HaveOccurred())
 
 	var builder strings.Builder
-	Expect(conflict.WriteConflictReport(&builder, parser.Grammar, conflicts, config)).To(Succeed())
+	Expect(report.WriteConflictReport(&builder, parser.Grammar, conflicts, config)).To(Succeed())
 	return builder.String()
 }

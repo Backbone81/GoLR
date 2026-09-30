@@ -1,0 +1,4 @@
+description: 'BREAKING: The conflict report writers moved from `pkg/parsergen/conflict`
+  to the new `pkg/parsergen/report`, with `ReportConfig` renamed to `report.Config`,
+  and `WriteUnresolvedConflictReport` takes the grammar instead of the error. `ConflictReport`,
+  `ConflictReportEntry` and `ConflictReportReduction` are no longer exported.'

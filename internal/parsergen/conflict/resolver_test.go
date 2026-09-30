@@ -2,6 +2,7 @@ package conflict_test
 
 import (
 	"errors"
+	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -132,6 +133,11 @@ var _ = Describe("Resolve", func() {
 			var unresolvedConflictError conflict.UnresolvedConflictError
 			Expect(errors.As(unresolvedError, &unresolvedConflictError)).To(BeTrue())
 			Expect(unresolvedConflictError.Conflict.Decision.Kind).To(Equal(conflict.DecisionUnresolved))
+			Expect(unresolvedConflictError.Error()).To(Equal(fmt.Sprintf(
+				"unresolved conflict on terminal %s in state %d",
+				parser.Grammar.Terminals[unresolvedConflictError.Conflict.TerminalIdx],
+				unresolvedConflictError.Conflict.StateIdx,
+			)))
 		}
 
 		Expect(conflicts).ToNot(BeEmpty())

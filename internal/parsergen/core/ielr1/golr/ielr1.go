@@ -24,10 +24,11 @@ import (
 //
 // The returned conflicts are those the grammar author has to know about: those a rule of last resort decided, and those
 // which were left undecided. A conflict decided by a precedence declaration is not returned, see conflict.Resolve. The
-// error reports the conflicts which were left undecided, one conflict.UnresolvedConflictError each; no parser can be
-// generated from such a grammar, so the parser tables come back empty then and the conflicts are all there is left to
-// report. The construction also gives up with backend.ErrStateLimitExceeded on a grammar which needs more states than a
-// parser table can address.
+// error reports the conflicts which were left undecided, one conflict.UnresolvedConflictError each. No parser can be
+// generated from such a grammar, but the tables come back as conflict.Resolve left them, still holding the conflicting
+// actions, so the conflicts can be reported against them. A failure on warnings, see core.FailOnWarnings, returns the
+// finished tables with the error as well. The construction also gives up with backend.ErrStateLimitExceeded on a
+// grammar which needs more states than a parser table can address, and no tables come back then.
 func GrammarToParser(
 	grammar frontend.Grammar,
 	policyFactory conflict.PolicyFactory,
@@ -48,7 +49,7 @@ func GrammarToParser(
 	conflicts, err := conflict.Resolve(&parser, policyFactory(parser.Grammar))
 	if err != nil {
 		warnings, err = config.ApplyFailOnWarnings(warnings, err)
-		return backend.Parser{}, conflicts, warnings, err
+		return parser, conflicts, warnings, err
 	}
 
 	if config.DefaultReductions {
@@ -62,7 +63,7 @@ func GrammarToParser(
 	warnings = append(warnings, backend.NeverReducedWarnings(parser)...)
 	warnings, err = config.ApplyFailOnWarnings(warnings, nil)
 	if err != nil {
-		return backend.Parser{}, conflicts, warnings, err
+		return parser, conflicts, warnings, err
 	}
 	return parser, conflicts, warnings, nil
 }

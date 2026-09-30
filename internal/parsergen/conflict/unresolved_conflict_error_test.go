@@ -35,6 +35,5 @@ var _ = Describe("UnresolvedConflictErrors", func() {
 func newUnresolvedConflictError(stateIdx int) conflict.UnresolvedConflictError {
 	return conflict.UnresolvedConflictError{
 		Conflict: conflict.Conflict{StateIdx: stateIdx},
-		Report:   conflict.ConflictReport{StateIdx: stateIdx},
 	}
 }

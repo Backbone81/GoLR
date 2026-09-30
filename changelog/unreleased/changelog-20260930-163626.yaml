@@ -1,0 +1,4 @@
+description: 'BREAKING: The GoLR cores return the parser tables together with the
+  error on unresolved conflicts, still holding the conflicting actions, and on a failure
+  due to `FailOnWarnings`. `UnresolvedConflictError` no longer carries a report, and
+  its message is a single line naming the terminal and the state.'

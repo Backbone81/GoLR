@@ -20,20 +20,6 @@ type (
 	// Decision is what the policy decided about a set of contributions.
 	Decision = intconflict.Decision
 
-	// ReportConfig controls what WriteConflictReport and ConflictReport.Write write.
-	ReportConfig = intconflict.ReportConfig
-
-	// ConflictReport is the report of the conflicts of a single state, rendered with the names of the grammar symbols
-	// so it can be written without the grammar at hand.
-	ConflictReport = intconflict.ConflictReport
-
-	// ConflictReportEntry is the report of a single conflicted terminal of a state.
-	ConflictReportEntry = intconflict.ConflictReportEntry
-
-	// ConflictReportReduction is a reduction of a conflicted state together with the lookaheads which tell the state
-	// apart from the other states with the same kernel items.
-	ConflictReportReduction = intconflict.ConflictReportReduction
-
 	// UnresolvedConflictError reports a conflict which the policies did not decide. A core joins one of them per
 	// unresolved conflict into the error it returns.
 	UnresolvedConflictError = intconflict.UnresolvedConflictError
@@ -58,12 +44,3 @@ const (
 // UnresolvedConflictErrors returns every UnresolvedConflictError in the error tree, in the order they were joined. A
 // core joins one of them per unresolved conflict into the error it returns.
 var UnresolvedConflictErrors = intconflict.UnresolvedConflictErrors
-
-// WriteConflictReport writes a report of the given conflicts to w. Conflicts the policy resolved on its own are
-// summarized and listed in full only with ReportConfig.Verbose. Conflicts decided by precedence declarations are not
-// reported, and conflicts the policy could not decide are reported by WriteUnresolvedConflictReport.
-var WriteConflictReport = intconflict.WriteConflictReport
-
-// WriteUnresolvedConflictReport writes the report of a core which failed on unresolved conflicts: the summary of the
-// conflicts it returned, followed by the report of every UnresolvedConflictError in the error.
-var WriteUnresolvedConflictReport = intconflict.WriteUnresolvedConflictReport
