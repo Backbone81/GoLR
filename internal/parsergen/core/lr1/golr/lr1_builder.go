@@ -28,11 +28,8 @@ type LR1Builder struct {
 	// find all productions which have the given nonterminal on the left hand side of the production.
 	productionIdxsByNonterminalIdx [][]int
 
-	// nullableByNonterminalIdx reports if the nonterminal can derive the empty string.
-	nullableByNonterminalIdx []bool
-
-	// firstByNonterminalIdx holds the terminals which can start a string derived from the nonterminal.
-	firstByNonterminalIdx []backend.LookaheadSet
+	// firstSets holds the nullable nonterminals and their first sets.
+	firstSets frontend.FirstSets
 
 	// states is the list of states for the parser.
 	states []backend.State
@@ -62,7 +59,7 @@ func (b *LR1Builder) Build() error {
 	defer trace.StartRegion(context.TODO(), "Build canonical LR(1) parser tables").End()
 
 	b.initProductionIdxsByNonterminalIdx()
-	b.initNullableAndFirstByNonterminalIdx()
+	b.firstSets = frontend.NewFirstSets(b.grammar)
 	return b.buildStates()
 }
 
@@ -75,59 +72,6 @@ func (b *LR1Builder) initProductionIdxsByNonterminalIdx() {
 			productionIdx,
 		)
 	}
-}
-
-// initNullableAndFirstByNonterminalIdx computes the nullable nonterminals and their first sets in a single fixed-point
-// computation. A nonterminal is nullable when one of its productions has a right hand side which can vanish entirely.
-// The first set of a nonterminal holds every terminal which can start a string derived from that nonterminal, which is
-// collected by walking the right hand side of each of its productions until a symbol is reached which cannot vanish.
-func (b *LR1Builder) initNullableAndFirstByNonterminalIdx() {
-	b.nullableByNonterminalIdx = make([]bool, len(b.grammar.Nonterminals))
-	b.firstByNonterminalIdx = make([]backend.LookaheadSet, len(b.grammar.Nonterminals))
-
-	changed := true
-	for changed {
-		changed = false
-		for _, production := range b.grammar.Productions {
-			firstSet := &b.firstByNonterminalIdx[production.NonterminalIdx]
-
-			firstSetChanged, nullable := b.firstOfSequence(production.SymbolRefs, firstSet)
-			if firstSetChanged {
-				changed = true
-			}
-			if nullable && !b.nullableByNonterminalIdx[production.NonterminalIdx] {
-				// The whole right hand side of the production can vanish, which makes the nonterminal on the left hand
-				// side nullable.
-				b.nullableByNonterminalIdx[production.NonterminalIdx] = true
-				changed = true
-			}
-		}
-	}
-}
-
-// firstOfSequence merges the terminals which can start the sequence of symbols into the lookahead set. The first return
-// value reports if that grew the lookahead set. The second return value reports if the whole sequence can vanish, in
-// which case whatever follows the sequence can start it as well.
-//
-// While the nullable and first sets are still being computed, this works on the intermediate results. The enclosing
-// fixed-point computation repeats until those results stop growing.
-func (b *LR1Builder) firstOfSequence(
-	symbolRefs []frontend.SymbolRef,
-	lookaheadSet *backend.LookaheadSet,
-) (bool, bool) {
-	changed := false
-	for _, symbolRef := range symbolRefs {
-		if symbolRef.IsTerminal() {
-			changed = lookaheadSet.Add(symbolRef.Idx()) || changed
-			return changed, false
-		}
-
-		changed = lookaheadSet.Merge(&b.firstByNonterminalIdx[symbolRef.Idx()]) || changed
-		if !b.nullableByNonterminalIdx[symbolRef.Idx()] {
-			return changed, false
-		}
-	}
-	return changed, true
 }
 
 // buildStates constructs the LR(1) states. This is a fixed-point computation which starts at the state for the start
@@ -234,7 +178,7 @@ func (b *LR1Builder) closure(kernelItems *ItemSet) ItemSet {
 		}
 
 		var generatedLookaheadSet backend.LookaheadSet
-		if _, nullable := b.firstOfSequence(production.SymbolRefs[core.Position()+1:], &generatedLookaheadSet); nullable {
+		if b.firstSets.FirstOfSequence(production.SymbolRefs[core.Position()+1:], &generatedLookaheadSet) {
 			// Everything behind the nonterminal can vanish, so whatever may follow the item may also follow the
 			// nonterminal. NOTE: The pointer must not outlive the following calls to Add, which can move the items
 			// around in memory.

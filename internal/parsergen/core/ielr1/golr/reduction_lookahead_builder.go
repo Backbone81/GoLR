@@ -3,7 +3,6 @@ package golr
 import (
 	"context"
 	"runtime/trace"
-	"slices"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
@@ -31,13 +30,8 @@ type ReductionLookaheadBuilder struct {
 	// grammar is the augmented context free grammar the automaton was built from.
 	grammar frontend.Grammar
 
-	// productionIdxsByNonterminalIdx maps a nonterminal index to a slice of production indexes. This makes it easier to
-	// find all productions which have the given nonterminal on the left hand side of the production.
-	productionIdxsByNonterminalIdx map[int][]int
-
-	// nullableByNonterminalIdx provides information about a nonterminal index being nullable or not. This is needed
-	// for calculating if the rest of some item can be empty or not.
-	nullableByNonterminalIdx map[int]bool
+	// firstSets holds the nullable nonterminals, which tell if the rest of an item can be empty.
+	firstSets frontend.FirstSets
 
 	// states is the LR automaton the reduction lookahead sets are computed for. Each state must carry its kernel items,
 	// its transition actions and its reduce actions. The reduce actions only need to name the productions which reduce
@@ -113,13 +107,10 @@ func applyReductionLookaheads(states []backend.State, reduceActions []ReduceActi
 // NewReductionLookaheadBuilder returns a new builder which computes the reduction lookahead sets of the given
 // automaton. The grammar provided MUST be the augmented grammar the states were built from.
 func NewReductionLookaheadBuilder(grammar frontend.Grammar, states []backend.State) ReductionLookaheadBuilder {
-	// The maps keyed by nonterminal index hold at most one entry per nonterminal, and the maps keyed by state index at
-	// most one entry per state, so the exact sizes serve as the allocation hints.
+	// The maps keyed by state index hold at most one entry per state, so the exact sizes serve as the allocation hints.
 	return ReductionLookaheadBuilder{
-		grammar:                        grammar,
-		states:                         states,
-		productionIdxsByNonterminalIdx: make(map[int][]int, len(grammar.Nonterminals)),
-		nullableByNonterminalIdx:       make(map[int]bool, len(grammar.Nonterminals)),
+		grammar: grammar,
+		states:  states,
 
 		gotoIdxsByStateIdx: make(map[int][]int, len(states)),
 
@@ -132,8 +123,7 @@ func NewReductionLookaheadBuilder(grammar frontend.Grammar, states []backend.Sta
 func (b *ReductionLookaheadBuilder) Build() {
 	defer trace.StartRegion(context.TODO(), "Add reduction lookahead sets").End()
 
-	b.initProductionIdxsByNonterminalIdx()
-	b.initNullableByNonterminalIdx()
+	b.firstSets = frontend.NewFirstSets(b.grammar)
 	b.deriveAutomatonTables()
 
 	b.buildGotoFollowsSuccessorRelations()
@@ -202,67 +192,11 @@ func (b *ReductionLookaheadBuilder) IsCoreTailEmpty(core backend.Core) bool {
 	return b.isCoreTailEmpty(core)
 }
 
-// initProductionIdxsByNonterminalIdx initializes the helper variable productionIdxsByNonterminalIdx.
-func (b *ReductionLookaheadBuilder) initProductionIdxsByNonterminalIdx() {
-	for idx, production := range b.grammar.Productions {
-		b.productionIdxsByNonterminalIdx[production.NonterminalIdx] = append(
-			b.productionIdxsByNonterminalIdx[production.NonterminalIdx],
-			idx,
-		)
-	}
-}
-
-// initNullableByNonterminalIdx initializes the helper variable nullableByNonterminalIdx. It is doing a fixed-point
-// computation to find all the nullable nonterminals by inspecting the productions and checking for directly empty
-// right hand sides of the productions or by indirectly empty right hand sides.
-func (b *ReductionLookaheadBuilder) initNullableByNonterminalIdx() {
-	changed := true
-	for changed {
-		changed = false
-		for nonterminalIdx, productionIdxs := range b.productionIdxsByNonterminalIdx {
-			if b.nullableByNonterminalIdx[nonterminalIdx] {
-				// We already know that this nonterminal is nullable, so we do not need to check all productions
-				// for that nonterminal again.
-				continue
-			}
-			if slices.ContainsFunc(productionIdxs, b.isProductionNullable) {
-				// As the right hand side of the production can be empty, we know that the nonterminal on the
-				// left hand side of the production is nullable.
-				b.nullableByNonterminalIdx[nonterminalIdx] = true
-				changed = true
-			}
-		}
-	}
-}
-
-// isProductionNullable reports if the right hand side of the production is empty or the right hand side consists
-// only of nonterminals which are nullable themselves.
-func (b *ReductionLookaheadBuilder) isProductionNullable(productionIdx int) bool {
-	return b.isCoreTailEmpty(backend.NewCore(productionIdx, 0))
-}
-
-// isCoreTailEmpty reports if the position within the production is at the end of the production or the symbols for the
+// isCoreTailEmpty reports if the position within the production is at the end of the production or the symbols
 // following the current position are all nullable.
 func (b *ReductionLookaheadBuilder) isCoreTailEmpty(core backend.Core) bool {
 	production := b.grammar.Productions[core.ProductionIdx()]
-
-	if core.Position() == len(production.SymbolRefs) {
-		// The item is already at the end of the production. The tail is therefore empty.
-		return true
-	}
-
-	for _, symbolRef := range production.SymbolRefs[core.Position():] {
-		if symbolRef.IsTerminal() {
-			// The symbol is a terminal which means the tail can not be empty.
-			return false
-		}
-		if !b.nullableByNonterminalIdx[symbolRef.Idx()] {
-			// The symbol is a nonterminal which is not nullable which means the tail can not be empty.
-			return false
-		}
-	}
-	// All remaining symbols were nonterminals and each nonterminal was nullable. Therefore, the core tail is empty.
-	return true
+	return b.firstSets.IsSequenceNullable(production.SymbolRefs[core.Position():])
 }
 
 // deriveAutomatonTables reconstructs the reduce action records, the goto records, the backward transitions and the goto
@@ -324,7 +258,7 @@ func (b *ReductionLookaheadBuilder) recordNonterminalTransition(fromStateIdx int
 // definition 3.5 of IELR(1) and records it as candidate for later use.
 func (b *ReductionLookaheadBuilder) recordSuccessorDependencyCandidate(nonterminalIdx int, gotoIdx int) {
 	// Check if this goto is part of a successor dependency for the goto follows.
-	if b.nullableByNonterminalIdx[nonterminalIdx] {
+	if b.firstSets.IsNullable(nonterminalIdx) {
 		// We need this information when constructing the goto follows successor relation.
 		b.successorDependencyCandidates = append(b.successorDependencyCandidates, gotoIdx)
 	}
