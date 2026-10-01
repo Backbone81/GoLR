@@ -67,9 +67,7 @@ func (t *LookupTables) addSpontaneousLookaheads(itemIdx int) {
 	if from == to {
 		return
 	}
-	core := t.coreByItemIdx[itemIdx]
-	rest := t.grammar.Productions[core.ProductionIdx()].SymbolRefs[core.Position()+1:]
-	t.firstSets.FirstOfSequence(rest, &t.lookaheads[t.lookaheadIdxByItemIdx[from]])
+	t.firstSets.FirstOfSequence(t.restBehindNextSymbol(itemIdx), &t.lookaheads[t.lookaheadIdxByItemIdx[from]])
 }
 
 // propagateLookaheads merges the lookahead set of every item into the items it leads to until nothing changes: along a
@@ -96,9 +94,7 @@ func (t *LookupTables) propagateLookaheads() {
 			if from == to {
 				continue
 			}
-			core := t.coreByItemIdx[itemIdx]
-			rest := t.grammar.Productions[core.ProductionIdx()].SymbolRefs[core.Position()+1:]
-			if t.firstSets.IsSequenceNullable(rest) {
+			if t.firstSets.IsSequenceNullable(t.restBehindNextSymbol(itemIdx)) {
 				t.mergeLookahead(lookaheadIdx, t.lookaheadIdxByItemIdx[from], &workList, queued)
 			}
 		}

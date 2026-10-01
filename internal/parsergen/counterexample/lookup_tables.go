@@ -443,6 +443,13 @@ func (t *LookupTables) nextSymbolKey(itemIdx int) int {
 	return int(symbolRef)
 }
 
+// restBehindNextSymbol returns the symbols of the production of the item behind the symbol after the dot. The item must
+// not be a reduce item. The returned slice must not be modified.
+func (t *LookupTables) restBehindNextSymbol(itemIdx int) []frontend.SymbolRef {
+	core := t.coreByItemIdx[itemIdx]
+	return t.grammar.Productions[core.ProductionIdx()].SymbolRefs[core.Position()+1:]
+}
+
 // symbolAfterDot returns the symbol after the dot of the core. It reports false when the dot is at the end.
 func (t *LookupTables) symbolAfterDot(core backend.Core) (frontend.SymbolRef, bool) {
 	symbolRefs := t.grammar.Productions[core.ProductionIdx()].SymbolRefs

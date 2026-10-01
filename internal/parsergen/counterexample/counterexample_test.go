@@ -1,6 +1,8 @@
 package counterexample_test
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -54,15 +56,15 @@ var _ = Describe("Counterexample", func() {
 				),
 			},
 		}
-		Expect(ce.Lines(grammar)).To(Equal([]string{
-			`example: "if" expr "then" "if" expr "then" stmt • "else" stmt`,
-			`using the reduction:`,
-			`  stmt -> "if" expr "then" [stmt] "else" stmt`,
-			`    stmt -> "if" expr "then" stmt •`,
-			`using the shift:`,
-			`  stmt -> "if" expr "then" [stmt]`,
-			`    stmt -> "if" expr "then" stmt • "else" stmt`,
-		}))
+		Expect(strings.Join(ce.Lines(grammar), "\n") + "\n").To(Equal(utils.HereDoc(`
+			example: "if" expr "then" "if" expr "then" stmt • "else" stmt
+			using the reduction:
+			  stmt -> "if" expr "then" [stmt] "else" stmt
+			    stmt -> "if" expr "then" stmt •
+			using the shift:
+			  stmt -> "if" expr "then" [stmt]
+			    stmt -> "if" expr "then" stmt • "else" stmt
+		`)))
 	})
 
 	It("should render a nonunifying counterexample with an example per derivation", func() {
@@ -90,21 +92,21 @@ var _ = Describe("Counterexample", func() {
 				),
 			},
 		}
-		Expect(ce.Lines(grammar)).To(Equal([]string{
-			`example: "a" • "a"`,
-			`using the reduction:`,
-			`  s -> [s] [t]`,
-			`    s -> [t]`,
-			`      t -> [x]`,
-			`        x -> "a" •`,
-			`    t -> [x]`,
-			`      x -> "a"`,
-			`example: "a" • "a" "b"`,
-			`using the shift:`,
-			`  s -> [t]`,
-			`    t -> [y]`,
-			`      y -> "a" • "a" "b"`,
-		}))
+		Expect(strings.Join(ce.Lines(grammar), "\n") + "\n").To(Equal(utils.HereDoc(`
+			example: "a" • "a"
+			using the reduction:
+			  s -> [s] [t]
+			    s -> [t]
+			      t -> [x]
+			        x -> "a" •
+			    t -> [x]
+			      x -> "a"
+			example: "a" • "a" "b"
+			using the shift:
+			  s -> [t]
+			    t -> [y]
+			      y -> "a" • "a" "b"
+		`)))
 	})
 
 	It("should render a reduce/reduce conflict with a reduction to the empty string", func() {
@@ -126,16 +128,16 @@ var _ = Describe("Counterexample", func() {
 				),
 			},
 		}
-		Expect(ce.Lines(grammar)).To(Equal([]string{
-			`example: "x" • "z"`,
-			`using the first reduction:`,
-			`  s -> [a] "z"`,
-			`    a -> "x" [e]`,
-			`      e -> (empty) •`,
-			`using the second reduction:`,
-			`  s -> [b] "z"`,
-			`    b -> "x" •`,
-		}))
+		Expect(strings.Join(ce.Lines(grammar), "\n") + "\n").To(Equal(utils.HereDoc(`
+			example: "x" • "z"
+			using the first reduction:
+			  s -> [a] "z"
+			    a -> "x" [e]
+			      e -> (empty) •
+			using the second reduction:
+			  s -> [b] "z"
+			    b -> "x" •
+		`)))
 	})
 })
 
