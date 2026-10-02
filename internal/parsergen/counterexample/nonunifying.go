@@ -17,6 +17,7 @@ type nonunifyingBuilder struct {
 	reduceItemIdx int
 	otherItemIdx  int
 	terminalIdx   int
+	reducePath    []pathItem
 }
 
 // walkNode is an item reached by a backward walk, and if the conflict terminal is still required behind its production.
@@ -41,30 +42,31 @@ type walkStep struct {
 const noWalkStepIdx = -1
 
 // newNonunifyingBuilder returns a builder for the counterexample of the reduce item and the other item on the terminal.
-// The other item is an item which shifts the terminal, or a second reduce item.
+// The other item is an item which shifts the terminal, or a second reduce item. The path is the shortest
+// lookahead-sensitive path to the reduce item.
 func newNonunifyingBuilder(
 	tables *LookupTables,
 	reduceItemIdx int,
 	otherItemIdx int,
 	terminalIdx int,
+	reducePath []pathItem,
 ) nonunifyingBuilder {
 	return nonunifyingBuilder{
 		tables:        tables,
 		reduceItemIdx: reduceItemIdx,
 		otherItemIdx:  otherItemIdx,
 		terminalIdx:   terminalIdx,
+		reducePath:    reducePath,
 	}
 }
 
 // Build returns the counterexample. Its derivations start at the start symbol, or at the start production when the
 // conflict terminal is the end of the input, which only the start production shows.
 func (b *nonunifyingBuilder) Build() Counterexample {
-	reducePath := b.tables.shortestLookaheadSensitivePath(b.reduceItemIdx, b.terminalIdx)
-
 	// The conflict terminal is the symbol after the dot of a shift item, so nothing is required behind it. A second
 	// reduce item needs the terminal behind its production like the first one (p. 4, footnote 4).
 	_, isShift := b.tables.NextSymbol(b.otherItemIdx)
-	otherPath, found := b.walkBack(reducePath, walkNode{itemIdx: b.otherItemIdx, required: !isShift})
+	otherPath, found := b.walkBack(b.reducePath, walkNode{itemIdx: b.otherItemIdx, required: !isShift})
 	if !found {
 		// Only a second reduce item can miss the path, when the states the path goes through merged contexts in which
 		// the terminal does not follow it. Its own shortest path shares less with the first one, but is valid.
@@ -72,7 +74,7 @@ func (b *nonunifyingBuilder) Build() Counterexample {
 	}
 
 	derivations := [2]Derivation{
-		b.derivation(reducePath, true),
+		b.derivation(b.reducePath, true),
 		b.derivation(otherPath, !isShift),
 	}
 	if b.terminalIdx != eofTerminalIdx {

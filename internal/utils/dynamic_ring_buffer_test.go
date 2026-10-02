@@ -273,6 +273,39 @@ var _ = Describe("DynamicRingBuffer", func() {
 		Expect(func() { buffer.Get(-2) }).To(Panic())
 		Expect(func() { buffer.Get(9) }).To(Panic())
 	})
+
+	It("should replace the item at the index with Set()", func() {
+		buffer := utils.NewDynamicRingBufferWithCapacity[int](10)
+
+		// add and remove some values to move across the end of the buffer
+		for i := range 8 {
+			buffer.Add(i)
+		}
+		buffer.RemoveN(6)
+		for i := range 6 {
+			buffer.Add(8 + i)
+		}
+
+		for i := range buffer.Length() {
+			buffer.Set(i, 100+i)
+		}
+		for i := range buffer.Length() {
+			Expect(buffer.Get(i)).To(Equal(100 + i))
+		}
+		Expect(buffer.Length()).To(Equal(8))
+		for i := range 8 {
+			Expect(buffer.Remove()).To(Equal(100 + i))
+		}
+	})
+
+	It("should panic when calling Set() out of bounds", func() {
+		buffer := utils.NewDynamicRingBufferWithCapacity[int](10)
+		for i := range 8 {
+			buffer.Add(i)
+		}
+		Expect(func() { buffer.Set(-2, 0) }).To(Panic())
+		Expect(func() { buffer.Set(9, 0) }).To(Panic())
+	})
 })
 
 func BenchmarkDynamicRingBuffer(b *testing.B) {

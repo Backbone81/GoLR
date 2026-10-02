@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"runtime/trace"
+	"time"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/conflict"
@@ -26,21 +27,49 @@ type conflictItemPair struct {
 // competing: every reduce item with every item which shifts the conflict terminal, and every two reduce items, the
 // earlier production first. This is the unit of the paper, which counts two shift items in one state as two conflicts
 // (section 5.1, figure 7).
-func Find(parser backend.Parser, conflicts []conflict.Conflict, policy conflict.Policy) [][]Counterexample {
+//
+// Every pair gets a unifying counterexample when the search finds one within the time limits, and a nonunifying one
+// otherwise (section 6, "Constructing nonunifying counterexamples").
+func Find(
+	parser backend.Parser,
+	conflicts []conflict.Conflict,
+	policy conflict.Policy,
+	options ...Option,
+) [][]Counterexample {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Counterexample: Find").End()
 
 	if len(conflicts) == 0 {
 		return nil
 	}
+	config := ConfigFromOptions(options...)
+	totalDeadline := time.Now().Add(config.TotalTimeLimit)
 	tables := NewLookupTables(parser, policy)
 	result := make([][]Counterexample, len(conflicts))
 	for conflictIdx, c := range conflicts {
 		for _, pair := range tables.conflictItemPairs(c) {
-			builder := newNonunifyingBuilder(&tables, pair.reduceItemIdx, pair.otherItemIdx, c.TerminalIdx)
-			result[conflictIdx] = append(result[conflictIdx], builder.Build())
+			reducePath := tables.shortestLookaheadSensitivePath(pair.reduceItemIdx, c.TerminalIdx)
+			nonunifying := newNonunifyingBuilder(&tables, pair.reduceItemIdx, pair.otherItemIdx, c.TerminalIdx, reducePath)
+			result[conflictIdx] = append(result[conflictIdx], findCounterexample(&nonunifying, config, totalDeadline))
 		}
 	}
 	return result
+}
+
+// findCounterexample returns the counterexample of the pair of conflict items of the nonunifying builder. Once the
+// total time limit is spent, no unifying counterexample is searched anymore.
+func findCounterexample(nonunifying *nonunifyingBuilder, config Config, totalDeadline time.Time) Counterexample {
+	now := time.Now()
+	if now.Before(totalDeadline) {
+		deadline := now.Add(config.TimeLimit)
+		if deadline.After(totalDeadline) {
+			deadline = totalDeadline
+		}
+		unifying := newUnifyingBuilder(nonunifying.tables, nonunifying, nonunifying.reducePath, deadline)
+		if result, found := unifying.Build(); found {
+			return result
+		}
+	}
+	return nonunifying.Build()
 }
 
 // conflictItemPairs returns the pairs of conflict items of the conflict, see Find.

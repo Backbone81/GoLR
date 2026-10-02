@@ -94,6 +94,15 @@ func (b *DynamicRingBuffer[T]) Get(index int) T { //nolint:ireturn // This is in
 	return b.buffer[(b.readIndex+index)%len(b.buffer)]
 }
 
+// Set replaces the item at the given index. Valid values for the index are 0 to Length()-1, as for Get.
+// Set will panic if an index is accessed which does not belong to an item currently stored.
+func (b *DynamicRingBuffer[T]) Set(index int, item T) {
+	if index < 0 || b.count <= index {
+		panic("Index out of range for DynamicRingBuffer[T].")
+	}
+	b.buffer[(b.readIndex+index)%len(b.buffer)] = item
+}
+
 // Resize allocates a new buffer with the desired capacity and copies all elements over. If the new capacity is less
 // than the current number of items stored inside the DynamicRingBuffer, the current number of items will be used
 // as the new capacity instead. No items can be removed by resizing to a smaller capacity.
