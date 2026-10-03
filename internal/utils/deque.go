@@ -122,10 +122,11 @@ func (d Deque[T]) AppendAll(buffer []T) []T {
 }
 
 // Hash calculates a hash over all values in order. Values are hashed by their memory representation. Equal sequences
-// have equal hashes, no matter how their values are split between front and back.
-func (d Deque[T]) Hash() uint64 {
+// have equal hashes, no matter how their values are split between front and back. The values are collected in the
+// buffer, which is returned for reuse.
+func (d Deque[T]) Hash(buffer []T) (uint64, []T) {
 	hash := fnv.New64a()
-	values := d.AppendAll(nil)
+	values := d.AppendAll(buffer[:0])
 
 	// We reinterpret the slice of values as a slice of bytes. We do this with unsafe pointer arithmetic to avoid
 	// rewriting the values only for the hash. An empty sequence gives no bytes.
@@ -136,7 +137,7 @@ func (d Deque[T]) Hash() uint64 {
 	if _, err := hash.Write(valueBytes); err != nil {
 		panic(err)
 	}
-	return hash.Sum64()
+	return hash.Sum64(), values
 }
 
 // withBackLen returns the same sequence with at least count values in back.

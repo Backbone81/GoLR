@@ -139,17 +139,27 @@ var _ = Describe("Deque", func() {
 		pushedFront := utils.Deque[int]{}.PushFront(3).PushFront(2).PushFront(1)
 		mixed := utils.Deque[int]{}.PushBack(2).PushFront(1).PushBack(3)
 		rebuilt, _ := utils.Deque[int]{}.PushBack(2).PushFront(1).PushBack(3).PushBack(4).PopBack(1, nil)
-		Expect(pushedFront.Hash()).To(Equal(pushedBack.Hash()))
-		Expect(mixed.Hash()).To(Equal(pushedBack.Hash()))
-		Expect(rebuilt.Hash()).To(Equal(pushedBack.Hash()))
+		Expect(hashOf(pushedFront)).To(Equal(hashOf(pushedBack)))
+		Expect(hashOf(mixed)).To(Equal(hashOf(pushedBack)))
+		Expect(hashOf(rebuilt)).To(Equal(hashOf(pushedBack)))
 	})
 
 	It("should hash different sequences differently", func() {
 		deque := utils.Deque[int]{}.PushBack(1).PushBack(2)
-		Expect(utils.Deque[int]{}.PushBack(2).PushBack(1).Hash()).ToNot(Equal(deque.Hash()))
-		Expect(deque.PushBack(3).Hash()).ToNot(Equal(deque.Hash()))
-		Expect(deque.DropBack(1).Hash()).ToNot(Equal(deque.Hash()))
-		Expect(utils.Deque[int]{}.Hash()).ToNot(Equal(deque.Hash()))
+		Expect(hashOf(utils.Deque[int]{}.PushBack(2).PushBack(1))).ToNot(Equal(hashOf(deque)))
+		Expect(hashOf(deque.PushBack(3))).ToNot(Equal(hashOf(deque)))
+		Expect(hashOf(deque.DropBack(1))).ToNot(Equal(hashOf(deque)))
+		Expect(hashOf(utils.Deque[int]{})).ToNot(Equal(hashOf(deque)))
+	})
+
+	It("should hash alike with a reused buffer and return the buffer", func() {
+		deque := utils.Deque[int]{}.PushBack(1).PushBack(2)
+		hash, buffer := deque.Hash(make([]int, 0, 8))
+		Expect(hash).To(Equal(hashOf(deque)))
+		Expect(cap(buffer)).To(Equal(8))
+
+		hash, _ = deque.PushBack(3).Hash(buffer)
+		Expect(hash).To(Equal(hashOf(deque.PushBack(3))))
 	})
 
 	It("should panic when dropping more values than it holds", func() {
@@ -200,7 +210,7 @@ var _ = Describe("Deque", func() {
 				for _, value := range values {
 					rebuilt = rebuilt.PushBack(value)
 				}
-				Expect(deque.Hash()).To(Equal(rebuilt.Hash()))
+				Expect(hashOf(deque)).To(Equal(hashOf(rebuilt)))
 				if len(values) > 0 {
 					Expect(deque.First()).To(Equal(values[0]))
 					Expect(deque.Last()).To(Equal(values[len(values)-1]))
@@ -209,3 +219,9 @@ var _ = Describe("Deque", func() {
 		}
 	})
 })
+
+// hashOf returns the hash of the deque.
+func hashOf(d utils.Deque[int]) uint64 {
+	hash, _ := d.Hash(nil)
+	return hash
+}

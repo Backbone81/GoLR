@@ -26,13 +26,11 @@ func (c *ProductConfiguration) Successor(cost int) *ProductConfiguration {
 }
 
 // Hash calculates a hash over both parsers and if the conflict terminal was shifted, which tells configurations apart
-// that the search treats as different, see simulatedParser.Hash.
-func (c *ProductConfiguration) Hash() uint64 {
-	values := [3]uint64{
-		c.Parsers[0].Hash(),
-		c.Parsers[1].Hash(),
-		0,
-	}
+// that the search treats as different, see SimulatedParser.Hash. The buffer is returned for reuse.
+func (c *ProductConfiguration) Hash(buffer []int) (uint64, []int) {
+	var values [3]uint64
+	values[0], buffer = c.Parsers[0].Hash(buffer)
+	values[1], buffer = c.Parsers[1].Hash(buffer)
 	if c.TerminalShifted {
 		values[2] = 1
 	}
@@ -46,5 +44,5 @@ func (c *ProductConfiguration) Hash() uint64 {
 	if _, err := hash.Write(valueBytes); err != nil {
 		panic(err)
 	}
-	return hash.Sum64()
+	return hash.Sum64(), buffer
 }

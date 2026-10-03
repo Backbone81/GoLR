@@ -44,15 +44,16 @@ type unifyingBuilder struct {
 
 	queue ProductConfigurationQueue
 
-	// visitedConfigHashes holds the hash of every ProductConfiguration the search visited, see ProductConfiguration.Hash.
+	// visitedConfigHashes holds the hash of every ProductConfiguration the search queued, see ProductConfiguration.Hash.
 	// Two configurations with the same hash count as the same, which could make the search miss a unifying counterexample,
 	// but never return a wrong one.
 	visitedConfigHashes map[uint64]struct{}
 
-	// Scratch space for FIRST sets and the sequences of a ProductConfiguration.
+	// Scratch space for FIRST sets, the sequences of a ProductConfiguration and its hash.
 	firstBuffer      [2]backend.LookaheadSet
 	itemBuffer       []int
 	derivationBuffer []Derivation
+	hashBuffer       []int
 
 	// innermost is the nonunifying counterexample of the innermost nonterminal, once a ProductConfiguration showed it.
 	innermost      Counterexample
@@ -98,7 +99,7 @@ func newUnifyingBuilder(
 // and reports false when it did not.
 func (b *unifyingBuilder) Build() (Counterexample, bool) {
 	// The initial configuration of figure 8(b).
-	b.queue.Add(&ProductConfiguration{
+	b.add(&ProductConfiguration{
 		Parsers: [2]SimulatedParser{
 			NewSimulatedParser(b.conflictItemIdxs[0]),
 			NewSimulatedParser(b.conflictItemIdxs[1]),
@@ -106,11 +107,6 @@ func (b *unifyingBuilder) Build() (Counterexample, bool) {
 	})
 	for !b.queue.IsEmpty() && time.Now().Before(b.deadline) {
 		productConfiguration := b.queue.Remove()
-		hash := productConfiguration.Hash()
-		if _, found := b.visitedConfigHashes[hash]; found {
-			continue
-		}
-		b.visitedConfigHashes[hash] = struct{}{}
 		if result, found := b.unifyingCounterexample(productConfiguration); found {
 			return result, true
 		}
@@ -274,6 +270,16 @@ func (b *unifyingBuilder) add(c *ProductConfiguration) {
 		}
 		return nil
 	})
+	// A configuration queued before is dropped, even when it comes at a lower cost, so the queue never holds the same
+	// configuration twice. The queue hands out configurations by cost, so a later duplicate is cheaper by at most the
+	// cost of one repeated production step, while the costs of the searches on large grammars reach thousands. The
+	// costs only lead the search to cheaper counterexamples first, they do not guarantee the cheapest one.
+	var hash uint64
+	hash, b.hashBuffer = c.Hash(b.hashBuffer)
+	if _, found := b.visitedConfigHashes[hash]; found {
+		return
+	}
+	b.visitedConfigHashes[hash] = struct{}{}
 	b.queue.Add(c)
 }
 

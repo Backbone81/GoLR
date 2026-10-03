@@ -43,12 +43,12 @@ func (p *SimulatedParser) StageCompleted() bool {
 }
 
 // Hash calculates a hash over the items and the depth. The derivations are not part of it, so of two configurations
-// which differ only in their derivations the search continues the cheaper one.
-func (p *SimulatedParser) Hash() uint64 {
-	values := [2]uint64{
-		p.items.Hash(),
-		uint64(p.depth), //nolint:gosec // The bits of the depth are hashed.
-	}
+// which differ only in their derivations the search continues the one queued first. The items are collected in the
+// buffer, which is returned for reuse.
+func (p *SimulatedParser) Hash(buffer []int) (uint64, []int) {
+	var values [2]uint64
+	values[0], buffer = p.items.Hash(buffer)
+	values[1] = uint64(p.depth) //nolint:gosec // The bits of the depth are hashed.
 
 	// We reinterpret the values as a slice of bytes. We do this with unsafe pointer arithmetic to avoid encoding the
 	// values only for the hash.
@@ -59,5 +59,5 @@ func (p *SimulatedParser) Hash() uint64 {
 	if _, err := hash.Write(valueBytes); err != nil {
 		panic(err)
 	}
-	return hash.Sum64()
+	return hash.Sum64(), buffer
 }
