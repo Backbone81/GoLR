@@ -30,7 +30,7 @@ import (
 // nonterminal and production index, so the closure items of a nonterminal are adjacent too. See kernelItems and
 // closureItems for the ranges.
 //
-// The action filter and the derivation steps are computed on demand and kept, so the tables are not safe for
+// The action filter and the reach of a terminal are computed on demand and kept, so the tables are not safe for
 // concurrent use.
 type LookupTables struct {
 	grammar frontend.Grammar
@@ -74,9 +74,11 @@ type LookupTables struct {
 	// allowedContributionsByStateTerminal holds the action filter, see IsActionAllowed.
 	allowedContributionsByStateTerminal map[stateTerminal]conflict.ContributionSet
 
-	// The derivation steps, see DerivationStartingWith and EmptyDerivation.
+	// emptyDerivationStepByNonterminalIdx holds the derivation steps, see EmptyDerivation.
 	emptyDerivationStepByNonterminalIdx []derivationStep
-	derivationStepsByTerminalIdx        map[int][]derivationStep
+
+	// terminalReachByTerminalIdx holds the reach of every terminal used so far, see terminalReach.
+	terminalReachByTerminalIdx map[int]*terminalReach
 }
 
 // noItemIdx stands for a missing item, like the target of an item without a transition.
@@ -96,7 +98,7 @@ func NewLookupTables(parser backend.Parser) LookupTables {
 		policy:                              conflict.PrecedencePolicy(parser.Grammar),
 		firstSets:                           frontend.NewFirstSets(parser.Grammar),
 		allowedContributionsByStateTerminal: make(map[stateTerminal]conflict.ContributionSet),
-		derivationStepsByTerminalIdx:        make(map[int][]derivationStep),
+		terminalReachByTerminalIdx:          make(map[int]*terminalReach),
 	}
 	result.initProductionIdxsByNonterminalIdx()
 	result.initItems()

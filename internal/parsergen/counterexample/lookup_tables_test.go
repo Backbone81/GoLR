@@ -280,36 +280,13 @@ var _ = Describe("LookupTables", func() {
 		})
 	})
 
-	Context("DerivationStartingWith", func() {
-		It("should derive a nonterminal beginning with a terminal", func() {
-			_, grammar, err := golrfrontend.GrammarFromString(figure1Spec)
-			Expect(err).ToNot(HaveOccurred())
-			parser, _, _, err := ielr1golr.GrammarToParser(grammar, conflict.DefaultPolicy)
-			Expect(err).ToNot(HaveOccurred())
-			tables := counterexample.NewLookupTables(parser)
-			digitIdx := terminalIdx(parser.Grammar, "DIGIT")
-
-			expectDerivationStep(tables, parser.Grammar, "stmt", digitIdx, `stmt -> expr "?" stmt stmt`, 0)
-			expectDerivationStep(tables, parser.Grammar, "expr", digitIdx, "expr -> num", 0)
-			expectDerivationStep(tables, parser.Grammar, "num", digitIdx, "num -> DIGIT", 0)
-
-			_, _, found := tables.DerivationStartingWith(
-				nonterminalIdx(parser.Grammar, "stmt"),
-				terminalIdx(parser.Grammar, `"else"`),
-			)
-			Expect(found).To(BeFalse())
-		})
-
-		It("should derive the symbols in front of the terminal to the empty string", func() {
+	Context("EmptyDerivation", func() {
+		It("should derive a nullable nonterminal to the empty string with the fewest productions", func() {
 			_, grammar, err := golrfrontend.GrammarFromString(emptySpec)
 			Expect(err).ToNot(HaveOccurred())
 			parser, _, _, err := ielr1golr.GrammarToParser(grammar, conflict.DefaultPolicy)
 			Expect(err).ToNot(HaveOccurred())
 			tables := counterexample.NewLookupTables(parser)
-
-			expectDerivationStep(tables, parser.Grammar, "s", terminalIdx(parser.Grammar, `"z"`), `s -> x y "z"`, 2)
-			expectDerivationStep(tables, parser.Grammar, "s", terminalIdx(parser.Grammar, `"q"`), `s -> x y "z"`, 1)
-			expectDerivationStep(tables, parser.Grammar, "s", terminalIdx(parser.Grammar, `"w"`), `s -> "w" s`, 0)
 
 			emptyProductionIdx, found := tables.EmptyDerivation(nonterminalIdx(parser.Grammar, "y"))
 			Expect(found).To(BeTrue())
@@ -405,24 +382,6 @@ func expectConsistentEdges(tables counterexample.LookupTables, parser backend.Pa
 			Expect(itemIdx).To(BeNumerically("<", sourceTo), description)
 		}
 	}
-}
-
-// expectDerivationStep checks the first step of the shortest derivation of the nonterminal beginning with the terminal.
-func expectDerivationStep(
-	tables counterexample.LookupTables,
-	grammar frontend.Grammar,
-	nonterminalName string,
-	terminalIdx int,
-	wantProduction string,
-	wantPosition int,
-) {
-	gotProductionIdx, gotPosition, found := tables.DerivationStartingWith(
-		nonterminalIdx(grammar, nonterminalName),
-		terminalIdx,
-	)
-	Expect(found).To(BeTrue(), "%s beginning with %s", nonterminalName, grammar.Terminals[terminalIdx])
-	Expect(frontend.FormatProduction(grammar, gotProductionIdx)).To(Equal(wantProduction))
-	Expect(gotPosition).To(Equal(wantPosition))
 }
 
 // itemsWithCore returns the items of all states with the production and the position of the dot.

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/backbone81/golr/internal/parsergen/backend"
-	"github.com/backbone81/golr/internal/parsergen/frontend"
 	"github.com/backbone81/golr/internal/utils"
 )
 
@@ -17,6 +15,7 @@ type nonunifyingBuilder struct {
 	reduceItemIdx int
 	otherItemIdx  int
 	terminalIdx   int
+	reach         *terminalReach
 	reducePath    []pathItem
 }
 
@@ -56,21 +55,30 @@ func newNonunifyingBuilder(
 		reduceItemIdx: reduceItemIdx,
 		otherItemIdx:  otherItemIdx,
 		terminalIdx:   terminalIdx,
+		reach:         tables.terminalReach(terminalIdx),
 		reducePath:    reducePath,
 	}
 }
 
 // Build returns the counterexample. Its derivations start at the start symbol, or at the start production when the
-// conflict terminal is the end of the input, which only the start production shows.
-func (b *nonunifyingBuilder) Build() Counterexample {
+// conflict terminal is the end of the input, which only the start production shows. It reports false when the
+// declarations of the grammar leave the parser no input in which the reduction of a second reduce item is followed by
+// the terminal.
+func (b *nonunifyingBuilder) Build() (Counterexample, bool) {
 	// The conflict terminal is the symbol after the dot of a shift item, so nothing is required behind it. A second
 	// reduce item needs the terminal behind its production like the first one (p. 4, footnote 4).
 	_, isShift := b.tables.NextSymbol(b.otherItemIdx)
+	if !isShift && !b.reach.CanReduce(b.otherItemIdx) {
+		return Counterexample{}, false
+	}
 	otherPath, found := b.walkBack(b.reducePath, walkNode{itemIdx: b.otherItemIdx, required: !isShift})
 	if !found {
 		// Only a second reduce item can miss the path, when the states the path goes through merged contexts in which
 		// the terminal does not follow it. Its own shortest path shares less with the first one, but is valid.
-		otherPath = b.tables.shortestLookaheadSensitivePath(b.otherItemIdx, b.terminalIdx)
+		otherPath, found = b.tables.shortestLookaheadSensitivePath(b.otherItemIdx, b.terminalIdx)
+		if !found {
+			return Counterexample{}, false
+		}
 	}
 
 	derivations := [2]Derivation{
@@ -85,7 +93,7 @@ func (b *nonunifyingBuilder) Build() Counterexample {
 	return Counterexample{
 		NonterminalIdx: derivations[0].Symbol.Idx(),
 		Derivations:    derivations,
-	}
+	}, true
 }
 
 // walkBack explores backward from the node along the states of the path, until it meets an item of the path at the same
@@ -95,10 +103,11 @@ func (b *nonunifyingBuilder) Build() Counterexample {
 //
 // Within a state, the walk takes reverse production steps. A kernel item takes its reverse transition into the state of
 // the previous point, which is unique, as that state holds the item with the dot one symbol earlier. While the terminal
-// is required behind the production of the node, a reverse production step only goes to a parent whose symbols behind
-// the nonterminal can begin with the terminal, which satisfies it, or can vanish, which keeps it required. A meeting
-// item then has to hold the terminal in its precise lookahead set. The paper leaves this out, as it only walks back
-// from a shift item, behind which nothing is required.
+// is required behind the production of the node, a reverse production step only goes to a parent from whose goto the
+// parser carries the terminal to its shift, which satisfies it, or whose symbols behind the nonterminal vanish and
+// whose production is reduced on the terminal, which keeps it required, see terminalReach. A meeting item then has to
+// hold the terminal in its precise lookahead set. The paper leaves this out, as it only walks back from a shift item,
+// behind which nothing is required.
 //
 // It reports false when the walk does not meet the path, which only happens while the terminal is required.
 func (b *nonunifyingBuilder) walkBack(path []pathItem, node walkNode) ([]pathItem, bool) {
@@ -179,20 +188,22 @@ func (b *nonunifyingBuilder) appendReverseProductionSteps(
 	return steps
 }
 
-// reverseProductionStep returns the node of the parent item, and reports false when the parent is excluded because its
-// symbols behind the nonterminal can neither begin with the required terminal nor vanish.
+// reverseProductionStep returns the node of the parent item, and reports false when the parent is excluded because the
+// parser can neither carry the required terminal from its goto to the shift, nor reduce its production on it.
 func (b *nonunifyingBuilder) reverseProductionStep(node walkNode, parentItemIdx int) (walkNode, bool) {
 	parent := walkNode{itemIdx: parentItemIdx}
 	if !node.required {
 		return parent, true
 	}
-	var first backend.LookaheadSet
-	nullable := b.tables.firstSets.FirstOfSequence(b.tables.restBehindNextSymbol(parentItemIdx), &first)
-	if first.Contains(b.terminalIdx) {
+	targetItemIdx, found := b.tables.Transition(parentItemIdx)
+	if !found {
+		return parent, false
+	}
+	if b.reach.CanShift(targetItemIdx) {
 		return parent, true
 	}
 	parent.required = true
-	return parent, nullable
+	return parent, b.reach.CanReduce(targetItemIdx)
 }
 
 // appendReverseTransitions appends the reverse transition into the previous state of every kernel item among the steps
@@ -245,21 +256,28 @@ func (b *nonunifyingBuilder) derivation(path []pathItem, required bool) Derivati
 		if !item.productionStep {
 			continue
 		}
-		core := b.tables.Core(path[productionTo-1].itemIdx)
+		restItemIdx := path[productionTo-1].itemIdx
+		core := b.tables.Core(restItemIdx)
 		symbolRefs := b.tables.grammar.Productions[core.ProductionIdx()].SymbolRefs
 		children := make([]Derivation, 0, len(symbolRefs)+1)
 		for _, symbolRef := range symbolRefs[:core.Position()] {
 			children = append(children, NewLeafDerivation(symbolRef))
 		}
 
-		rest := symbolRefs[core.Position():]
 		if productionTo == len(path) {
 			children = append(children, NewDotDerivation())
 		} else {
 			children = append(children, result)
-			rest = rest[1:]
+			restItemIdx, _ = b.tables.Transition(restItemIdx)
 		}
-		children, required = b.appendRest(children, rest, required)
+		var possible bool
+		children, required, possible = b.appendRest(children, restItemIdx, required)
+		utils.DebugAssert(func() error {
+			if !possible {
+				return fmt.Errorf("terminal %d cannot follow the dot of the derivation", b.terminalIdx)
+			}
+			return nil
+		})
 		result = NewExpandedDerivation(b.tables.grammar, core.ProductionIdx(), children)
 		productionTo = productionFrom
 	}
@@ -273,69 +291,104 @@ func (b *nonunifyingBuilder) derivation(path []pathItem, required bool) Derivati
 	return result
 }
 
-// appendRest appends the symbols behind the dot or the expanded nonterminal of a production. While the terminal is
-// required, the symbols are examined in order: the terminal satisfies it, a nonterminal which can begin with it is
-// expanded into a shortest derivation which does, and a nonterminal which cannot is derived to the empty string, so the
-// terminal directly follows the dot in the example. Once it is satisfied, the symbols stay leaves. It returns if the
-// terminal is still required, which passes the requirement on to the enclosing production.
-func (b *nonunifyingBuilder) appendRest(
-	children []Derivation,
-	rest []frontend.SymbolRef,
-	required bool,
-) ([]Derivation, bool) {
-	for _, symbolRef := range rest {
-		switch {
-		case !required || symbolRef.IsTerminal():
-			children = append(children, NewLeafDerivation(symbolRef))
-			if symbolRef == frontend.NewTerminalRef(b.terminalIdx) {
-				required = false
-			}
-		case b.tables.firstSets.IsNullable(symbolRef.Idx()) && !b.canBeginWithTerminal(symbolRef.Idx()):
-			children = append(children, b.tables.emptyDerivation(symbolRef.Idx()))
-		default:
-			children = append(children, b.tables.derivationStartingWith(symbolRef.Idx(), b.terminalIdx))
-			required = false
-		}
+// appendRest appends the symbols of the production of the item from its dot on, which are behind the dot or the
+// expanded nonterminal of the production. While the terminal is required, they follow the cheapest way the parser
+// carries it from the item to its shift, see terminalReach: the terminal itself, a nonterminal expanded into a
+// derivation which begins with it, and nonterminals in front of it derived to the empty string, so the terminal
+// directly follows the dot in the example. When there is no such way, but the rest vanishes and the production is
+// reduced on the terminal, the rest is derived to the empty string and the terminal stays required, which passes the
+// requirement on to the enclosing production. Once it is satisfied, the symbols stay leaves.
+//
+// It returns if the terminal is still required, and reports false when the parser can neither carry it to its shift
+// nor reduce the production on it.
+func (b *nonunifyingBuilder) appendRest(children []Derivation, itemIdx int, required bool) ([]Derivation, bool, bool) {
+	switch {
+	case !required:
+		return b.tables.appendLeaves(children, itemIdx), false, true
+	case b.reach.CanShift(itemIdx):
+		return b.tables.appendShift(b.reach, children, itemIdx), false, true
+	case b.reach.CanReduce(itemIdx):
+		return b.tables.appendEmptyRest(b.reach, children, itemIdx), true, true
+	default:
+		return children, true, false
 	}
-	return children, required
 }
 
-// canBeginWithTerminal reports if a derivation of the nonterminal can begin with the terminal.
-func (b *nonunifyingBuilder) canBeginWithTerminal(nonterminalIdx int) bool {
-	_, _, found := b.tables.DerivationStartingWith(nonterminalIdx, b.terminalIdx)
-	return found
+// appendLeaves appends the symbols of the production of the item from its dot on as leaves.
+func (t *LookupTables) appendLeaves(children []Derivation, itemIdx int) []Derivation {
+	core := t.Core(itemIdx)
+	for _, symbolRef := range t.grammar.Productions[core.ProductionIdx()].SymbolRefs[core.Position():] {
+		children = append(children, NewLeafDerivation(symbolRef))
+	}
+	return children
 }
 
-// derivationStartingWith returns a shortest derivation of the nonterminal which begins with the terminal, see
-// DerivationStartingWith. A derivation must exist.
-func (t *LookupTables) derivationStartingWith(nonterminalIdx int, terminalIdx int) Derivation {
-	productionIdx, position, found := t.DerivationStartingWith(nonterminalIdx, terminalIdx)
+// appendShift appends the symbols of the production of the item from its dot on, following the cheapest way the parser
+// carries the terminal of the reach from the item to its shift. The parser must be able to. The symbols behind the
+// terminal, or behind the nonterminal which begins with it, stay leaves, because nonterminals stay nonterminals where
+// terminals are not germane (section 3.2).
+func (t *LookupTables) appendShift(reach *terminalReach, children []Derivation, itemIdx int) []Derivation {
 	utils.DebugAssert(func() error {
-		if !found {
-			return fmt.Errorf("nonterminal %d cannot begin with terminal %d", nonterminalIdx, terminalIdx)
+		if !reach.CanShift(itemIdx) {
+			return fmt.Errorf("item %d cannot shift terminal %d", itemIdx, reach.terminalIdx)
 		}
 		return nil
 	})
-
-	symbolRefs := t.grammar.Productions[productionIdx].SymbolRefs
-	children := make([]Derivation, 0, len(symbolRefs))
-	for _, symbolRef := range symbolRefs[:position] {
-		children = append(children, t.emptyDerivation(symbolRef.Idx()))
+	for {
+		if symbolRef, _ := t.NextSymbol(itemIdx); symbolRef.IsTerminal() {
+			return t.appendLeaves(children, itemIdx)
+		}
+		targetItemIdx, _ := t.Transition(itemIdx)
+		if closureItemIdx := reach.byItemIdx[itemIdx].toShift.closureItemIdx; closureItemIdx != noItemIdx {
+			productionIdx := t.Core(closureItemIdx).ProductionIdx()
+			children = append(children, NewExpandedDerivation(
+				t.grammar,
+				productionIdx,
+				t.appendShift(reach, make([]Derivation, 0, len(t.grammar.Productions[productionIdx].SymbolRefs)), closureItemIdx),
+			))
+			return t.appendLeaves(children, targetItemIdx)
+		}
+		children = append(children, t.emptyDerivation(reach, itemIdx))
+		itemIdx = targetItemIdx
 	}
-	if symbolRef := symbolRefs[position]; symbolRef.IsTerminal() {
-		children = append(children, NewLeafDerivation(symbolRef))
-	} else {
-		children = append(children, t.derivationStartingWith(symbolRef.Idx(), terminalIdx))
-	}
-	for _, symbolRef := range symbolRefs[position+1:] {
-		children = append(children, NewLeafDerivation(symbolRef))
-	}
-	return NewExpandedDerivation(t.grammar, productionIdx, children)
 }
 
-// emptyDerivation returns a shortest derivation of the empty string from the nonterminal, see EmptyDerivation. The
-// nonterminal must be nullable.
-func (t *LookupTables) emptyDerivation(nonterminalIdx int) Derivation {
+// appendEmptyRest appends the symbols of the production of the item from its dot on, each derived to the empty string
+// along the cheapest way of the reach. The rest of the production must be able to vanish.
+func (t *LookupTables) appendEmptyRest(reach *terminalReach, children []Derivation, itemIdx int) []Derivation {
+	utils.DebugAssert(func() error {
+		if !reach.CanReduce(itemIdx) {
+			return fmt.Errorf("item %d cannot reduce on terminal %d", itemIdx, reach.terminalIdx)
+		}
+		return nil
+	})
+	for {
+		if _, found := t.NextSymbol(itemIdx); !found {
+			return children
+		}
+		children = append(children, t.emptyDerivation(reach, itemIdx))
+		itemIdx, _ = t.Transition(itemIdx)
+	}
+}
+
+// emptyDerivation returns the cheapest derivation of the empty string from the nonterminal after the dot of the item,
+// whose reductions the declarations allow on the terminal of the reach. The nonterminal must be able to vanish.
+func (t *LookupTables) emptyDerivation(reach *terminalReach, itemIdx int) Derivation {
+	utils.DebugAssert(func() error {
+		if !reach.CanVanish(itemIdx) {
+			return fmt.Errorf("the nonterminal after the dot of item %d cannot vanish", itemIdx)
+		}
+		return nil
+	})
+	closureItemIdx := reach.byItemIdx[itemIdx].toVanish.closureItemIdx
+	productionIdx := t.Core(closureItemIdx).ProductionIdx()
+	children := make([]Derivation, 0, len(t.grammar.Productions[productionIdx].SymbolRefs))
+	return NewExpandedDerivation(t.grammar, productionIdx, t.appendEmptyRest(reach, children, closureItemIdx))
+}
+
+// shortestEmptyDerivation returns a shortest derivation of the empty string from the nonterminal, see EmptyDerivation.
+// The nonterminal must be nullable.
+func (t *LookupTables) shortestEmptyDerivation(nonterminalIdx int) Derivation {
 	productionIdx, found := t.EmptyDerivation(nonterminalIdx)
 	utils.DebugAssert(func() error {
 		if !found {
@@ -347,7 +400,7 @@ func (t *LookupTables) emptyDerivation(nonterminalIdx int) Derivation {
 	symbolRefs := t.grammar.Productions[productionIdx].SymbolRefs
 	children := make([]Derivation, 0, len(symbolRefs))
 	for _, symbolRef := range symbolRefs {
-		children = append(children, t.emptyDerivation(symbolRef.Idx()))
+		children = append(children, t.shortestEmptyDerivation(symbolRef.Idx()))
 	}
 	return NewExpandedDerivation(t.grammar, productionIdx, children)
 }

@@ -190,7 +190,7 @@ func (b *unifyingBuilder) findInnermost(c *ProductConfiguration) {
 // completeDerivation completes every production of the item sequence of the parser, from the innermost one outward, up
 // to the production of its first item. The symbols in front of the dot of the first item, and those behind the dot or
 // the expanded nonterminal of every production, stay leaves, see nonunifyingBuilder.appendRest. It reports false when
-// the conflict terminal is still required behind the dot.
+// the conflict terminal is still required behind the dot, or cannot directly follow it.
 func (b *unifyingBuilder) completeDerivation(
 	productConfiguration *ProductConfiguration,
 	parserIdx int,
@@ -211,7 +211,7 @@ func (b *unifyingBuilder) completeDerivation(
 		if productionFrom > 0 && firstCore.Position() != 0 {
 			continue
 		}
-		lastCore := b.tables.Core(itemIdxs[productionTo-1])
+		restItemIdx := itemIdxs[productionTo-1]
 		symbolRefs := b.tables.grammar.Productions[firstCore.ProductionIdx()].SymbolRefs
 		transitionCount := productionTo - 1 - productionFrom
 
@@ -222,12 +222,15 @@ func (b *unifyingBuilder) completeDerivation(
 		children = append(children, derivations[derivationTo-transitionCount:derivationTo]...)
 		derivationTo -= transitionCount
 
-		rest := symbolRefs[lastCore.Position():]
 		if productionTo < len(itemIdxs) {
 			children = append(children, result)
-			rest = rest[1:]
+			restItemIdx, _ = b.tables.Transition(restItemIdx)
 		}
-		children, required = b.nonunifying.appendRest(children, rest, required)
+		var possible bool
+		children, required, possible = b.nonunifying.appendRest(children, restItemIdx, required)
+		if !possible {
+			return Derivation{}, false
+		}
 		result = NewExpandedDerivation(b.tables.grammar, firstCore.ProductionIdx(), children)
 		productionTo = productionFrom
 	}
@@ -352,11 +355,38 @@ func (b *unifyingBuilder) addEmptyDerivation(c *ProductConfiguration, parserIdx 
 	if !found {
 		return
 	}
+	derivation, allowed := b.emptyDerivation(c, parserIdx)
+	if !allowed {
+		return
+	}
 	successor := c.Successor(emptyDerivationCost)
 	successorParser := &successor.Parsers[parserIdx]
 	successorParser.items = parser.items.PushBack(targetItemIdx)
-	successorParser.derivations = parser.derivations.PushBack(b.tables.emptyDerivation(symbolRef.Idx()))
+	successorParser.derivations = parser.derivations.PushBack(derivation)
 	b.add(successor)
+}
+
+// emptyDerivation returns a shortest derivation of the empty string from the nonterminal after the dot of the last item
+// of the parser, whose reductions the declarations allow on the terminal which follows: the conflict terminal until it
+// is shifted, and the symbol after the dot of the other parser then, when it is a terminal. It reports false when
+// there is none. When the terminal which follows is not known yet, the derivation is the shortest one of the grammar,
+// like isReductionAllowed allows a reduction then.
+func (b *unifyingBuilder) emptyDerivation(c *ProductConfiguration, parserIdx int) (Derivation, bool) {
+	itemIdx := c.Parsers[parserIdx].Tail()
+	terminalIdx := b.terminalIdx
+	if c.TerminalShifted {
+		symbolRef, found := b.tables.NextSymbol(c.Parsers[1-parserIdx].Tail())
+		if !found || !symbolRef.IsTerminal() {
+			nonterminalRef, _ := b.tables.NextSymbol(itemIdx)
+			return b.tables.shortestEmptyDerivation(nonterminalRef.Idx()), true
+		}
+		terminalIdx = symbolRef.Idx()
+	}
+	reach := b.tables.terminalReach(terminalIdx)
+	if !reach.CanVanish(itemIdx) {
+		return Derivation{}, false
+	}
+	return b.tables.emptyDerivation(reach, itemIdx), true
 }
 
 // addReduction adds the reduction of the parser, see figure 10(f). It removes the items of the production and appends

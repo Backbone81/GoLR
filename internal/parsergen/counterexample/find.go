@@ -28,7 +28,8 @@ type conflictItemPair struct {
 // (section 5.1, figure 7).
 //
 // Every pair gets a unifying counterexample when the search finds one within the time limits, and a nonunifying one
-// otherwise (section 6, "Constructing nonunifying counterexamples").
+// otherwise (section 6, "Constructing nonunifying counterexamples"). A pair gets none when the declarations of the
+// grammar leave the parser no input in which a reduction of the pair is followed by the conflict terminal.
 func Find(
 	parser backend.Parser,
 	conflicts []conflict.Conflict,
@@ -45,17 +46,27 @@ func Find(
 	result := make([][]Counterexample, len(conflicts))
 	for conflictIdx, c := range conflicts {
 		for _, pair := range tables.conflictItemPairs(c) {
-			reducePath := tables.shortestLookaheadSensitivePath(pair.reduceItemIdx, c.TerminalIdx)
+			reducePath, found := tables.shortestLookaheadSensitivePath(pair.reduceItemIdx, c.TerminalIdx)
+			if !found {
+				continue
+			}
 			nonunifying := newNonunifyingBuilder(&tables, pair.reduceItemIdx, pair.otherItemIdx, c.TerminalIdx, reducePath)
-			result[conflictIdx] = append(result[conflictIdx], findCounterexample(&nonunifying, config, totalDeadline))
+			if counterexample, found := findCounterexample(&nonunifying, config, totalDeadline); found {
+				result[conflictIdx] = append(result[conflictIdx], counterexample)
+			}
 		}
 	}
 	return result
 }
 
-// findCounterexample returns the counterexample of the pair of conflict items of the nonunifying builder. Once the
-// total time limit is spent, no unifying counterexample is searched anymore.
-func findCounterexample(nonunifying *nonunifyingBuilder, config Config, totalDeadline time.Time) Counterexample {
+// findCounterexample returns the counterexample of the pair of conflict items of the nonunifying builder, and reports
+// false when there is none, see nonunifyingBuilder.Build. Once the total time limit is spent, no unifying
+// counterexample is searched anymore.
+func findCounterexample(
+	nonunifying *nonunifyingBuilder,
+	config Config,
+	totalDeadline time.Time,
+) (Counterexample, bool) {
 	now := time.Now()
 	if now.Before(totalDeadline) {
 		deadline := now.Add(config.TimeLimit)
@@ -64,7 +75,7 @@ func findCounterexample(nonunifying *nonunifyingBuilder, config Config, totalDea
 		}
 		unifying := newUnifyingBuilder(nonunifying.tables, nonunifying, nonunifying.reducePath, deadline)
 		if result, found := unifying.Build(); found {
-			return result
+			return result, true
 		}
 	}
 	return nonunifying.Build()

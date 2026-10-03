@@ -1,7 +1,6 @@
 package counterexample
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
@@ -47,14 +46,17 @@ type lookaheadSensitiveVertex struct {
 // vanish and L holds it, so the edges of a vertex and whether their targets hold the terminal only depend on the item
 // and that bit. The search finds paths of the same length, but visits at most two vertices per item instead of one per
 // item and distinct lookahead set, which are hundreds of thousands on large grammars.
+//
+// Deviating from the paper as well, the search takes the declarations of the grammar into account, see section 6,
+// "Exploiting precedence". It only takes transitions on terminals whose shift the declarations leave to the parser,
+// and L only holds the terminal when the parser can carry it to its shift, see terminalReach: the symbols behind the
+// nonterminal begin with the terminal or vanish with every reduction allowed on it, and the production is reduced on
+// it. So the reduction of the reduce item at the end of the path is followed by an allowed shift of the terminal.
 type lookaheadSensitivePathBuilder struct {
 	tables        *LookupTables
 	reduceItemIdx int
 	terminalIdx   int
-
-	// filterPrecedence reports if transitions on terminals the declarations of the grammar decided against are left
-	// out, see LookupTables.IsActionAllowed.
-	filterPrecedence bool
+	reach         *terminalReach
 
 	reachingItemIdxs utils.Bitset
 
@@ -77,35 +79,22 @@ func newLookaheadSensitivePathBuilder(
 	tables *LookupTables,
 	reduceItemIdx int,
 	terminalIdx int,
-	filterPrecedence bool,
 ) lookaheadSensitivePathBuilder {
 	return lookaheadSensitivePathBuilder{
 		tables:           tables,
 		reduceItemIdx:    reduceItemIdx,
 		terminalIdx:      terminalIdx,
-		filterPrecedence: filterPrecedence,
+		reach:            tables.terminalReach(terminalIdx),
 		reachingItemIdxs: tables.ReachingItems(reduceItemIdx),
 	}
 }
 
 // shortestLookaheadSensitivePath returns a shortest lookahead-sensitive path from (s0, START -> • S $, {$}) to the
-// reduce item with the terminal in its precise lookahead set. The search inspects the precedence declarations, see
-// section 6, "Exploiting precedence". When they leave no path, which merged states can make possible, the path is
-// searched without them, as the propagated lookaheads of the reduce item guarantee that one exists then.
-func (t *LookupTables) shortestLookaheadSensitivePath(reduceItemIdx int, terminalIdx int) []pathItem {
-	builder := newLookaheadSensitivePathBuilder(t, reduceItemIdx, terminalIdx, true)
-	if path, found := builder.Build(); found {
-		return path
-	}
-	builder = newLookaheadSensitivePathBuilder(t, reduceItemIdx, terminalIdx, false)
-	path, found := builder.Build()
-	utils.DebugAssert(func() error {
-		if !found {
-			return fmt.Errorf("no lookahead-sensitive path to item %d with terminal %d", reduceItemIdx, terminalIdx)
-		}
-		return nil
-	})
-	return path
+// reduce item with the terminal in its precise lookahead set. It reports false when the declarations of the grammar
+// leave the parser no input in which the reduction of the item is followed by the terminal.
+func (t *LookupTables) shortestLookaheadSensitivePath(reduceItemIdx int, terminalIdx int) ([]pathItem, bool) {
+	builder := newLookaheadSensitivePathBuilder(t, reduceItemIdx, terminalIdx)
+	return builder.Build()
 }
 
 // Build returns the path, or reports false when there is none.
@@ -122,7 +111,7 @@ func (b *lookaheadSensitivePathBuilder) Build() ([]pathItem, bool) {
 	//nolint:intrange // The loop bound grows while the loop runs, the vertices are the queue of the search.
 	for vertexIdx := 0; vertexIdx < len(b.vertices); vertexIdx++ {
 		vertex := b.vertices[vertexIdx]
-		if vertex.itemIdx == b.reduceItemIdx && vertex.terminalFollows {
+		if vertex.itemIdx == b.reduceItemIdx && vertex.terminalFollows && b.reach.CanReduce(vertex.itemIdx) {
 			return b.path(vertexIdx), true
 		}
 		b.addTransition(vertexIdx)
@@ -138,13 +127,11 @@ func (b *lookaheadSensitivePathBuilder) addTransition(vertexIdx int) {
 	if !found || !b.reachingItemIdxs.Contains(targetItemIdx) {
 		return
 	}
-	if b.filterPrecedence {
-		symbolRef, _ := b.tables.NextSymbol(vertex.itemIdx)
-		stateIdx := b.tables.StateIdx(vertex.itemIdx)
-		if symbolRef.IsTerminal() &&
-			!b.tables.IsActionAllowed(stateIdx, symbolRef.Idx(), conflict.NewShiftContribution()) {
-			return
-		}
+	symbolRef, _ := b.tables.NextSymbol(vertex.itemIdx)
+	stateIdx := b.tables.StateIdx(vertex.itemIdx)
+	if symbolRef.IsTerminal() &&
+		!b.tables.IsActionAllowed(stateIdx, symbolRef.Idx(), conflict.NewShiftContribution()) {
+		return
 	}
 	b.addVertex(lookaheadSensitiveVertex{
 		itemIdx:         targetItemIdx,
@@ -172,12 +159,16 @@ func (b *lookaheadSensitivePathBuilder) addProductionSteps(vertexIdx int) {
 }
 
 // followLHoldsTerminal reports if the precise follow set followL of the item of the vertex (p. 4) holds the terminal:
-// when the symbols behind the nonterminal after the dot can begin with it, or when all of them can vanish and the
-// lookahead set of the vertex holds it. This is the four cases of the paper unrolled over the rest of the production.
+// when the parser can carry the terminal from behind the nonterminal after the dot to its shift, or when the symbols
+// behind the nonterminal can vanish, the production is reduced on the terminal, and the lookahead set of the vertex
+// holds it. These are the four cases of the paper unrolled over the rest of the production, restricted to the actions
+// the declarations leave to the parser, see terminalReach.
 func (b *lookaheadSensitivePathBuilder) followLHoldsTerminal(vertex lookaheadSensitiveVertex) bool {
-	var first backend.LookaheadSet
-	nullable := b.tables.firstSets.FirstOfSequence(b.tables.restBehindNextSymbol(vertex.itemIdx), &first)
-	return first.Contains(b.terminalIdx) || nullable && vertex.terminalFollows
+	targetItemIdx, found := b.tables.Transition(vertex.itemIdx)
+	if !found {
+		return false
+	}
+	return b.reach.CanShift(targetItemIdx) || b.reach.CanReduce(targetItemIdx) && vertex.terminalFollows
 }
 
 // addVertex adds the vertex to the search, unless it was found before.

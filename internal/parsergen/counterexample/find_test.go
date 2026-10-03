@@ -3,6 +3,7 @@ package counterexample_test
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -38,6 +39,89 @@ var mergedReduceReduceSpec = utils.HereDoc(`
 	    s : "a" x "d" | "b" y "d" | "a" y "e" | "b" x "e" ;
 	    x : "c" ;
 	    y : "c" ;
+	}
+`)
+
+// blockedInnermostSpec is an ambiguous grammar whose unifying search reaches configurations which show a nonterminal
+// both parsers are in, but whose productions keep the conflict terminal from directly following the dot.
+var blockedInnermostSpec = utils.HereDoc(`
+	@scanner {
+	    A: "a";
+	    B: "b";
+	    C: "c";
+	}
+
+	@parser {
+	    s : "a" | "b" u v | s s "c" "b" ;
+	    v : @empty ;
+	    u : @empty | v u s | "c" "a" ;
+	}
+`)
+
+// leftEmptyOperandSpec is an ambiguous grammar with an empty operand and a left associative "+". Behind s "+", the
+// empty operand conflicts with "+" "x" on "+", and its reduction is followed by s "+" s • "+", where the parser
+// reduces.
+var leftEmptyOperandSpec = utils.HereDoc(`
+	@scanner {
+	    PLUS: "+";
+	    X:    "x";
+	}
+
+	@parser {
+	    @precedence {
+	        @left: "+";
+	    }
+
+	    s : @empty | s "+" s | "+" "x" ;
+	}
+`)
+
+// rightEmptyOperandSpec is leftEmptyOperandSpec with a right associative "+", so the parser shifts at s "+" s • "+".
+var rightEmptyOperandSpec = utils.HereDoc(`
+	@scanner {
+	    PLUS: "+";
+	    X:    "x";
+	}
+
+	@parser {
+	    @precedence {
+	        @right: "+";
+	    }
+
+	    s : @empty | s "+" s | "+" "x" ;
+	}
+`)
+
+// nonassociativeEmptyOperandSpec is leftEmptyOperandSpec with a non-associative "+", so the parser rejects "+" at
+// s "+" s • "+".
+var nonassociativeEmptyOperandSpec = utils.HereDoc(`
+	@scanner {
+	    PLUS: "+";
+	    X:    "x";
+	}
+
+	@parser {
+	    @precedence {
+	        @none: "+";
+	    }
+
+	    s : @empty | s "+" s | "+" "x" ;
+	}
+`)
+
+// nestedNonassociativeSpec is a grammar whose empty reduction behind "a" s has the lookahead "a" only from nested
+// "a" "a", which the non-associative "a" rejects.
+var nestedNonassociativeSpec = utils.HereDoc(`
+	@scanner {
+	    A: "a";
+	}
+
+	@parser {
+	    @precedence {
+	        @none: "a";
+	    }
+
+	    s : @empty | "a" | "a" s s ;
 	}
 `)
 
@@ -295,6 +379,78 @@ var _ = Describe("Find", func() {
 		`)))
 	})
 
+	It("should carry the conflict terminal to its shift as the associativity decides", func() {
+		text := findText(leftEmptyOperandSpec, "ielr1", `"+"`, counterexample.WithTotalTimeLimit(0))
+		Expect(text).To(Equal(utils.HereDoc(`
+			example: • "+" s
+			using the reduction:
+			  s -> [s] "+" s
+			    s -> (empty) •
+			example: • "+" "x"
+			using the shift:
+			  s -> • "+" "x"
+
+			example: s "+" • "+" s
+			using the reduction:
+			  s -> [s] "+" s
+			    s -> s "+" [s]
+			      s -> (empty) •
+			example: s "+" • "+" "x" "+" s
+			using the shift:
+			  s -> [s] "+" s
+			    s -> s "+" [s]
+			      s -> • "+" "x"
+		`)))
+		text = findText(rightEmptyOperandSpec, "ielr1", `"+"`, counterexample.WithTotalTimeLimit(0))
+		Expect(text).To(Equal(utils.HereDoc(`
+			example: • "+" s
+			using the reduction:
+			  s -> [s] "+" s
+			    s -> (empty) •
+			example: • "+" "x"
+			using the shift:
+			  s -> • "+" "x"
+
+			example: s "+" • "+" s
+			using the reduction:
+			  s -> s "+" [s]
+			    s -> [s] "+" s
+			      s -> (empty) •
+			example: s "+" • "+" "x"
+			using the shift:
+			  s -> s "+" [s]
+			    s -> • "+" "x"
+		`)))
+	})
+
+	DescribeTable("should find no counterexample where the declarations never let the terminal follow the reduction",
+		func(spec string, coreName string, wantCounterexampleCountByKernelItems map[string]int) {
+			_, grammar, err := golrfrontend.GrammarFromString(spec)
+			Expect(err).ToNot(HaveOccurred())
+			parser, conflicts, _, err := resolvedParsers[coreName](grammar, conflict.DefaultPolicy)
+			Expect(err).ToNot(HaveOccurred())
+			counterexamplesByConflictIdx := counterexample.Find(parser, conflicts, counterexample.WithTotalTimeLimit(0))
+			gotCounterexampleCountByKernelItems := map[string]int{}
+			for conflictIdx, c := range conflicts {
+				kernelItems := strings.Join(formatKernelItems(parser, c.StateIdx), ", ")
+				gotCounterexampleCountByKernelItems[kernelItems] = len(counterexamplesByConflictIdx[conflictIdx])
+			}
+			Expect(gotCounterexampleCountByKernelItems).To(Equal(wantCounterexampleCountByKernelItems))
+		},
+		// Behind s "+" s, the non-associative "+" rejects "+", so the empty operand behind s "+" is never followed by it.
+		Entry("for a terminal rejected behind the reduction", nonassociativeEmptyOperandSpec, "ielr1", map[string]int{
+			`$accept -> • s $end`: 1,
+			`s -> s "+" • s`:      0,
+		}),
+		// LALR(1) merges the state behind the first "a" with the one behind a nested "a", where the non-associative "a"
+		// rejects the shift of "a". IELR(1) keeps them apart, and the rule of last resort keeps the shift behind the
+		// first "a", so "a" "a" s • "a" is a counterexample there.
+		Entry("for a lookahead only a rejected shift brings", nestedNonassociativeSpec, "lalr1", map[string]int{
+			`s -> "a" •, s -> "a" • s s`: 1,
+			`s -> "a" s • s`:             0,
+		}),
+	)
+
 	It("should find the same counterexamples on tables whose conflicts are left unresolved", func() {
 		_, grammar, err := golrfrontend.GrammarFromString(figure1Spec)
 		Expect(err).ToNot(HaveOccurred())
@@ -326,6 +482,17 @@ var _ = Describe("Find", func() {
 		Entry("for states which LALR(1) merges", mergedReduceReduceSpec),
 		Entry("for the end of the input", endOfInputSpec),
 	)
+
+	It("should only take the innermost nonterminal when the conflict terminal can follow the dot", func() {
+		_, grammar, err := golrfrontend.GrammarFromString(blockedInnermostSpec)
+		Expect(err).ToNot(HaveOccurred())
+		for coreName, grammarToParser := range resolvedParsers {
+			parser, conflicts, _, err := grammarToParser(grammar, conflict.DefaultPolicy)
+			Expect(err).ToNot(HaveOccurred())
+			// The searches give up early, so the innermost nonterminal is what they fall back to.
+			expectValidCounterexamples(parser, conflicts, coreName, counterexample.WithTimeLimit(20*time.Millisecond))
+		}
+	})
 
 	Context("well known grammars", func() {
 		for _, wellKnownGrammar := range testdata.WellKnownGrammars {
@@ -383,8 +550,9 @@ func findText(spec string, coreName string, terminalName string, options ...coun
 	return strings.Join(texts, "\n")
 }
 
-// expectValidCounterexamples checks that every conflict gets one counterexample per pair of conflict items, and that
-// every counterexample is valid, see expectValidCounterexample.
+// expectValidCounterexamples checks that every conflict gets one counterexample per pair of its conflict items, with
+// the items of the pair at the dots of the two derivations, and that every counterexample is valid, see
+// expectValidCounterexample.
 func expectValidCounterexamples(
 	parser backend.Parser,
 	conflicts []conflict.Conflict,
@@ -393,34 +561,59 @@ func expectValidCounterexamples(
 ) {
 	counterexamplesByConflictIdx := counterexample.Find(parser, conflicts, options...)
 	Expect(counterexamplesByConflictIdx).To(HaveLen(len(conflicts)))
+	tables := counterexample.NewLookupTables(parser)
 	for conflictIdx, c := range conflicts {
 		description := fmt.Sprintf("core %s, state %d, terminal %s",
 			coreName, c.StateIdx, parser.Grammar.Terminals[c.TerminalIdx])
-		Expect(counterexamplesByConflictIdx[conflictIdx]).To(HaveLen(pairCount(parser, c)), description)
+		var pairs [][2]backend.Core
 		for _, ce := range counterexamplesByConflictIdx[conflictIdx] {
-			expectValidCounterexample(parser.Grammar, ce, c.TerminalIdx, description)
+			pairs = append(pairs, [2]backend.Core{dotCore(ce.Derivations[0]), dotCore(ce.Derivations[1])})
+			expectValidCounterexample(parser, &tables, ce, c, description)
 		}
+		Expect(pairs).To(ConsistOf(conflictItemPairs(parser, c)), description)
 	}
 }
 
-// pairCount returns the number of pairs of conflict items of the conflict.
-func pairCount(parser backend.Parser, c conflict.Conflict) int {
-	shiftItemCount := 0
+// conflictItemPairs returns the pairs of conflict items of the conflict: every reduce item with every item which shifts
+// the conflict terminal, and every two reduce items, the earlier production first.
+func conflictItemPairs(parser backend.Parser, c conflict.Conflict) [][2]backend.Core {
+	var shiftCores []backend.Core
 	if c.Undeclared.Contains(conflict.NewShiftContribution()) {
 		for _, core := range closure(parser.Grammar, parser.States[c.StateIdx].KernelItems) {
 			symbolRefs := parser.Grammar.Productions[core.ProductionIdx()].SymbolRefs
 			if core.Position() < len(symbolRefs) && symbolRefs[core.Position()] == frontend.NewTerminalRef(c.TerminalIdx) {
-				shiftItemCount++
+				shiftCores = append(shiftCores, core)
 			}
 		}
 	}
-	reduceCount := 0
+	var reduceCores []backend.Core
 	for _, contribution := range c.Undeclared.All() {
 		if contribution.IsReduceAction() {
-			reduceCount++
+			productionIdx := contribution.ProductionIdx()
+			reduceCores = append(reduceCores,
+				backend.NewCore(productionIdx, len(parser.Grammar.Productions[productionIdx].SymbolRefs)))
 		}
 	}
-	return reduceCount*shiftItemCount + reduceCount*(reduceCount-1)/2
+
+	var result [][2]backend.Core
+	for i, reduceCore := range reduceCores {
+		for _, shiftCore := range shiftCores {
+			result = append(result, [2]backend.Core{reduceCore, shiftCore})
+		}
+		for _, otherReduceCore := range reduceCores[i+1:] {
+			result = append(result, [2]backend.Core{reduceCore, otherReduceCore})
+		}
+	}
+	return result
+}
+
+// formatKernelItems returns the kernel items of the state, each as its production with the dot.
+func formatKernelItems(parser backend.Parser, stateIdx int) []string {
+	var result []string
+	for _, core := range parser.States[stateIdx].KernelItems.All() {
+		result = append(result, frontend.FormatItem(parser.Grammar, core.ProductionIdx(), core.Position()))
+	}
+	return result
 }
 
 // closure returns the kernel items and the closure items of a state.
@@ -450,13 +643,16 @@ func closure(grammar frontend.Grammar, kernelItems backend.CoreSet) []backend.Co
 }
 
 // expectValidCounterexample checks that both derivations of the counterexample are derivations of its nonterminal with
-// a single dot, and that the first one uses a reduction, see expectValidUnifying and expectValidNonunifying.
+// a single dot, which the parser tables can replay, see derivationReplay. The checks on the leaves follow in
+// expectValidUnifying and expectValidNonunifying.
 func expectValidCounterexample(
-	grammar frontend.Grammar,
+	parser backend.Parser,
+	tables *counterexample.LookupTables,
 	ce counterexample.Counterexample,
-	terminalIdx int,
+	c conflict.Conflict,
 	description string,
 ) {
+	grammar := parser.Grammar
 	var leaves [2][]counterexample.Derivation
 	var dotIdxs [2]int
 	for i, derivation := range ce.Derivations {
@@ -473,11 +669,11 @@ func expectValidCounterexample(
 		}
 		Expect(dotIdxs[i]).ToNot(Equal(-1), "%s: no dot", description)
 	}
-	Expect(firstProductionEndsWithDot(ce.Derivations[0])).To(BeTrue(), description)
+	Expect(replayFromAnyState(len(parser.States), tables, ce, c.StateIdx)).To(Succeed(), description)
 	if ce.Unifying {
-		expectValidUnifying(ce, leaves, dotIdxs[0], terminalIdx, description)
+		expectValidUnifying(ce, leaves, dotIdxs[0], c.TerminalIdx, description)
 	} else {
-		expectValidNonunifying(ce, leaves, dotIdxs, terminalIdx, description)
+		expectValidNonunifying(grammar, ce, leaves, dotIdxs, c.TerminalIdx, description)
 	}
 }
 
@@ -500,6 +696,7 @@ func expectValidUnifying(
 // expectValidNonunifying checks that the conflict terminal directly follows the dot of both derivations, and that they
 // share the symbols in front of the dot.
 func expectValidNonunifying(
+	grammar frontend.Grammar,
 	ce counterexample.Counterexample,
 	leaves [2][]counterexample.Derivation,
 	dotIdxs [2]int,
@@ -514,7 +711,8 @@ func expectValidNonunifying(
 			prefixes[i] = append(prefixes[i], leaf.Symbol)
 		}
 	}
-	if !firstProductionEndsWithDot(ce.Derivations[1]) {
+	otherCore := dotCore(ce.Derivations[1])
+	if otherCore.Position() < len(grammar.Productions[otherCore.ProductionIdx()].SymbolRefs) {
 		// Only a second reduction can search a path of its own, see the spec for states which LALR(1) merges.
 		Expect(prefixes[1]).To(Equal(prefixes[0]), description)
 	}
@@ -535,7 +733,7 @@ func expectValidDerivation(grammar frontend.Grammar, derivation counterexample.D
 		}
 		expectValidDerivation(grammar, child, description)
 	}
-	Expect(symbolRefs).To(Equal(production.SymbolRefs), description)
+	Expect(symbolRefs).To(HaveExactElements(production.SymbolRefs), description)
 }
 
 // appendLeaves appends the leaves of the derivation, including the dot.
@@ -552,26 +750,156 @@ func appendLeaves(
 	return leaves
 }
 
-// firstProductionEndsWithDot reports if the production the dot is a child of has the dot at its end.
-func firstProductionEndsWithDot(derivation counterexample.Derivation) bool {
-	for childIdx, child := range derivation.Children {
-		if child.Dot {
-			return childIdx == len(derivation.Children)-1
-		}
-		if len(appendDots(child, nil)) > 0 {
-			return firstProductionEndsWithDot(child)
-		}
-	}
-	return false
+// dotCore returns the item at the dot of the derivation: the production the dot is a child of, with the dot at its
+// position.
+func dotCore(derivation counterexample.Derivation) backend.Core {
+	core, found := findDotCore(derivation)
+	Expect(found).To(BeTrue(), "no dot")
+	return core
 }
 
-// appendDots appends the dots of the derivation.
-func appendDots(derivation counterexample.Derivation, dots []counterexample.Derivation) []counterexample.Derivation {
-	if derivation.Dot {
-		return append(dots, derivation)
+// findDotCore returns the item at the dot of the derivation, see dotCore. It reports false when the derivation has no
+// dot.
+func findDotCore(derivation counterexample.Derivation) (backend.Core, bool) {
+	for childIdx, child := range derivation.Children {
+		if child.Dot {
+			return backend.NewCore(derivation.ProductionIdx, childIdx), true
+		}
+		if core, found := findDotCore(child); found {
+			return core, true
+		}
 	}
+	return 0, false
+}
+
+// replayFromAnyState returns an error when no state of the parser tables replays both derivations of the
+// counterexample, see derivationReplay.
+func replayFromAnyState(
+	stateCount int,
+	tables *counterexample.LookupTables,
+	ce counterexample.Counterexample,
+	conflictStateIdx int,
+) error {
+	var err error
+	for startStateIdx := range stateCount {
+		err = nil
+		for _, derivation := range ce.Derivations {
+			replay := newDerivationReplay(tables, ce, derivation, conflictStateIdx, startStateIdx)
+			if err = replay.Replay(derivation); err != nil {
+				break
+			}
+		}
+		if err == nil {
+			return nil
+		}
+	}
+	return fmt.Errorf("no state replays both derivations, the last state failed with: %w", err)
+}
+
+// derivationReplay runs a derivation through the parser tables the way the parser would, from a start state: a leaf
+// takes the transition of the item in front of it, the dot has to be in the conflict state, and an expanded node
+// reduces its production when its children are done. Every shift, and every reduction which a terminal follows, has to
+// be an action the declarations of the grammar leave to the parser. This ties the counterexample to the state of its
+// conflict, and makes sure the search never took an action a precedence declaration removed.
+//
+// The replay of a nonunifying counterexample ends with the conflict terminal. Its derivations only complete the
+// productions behind it, which the parser does not have to accept.
+type derivationReplay struct {
+	tables           *counterexample.LookupTables
+	leaves           []counterexample.Derivation
+	leafIdx          int
+	lastLeafIdx      int
+	done             bool
+	conflictStateIdx int
+	stateIdxs        []int
+}
+
+// newDerivationReplay returns a replay of the derivation of the counterexample, beginning in the start state.
+func newDerivationReplay(
+	tables *counterexample.LookupTables,
+	ce counterexample.Counterexample,
+	derivation counterexample.Derivation,
+	conflictStateIdx int,
+	startStateIdx int,
+) derivationReplay {
+	leaves := appendLeaves(derivation, nil)
+	lastLeafIdx := len(leaves) - 1
+	if !ce.Unifying {
+		lastLeafIdx = slices.IndexFunc(leaves, isDot) + 1
+	}
+	return derivationReplay{
+		tables:           tables,
+		leaves:           leaves,
+		lastLeafIdx:      lastLeafIdx,
+		conflictStateIdx: conflictStateIdx,
+		stateIdxs:        []int{startStateIdx},
+	}
+}
+
+// isDot reports if the node is the dot.
+func isDot(derivation counterexample.Derivation) bool {
+	return derivation.Dot
+}
+
+// Replay replays the expanded node and reduces its production, leaving the state the node began in on top.
+func (r *derivationReplay) Replay(derivation counterexample.Derivation) error {
+	position := 0
 	for _, child := range derivation.Children {
-		dots = appendDots(child, dots)
+		if r.done {
+			return nil
+		}
+		stateIdx := r.stateIdxs[len(r.stateIdxs)-1]
+		if child.Dot {
+			r.leafIdx++
+			if stateIdx != r.conflictStateIdx {
+				return fmt.Errorf("the dot is in state %d", stateIdx)
+			}
+			continue
+		}
+		itemIdx, found := r.tables.ItemIdx(stateIdx, backend.NewCore(derivation.ProductionIdx, position))
+		if !found {
+			return fmt.Errorf("state %d has no item of production %d at %d", stateIdx, derivation.ProductionIdx, position)
+		}
+		if child.IsExpanded() {
+			if err := r.Replay(child); err != nil || r.done {
+				return err
+			}
+		} else {
+			r.leafIdx++
+			if child.Symbol.IsTerminal() &&
+				!r.tables.IsActionAllowed(stateIdx, child.Symbol.Idx(), conflict.NewShiftContribution()) {
+				return fmt.Errorf("state %d may not shift terminal %d", stateIdx, child.Symbol.Idx())
+			}
+		}
+		targetItemIdx, found := r.tables.Transition(itemIdx)
+		if !found {
+			return fmt.Errorf("item %d has no transition", itemIdx)
+		}
+		r.stateIdxs = append(r.stateIdxs, r.tables.StateIdx(targetItemIdx))
+		position++
+		r.done = r.leafIdx > r.lastLeafIdx
 	}
-	return dots
+	if r.done {
+		return nil
+	}
+
+	stateIdx := r.stateIdxs[len(r.stateIdxs)-1]
+	if terminalIdx, found := r.nextTerminal(); found &&
+		!r.tables.IsActionAllowed(stateIdx, terminalIdx, conflict.NewReduceContribution(derivation.ProductionIdx)) {
+		return fmt.Errorf("state %d may not reduce production %d on terminal %d",
+			stateIdx, derivation.ProductionIdx, terminalIdx)
+	}
+	r.stateIdxs = r.stateIdxs[:len(r.stateIdxs)-position]
+	return nil
+}
+
+// nextTerminal returns the leaf behind the leaves replayed so far, besides the dot, when it is a terminal.
+func (r *derivationReplay) nextTerminal() (int, bool) {
+	for _, leaf := range r.leaves[r.leafIdx:] {
+		if leaf.Dot {
+			continue
+		}
+		return leaf.Symbol.Idx(), leaf.Symbol.IsTerminal()
+	}
+	return 0, false
 }

@@ -42,11 +42,13 @@ func (t *LookupTables) allowedContributions(stateIdx int, terminalIdx int) confl
 	return decision.Survivors()
 }
 
-// contributions returns the actions of the state on the terminal: the shift when the state has a transition on it, and
-// the reduction of every reduce item whose lookahead set holds it.
+// contributions returns the actions of the state on the terminal before the conflicts were resolved: the shift when an
+// item of the state has the terminal after the dot, and the reduction of every reduce item whose lookahead set holds
+// it. The shift counts even when a declaration removed its transition, so the declarations decide on the same actions
+// as they did for the core: a non-associative terminal leaves neither action, although the tables only lack the shift.
 func (t *LookupTables) contributions(stateIdx int, terminalIdx int) conflict.ContributionSet {
 	var result conflict.ContributionSet
-	if _, found := t.transitionStateIdx(stateIdx, frontend.NewTerminalRef(terminalIdx)); found {
+	if len(t.ItemsWithNextSymbol(stateIdx, frontend.NewTerminalRef(terminalIdx))) > 0 {
 		result.Add(conflict.NewShiftContribution())
 	}
 
