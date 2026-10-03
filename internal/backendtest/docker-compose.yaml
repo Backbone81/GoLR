@@ -105,7 +105,7 @@ services:
 
   rust:
     <<: *common
-    image: rust:1.98
+    image: rust:1.99
     command: ["rust"]
 
   javascript:
