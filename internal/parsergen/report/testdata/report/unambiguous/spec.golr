@@ -1,0 +1,26 @@
+// An unambiguous grammar which needs two terminals of lookahead, so its conflict gets a counterexample up to the
+// conflict instead of one which proves an ambiguity.
+@scanner {
+    A: "a";
+    B: "b";
+}
+
+@parser {
+    s
+        : t
+        | s t
+        ;
+
+    t
+        : x
+        | y
+        ;
+
+    x
+        : "a"
+        ;
+
+    y
+        : "a" "a" "b"
+        ;
+}

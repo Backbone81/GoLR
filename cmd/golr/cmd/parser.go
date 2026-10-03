@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	ielr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/bison"
 	lalr1golrcore "github.com/backbone81/golr/pkg/parsergen/core/lalr1/golr"
@@ -30,6 +31,7 @@ import (
 	ielr1golrcore "github.com/backbone81/golr/pkg/parsergen/core/ielr1/golr"
 	lalr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/lalr1/bison"
 	lr1bisoncore "github.com/backbone81/golr/pkg/parsergen/core/lr1/bison"
+	"github.com/backbone81/golr/pkg/parsergen/counterexample"
 	"github.com/backbone81/golr/pkg/parsergen/frontend"
 	bisonfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/bison"
 	golrfrontend "github.com/backbone81/golr/pkg/parsergen/frontend/golr"
@@ -64,6 +66,10 @@ var (
 	parserVerbose          bool
 	parserWithStateNumbers bool
 
+	parserWithCounterexamples          bool
+	parserCounterexampleTimeLimit      time.Duration
+	parserCounterexampleTotalTimeLimit time.Duration
+
 	parserFailOnConflicts             bool
 	parserFailOnShiftReduceConflicts  bool
 	parserFailOnReduceReduceConflicts bool
@@ -83,9 +89,10 @@ var parserCmd = &cobra.Command{
 
 		// The conflicts are reported to stderr so they do not corrupt a backend which writes its output to stdout. The
 		// conflicts the policy resolved on its own are only summarized unless --verbose also asks for the full listing, so
-		// the report stays readable for a large grammar.
+		// the report stays readable for a large grammar. Counterexamples are only written in the full listing, so they
+		// ask for it as well.
 		reportConfig := report.Config{
-			Verbose:          parserVerbose,
+			Verbose:          parserVerbose || parserWithCounterexamples,
 			WithStateNumbers: parserWithStateNumbers,
 		}
 
@@ -94,11 +101,22 @@ var parserCmd = &cobra.Command{
 		if err := writeWarnings(os.Stderr, warnings); err != nil {
 			return err
 		}
+		var counterexamples [][]counterexample.Counterexample
+		if parserWithCounterexamples {
+			// A failing run reports only the unresolved conflicts, and a successful one has only resolved conflicts.
+			counterexamples = findCounterexamples(parser, conflicts, err != nil)
+		}
 		if err != nil {
-			return reportUnresolvedConflicts(err, parser.Grammar, conflicts, reportConfig)
+			return reportUnresolvedConflicts(err, parser.Grammar, conflicts, counterexamples, reportConfig)
 		}
 
-		if err := report.WriteConflictReport(os.Stderr, parser.Grammar, conflicts, reportConfig); err != nil {
+		if err := report.WriteConflictReport(
+			os.Stderr,
+			parser.Grammar,
+			conflicts,
+			counterexamples,
+			reportConfig,
+		); err != nil {
 			return err
 		}
 
@@ -127,6 +145,37 @@ func parserCoreOptions() []core.Option {
 	return options
 }
 
+// findCounterexamples returns the counterexamples the report writers take. Only the unresolved conflicts, or only the
+// resolved ones, get counterexamples, because a report lists only one of the two, and the search for the others would
+// be wasted.
+func findCounterexamples(
+	parser backend.Parser,
+	conflicts []conflict.Conflict,
+	unresolved bool,
+) [][]counterexample.Counterexample {
+	var listedConflictIdxs []int
+	var listedConflicts []conflict.Conflict
+	for conflictIdx, c := range conflicts {
+		if (c.Decision.Kind == conflict.DecisionUnresolved) != unresolved {
+			continue
+		}
+		listedConflictIdxs = append(listedConflictIdxs, conflictIdx)
+		listedConflicts = append(listedConflicts, c)
+	}
+	found := counterexample.Find(
+		parser,
+		listedConflicts,
+		counterexample.WithTimeLimit(parserCounterexampleTimeLimit),
+		counterexample.WithTotalTimeLimit(parserCounterexampleTotalTimeLimit),
+	)
+
+	result := make([][]counterexample.Counterexample, len(conflicts))
+	for i, conflictIdx := range listedConflictIdxs {
+		result[conflictIdx] = found[i]
+	}
+	return result
+}
+
 // writeWarnings writes every warning on a line of its own.
 func writeWarnings(w io.Writer, warnings []utils.Warning) error {
 	for _, warning := range warnings {
@@ -137,13 +186,15 @@ func writeWarnings(w io.Writer, warnings []utils.Warning) error {
 	return nil
 }
 
-// reportUnresolvedConflicts writes the report of the unresolved conflicts the error holds to stderr, headed by the
-// counts of all conflicts. It returns the other errors of the error, followed by the count of the unresolved conflicts,
-// so they are not printed a second time. An error without unresolved conflicts is returned unchanged.
+// reportUnresolvedConflicts writes the report of the unresolved conflicts the error holds to stderr, with their
+// counterexamples and headed by the counts of all conflicts. It returns the other errors of the error, followed by the
+// count of the unresolved conflicts, so they are not printed a second time. An error without unresolved conflicts is
+// returned unchanged.
 func reportUnresolvedConflicts(
 	err error,
 	grammar frontend.Grammar,
 	conflicts []conflict.Conflict,
+	counterexamples [][]counterexample.Counterexample,
 	config report.Config,
 ) error {
 	unresolvedConflictErrors := conflict.UnresolvedConflictErrors(err)
@@ -151,7 +202,7 @@ func reportUnresolvedConflicts(
 		return err
 	}
 
-	if err := report.WriteUnresolvedConflictReport(os.Stderr, grammar, conflicts, config); err != nil {
+	if err := report.WriteUnresolvedConflictReport(os.Stderr, grammar, conflicts, counterexamples, config); err != nil {
 		return err
 	}
 	// The error which follows is separated from the last report by an empty line, so it does not read as part of it.
@@ -512,6 +563,27 @@ func init() {
 		"fail-on-warnings",
 		false,
 		"Fail if there are warnings.",
+	)
+
+	parserCmd.PersistentFlags().BoolVar(
+		&parserWithCounterexamples,
+		"with-counterexamples",
+		false,
+		"Add counterexamples to every listed conflict, which show where the conflict comes from. Implies --verbose.",
+	)
+	parserCmd.PersistentFlags().DurationVar(
+		&parserCounterexampleTimeLimit,
+		"counterexample-time-limit",
+		counterexample.DefaultConfig.TimeLimit,
+		"The time after which the search for a counterexample which proves the grammar ambiguous gives up on a"+
+			" conflict, and shows a counterexample up to the conflict instead.",
+	)
+	parserCmd.PersistentFlags().DurationVar(
+		&parserCounterexampleTotalTimeLimit,
+		"counterexample-total-time-limit",
+		counterexample.DefaultConfig.TotalTimeLimit,
+		"The time after which the search for counterexamples which prove the grammar ambiguous gives up on all"+
+			" remaining conflicts.",
 	)
 
 	parserCmd.PersistentFlags().BoolVar(

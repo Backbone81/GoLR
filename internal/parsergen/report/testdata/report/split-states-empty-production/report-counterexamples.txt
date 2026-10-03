@@ -1,0 +1,43 @@
+2 reduce/reduce conflicts resolved
+
+state:
+  v -> "c" •
+  x -> "c" • z
+  y -> "c" •
+  distinguished by lookaheads:
+    v -> "c" •  {"e"}
+    z -> (empty) •  {}
+
+  reduce/reduce conflict on terminal "f":
+    reduce: y -> "c"
+    reduce: z -> (empty) (chosen)
+    ambiguous for start:
+      example: "a" "c" • "f"
+      using the first reduction:
+        start -> "a" [x] "f"
+          x -> "c" [z]
+            z -> (empty) •
+      using the second reduction:
+        start -> "a" [y] "f"
+          y -> "c" •
+
+state:
+  v -> "c" •
+  x -> "c" • z
+  y -> "c" •
+  distinguished by lookaheads:
+    v -> "c" •  {"g"}
+    z -> (empty) •  {"e"}
+
+  reduce/reduce conflict on terminal "f":
+    reduce: y -> "c"
+    reduce: z -> (empty) (chosen)
+    ambiguous for start:
+      example: "b" "c" • "f"
+      using the first reduction:
+        start -> "b" [x] "f"
+          x -> "c" [z]
+            z -> (empty) •
+      using the second reduction:
+        start -> "b" [y] "f"
+          y -> "c" •

@@ -35,7 +35,10 @@ import (
 type LookupTables struct {
 	grammar frontend.Grammar
 	states  []backend.State
-	policy  conflict.Policy
+
+	// policy holds the declarations of the grammar. The action filter only needs what they leave competing, which is
+	// the same under every policy, as the rules of last resort only decide what the declarations left.
+	policy conflict.Policy
 
 	firstSets                      frontend.FirstSets
 	productionIdxsByNonterminalIdx [][]int
@@ -83,14 +86,14 @@ const noItemIdx = -1
 const noNextSymbolKey = math.MaxInt
 
 // NewLookupTables builds the lookup tables of the parser tables a core returned, with their conflicts resolved or left
-// unresolved. The policy is the one the conflicts were resolved with, bound to the grammar of the parser.
-func NewLookupTables(parser backend.Parser, policy conflict.Policy) LookupTables {
+// unresolved.
+func NewLookupTables(parser backend.Parser) LookupTables {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Counterexample: NewLookupTables").End()
 
 	result := LookupTables{
 		grammar:                             parser.Grammar,
 		states:                              parser.States,
-		policy:                              policy,
+		policy:                              conflict.PrecedencePolicy(parser.Grammar),
 		firstSets:                           frontend.NewFirstSets(parser.Grammar),
 		allowedContributionsByStateTerminal: make(map[stateTerminal]conflict.ContributionSet),
 		derivationStepsByTerminalIdx:        make(map[int][]derivationStep),

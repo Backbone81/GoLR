@@ -20,6 +20,16 @@ type Counterexample struct {
 	Derivations [2]Derivation
 }
 
+// Header renders the line which introduces the counterexample and names its nonterminal. Only a unifying
+// counterexample shows an ambiguity, a nonunifying one leaves open whether the grammar is ambiguous.
+func (c Counterexample) Header(grammar frontend.Grammar) string {
+	name := grammar.Nonterminals[c.NonterminalIdx].String()
+	if c.Unifying {
+		return "ambiguous for " + name + ":"
+	}
+	return "conflict within " + name + ":"
+}
+
 // Lines renders the counterexample, one line per element: the leaves of the derivations as an example, followed by the
 // two derivations with one production per line. A unifying counterexample has a single example, a nonunifying one an
 // example in front of each derivation.

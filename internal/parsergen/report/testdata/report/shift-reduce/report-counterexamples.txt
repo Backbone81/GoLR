@@ -1,0 +1,75 @@
+5 shift/reduce conflicts resolved
+
+state:
+  expression -> expression "*" expression •
+  expression -> expression • "*" expression
+  expression -> expression • "+" expression
+
+  shift/reduce conflict on terminal "*":
+    shift (chosen)
+    reduce: expression -> expression "*" expression
+    ambiguous for expression:
+      example: expression "*" expression • "*" expression
+      using the reduction:
+        expression -> [expression] "*" expression
+          expression -> expression "*" expression •
+      using the shift:
+        expression -> expression "*" [expression]
+          expression -> expression • "*" expression
+
+  shift/reduce conflict on terminal "+":
+    shift (chosen)
+    reduce: expression -> expression "*" expression
+    ambiguous for expression:
+      example: expression "*" expression • "+" expression
+      using the reduction:
+        expression -> [expression] "+" expression
+          expression -> expression "*" expression •
+      using the shift:
+        expression -> expression "*" [expression]
+          expression -> expression • "+" expression
+
+state:
+  expression -> expression "+" expression •
+  expression -> expression • "*" expression
+  expression -> expression • "+" expression
+
+  shift/reduce conflict on terminal "*":
+    shift (chosen)
+    reduce: expression -> expression "+" expression
+    ambiguous for expression:
+      example: expression "+" expression • "*" expression
+      using the reduction:
+        expression -> [expression] "*" expression
+          expression -> expression "+" expression •
+      using the shift:
+        expression -> expression "+" [expression]
+          expression -> expression • "*" expression
+
+  shift/reduce conflict on terminal "+":
+    shift (chosen)
+    reduce: expression -> expression "+" expression
+    ambiguous for expression:
+      example: expression "+" expression • "+" expression
+      using the reduction:
+        expression -> [expression] "+" expression
+          expression -> expression "+" expression •
+      using the shift:
+        expression -> expression "+" [expression]
+          expression -> expression • "+" expression
+
+state:
+  statement -> "if" expression "then" statement •
+  statement -> "if" expression "then" statement • "else" statement
+
+  shift/reduce conflict on terminal "else":
+    shift (chosen)
+    reduce: statement -> "if" expression "then" statement
+    ambiguous for statement:
+      example: "if" expression "then" "if" expression "then" statement • "else" statement
+      using the reduction:
+        statement -> "if" expression "then" [statement] "else" statement
+          statement -> "if" expression "then" statement •
+      using the shift:
+        statement -> "if" expression "then" [statement]
+          statement -> "if" expression "then" statement • "else" statement

@@ -1,0 +1,35 @@
+1 reduce/reduce conflict unresolved
+
+state:
+  x -> "a" •
+  y -> "a" •
+  z -> "a" •
+
+  reduce/reduce conflict on terminal "b":
+    reduce: x -> "a"
+    reduce: y -> "a"
+    reduce: z -> "a"
+    ambiguous for start:
+      example: "a" • "b"
+      using the first reduction:
+        start -> [x] "b"
+          x -> "a" •
+      using the second reduction:
+        start -> [y] "b"
+          y -> "a" •
+    ambiguous for start:
+      example: "a" • "b"
+      using the first reduction:
+        start -> [x] "b"
+          x -> "a" •
+      using the second reduction:
+        start -> [z] "b"
+          z -> "a" •
+    ambiguous for start:
+      example: "a" • "b"
+      using the first reduction:
+        start -> [y] "b"
+          y -> "a" •
+      using the second reduction:
+        start -> [z] "b"
+          z -> "a" •

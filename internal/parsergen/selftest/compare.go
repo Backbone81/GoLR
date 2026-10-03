@@ -245,7 +245,7 @@ func compareUnresolvedConflicts(oracleErr error, oracleConflicts []string, sutEr
 // undecided between.
 func unresolvedConflictKeys(grammar frontend.Grammar, conflicts []conflict.Conflict) []string {
 	var result []string
-	for _, conflictReport := range report.UnresolvedConflictReports(grammar, conflicts) {
+	for _, conflictReport := range report.UnresolvedConflictReports(grammar, conflicts, nil) {
 		for _, entry := range conflictReport.Entries {
 			result = append(result, fmt.Sprintf(
 				"%s on terminal %s: %s",

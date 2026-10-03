@@ -146,7 +146,7 @@ var _ = Describe("LookupTables", func() {
 			for coreName, grammarToUnresolvedParser := range unresolvedParsers {
 				parser, _, err := grammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 				Expect(err).ToNot(HaveOccurred())
-				tables := counterexample.NewLookupTables(parser, conflict.DefaultPolicy(parser.Grammar))
+				tables := counterexample.NewLookupTables(parser)
 				expectReductionLookaheads(tables, parser, coreName)
 			}
 		},
@@ -169,7 +169,7 @@ var _ = Describe("LookupTables", func() {
 				for _, coreName := range []string{"ielr1", "lalr1"} {
 					parser, _, err := unresolvedParsers[coreName](grammar, conflict.DefaultPolicy)
 					Expect(err).ToNot(HaveOccurred())
-					tables := counterexample.NewLookupTables(parser, conflict.DefaultPolicy(parser.Grammar))
+					tables := counterexample.NewLookupTables(parser)
 					expectReductionLookaheads(tables, parser, coreName)
 				}
 			})
@@ -183,7 +183,7 @@ var _ = Describe("LookupTables", func() {
 			for coreName, grammarToUnresolvedParser := range unresolvedParsers {
 				parser, _, err := grammarToUnresolvedParser(grammar, conflict.DefaultPolicy)
 				Expect(err).ToNot(HaveOccurred())
-				tables := counterexample.NewLookupTables(parser, conflict.DefaultPolicy(parser.Grammar))
+				tables := counterexample.NewLookupTables(parser)
 				expectConsistentEdges(tables, parser, coreName)
 			}
 		},
@@ -197,7 +197,7 @@ var _ = Describe("LookupTables", func() {
 		Expect(err).ToNot(HaveOccurred())
 		parser, _, _, err := ielr1golr.GrammarToParser(grammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
-		tables := counterexample.NewLookupTables(parser, conflict.DefaultPolicy(parser.Grammar))
+		tables := counterexample.NewLookupTables(parser)
 		elseIdx := terminalIdx(parser.Grammar, `"else"`)
 
 		for _, reduceItemIdx := range itemsWithCore(tables, parser.Grammar, `stmt -> "if" expr "then" stmt`, 4) {
@@ -227,7 +227,7 @@ var _ = Describe("LookupTables", func() {
 			Expect(err).ToNot(HaveOccurred())
 			parser, _, _, err := ielr1golr.GrammarToParser(grammar, conflict.DefaultPolicy)
 			Expect(err).ToNot(HaveOccurred())
-			tables := counterexample.NewLookupTables(parser, conflict.DefaultPolicy(parser.Grammar))
+			tables := counterexample.NewLookupTables(parser)
 			elseIdx := terminalIdx(parser.Grammar, `"else"`)
 			reduceItemIdxs := itemsWithCore(tables, parser.Grammar, `stmt -> "if" expr "then" stmt`, 4)
 			Expect(reduceItemIdxs).ToNot(BeEmpty())
@@ -251,7 +251,7 @@ var _ = Describe("LookupTables", func() {
 
 			// The filter does not depend on the tables being resolved already.
 			for _, parser := range []backend.Parser{resolvedParser, unresolvedParser} {
-				tables := counterexample.NewLookupTables(parser, conflict.DefaultPolicy(parser.Grammar))
+				tables := counterexample.NewLookupTables(parser)
 				plusIdx := terminalIdx(parser.Grammar, `"+"`)
 				reduceItemIdxs := itemsWithCore(tables, parser.Grammar, `expression -> expression "+" expression`, 3)
 				Expect(reduceItemIdxs).ToNot(BeEmpty())
@@ -271,7 +271,7 @@ var _ = Describe("LookupTables", func() {
 			Expect(err).ToNot(HaveOccurred())
 			parser, _, _, err := ielr1golr.GrammarToParser(grammar, conflict.DefaultPolicy)
 			Expect(err).ToNot(HaveOccurred())
-			tables := counterexample.NewLookupTables(parser, conflict.DefaultPolicy(parser.Grammar))
+			tables := counterexample.NewLookupTables(parser)
 			thenIdx := terminalIdx(parser.Grammar, `"then"`)
 			for _, reduceItemIdx := range itemsWithCore(tables, parser.Grammar, "num -> DIGIT", 1) {
 				stateIdx := tables.StateIdx(reduceItemIdx)
@@ -286,7 +286,7 @@ var _ = Describe("LookupTables", func() {
 			Expect(err).ToNot(HaveOccurred())
 			parser, _, _, err := ielr1golr.GrammarToParser(grammar, conflict.DefaultPolicy)
 			Expect(err).ToNot(HaveOccurred())
-			tables := counterexample.NewLookupTables(parser, conflict.DefaultPolicy(parser.Grammar))
+			tables := counterexample.NewLookupTables(parser)
 			digitIdx := terminalIdx(parser.Grammar, "DIGIT")
 
 			expectDerivationStep(tables, parser.Grammar, "stmt", digitIdx, `stmt -> expr "?" stmt stmt`, 0)
@@ -305,7 +305,7 @@ var _ = Describe("LookupTables", func() {
 			Expect(err).ToNot(HaveOccurred())
 			parser, _, _, err := ielr1golr.GrammarToParser(grammar, conflict.DefaultPolicy)
 			Expect(err).ToNot(HaveOccurred())
-			tables := counterexample.NewLookupTables(parser, conflict.DefaultPolicy(parser.Grammar))
+			tables := counterexample.NewLookupTables(parser)
 
 			expectDerivationStep(tables, parser.Grammar, "s", terminalIdx(parser.Grammar, `"z"`), `s -> x y "z"`, 2)
 			expectDerivationStep(tables, parser.Grammar, "s", terminalIdx(parser.Grammar, `"q"`), `s -> x y "z"`, 1)

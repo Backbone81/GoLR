@@ -11,20 +11,24 @@ import (
 
 	"github.com/backbone81/golr/internal/parsergen/conflict"
 	ielr1golr "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
+	"github.com/backbone81/golr/internal/parsergen/counterexample"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	golrfrontend "github.com/backbone81/golr/internal/parsergen/frontend/golr"
 	"github.com/backbone81/golr/internal/parsergen/report"
 )
 
 // The report cases are a directory per case under reportRootPath, holding the grammar and the report it is expected to
-// produce, once summarized and once in full, or the error it is expected to fail with.
+// produce, once summarized, once in full and once with counterexamples, or the error it is expected to fail with, once
+// without and once with counterexamples.
 const (
-	reportRootPath            = "testdata/report"
-	reportSpecFileName        = "spec.golr"
-	reportFileName            = "report.txt"
-	reportVerboseFileName     = "report-verbose.txt"
-	reportErrorFileName       = "error.txt"
-	updateGoldenReportsEnvVar = "UPDATE_GOLDEN"
+	reportRootPath                     = "testdata/report"
+	reportSpecFileName                 = "spec.golr"
+	reportFileName                     = "report.txt"
+	reportVerboseFileName              = "report-verbose.txt"
+	reportCounterexamplesFileName      = "report-counterexamples.txt"
+	reportErrorFileName                = "error.txt"
+	reportErrorCounterexamplesFileName = "error-counterexamples.txt"
+	updateGoldenReportsEnvVar          = "UPDATE_GOLDEN"
 )
 
 // updatingGoldenReports reports whether this run rewrites the committed reports instead of comparing against them.
@@ -64,9 +68,15 @@ var _ = Describe("WriteConflictReport", func() {
 				// conflicts then.
 				Expect(conflict.UnresolvedConflictErrors(err)).ToNot(BeEmpty())
 				var builder strings.Builder
-				err := report.WriteUnresolvedConflictReport(&builder, parser.Grammar, conflicts, report.Config{})
+				err := report.WriteUnresolvedConflictReport(&builder, parser.Grammar, conflicts, nil, report.Config{})
 				Expect(err).ToNot(HaveOccurred())
 				expectGoldenFile(filepath.Join(goldenPath, reportErrorFileName), builder.String())
+
+				builder.Reset()
+				counterexamples := counterexample.Find(parser, conflicts)
+				err = report.WriteUnresolvedConflictReport(&builder, parser.Grammar, conflicts, counterexamples, report.Config{})
+				Expect(err).ToNot(HaveOccurred())
+				expectGoldenFile(filepath.Join(goldenPath, reportErrorCounterexamplesFileName), builder.String())
 				return
 			}
 
@@ -74,18 +84,28 @@ var _ = Describe("WriteConflictReport", func() {
 				filepath.Join(goldenPath, reportFileName),
 				parser.Grammar,
 				conflicts,
+				nil,
 				report.Config{},
 			)
 			expectGoldenReport(
 				filepath.Join(goldenPath, reportVerboseFileName),
 				parser.Grammar,
 				conflicts,
+				nil,
+				report.Config{Verbose: true},
+			)
+			expectGoldenReport(
+				filepath.Join(goldenPath, reportCounterexamplesFileName),
+				parser.Grammar,
+				conflicts,
+				counterexample.Find(parser, conflicts),
 				report.Config{Verbose: true},
 			)
 		},
 		Entry("with shift/reduce conflicts", "shift-reduce", "", conflict.PolicyFactory(conflict.DefaultPolicy)),
 		Entry("with reduce/reduce conflicts", "reduce-reduce", "", conflict.PolicyFactory(conflict.DefaultPolicy)),
 		Entry("with conflicts decided by precedence", "precedence", "", conflict.PolicyFactory(conflict.DefaultPolicy)),
+		Entry("with a conflict of an unambiguous grammar", "unambiguous", "", conflict.PolicyFactory(conflict.DefaultPolicy)),
 		Entry(
 			"with split states sharing their kernel items",
 			"split-states",
@@ -129,10 +149,11 @@ func expectGoldenReport(
 	goldenPath string,
 	grammar frontend.Grammar,
 	conflicts []conflict.Conflict,
+	counterexamples [][]counterexample.Counterexample,
 	config report.Config,
 ) {
 	var builder strings.Builder
-	Expect(report.WriteConflictReport(&builder, grammar, conflicts, config)).To(Succeed())
+	Expect(report.WriteConflictReport(&builder, grammar, conflicts, counterexamples, config)).To(Succeed())
 	expectGoldenFile(goldenPath, builder.String())
 }
 
@@ -172,6 +193,6 @@ func writeReport(specPath string, config report.Config) string {
 	Expect(err).ToNot(HaveOccurred())
 
 	var builder strings.Builder
-	Expect(report.WriteConflictReport(&builder, parser.Grammar, conflicts, config)).To(Succeed())
+	Expect(report.WriteConflictReport(&builder, parser.Grammar, conflicts, nil, config)).To(Succeed())
 	return builder.String()
 }

@@ -137,6 +137,8 @@ Flags:
       --backend-rust-scanner-module string         The module path the generated Rust parser takes the token type from. (default "super::scanner")
       --backend-typescript-scanner-module string   The module specifier the generated TypeScript parser imports the token constants from. (default "./scanner.js")
       --core string                                The core to use for generating the parser from the context free grammar. One of: ielr1, ielr1-golr, ielr1-bison, lalr1, lalr1-golr, lalr1-bison, lr1, lr1-golr, lr1-bison. (default "ielr1")
+      --counterexample-time-limit duration         The time after which the search for a counterexample which proves the grammar ambiguous gives up on a conflict, and shows a counterexample up to the conflict instead. (default 5s)
+      --counterexample-total-time-limit duration   The time after which the search for counterexamples which prove the grammar ambiguous gives up on all remaining conflicts. (default 2m0s)
       --fail-on-conflicts                          Fail if a shift/reduce or reduce/reduce conflict is not resolved by precedence or associativity.
       --fail-on-rr-conflicts                       Fail if a reduce/reduce conflict is not resolved by precedence or associativity.
       --fail-on-sr-conflicts                       Fail if a shift/reduce conflict is not resolved by precedence or associativity.
@@ -145,6 +147,7 @@ Flags:
       --frontend-file-path string                  The file path to read the context free grammar from. Can be '-' to read from stdin.
   -h, --help                                       help for parser
   -v, --verbose                                    List every conflict the parser generator resolved on its own.
+      --with-counterexamples                       Add counterexamples to every listed conflict, which show where the conflict comes from. Implies --verbose.
       --with-state-number                          Output the state number with every conflicted state.
 ```
 

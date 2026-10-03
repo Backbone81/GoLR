@@ -300,12 +300,11 @@ var _ = Describe("Find", func() {
 		Expect(err).ToNot(HaveOccurred())
 		resolvedParser, resolvedConflicts, _, err := lalr1golr.GrammarToParser(grammar, conflict.DefaultPolicy)
 		Expect(err).ToNot(HaveOccurred())
-		failingPolicy := conflict.SelectPolicy(true, true)
-		unresolvedParser, unresolvedConflicts, _, err := lalr1golr.GrammarToParser(grammar, failingPolicy)
+		unresolvedParser, unresolvedConflicts, _, err := lalr1golr.GrammarToParser(grammar, conflict.SelectPolicy(true, true))
 		Expect(err).To(HaveOccurred())
 
-		resolved := counterexample.Find(resolvedParser, resolvedConflicts, conflict.DefaultPolicy(resolvedParser.Grammar))
-		unresolved := counterexample.Find(unresolvedParser, unresolvedConflicts, failingPolicy(unresolvedParser.Grammar))
+		resolved := counterexample.Find(resolvedParser, resolvedConflicts)
+		unresolved := counterexample.Find(unresolvedParser, unresolvedConflicts)
 		Expect(unresolved).To(Equal(resolved))
 	})
 
@@ -370,8 +369,7 @@ func findText(spec string, coreName string, terminalName string, options ...coun
 	Expect(err).ToNot(HaveOccurred())
 	parser, conflicts, _, err := resolvedParsers[coreName](grammar, conflict.DefaultPolicy)
 	Expect(err).ToNot(HaveOccurred())
-	policy := conflict.DefaultPolicy(parser.Grammar)
-	counterexamplesByConflictIdx := counterexample.Find(parser, conflicts, policy, options...)
+	counterexamplesByConflictIdx := counterexample.Find(parser, conflicts, options...)
 
 	var texts []string
 	for conflictIdx, c := range conflicts {
@@ -393,8 +391,7 @@ func expectValidCounterexamples(
 	coreName string,
 	options ...counterexample.Option,
 ) {
-	policy := conflict.DefaultPolicy(parser.Grammar)
-	counterexamplesByConflictIdx := counterexample.Find(parser, conflicts, policy, options...)
+	counterexamplesByConflictIdx := counterexample.Find(parser, conflicts, options...)
 	Expect(counterexamplesByConflictIdx).To(HaveLen(len(conflicts)))
 	for conflictIdx, c := range conflicts {
 		description := fmt.Sprintf("core %s, state %d, terminal %s",

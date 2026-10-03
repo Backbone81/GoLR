@@ -1,0 +1,24 @@
+1 shift/reduce conflict resolved
+
+state:
+  x -> "a" •
+  y -> "a" • "a" "b"
+
+  shift/reduce conflict on terminal "a":
+    shift (chosen)
+    reduce: x -> "a"
+    conflict within s:
+      example: "a" • "a"
+      using the reduction:
+        s -> [s] [t]
+          s -> [t]
+            t -> [x]
+              x -> "a" •
+          t -> [x]
+            x -> "a"
+      example: "a" • "a" "b" t
+      using the shift:
+        s -> [s] t
+          s -> [t]
+            t -> [y]
+              y -> "a" • "a" "b"

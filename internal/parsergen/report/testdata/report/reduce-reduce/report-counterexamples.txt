@@ -1,0 +1,32 @@
+2 reduce/reduce conflicts resolved
+
+state:
+  $accept -> • start $end
+
+  reduce/reduce conflict on terminal "b":
+    reduce: first -> (empty) (chosen)
+    reduce: second -> (empty)
+    ambiguous for start:
+      example: • "b"
+      using the first reduction:
+        start -> [first] "b"
+          first -> (empty) •
+      using the second reduction:
+        start -> [second] "b"
+          second -> (empty) •
+
+state:
+  first -> "a" •
+  second -> "a" •
+
+  reduce/reduce conflict on terminal "b":
+    reduce: first -> "a" (chosen)
+    reduce: second -> "a"
+    ambiguous for start:
+      example: "a" • "b"
+      using the first reduction:
+        start -> [first] "b"
+          first -> "a" •
+      using the second reduction:
+        start -> [second] "b"
+          second -> "a" •

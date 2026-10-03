@@ -73,6 +73,54 @@ Error: 1 unresolved conflict
 
 A failing run does not list the resolved conflicts. Fix the unresolved ones first.
 
+## Counterexamples
+
+`--with-counterexamples` adds counterexamples to every conflict of the report, which show where the conflict comes from.
+It implies `--verbose`. The search follows "Finding Counterexamples from Parsing Conflicts" by Isradisaikul and Myers
+(PLDI '15). A conflict gets one counterexample per pair of competing actions: a shift and two reductions get three.
+
+A counterexample headed `ambiguous for` is a single sequence of symbols with two different derivations, which proves
+the grammar ambiguous:
+
+```text
+  shift/reduce conflict on terminal "else":
+    shift (chosen)
+    reduce: statement -> "if" expression "then" statement
+    ambiguous for statement:
+      example: "if" expression "then" "if" expression "then" statement • "else" statement
+      using the reduction:
+        statement -> "if" expression "then" [statement] "else" statement
+          statement -> "if" expression "then" statement •
+      using the shift:
+        statement -> "if" expression "then" [statement]
+          statement -> "if" expression "then" statement • "else" statement
+```
+
+The example line shows the symbols, with `•` where the parser has to decide and the conflict terminal right behind
+it. Each derivation follows with one production per line. A symbol in brackets is expanded by the production on the
+lines below it, indented by two more columns. A nonterminal without brackets stands for anything it derives.
+
+A counterexample headed `conflict within` has an example for each derivation. Both examples are the same up to `•` and
+differ behind it, so the parser cannot decide at `•` by looking at the next terminal alone:
+
+```text
+    conflict within s:
+      example: "a" • "a"
+      using the reduction:
+        ...
+      example: "a" • "a" "b" t
+      using the shift:
+        ...
+```
+
+This is what an unambiguous grammar which needs more than one terminal of lookahead gets. It does not prove the
+grammar unambiguous, though: the search for an ambiguity gives up after `--counterexample-time-limit` per pair of
+actions, 5 seconds by default, and after `--counterexample-total-time-limit` over all conflicts, 2 minutes by default.
+Which conflicts get an ambiguity therefore depends on the speed of the machine, so do not check the counterexamples
+into source control.
+
+The `*-bison` cores report no conflicts, so they get no counterexamples.
+
 ## Productions which are never reduced
 
 Deciding a conflict can remove every reduction of a production. The parser then never reduces it, and the parser

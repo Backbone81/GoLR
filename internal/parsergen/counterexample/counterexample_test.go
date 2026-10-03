@@ -56,6 +56,7 @@ var _ = Describe("Counterexample", func() {
 				),
 			},
 		}
+		Expect(ce.Header(grammar)).To(Equal("ambiguous for stmt:"))
 		Expect(strings.Join(ce.Lines(grammar), "\n") + "\n").To(Equal(utils.HereDoc(`
 			example: "if" expr "then" "if" expr "then" stmt • "else" stmt
 			using the reduction:
@@ -92,6 +93,7 @@ var _ = Describe("Counterexample", func() {
 				),
 			},
 		}
+		Expect(ce.Header(grammar)).To(Equal("conflict within s:"))
 		Expect(strings.Join(ce.Lines(grammar), "\n") + "\n").To(Equal(utils.HereDoc(`
 			example: "a" • "a"
 			using the reduction:

@@ -9,10 +9,11 @@ import (
 	"strings"
 
 	"github.com/backbone81/golr/internal/parsergen/conflict"
+	"github.com/backbone81/golr/internal/parsergen/counterexample"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
 
-// Config controls what WriteConflictReport writes.
+// Config controls what WriteConflictReport and WriteUnresolvedConflictReport write.
 type Config struct {
 	// Verbose lists every conflict the policy resolved on its own in full, instead of only summarizing them.
 	Verbose bool
@@ -29,12 +30,17 @@ type Config struct {
 // They can run into the hundreds for a large grammar, so they are only summarized by default and listed in full after
 // the summary when verbose is set. Conflicts decided by precedence declarations are not reported at all, and conflicts
 // the policy could not decide are reported by WriteUnresolvedConflictReport.
-func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []conflict.Conflict, config Config) error {
+//
+// The counterexamples are those counterexample.Find returned for the conflicts, in the same order, and are written
+// below the conflict they belong to. They are nil when the report has none.
+func WriteConflictReport(
+	w io.Writer,
+	grammar frontend.Grammar,
+	conflicts []conflict.Conflict,
+	counterexamples [][]counterexample.Counterexample,
+	config Config,
+) error {
 	var builder strings.Builder
-
-	resolved := slices.DeleteFunc(slices.Clone(conflicts), func(c conflict.Conflict) bool {
-		return c.Decision.Kind == conflict.DecisionUnresolved
-	})
 
 	// The summary always comes first, so that it sits at the same place in every report.
 	writeConflictSummary(&builder, CountConflicts(conflicts))
@@ -45,7 +51,7 @@ func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []conf
 		return err
 	}
 
-	reports := buildConflictReports(grammar, resolved)
+	reports := buildConflictReports(grammar, listedConflicts(conflicts, counterexamples, false))
 	keepDistinguishingLookaheads(reports)
 	// The reports are sorted by their content instead of by the state index, so the report does not change when an
 	// unrelated grammar edit renumbers the states.
@@ -67,16 +73,17 @@ func WriteConflictReport(w io.Writer, grammar frontend.Grammar, conflicts []conf
 
 // WriteUnresolvedConflictReport writes the report of a core which failed on unresolved conflicts: the summary of the
 // conflicts, followed by the report of every unresolved one. The resolved conflicts are only counted, never listed,
-// because the unresolved ones have to be fixed first.
+// because the unresolved ones have to be fixed first. The counterexamples are those of WriteConflictReport.
 func WriteUnresolvedConflictReport(
 	w io.Writer,
 	grammar frontend.Grammar,
 	conflicts []conflict.Conflict,
+	counterexamples [][]counterexample.Counterexample,
 	config Config,
 ) error {
 	var builder strings.Builder
 	writeConflictSummary(&builder, CountConflicts(conflicts))
-	for _, report := range UnresolvedConflictReports(grammar, conflicts) {
+	for _, report := range UnresolvedConflictReports(grammar, conflicts, counterexamples) {
 		// The summary and the reports of the states are separated by an empty line.
 		if builder.Len() > 0 {
 			builder.WriteString("\n")
@@ -90,17 +97,46 @@ func WriteUnresolvedConflictReport(
 }
 
 // UnresolvedConflictReports returns one report per unresolved conflict, each holding the single conflicted terminal, in
-// the order of the conflicts.
-func UnresolvedConflictReports(grammar frontend.Grammar, conflicts []conflict.Conflict) []ConflictReport {
-	var reports []ConflictReport
-	for _, c := range conflicts {
-		if c.Decision.Kind != conflict.DecisionUnresolved {
-			continue
-		}
-		reports = append(reports, buildConflictReports(grammar, []conflict.Conflict{c})[0])
+// the order of the conflicts. The counterexamples are those of WriteConflictReport.
+func UnresolvedConflictReports(
+	grammar frontend.Grammar,
+	conflicts []conflict.Conflict,
+	counterexamples [][]counterexample.Counterexample,
+) []ConflictReport {
+	listed := listedConflicts(conflicts, counterexamples, true)
+	reports := make([]ConflictReport, 0, len(listed))
+	for _, listed := range listed {
+		reports = append(reports, buildConflictReports(grammar, []listedConflict{listed})[0])
 	}
 	keepDistinguishingLookaheads(reports)
 	return reports
+}
+
+// listedConflict is a conflict a report lists, together with its counterexamples.
+type listedConflict struct {
+	conflict        conflict.Conflict
+	counterexamples []counterexample.Counterexample
+}
+
+// listedConflicts returns the unresolved conflicts, or the resolved ones, each with its counterexamples, in the order
+// of the conflicts.
+func listedConflicts(
+	conflicts []conflict.Conflict,
+	counterexamples [][]counterexample.Counterexample,
+	unresolved bool,
+) []listedConflict {
+	var result []listedConflict
+	for conflictIdx, c := range conflicts {
+		if (c.Decision.Kind == conflict.DecisionUnresolved) != unresolved {
+			continue
+		}
+		listed := listedConflict{conflict: c}
+		if counterexamples != nil {
+			listed.counterexamples = counterexamples[conflictIdx]
+		}
+		result = append(result, listed)
+	}
+	return result
 }
 
 // ConflictCounts are the numbers of reported conflicts per kind, separately for the conflicts a rule of last resort
@@ -187,11 +223,13 @@ type ConflictReportEntry struct {
 	// DecisionContributions are the actions the decision is about, which are those an unresolved conflict was left with.
 	// It is empty for a decision which is not about a particular action.
 	DecisionContributions []string
+
+	// Counterexamples are the rendered counterexamples of the conflict, each its header line followed by its lines.
+	Counterexamples [][]string
 }
 
 // Write writes the report of the state: the kernel items which name the state, followed by one indented block per
-// conflicted terminal, all separated by an empty line. The action which won a conflict is marked in place, so the
-// decision does not repeat it. The report ends with a single newline, so a caller which writes
+// conflicted terminal, all separated by an empty line. The report ends with a single newline, so a caller which writes
 // several reports separates them by an empty line of its own.
 func (r ConflictReport) Write(w io.Writer, config Config) error {
 	var builder strings.Builder
@@ -210,41 +248,50 @@ func (r ConflictReport) Write(w io.Writer, config Config) error {
 		}
 	}
 	for _, entry := range r.Entries {
-		fmt.Fprintf(&builder, "\n  %s on terminal %s:\n", entry.Kind, entry.Terminal)
-		for _, contribution := range entry.Contributions {
-			if contribution == entry.Chosen {
-				fmt.Fprintf(&builder, "    %s%s\n", contribution, chosenMarker)
-				continue
-			}
-			fmt.Fprintf(&builder, "    %s\n", contribution)
-		}
-		if entry.Decision == "" {
-			continue
-		}
-		if slices.Equal(entry.DecisionContributions, entry.Contributions) {
-			// A decision which leaves every competing action standing is an unresolved conflict nothing was narrowed
-			// down in, which the actions above already say.
-			continue
-		}
-		fmt.Fprintf(&builder, "    %s\n", entry.Decision)
-		for _, contribution := range entry.DecisionContributions {
-			fmt.Fprintf(&builder, "      %s\n", contribution)
-		}
+		builder.WriteString("\n")
+		entry.write(&builder)
 	}
 	_, err := io.WriteString(w, builder.String())
 	return err
 }
 
+// write writes the block of the conflicted terminal: the competing actions, the decision and the counterexamples. The
+// action which won the conflict is marked in place, so the decision does not repeat it.
+func (e ConflictReportEntry) write(builder *strings.Builder) {
+	fmt.Fprintf(builder, "  %s on terminal %s:\n", e.Kind, e.Terminal)
+	for _, contribution := range e.Contributions {
+		if contribution == e.Chosen {
+			fmt.Fprintf(builder, "    %s%s\n", contribution, chosenMarker)
+			continue
+		}
+		fmt.Fprintf(builder, "    %s\n", contribution)
+	}
+	// A decision which leaves every competing action standing is an unresolved conflict nothing was narrowed down in,
+	// which the actions above already say.
+	if e.Decision != "" && !slices.Equal(e.DecisionContributions, e.Contributions) {
+		fmt.Fprintf(builder, "    %s\n", e.Decision)
+		for _, contribution := range e.DecisionContributions {
+			fmt.Fprintf(builder, "      %s\n", contribution)
+		}
+	}
+	for _, lines := range e.Counterexamples {
+		fmt.Fprintf(builder, "    %s\n", lines[0])
+		for _, line := range lines[1:] {
+			fmt.Fprintf(builder, "      %s\n", line)
+		}
+	}
+}
+
 // buildConflictReports builds one report per state from the conflicts. The conflicts of a state are adjacent, because
 // Resolve returns them in state order.
-func buildConflictReports(grammar frontend.Grammar, conflicts []conflict.Conflict) []ConflictReport {
+func buildConflictReports(grammar frontend.Grammar, conflicts []listedConflict) []ConflictReport {
 	var reports []ConflictReport
-	for _, c := range conflicts {
-		if len(reports) == 0 || reports[len(reports)-1].StateIdx != c.StateIdx {
-			reports = append(reports, buildConflictReport(grammar, c))
+	for _, listed := range conflicts {
+		if len(reports) == 0 || reports[len(reports)-1].StateIdx != listed.conflict.StateIdx {
+			reports = append(reports, buildConflictReport(grammar, listed.conflict))
 		}
 		last := &reports[len(reports)-1]
-		last.Entries = append(last.Entries, buildConflictReportEntry(grammar, c))
+		last.Entries = append(last.Entries, buildConflictReportEntry(grammar, listed))
 	}
 	for _, report := range reports {
 		slices.SortFunc(report.Entries, func(a ConflictReportEntry, b ConflictReportEntry) int {
@@ -422,8 +469,10 @@ func buildConflictReport(grammar frontend.Grammar, c conflict.Conflict) Conflict
 }
 
 // buildConflictReportEntry renders a single conflict: the terminal it occurred on, the actions which competed for that
-// terminal once precedence and associativity had decided what they could, and what the policy decided about them.
-func buildConflictReportEntry(grammar frontend.Grammar, c conflict.Conflict) ConflictReportEntry {
+// terminal once precedence and associativity had decided what they could, what the policy decided about them, and the
+// counterexamples.
+func buildConflictReportEntry(grammar frontend.Grammar, listed listedConflict) ConflictReportEntry {
+	c := listed.conflict
 	entry := ConflictReportEntry{
 		Terminal: grammar.Terminals[c.TerminalIdx].String(),
 		Kind:     conflictKind(c),
@@ -433,6 +482,9 @@ func buildConflictReportEntry(grammar frontend.Grammar, c conflict.Conflict) Con
 		entry.Contributions = append(entry.Contributions, formatContribution(grammar, contribution))
 	}
 	slices.SortFunc(entry.Contributions, compareContributions)
+	for _, ce := range listed.counterexamples {
+		entry.Counterexamples = append(entry.Counterexamples, append([]string{ce.Header(grammar)}, ce.Lines(grammar)...))
+	}
 	return entry
 }
 

@@ -1,0 +1,9 @@
+1 shift/reduce conflict resolved
+
+state:
+  x -> "a" •
+  y -> "a" • "a" "b"
+
+  shift/reduce conflict on terminal "a":
+    shift (chosen)
+    reduce: x -> "a"

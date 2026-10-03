@@ -20,8 +20,7 @@ type conflictItemPair struct {
 }
 
 // Find returns the counterexamples of the conflicts conflict.Resolve returned for the parser tables, one slice per
-// conflict in the same order. The tables are those a core returned, with the conflicts resolved or left unresolved, and
-// the policy is the one the conflicts were resolved with, bound to the grammar of the parser.
+// conflict in the same order. The tables are those a core returned, with the conflicts resolved or left unresolved.
 //
 // A conflict gets one counterexample per pair of the items of its actions the declarations of the grammar left
 // competing: every reduce item with every item which shifts the conflict terminal, and every two reduce items, the
@@ -33,7 +32,6 @@ type conflictItemPair struct {
 func Find(
 	parser backend.Parser,
 	conflicts []conflict.Conflict,
-	policy conflict.Policy,
 	options ...Option,
 ) [][]Counterexample {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Counterexample: Find").End()
@@ -43,7 +41,7 @@ func Find(
 	}
 	config := ConfigFromOptions(options...)
 	totalDeadline := time.Now().Add(config.TotalTimeLimit)
-	tables := NewLookupTables(parser, policy)
+	tables := NewLookupTables(parser)
 	result := make([][]Counterexample, len(conflicts))
 	for conflictIdx, c := range conflicts {
 		for _, pair := range tables.conflictItemPairs(c) {

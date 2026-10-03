@@ -1,0 +1,37 @@
+1 shift/reduce conflict unresolved
+1 reduce/reduce conflict resolved
+
+state:
+  start -> "a" • "c"
+  x -> "a" •
+  y -> "a" •
+
+  shift/reduce conflict on terminal "c":
+    shift
+    reduce: x -> "a"
+    reduce: y -> "a"
+    unresolved between:
+      shift
+      reduce: x -> "a"
+    ambiguous for start:
+      example: "a" • "c"
+      using the reduction:
+        start -> [x] "c"
+          x -> "a" •
+      using the shift:
+        start -> "a" • "c"
+    ambiguous for start:
+      example: "a" • "c"
+      using the first reduction:
+        start -> [x] "c"
+          x -> "a" •
+      using the second reduction:
+        start -> [y] "c"
+          y -> "a" •
+    ambiguous for start:
+      example: "a" • "c"
+      using the reduction:
+        start -> [y] "c"
+          y -> "a" •
+      using the shift:
+        start -> "a" • "c"

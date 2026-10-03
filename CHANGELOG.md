@@ -4,8 +4,9 @@
 
 ## Unreleased
 
-- BREAKING: The conflict report writers moved from `pkg/parsergen/conflict` to the new `pkg/parsergen/report`, with `ReportConfig` renamed to `report.Config`, and `WriteUnresolvedConflictReport` takes the grammar instead of the error. `ConflictReport`, `ConflictReportEntry` and `ConflictReportReduction` are no longer exported.
+- BREAKING: The conflict report writers moved from `pkg/parsergen/conflict` to the new `pkg/parsergen/report`, with `ReportConfig` renamed to `report.Config`, `WriteUnresolvedConflictReport` takes the grammar instead of the error, and both take the counterexamples of the conflicts. `ConflictReport`, `ConflictReportEntry` and `ConflictReportReduction` are no longer exported.
 - BREAKING: The GoLR cores return the parser tables together with the error on unresolved conflicts, still holding the conflicting actions, and on a failure due to `FailOnWarnings`. `UnresolvedConflictError` no longer carries a report, and its message is a single line naming the terminal and the state.
+- Added --with-counterexamples to golr parser, which shows for every listed conflict either an input with two derivations, proving the grammar ambiguous, or two derivations that share the input up to the conflict. The search is limited by --counterexample-time-limit and --counterexample-total-time-limit, and available as pkg/parsergen/counterexample.
 
 ## v0.5.0 (2026-09-26)
 
