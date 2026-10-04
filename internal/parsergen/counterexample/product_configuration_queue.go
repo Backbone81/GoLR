@@ -49,12 +49,12 @@ func (q *ProductConfigurationQueue) IsEmpty() bool {
 // Add adds the configuration to the queue. It must not be cheaper than the configuration removed last.
 func (q *ProductConfigurationQueue) Add(c PendingConfiguration) {
 	utils.DebugAssert(func() error {
-		if c.Cost < q.minCost {
+		if int(c.Cost) < q.minCost {
 			return fmt.Errorf("configuration of cost %d is cheaper than the queue allows (%d)", c.Cost, q.minCost)
 		}
 		return nil
 	})
-	bucketIdx := c.Cost - q.minCost
+	bucketIdx := int(c.Cost) - q.minCost
 	for q.buckets.Length() <= bucketIdx {
 		q.buckets.Add(&utils.ChunkedStack[PendingConfiguration]{})
 	}

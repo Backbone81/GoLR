@@ -17,18 +17,23 @@ const (
 // PendingConfiguration is a ProductConfiguration in the queue, given by the configuration it succeeds and the action
 // which leads to it. The search queues many more configurations than it processes, so a configuration is only built
 // when it is removed from the queue, see unifyingBuilder.build.
+//
+// The queue holds many more of them than the search processes, so the fields are as narrow as they can be, see
+// NewLookupTables for the items. The parent comes first, as the alignment of the pointer would pad the fields in front
+// of it.
 type PendingConfiguration struct {
-	// Cost is the cost of the ProductConfiguration.
-	Cost int
-
 	parent *ProductConfiguration
+
+	// Cost is the cost of the ProductConfiguration.
+	Cost int32
+
+	// itemIdxs holds the item the action appends or prepends per parser.
+	itemIdxs [2]int32
+
 	action action
 
 	// parserIdx is the parser the action changes, unless it changes both.
-	parserIdx int
-
-	// itemIdxs holds the item the action appends or prepends per parser.
-	itemIdxs [2]int
+	parserIdx uint8
 }
 
 // parserEdit is the change an action makes to the items and the depth of one parser.

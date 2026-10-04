@@ -102,6 +102,12 @@ func NewLookupTables(parser backend.Parser) LookupTables {
 	}
 	result.initProductionIdxsByNonterminalIdx()
 	result.initItems()
+	utils.DebugAssert(func() error {
+		if result.ItemCount() > math.MaxInt32 {
+			return fmt.Errorf("%d items exceed the int32 item indexes", result.ItemCount())
+		}
+		return nil
+	})
 	result.initTransitions()
 	result.initItemIdxsByNextSymbol()
 	result.initLookaheads()

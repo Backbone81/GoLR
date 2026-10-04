@@ -131,35 +131,35 @@ func (b *unifyingBuilder) edit(p *PendingConfiguration, parserIdx int) parserEdi
 		prepended: noItemIdx,
 		depth:     parser.depth,
 	}
-	onParser := p.parserIdx == parserIdx
+	onParser := int(p.parserIdx) == parserIdx
 	switch p.action {
 	case initialAction:
 		result.changed = false
 	case transitionAction:
-		result.appended = p.itemIdxs[parserIdx]
+		result.appended = int(p.itemIdxs[parserIdx])
 	case productionStepAction:
 		result.changed = onParser
-		result.appended = p.itemIdxs[parserIdx]
+		result.appended = int(p.itemIdxs[parserIdx])
 		if !parser.StageCompleted() {
 			result.depth++
 		}
 	case emptyDerivationAction:
 		result.changed = onParser
-		result.appended = p.itemIdxs[parserIdx]
+		result.appended = int(p.itemIdxs[parserIdx])
 	case reductionAction:
 		result.changed = onParser
 		result.dropped = b.tables.Core(parser.Tail()).Position() + 1
-		result.appended = p.itemIdxs[parserIdx]
+		result.appended = int(p.itemIdxs[parserIdx])
 		if parser.depth == 0 {
 			result.depth = completedDepth
 		} else if !parser.StageCompleted() {
 			result.depth--
 		}
 	case reverseTransitionAction:
-		result.prepended = p.itemIdxs[parserIdx]
+		result.prepended = int(p.itemIdxs[parserIdx])
 	case reverseProductionStepAction:
 		result.changed = onParser
-		result.prepended = p.itemIdxs[parserIdx]
+		result.prepended = int(p.itemIdxs[parserIdx])
 	}
 	return result
 }
@@ -170,7 +170,7 @@ func (b *unifyingBuilder) build(p *PendingConfiguration) *ProductConfiguration {
 	if p.action == initialAction {
 		return p.parent
 	}
-	result := p.parent.Successor(p.Cost - p.parent.Cost)
+	result := p.parent.Successor(int(p.Cost) - p.parent.Cost)
 	result.TerminalShifted = p.parent.TerminalShifted || p.action == transitionAction
 	for parserIdx := range result.Parsers {
 		edit := b.edit(p, parserIdx)
@@ -485,8 +485,8 @@ func (b *unifyingBuilder) addTransition(c *ProductConfiguration) {
 	}
 
 	successor := PendingConfiguration{
-		Cost:   c.Cost + transitionCost,
 		parent: c,
+		Cost:   int32(c.Cost + transitionCost), //nolint:gosec // The costs of a search stay far below.
 		action: transitionAction,
 	}
 	for parserIdx := range c.Parsers {
@@ -495,7 +495,7 @@ func (b *unifyingBuilder) addTransition(c *ProductConfiguration) {
 		if !found || !b.isShiftAllowed(b.tables.StateIdx(tailItemIdx), symbolRef) {
 			return
 		}
-		successor.itemIdxs[parserIdx] = targetItemIdx
+		successor.itemIdxs[parserIdx] = int32(targetItemIdx) //nolint:gosec // See NewLookupTables.
 	}
 	b.add(successor)
 }
@@ -665,10 +665,13 @@ func (b *unifyingBuilder) addReverseTransitions(c *ProductConfiguration) {
 				continue
 			}
 			b.add(PendingConfiguration{
-				Cost:     c.Cost + transitionCost,
-				parent:   c,
-				action:   reverseTransitionAction,
-				itemIdxs: [2]int{predecessorItemIdx, otherPredecessorItemIdx},
+				parent: c,
+				Cost:   int32(c.Cost + transitionCost), //nolint:gosec // The costs of a search stay far below.
+				itemIdxs: [2]int32{
+					int32(predecessorItemIdx),      //nolint:gosec // See NewLookupTables.
+					int32(otherPredecessorItemIdx), //nolint:gosec // See NewLookupTables.
+				},
+				action: reverseTransitionAction,
 			})
 		}
 	}

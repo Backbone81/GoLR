@@ -339,7 +339,7 @@ func (t *LookupTables) appendShift(reach *terminalReach, children []Derivation, 
 			return t.appendLeaves(children, itemIdx)
 		}
 		targetItemIdx, _ := t.Transition(itemIdx)
-		if closureItemIdx := reach.byItemIdx[itemIdx].toShift.closureItemIdx; closureItemIdx != noItemIdx {
+		if closureItemIdx := int(reach.byItemIdx[itemIdx].toShift.closureItemIdx); closureItemIdx != noItemIdx {
 			productionIdx := t.Core(closureItemIdx).ProductionIdx()
 			children = append(children, NewExpandedDerivation(
 				t.grammar,
@@ -380,7 +380,7 @@ func (t *LookupTables) emptyDerivation(reach *terminalReach, itemIdx int) Deriva
 		}
 		return nil
 	})
-	closureItemIdx := reach.byItemIdx[itemIdx].toVanish.closureItemIdx
+	closureItemIdx := int(reach.byItemIdx[itemIdx].toVanish.closureItemIdx)
 	productionIdx := t.Core(closureItemIdx).ProductionIdx()
 	children := make([]Derivation, 0, len(t.grammar.Productions[productionIdx].SymbolRefs))
 	return NewExpandedDerivation(t.grammar, productionIdx, t.appendEmptyRest(reach, children, closureItemIdx))

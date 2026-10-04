@@ -29,12 +29,12 @@ func (c *ProductConfiguration) pendingSuccessor(
 	itemIdx int,
 ) PendingConfiguration {
 	result := PendingConfiguration{
-		Cost:      c.Cost + cost,
 		parent:    c,
+		Cost:      int32(c.Cost + cost), //nolint:gosec // The costs of a search stay far below.
 		action:    action,
-		parserIdx: parserIdx,
+		parserIdx: uint8(parserIdx), //nolint:gosec // There are two parsers.
 	}
-	result.itemIdxs[parserIdx] = itemIdx
+	result.itemIdxs[parserIdx] = int32(itemIdx) //nolint:gosec // See NewLookupTables.
 	return result
 }
 

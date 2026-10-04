@@ -43,22 +43,24 @@ type itemReach struct {
 	// followed by the reduction of the production. It is 0 for a reduce item whose reduction the declarations allow, and
 	// noCost when there is no way. The way enters no closure item of the item itself, the nonterminals of the rest
 	// vanish along toVanish of their items.
-	toReduce int
+	toReduce int32
 }
 
 // way is the cheapest way the parser takes from an item, see itemReach.
+//
+// The reach is kept for every item and every terminal used, so it holds int32 instead of int, see NewLookupTables.
 type way struct {
 	// cost is the number of productions of the derivation the way builds, or noCost when there is no way. The cost only
 	// picks the shortest derivation, which keeps the counterexample short (section 3.2).
-	cost int
+	cost int32
 
 	// closureItemIdx is the closure item of the nonterminal after the dot which the way enters next, or noItemIdx when
 	// it enters none.
-	closureItemIdx int
+	closureItemIdx int32
 }
 
 // noCost stands for a missing way, which is more expensive than any way there is.
-const noCost = math.MaxInt
+const noCost = math.MaxInt32
 
 // noWay is a way which does not exist.
 var noWay = way{cost: noCost, closureItemIdx: noItemIdx}
@@ -158,15 +160,15 @@ func (b *terminalReachBuilder) update(itemIdx int) bool {
 	for closureItemIdx := from; closureItemIdx < to; closureItemIdx++ {
 		closureReach := b.result.byItemIdx[closureItemIdx]
 		if cost := addCosts(1, closureReach.toShift.cost); cost < toShift.cost {
-			toShift = way{cost: cost, closureItemIdx: closureItemIdx}
+			toShift = way{cost: cost, closureItemIdx: int32(closureItemIdx)} //nolint:gosec // See NewLookupTables.
 		}
 		if cost := addCosts(1, closureReach.toReduce); cost < toVanish.cost {
-			toVanish = way{cost: cost, closureItemIdx: closureItemIdx}
+			toVanish = way{cost: cost, closureItemIdx: int32(closureItemIdx)} //nolint:gosec // See NewLookupTables.
 		}
 	}
 
 	// The nonterminal vanishes, and the way goes on behind it.
-	toReduce := noCost
+	toReduce := int32(noCost)
 	if targetItemIdx, found := b.tables.Transition(itemIdx); found {
 		targetReach := b.result.byItemIdx[targetItemIdx]
 		toReduce = addCosts(toVanish.cost, targetReach.toReduce)
@@ -222,7 +224,7 @@ func (b *terminalReachBuilder) updateTerminalItem(itemIdx int) bool {
 }
 
 // addCosts returns the sum of the costs, which is noCost when either one is.
-func addCosts(a int, b int) int {
+func addCosts(a int32, b int32) int32 {
 	if a == noCost || b == noCost {
 		return noCost
 	}
