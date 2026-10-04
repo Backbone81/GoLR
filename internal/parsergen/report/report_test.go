@@ -73,7 +73,7 @@ var _ = Describe("WriteConflictReport", func() {
 				expectGoldenFile(filepath.Join(goldenPath, reportErrorFileName), builder.String())
 
 				builder.Reset()
-				counterexamples := counterexample.Find(parser, conflicts)
+				counterexamples, _ := counterexample.Find(parser, conflicts)
 				err = report.WriteUnresolvedConflictReport(&builder, parser.Grammar, conflicts, counterexamples, report.Config{})
 				Expect(err).ToNot(HaveOccurred())
 				expectGoldenFile(filepath.Join(goldenPath, reportErrorCounterexamplesFileName), builder.String())
@@ -94,11 +94,12 @@ var _ = Describe("WriteConflictReport", func() {
 				nil,
 				report.Config{Verbose: true},
 			)
+			counterexamples, _ := counterexample.Find(parser, conflicts)
 			expectGoldenReport(
 				filepath.Join(goldenPath, reportCounterexamplesFileName),
 				parser.Grammar,
 				conflicts,
-				counterexample.Find(parser, conflicts),
+				counterexamples,
 				report.Config{Verbose: true},
 			)
 		},

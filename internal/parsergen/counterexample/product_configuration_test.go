@@ -29,7 +29,8 @@ var _ = Describe("ProductConfiguration", func() {
 
 	It("should hash configurations which differ only in the cost equally", func() {
 		c := newProductConfiguration(1, 2, false)
-		Expect(hashOf(c.Successor(5))).To(Equal(hashOf(c)))
+		successor := c.Successor(5)
+		Expect(hashOf(&successor)).To(Equal(hashOf(c)))
 	})
 })
 

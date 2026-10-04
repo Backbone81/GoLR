@@ -36,7 +36,8 @@ var _ = Describe("ProductConfigurationQueue", func() {
 		for i := range 1000 {
 			c := queue.Remove()
 			removedCosts = append(removedCosts, c.Cost)
-			queue.Add(c.Successor(actionCosts[i%len(actionCosts)]))
+			successor := c.Successor(actionCosts[i%len(actionCosts)])
+			queue.Add(&successor)
 		}
 		Expect(slices.IsSorted(removedCosts)).To(BeTrue())
 		Expect(removedCosts[len(removedCosts)-1]).To(BeNumerically(">", 100))

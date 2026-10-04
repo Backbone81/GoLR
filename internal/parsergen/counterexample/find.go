@@ -20,7 +20,8 @@ type conflictItemPair struct {
 }
 
 // Find returns the counterexamples of the conflicts conflict.Resolve returned for the parser tables, one slice per
-// conflict in the same order. The tables are those a core returned, with the conflicts resolved or left unresolved.
+// conflict in the same order, and the statistics of the searches for unifying counterexamples. The tables are those a
+// core returned, with the conflicts resolved or left unresolved.
 //
 // A conflict gets one counterexample per pair of the items of its actions the declarations of the grammar left
 // competing: every reduce item with every item which shifts the conflict terminal, and every two reduce items, the
@@ -34,11 +35,12 @@ func Find(
 	parser backend.Parser,
 	conflicts []conflict.Conflict,
 	options ...Option,
-) [][]Counterexample {
+) ([][]Counterexample, Statistics) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Counterexample: Find").End()
 
+	var statistics Statistics
 	if len(conflicts) == 0 {
-		return nil
+		return nil, statistics
 	}
 	config := ConfigFromOptions(options...)
 	totalDeadline := time.Now().Add(config.TotalTimeLimit)
@@ -51,34 +53,40 @@ func Find(
 				continue
 			}
 			nonunifying := newNonunifyingBuilder(&tables, pair.reduceItemIdx, pair.otherItemIdx, c.TerminalIdx, reducePath)
-			if counterexample, found := findCounterexample(&nonunifying, config, totalDeadline); found {
+			counterexample, found, pairStatistics := findCounterexample(&nonunifying, config, totalDeadline)
+			statistics.Add(pairStatistics)
+			if found {
 				result[conflictIdx] = append(result[conflictIdx], counterexample)
 			}
 		}
 	}
-	return result
+	return result, statistics
 }
 
 // findCounterexample returns the counterexample of the pair of conflict items of the nonunifying builder, and reports
 // false when there is none, see nonunifyingBuilder.Build. Once the total time limit is spent, no unifying
-// counterexample is searched anymore.
+// counterexample is searched anymore. The statistics are those of the unifying search.
 func findCounterexample(
 	nonunifying *nonunifyingBuilder,
 	config Config,
 	totalDeadline time.Time,
-) (Counterexample, bool) {
+) (Counterexample, bool, Statistics) {
+	var statistics Statistics
 	now := time.Now()
 	if now.Before(totalDeadline) {
 		deadline := now.Add(config.TimeLimit)
 		if deadline.After(totalDeadline) {
 			deadline = totalDeadline
 		}
-		unifying := newUnifyingBuilder(nonunifying.tables, nonunifying, nonunifying.reducePath, deadline)
-		if result, found := unifying.Build(); found {
-			return result, true
+		unifying := newUnifyingBuilder(nonunifying, config, deadline)
+		result, found := unifying.Build()
+		statistics = unifying.statistics
+		if found {
+			return result, true, statistics
 		}
 	}
-	return nonunifying.Build()
+	result, found := nonunifying.Build()
+	return result, found, statistics
 }
 
 // conflictItemPairs returns the pairs of conflict items of the conflict, see Find.

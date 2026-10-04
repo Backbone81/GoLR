@@ -34,6 +34,12 @@ type unifyingBuilder struct {
 	terminalIdx      int
 	deadline         time.Time
 
+	// configurationLimit limits the configurations removed from the queue, 0 for no limit.
+	configurationLimit int
+
+	// statistics counts the work of the search.
+	statistics Statistics
+
 	// nonunifying completes the derivations of the innermost nonterminal.
 	nonunifying *nonunifyingBuilder
 
@@ -60,20 +66,17 @@ type unifyingBuilder struct {
 	innermostFound bool
 }
 
-// newUnifyingBuilder returns a builder for the unifying counterexample of the reduce item and the other item on the
-// terminal, which gives up at the deadline. The path is the shortest lookahead-sensitive path to the reduce item, and
-// the nonunifying builder is the one of the same pair.
-func newUnifyingBuilder(
-	tables *LookupTables,
-	nonunifying *nonunifyingBuilder,
-	reducePath []pathItem,
-	deadline time.Time,
-) unifyingBuilder {
+// newUnifyingBuilder returns a builder for the unifying counterexample of the pair of conflict items of the nonunifying
+// builder, which gives up at the deadline or the configuration limit of the configuration.
+func newUnifyingBuilder(nonunifying *nonunifyingBuilder, config Config, deadline time.Time) unifyingBuilder {
+	tables := nonunifying.tables
+	reducePath := nonunifying.reducePath
 	result := unifyingBuilder{
 		tables:              tables,
 		conflictItemIdxs:    [2]int{nonunifying.reduceItemIdx, nonunifying.otherItemIdx},
 		terminalIdx:         nonunifying.terminalIdx,
 		deadline:            deadline,
+		configurationLimit:  config.ConfigurationLimit,
 		nonunifying:         nonunifying,
 		queue:               NewProductConfigurationQueue(),
 		visitedConfigHashes: make(map[uint64]struct{}),
@@ -94,9 +97,9 @@ func newUnifyingBuilder(
 	return result
 }
 
-// Build returns the unifying counterexample. When the search runs out of configurations or time without one, it
-// returns the nonunifying counterexample of the innermost nonterminal instead, if the search got far enough to find it,
-// and reports false when it did not.
+// Build returns the unifying counterexample. When the search runs out of configurations, time or its configuration
+// limit without one, it returns the nonunifying counterexample of the innermost nonterminal instead, if the search got
+// far enough to find it, and reports false when it did not.
 func (b *unifyingBuilder) Build() (Counterexample, bool) {
 	// The initial configuration of figure 8(b).
 	b.add(&ProductConfiguration{
@@ -105,17 +108,23 @@ func (b *unifyingBuilder) Build() (Counterexample, bool) {
 			NewSimulatedParser(b.conflictItemIdxs[1]),
 		},
 	})
-	for !b.queue.IsEmpty() && time.Now().Before(b.deadline) {
+	for processed := 0; !b.queue.IsEmpty() && !b.isLimitReached(processed); processed++ {
 		productConfiguration := b.queue.Remove()
-		if result, found := b.unifyingCounterexample(productConfiguration); found {
+		b.statistics.Processed++
+		if result, found := b.unifyingCounterexample(&productConfiguration); found {
 			return result, true
 		}
 		if !b.innermostFound {
-			b.findInnermost(productConfiguration)
+			b.findInnermost(&productConfiguration)
 		}
-		b.addSuccessors(productConfiguration)
+		b.addSuccessors(&productConfiguration)
 	}
 	return b.innermost, b.innermostFound
+}
+
+// isLimitReached reports if the search has to give up after processing the number of configurations.
+func (b *unifyingBuilder) isLimitReached(processed int) bool {
+	return (b.configurationLimit > 0 && processed >= b.configurationLimit) || !time.Now().Before(b.deadline)
 }
 
 // unifyingCounterexample returns the unifying counterexample when the ProductConfiguration completes the search, see
@@ -274,6 +283,7 @@ func (b *unifyingBuilder) add(c *ProductConfiguration) {
 	// configuration twice. The queue hands out configurations by cost, so a later duplicate is cheaper by at most the
 	// cost of one repeated production step, while the costs of the searches on large grammars reach thousands. The
 	// costs only lead the search to cheaper counterexamples first, they do not guarantee the cheapest one.
+	b.statistics.Generated++
 	var hash uint64
 	hash, b.hashBuffer = c.Hash(b.hashBuffer)
 	if _, found := b.visitedConfigHashes[hash]; found {
@@ -281,6 +291,8 @@ func (b *unifyingBuilder) add(c *ProductConfiguration) {
 	}
 	b.visitedConfigHashes[hash] = struct{}{}
 	b.queue.Add(c)
+	b.statistics.Queued++
+	b.statistics.PeakQueueLength = max(b.statistics.PeakQueueLength, b.queue.Len())
 }
 
 // canReduce reports if the parser holds the items of the production of its last item, which is a reduce item of the
@@ -314,7 +326,7 @@ func (b *unifyingBuilder) addTransition(c *ProductConfiguration) {
 		parser.items = parser.items.PushBack(targetItemIdx)
 		parser.derivations = parser.derivations.PushBack(NewLeafDerivation(symbolRef))
 	}
-	b.add(successor)
+	b.add(&successor)
 }
 
 // addProductionSteps adds the production steps of the parser, see figure 10(b). A production with an empty right hand
@@ -344,7 +356,7 @@ func (b *unifyingBuilder) addProductionSteps(c *ProductConfiguration, parserIdx 
 		if !successorParser.StageCompleted() {
 			successorParser.depth++
 		}
-		b.add(successor)
+		b.add(&successor)
 	}
 }
 
@@ -369,7 +381,7 @@ func (b *unifyingBuilder) addEmptyDerivation(c *ProductConfiguration, parserIdx 
 	successorParser := &successor.Parsers[parserIdx]
 	successorParser.items = parser.items.PushBack(targetItemIdx)
 	successorParser.derivations = parser.derivations.PushBack(derivation)
-	b.add(successor)
+	b.add(&successor)
 }
 
 // emptyDerivation returns a shortest derivation of the empty string from the nonterminal after the dot of the last item
@@ -435,7 +447,7 @@ func (b *unifyingBuilder) addReduction(c *ProductConfiguration, parserIdx int) {
 	successorParser.derivations = derivations.PushBack(
 		NewExpandedDerivation(b.tables.grammar, core.ProductionIdx(), children),
 	)
-	b.add(successor)
+	b.add(&successor)
 }
 
 // isReductionAllowed reports if the symbol after the dot of the other parser, and the conflict terminal until it is
@@ -506,7 +518,7 @@ func (b *unifyingBuilder) addReverseTransitions(c *ProductConfiguration) {
 				parser.items = parser.items.PushFront(predecessorItemIdxs[parserIdx])
 				parser.derivations = parser.derivations.PushFront(NewLeafDerivation(symbolRef))
 			}
-			b.add(successor)
+			b.add(&successor)
 		}
 	}
 }
@@ -545,7 +557,7 @@ func (b *unifyingBuilder) addReverseProductionSteps(c *ProductConfiguration, par
 		}
 		successor := c.Successor(cost)
 		successor.Parsers[parserIdx].items = parser.items.PushFront(parentItemIdx)
-		b.add(successor)
+		b.add(&successor)
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -251,6 +252,28 @@ var _ = Describe("Find", func() {
 		`)))
 	})
 
+	It("should fall back to the nonunifying counterexample when the search reaches the configuration limit", func() {
+		Expect(findText(figure1Spec, "ielr1", "DIGIT", counterexample.WithConfigurationLimit(1))).To(
+			Equal(findText(figure1Spec, "ielr1", "DIGIT", counterexample.WithTotalTimeLimit(0))),
+		)
+	})
+
+	It("should count the configurations of the searches", func() {
+		_, grammar, err := golrfrontend.GrammarFromString(figure1Spec)
+		Expect(err).ToNot(HaveOccurred())
+		parser, conflicts, _, err := resolvedParsers["ielr1"](grammar, conflict.DefaultPolicy)
+		Expect(err).ToNot(HaveOccurred())
+		_, statistics := counterexample.Find(parser, conflicts)
+		Expect(statistics.Processed).To(BeNumerically(">", 0))
+		Expect(statistics.Queued).To(BeNumerically(">=", statistics.Processed))
+		Expect(statistics.Generated).To(BeNumerically(">=", statistics.Queued))
+		Expect(statistics.PeakQueueLength).To(BeNumerically(">", 0))
+		Expect(statistics.PeakQueueLength).To(BeNumerically("<=", statistics.Queued))
+
+		_, statistics = counterexample.Find(parser, conflicts, counterexample.WithTotalTimeLimit(0))
+		Expect(statistics).To(Equal(counterexample.Statistics{}))
+	})
+
 	It("should share the path of the reduction up to the latest point of divergence", func() {
 		Expect(findText(figure1Spec, "ielr1", `"else"`, counterexample.WithTotalTimeLimit(0))).To(Equal(utils.HereDoc(`
 			example: "if" expr "then" "if" expr "then" stmt • "else" stmt
@@ -429,7 +452,7 @@ var _ = Describe("Find", func() {
 			Expect(err).ToNot(HaveOccurred())
 			parser, conflicts, _, err := resolvedParsers[coreName](grammar, conflict.DefaultPolicy)
 			Expect(err).ToNot(HaveOccurred())
-			counterexamplesByConflictIdx := counterexample.Find(parser, conflicts, counterexample.WithTotalTimeLimit(0))
+			counterexamplesByConflictIdx, _ := counterexample.Find(parser, conflicts, counterexample.WithTotalTimeLimit(0))
 			gotCounterexampleCountByKernelItems := map[string]int{}
 			for conflictIdx, c := range conflicts {
 				kernelItems := strings.Join(formatKernelItems(parser, c.StateIdx), ", ")
@@ -459,8 +482,8 @@ var _ = Describe("Find", func() {
 		unresolvedParser, unresolvedConflicts, _, err := lalr1golr.GrammarToParser(grammar, conflict.SelectPolicy(true, true))
 		Expect(err).To(HaveOccurred())
 
-		resolved := counterexample.Find(resolvedParser, resolvedConflicts)
-		unresolved := counterexample.Find(unresolvedParser, unresolvedConflicts)
+		resolved, _ := counterexample.Find(resolvedParser, resolvedConflicts)
+		unresolved, _ := counterexample.Find(unresolvedParser, unresolvedConflicts)
 		Expect(unresolved).To(Equal(resolved))
 	})
 
@@ -517,6 +540,51 @@ var _ = Describe("Find", func() {
 	})
 })
 
+// BenchmarkFind searches the counterexamples of the well known grammars. The configuration limit ends the searches
+// instead of the time limits, so every run does the same work.
+func BenchmarkFind(b *testing.B) {
+	for _, wellKnownGrammar := range testdata.WellKnownGrammars {
+		b.Run(wellKnownGrammar.Title, func(b *testing.B) {
+			grammar, err := bisonfrontend.ToGrammar(bytes.NewBuffer(wellKnownGrammar.Content()), wellKnownGrammar.FileName)
+			if err != nil {
+				b.Fatal(err)
+			}
+			parser, conflicts, _, err := resolvedParsers["ielr1"](grammar, conflict.DefaultPolicy)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if len(conflicts) == 0 {
+				b.Skip("the grammar has no conflicts")
+			}
+			var counterexamplesByConflictIdx [][]counterexample.Counterexample
+			var statistics counterexample.Statistics
+			for b.Loop() {
+				counterexamplesByConflictIdx, statistics = counterexample.Find(
+					parser,
+					conflicts,
+					counterexample.WithConfigurationLimit(10_000),
+					counterexample.WithTimeLimit(time.Minute),
+					counterexample.WithTotalTimeLimit(time.Hour),
+				)
+			}
+			unifyingCount := 0
+			for _, counterexamples := range counterexamplesByConflictIdx {
+				for _, ce := range counterexamples {
+					if ce.Unifying {
+						unifyingCount++
+					}
+				}
+			}
+			// Every run does the same work, so the last one stands for all.
+			b.ReportMetric(float64(statistics.Generated), "generated/op")
+			b.ReportMetric(float64(statistics.Queued), "queued/op")
+			b.ReportMetric(float64(statistics.Processed), "processed/op")
+			b.ReportMetric(float64(statistics.PeakQueueLength), "peak-queued")
+			b.ReportMetric(float64(unifyingCount), "unifying/op")
+		})
+	}
+}
+
 // endOfInputSpec is an ambiguous grammar with a reduce/reduce conflict on the end of the input.
 var endOfInputSpec = utils.HereDoc(`
 	@scanner {
@@ -536,7 +604,7 @@ func findText(spec string, coreName string, terminalName string, options ...coun
 	Expect(err).ToNot(HaveOccurred())
 	parser, conflicts, _, err := resolvedParsers[coreName](grammar, conflict.DefaultPolicy)
 	Expect(err).ToNot(HaveOccurred())
-	counterexamplesByConflictIdx := counterexample.Find(parser, conflicts, options...)
+	counterexamplesByConflictIdx, _ := counterexample.Find(parser, conflicts, options...)
 
 	var texts []string
 	for conflictIdx, c := range conflicts {
@@ -559,7 +627,7 @@ func expectValidCounterexamples(
 	coreName string,
 	options ...counterexample.Option,
 ) {
-	counterexamplesByConflictIdx := counterexample.Find(parser, conflicts, options...)
+	counterexamplesByConflictIdx, _ := counterexample.Find(parser, conflicts, options...)
 	Expect(counterexamplesByConflictIdx).To(HaveLen(len(conflicts)))
 	tables := counterexample.NewLookupTables(parser)
 	for conflictIdx, c := range conflicts {

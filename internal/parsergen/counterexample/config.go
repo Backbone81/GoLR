@@ -9,6 +9,10 @@ type Config struct {
 
 	// TotalTimeLimit limits the unifying searches of all pairs together.
 	TotalTimeLimit time.Duration
+
+	// ConfigurationLimit limits the configurations the unifying search of a pair of conflict items processes, 0 for no
+	// limit.
+	ConfigurationLimit int
 }
 
 // DefaultConfig holds the time limits of the paper (section 6, "Constructing nonunifying counterexamples").

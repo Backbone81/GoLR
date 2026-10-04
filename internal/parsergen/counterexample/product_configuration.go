@@ -19,10 +19,10 @@ type ProductConfiguration struct {
 
 // Successor returns a copy of the ProductConfiguration with the cost added. The sequences are immutable, so the copy
 // shares them.
-func (c *ProductConfiguration) Successor(cost int) *ProductConfiguration {
+func (c *ProductConfiguration) Successor(cost int) ProductConfiguration {
 	result := *c
 	result.Cost += cost
-	return &result
+	return result
 }
 
 // Hash calculates a hash over both parsers and if the conflict terminal was shifted, which tells configurations apart

@@ -4,6 +4,8 @@ package counterexample
 
 import (
 	intcounterexample "github.com/backbone81/golr/internal/parsergen/counterexample"
+	"github.com/backbone81/golr/pkg/parsergen/backend"
+	"github.com/backbone81/golr/pkg/parsergen/conflict"
 )
 
 type (
@@ -20,11 +22,6 @@ var (
 	// DefaultConfig provides the configuration of Find without options.
 	DefaultConfig = intcounterexample.DefaultConfig
 
-	// Find returns the counterexamples of the conflicts a GoLR core returned together with the parser tables, one slice
-	// per conflict in the same order, with one counterexample per pair of competing items. The report writers take the
-	// result next to the conflicts.
-	Find = intcounterexample.Find
-
 	// WithTimeLimit limits the search for a unifying counterexample of a pair of conflict items, after which the pair
 	// gets a nonunifying counterexample. The default is 5 seconds.
 	WithTimeLimit = intcounterexample.WithTimeLimit
@@ -33,3 +30,11 @@ var (
 	// remaining pairs of conflict items get nonunifying counterexamples. The default is 2 minutes.
 	WithTotalTimeLimit = intcounterexample.WithTotalTimeLimit
 )
+
+// Find returns the counterexamples of the conflicts a GoLR core returned together with the parser tables, one slice per
+// conflict in the same order, with one counterexample per pair of competing items. The report writers take the result
+// next to the conflicts.
+func Find(parser backend.Parser, conflicts []conflict.Conflict, options ...Option) [][]Counterexample {
+	result, _ := intcounterexample.Find(parser, conflicts, options...)
+	return result
+}
