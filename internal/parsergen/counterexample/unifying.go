@@ -381,7 +381,7 @@ func (b *unifyingBuilder) addInitial() {
 			NewSimulatedParser(b.conflictItemIdxs[1]),
 		},
 	}
-	hash, _ := initial.Hash(nil)
+	hash := initial.Hash()
 	b.addWithHash(PendingConfiguration{parent: initial, action: initialAction}, hash)
 }
 
@@ -391,7 +391,7 @@ func (b *unifyingBuilder) add(p PendingConfiguration) {
 	hash := b.pendingHash(&p)
 	utils.DebugAssert(func() error {
 		c := b.build(&p)
-		if builtHash, _ := c.Hash(nil); builtHash != hash {
+		if builtHash := c.Hash(); builtHash != hash {
 			return fmt.Errorf("action %d hashed to %x without building and to %x when built", p.action, hash, builtHash)
 		}
 		// The invariant of section 5.4.

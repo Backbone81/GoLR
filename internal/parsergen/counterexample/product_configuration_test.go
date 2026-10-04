@@ -16,21 +16,21 @@ var _ = Describe("ProductConfiguration", func() {
 	})
 
 	It("should hash separate configurations of equal contents equally", func() {
-		Expect(hashOf(newProductConfiguration(1, 2, false))).To(Equal(hashOf(newProductConfiguration(1, 2, false))))
+		Expect(newProductConfiguration(1, 2, false).Hash()).To(Equal(newProductConfiguration(1, 2, false).Hash()))
 	})
 
 	It("should hash configurations which differ in the shifted terminal differently", func() {
-		Expect(hashOf(newProductConfiguration(1, 2, false))).ToNot(Equal(hashOf(newProductConfiguration(1, 2, true))))
+		Expect(newProductConfiguration(1, 2, false).Hash()).ToNot(Equal(newProductConfiguration(1, 2, true).Hash()))
 	})
 
 	It("should hash configurations with swapped parsers differently", func() {
-		Expect(hashOf(newProductConfiguration(1, 2, false))).ToNot(Equal(hashOf(newProductConfiguration(2, 1, false))))
+		Expect(newProductConfiguration(1, 2, false).Hash()).ToNot(Equal(newProductConfiguration(2, 1, false).Hash()))
 	})
 
 	It("should hash configurations which differ only in the cost equally", func() {
 		c := newProductConfiguration(1, 2, false)
 		successor := c.Successor(5)
-		Expect(hashOf(&successor)).To(Equal(hashOf(c)))
+		Expect(successor.Hash()).To(Equal(c.Hash()))
 	})
 })
 
@@ -47,10 +47,4 @@ func newProductConfiguration(
 		},
 		TerminalShifted: terminalShifted,
 	}
-}
-
-// hashOf returns the hash of the ProductConfiguration.
-func hashOf(c *counterexample.ProductConfiguration) uint64 {
-	hash, _ := c.Hash(nil)
-	return hash
 }

@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"hash/fnv"
 	"iter"
 	"math"
 	"math/bits"
@@ -323,10 +322,8 @@ func (b *Bitset) Bytes() []byte {
 
 // Hash returns a hash value over all chunks. All chunks except for trailing empty chunks contribute to the hash.
 func (b *Bitset) Hash() uint64 {
-	hash := fnv.New64a()
-	if _, err := hash.Write(b.Bytes()); err != nil {
-		panic(err)
-	}
+	hash := NewHash()
+	_, _ = hash.Write(b.Bytes())
 	return hash.Sum64()
 }
 

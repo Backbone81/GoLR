@@ -1,12 +1,11 @@
 package golr
 
 import (
-	"hash/fnv"
 	"iter"
 	"slices"
-	"unsafe"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
+	"github.com/backbone81/golr/internal/utils"
 )
 
 // ItemSet is an ordered set of LR(1) items. Every core occurs at most once within the set. Adding an item for a core
@@ -86,19 +85,10 @@ func (s *ItemSet) Equal(other *ItemSet) bool {
 
 // Hash calculates a hash over all cores and their lookahead sets.
 func (s *ItemSet) Hash() uint64 {
-	hash := fnv.New64a()
+	hash := utils.NewHash()
 	for idx := range s.items {
-		// We are converting the core into a slice of bytes for calculating the hash. We do this with unsafe pointer
-		// arithmetic to avoid rewriting data only for the hash, which we already have at hand.
-		//nolint:gosec // unsafe is required for better performance
-		coreBytes := unsafe.Slice((*byte)(unsafe.Pointer(&s.items[idx].Core)), unsafe.Sizeof(s.items[idx].Core))
-
-		if _, err := hash.Write(coreBytes); err != nil {
-			panic(err)
-		}
-		if _, err := hash.Write(s.items[idx].LookaheadSet.Bytes()); err != nil {
-			panic(err)
-		}
+		utils.WriteHash(&hash, s.items[idx].Core)
+		_, _ = hash.Write(s.items[idx].LookaheadSet.Bytes())
 	}
 	return hash.Sum64()
 }

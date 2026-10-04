@@ -2,9 +2,7 @@ package utils
 
 import (
 	"fmt"
-	"hash/fnv"
 	"slices"
-	"unsafe"
 )
 
 // Deque is a persistent sequence which grows at both ends and shrinks at its end. Every operation returns a new
@@ -119,25 +117,6 @@ func (d Deque[T]) AppendAll(buffer []T) []T {
 	}
 	slices.Reverse(buffer[from:])
 	return buffer
-}
-
-// Hash calculates a hash over all values in order. Values are hashed by their memory representation. Equal sequences
-// have equal hashes, no matter how their values are split between front and back. The values are collected in the
-// buffer, which is returned for reuse.
-func (d Deque[T]) Hash(buffer []T) (uint64, []T) {
-	hash := fnv.New64a()
-	values := d.AppendAll(buffer[:0])
-
-	// We reinterpret the slice of values as a slice of bytes. We do this with unsafe pointer arithmetic to avoid
-	// rewriting the values only for the hash. An empty sequence gives no bytes.
-	valuesByteSize := len(values) * int(unsafe.Sizeof(values[0]))
-
-	//nolint:gosec // unsafe is required for better performance
-	valueBytes := unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(values))), valuesByteSize)
-	if _, err := hash.Write(valueBytes); err != nil {
-		panic(err)
-	}
-	return hash.Sum64(), values
 }
 
 // withBackLen returns the same sequence with at least count values in back.

@@ -39,10 +39,10 @@ func (c *ProductConfiguration) pendingSuccessor(
 }
 
 // Hash calculates a hash over both parsers and if the conflict terminal was shifted, which tells configurations apart
-// that the search treats as different, see SimulatedParser.Hash. The buffer is returned for reuse.
-func (c *ProductConfiguration) Hash(buffer []int) (uint64, []int) {
-	var parserHashes [2]uint64
-	parserHashes[0], buffer = c.Parsers[0].Hash(buffer)
-	parserHashes[1], buffer = c.Parsers[1].Hash(buffer)
-	return hashConfiguration(parserHashes, c.TerminalShifted), buffer
+// that the search treats as different, see SimulatedParser.Hash.
+func (c *ProductConfiguration) Hash() uint64 {
+	return hashConfiguration([2]uint64{
+		c.Parsers[0].Hash(),
+		c.Parsers[1].Hash(),
+	}, c.TerminalShifted)
 }

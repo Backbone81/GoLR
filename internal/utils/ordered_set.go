@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"encoding/json"
 	"fmt"
-	"hash/fnv"
 	"iter"
 	"slices"
 	"strings"
@@ -136,10 +135,8 @@ func (s *OrderedSet[T]) Bytes() []byte {
 
 // Hash calculates a hash over all values of the ordered set.
 func (s *OrderedSet[T]) Hash() uint64 {
-	hash := fnv.New64a()
-	if _, err := hash.Write(s.Bytes()); err != nil {
-		panic(err)
-	}
+	hash := NewHash()
+	_, _ = hash.Write(s.Bytes())
 	return hash.Sum64()
 }
 

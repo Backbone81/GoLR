@@ -40,11 +40,9 @@ func (p *SimulatedParser) StageCompleted() bool {
 }
 
 // Hash calculates a hash over the items and the depth. The derivations are not part of it, so of two configurations
-// which differ only in their derivations the search continues the one queued first. The items are collected in the
-// buffer, which is returned for reuse.
-func (p *SimulatedParser) Hash(buffer []int) (uint64, []int) {
-	buffer = p.items.AppendAll(buffer[:0])
+// which differ only in their derivations the search continues the one queued first.
+func (p *SimulatedParser) Hash() uint64 {
 	itemsHash := utils.NewHash()
-	utils.WriteHashSlice(&itemsHash, buffer)
-	return hashParser(itemsHash, p.depth), buffer
+	utils.WriteHashSlice(&itemsHash, p.items.AppendAll(nil))
+	return hashParser(itemsHash, p.depth)
 }
