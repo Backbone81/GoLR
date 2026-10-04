@@ -1,10 +1,5 @@
 package counterexample
 
-import (
-	"hash/fnv"
-	"unsafe"
-)
-
 // ProductConfiguration is a configuration of the product parser, see figure 8: the two parsers it simulates, the first
 // one reducing the reduce item and the second one shifting with the other item or reducing it.
 type ProductConfiguration struct {
@@ -25,24 +20,29 @@ func (c *ProductConfiguration) Successor(cost int) ProductConfiguration {
 	return result
 }
 
+// pendingSuccessor returns the successor of the ProductConfiguration by the action on one parser with the item, at the
+// cost of the action.
+func (c *ProductConfiguration) pendingSuccessor(
+	cost int,
+	action action,
+	parserIdx int,
+	itemIdx int,
+) PendingConfiguration {
+	result := PendingConfiguration{
+		Cost:      c.Cost + cost,
+		parent:    c,
+		action:    action,
+		parserIdx: parserIdx,
+	}
+	result.itemIdxs[parserIdx] = itemIdx
+	return result
+}
+
 // Hash calculates a hash over both parsers and if the conflict terminal was shifted, which tells configurations apart
 // that the search treats as different, see SimulatedParser.Hash. The buffer is returned for reuse.
 func (c *ProductConfiguration) Hash(buffer []int) (uint64, []int) {
-	var values [3]uint64
-	values[0], buffer = c.Parsers[0].Hash(buffer)
-	values[1], buffer = c.Parsers[1].Hash(buffer)
-	if c.TerminalShifted {
-		values[2] = 1
-	}
-
-	// We reinterpret the values as a slice of bytes. We do this with unsafe pointer arithmetic to avoid encoding the
-	// values only for the hash.
-	//nolint:gosec // unsafe is required for better performance
-	valueBytes := unsafe.Slice((*byte)(unsafe.Pointer(&values)), unsafe.Sizeof(values))
-
-	hash := fnv.New64a()
-	if _, err := hash.Write(valueBytes); err != nil {
-		panic(err)
-	}
-	return hash.Sum64(), buffer
+	var parserHashes [2]uint64
+	parserHashes[0], buffer = c.Parsers[0].Hash(buffer)
+	parserHashes[1], buffer = c.Parsers[1].Hash(buffer)
+	return hashConfiguration(parserHashes, c.TerminalShifted), buffer
 }

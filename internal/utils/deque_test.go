@@ -156,7 +156,7 @@ var _ = Describe("Deque", func() {
 		deque := utils.Deque[int]{}.PushBack(1).PushBack(2)
 		hash, buffer := deque.Hash(make([]int, 0, 8))
 		Expect(hash).To(Equal(hashOf(deque)))
-		Expect(cap(buffer)).To(Equal(8))
+		Expect(buffer).To(HaveCap(8))
 
 		hash, _ = deque.PushBack(3).Hash(buffer)
 		Expect(hash).To(Equal(hashOf(deque.PushBack(3))))

@@ -18,7 +18,7 @@ var _ = Describe("ProductConfigurationQueue", func() {
 	It("should remove the configurations cheapest first", func() {
 		queue := counterexample.NewProductConfigurationQueue()
 		for _, cost := range []int{3, 0, 2, 1, 2} {
-			queue.Add(&counterexample.ProductConfiguration{Cost: cost})
+			queue.Add(counterexample.PendingConfiguration{Cost: cost})
 		}
 		Expect(queue.Len()).To(Equal(5))
 		Expect(removeAllCosts(&queue)).To(Equal([]int{0, 1, 2, 2, 3}))
@@ -28,7 +28,7 @@ var _ = Describe("ProductConfigurationQueue", func() {
 	It("should keep the order while the costs rise far beyond the initial buckets", func() {
 		queue := counterexample.NewProductConfigurationQueue()
 		for cost := range 3 {
-			queue.Add(&counterexample.ProductConfiguration{Cost: cost})
+			queue.Add(counterexample.PendingConfiguration{Cost: cost})
 		}
 		// The costs of the actions of the search.
 		actionCosts := []int{1, 4, 20}
@@ -36,8 +36,7 @@ var _ = Describe("ProductConfigurationQueue", func() {
 		for i := range 1000 {
 			c := queue.Remove()
 			removedCosts = append(removedCosts, c.Cost)
-			successor := c.Successor(actionCosts[i%len(actionCosts)])
-			queue.Add(&successor)
+			queue.Add(counterexample.PendingConfiguration{Cost: c.Cost + actionCosts[i%len(actionCosts)]})
 		}
 		Expect(slices.IsSorted(removedCosts)).To(BeTrue())
 		Expect(removedCosts[len(removedCosts)-1]).To(BeNumerically(">", 100))
@@ -45,10 +44,10 @@ var _ = Describe("ProductConfigurationQueue", func() {
 
 	It("should add configurations far more expensive than the cheapest one", func() {
 		queue := counterexample.NewProductConfigurationQueue()
-		queue.Add(&counterexample.ProductConfiguration{})
+		queue.Add(counterexample.PendingConfiguration{})
 		Expect(queue.Remove().Cost).To(Equal(0))
 		for _, cost := range []int{150, 5, 100} {
-			queue.Add(&counterexample.ProductConfiguration{Cost: cost})
+			queue.Add(counterexample.PendingConfiguration{Cost: cost})
 		}
 		Expect(removeAllCosts(&queue)).To(Equal([]int{5, 100, 150}))
 	})

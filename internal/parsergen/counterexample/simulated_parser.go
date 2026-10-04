@@ -1,9 +1,6 @@
 package counterexample
 
 import (
-	"hash/fnv"
-	"unsafe"
-
 	"github.com/backbone81/golr/internal/utils"
 )
 
@@ -46,18 +43,8 @@ func (p *SimulatedParser) StageCompleted() bool {
 // which differ only in their derivations the search continues the one queued first. The items are collected in the
 // buffer, which is returned for reuse.
 func (p *SimulatedParser) Hash(buffer []int) (uint64, []int) {
-	var values [2]uint64
-	values[0], buffer = p.items.Hash(buffer)
-	values[1] = uint64(p.depth) //nolint:gosec // The bits of the depth are hashed.
-
-	// We reinterpret the values as a slice of bytes. We do this with unsafe pointer arithmetic to avoid encoding the
-	// values only for the hash.
-	//nolint:gosec // unsafe is required for better performance
-	valueBytes := unsafe.Slice((*byte)(unsafe.Pointer(&values)), unsafe.Sizeof(values))
-
-	hash := fnv.New64a()
-	if _, err := hash.Write(valueBytes); err != nil {
-		panic(err)
-	}
-	return hash.Sum64(), buffer
+	buffer = p.items.AppendAll(buffer[:0])
+	itemsHash := utils.NewHash()
+	utils.WriteHashSlice(&itemsHash, buffer)
+	return hashParser(itemsHash, p.depth), buffer
 }

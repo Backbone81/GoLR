@@ -55,11 +55,16 @@ type unifyingBuilder struct {
 	// but never return a wrong one.
 	visitedConfigHashes map[uint64]struct{}
 
-	// Scratch space for FIRST sets, the sequences of a ProductConfiguration and its hash.
+	// Scratch space for FIRST sets and the sequences of a ProductConfiguration.
 	firstBuffer      [2]backend.LookaheadSet
 	itemBuffer       []int
 	derivationBuffer []Derivation
-	hashBuffer       []int
+
+	// The items of the parsers of the ProductConfiguration whose successors are queued, the hashes of their prefixes
+	// and the hashes of the parsers, see prepareHashes.
+	parentItems        [2][]int
+	parentPrefixHashes [2][]utils.Hash
+	parentParserHashes [2]uint64
 
 	// innermost is the nonunifying counterexample of the innermost nonterminal, once a ProductConfiguration showed it.
 	innermost      Counterexample
@@ -101,25 +106,123 @@ func newUnifyingBuilder(nonunifying *nonunifyingBuilder, config Config, deadline
 // limit without one, it returns the nonunifying counterexample of the innermost nonterminal instead, if the search got
 // far enough to find it, and reports false when it did not.
 func (b *unifyingBuilder) Build() (Counterexample, bool) {
-	// The initial configuration of figure 8(b).
-	b.add(&ProductConfiguration{
-		Parsers: [2]SimulatedParser{
-			NewSimulatedParser(b.conflictItemIdxs[0]),
-			NewSimulatedParser(b.conflictItemIdxs[1]),
-		},
-	})
+	b.addInitial()
 	for processed := 0; !b.queue.IsEmpty() && !b.isLimitReached(processed); processed++ {
-		productConfiguration := b.queue.Remove()
+		pending := b.queue.Remove()
+		productConfiguration := b.build(&pending)
 		b.statistics.Processed++
-		if result, found := b.unifyingCounterexample(&productConfiguration); found {
+		if result, found := b.unifyingCounterexample(productConfiguration); found {
 			return result, true
 		}
 		if !b.innermostFound {
-			b.findInnermost(&productConfiguration)
+			b.findInnermost(productConfiguration)
 		}
-		b.addSuccessors(&productConfiguration)
+		b.addSuccessors(productConfiguration)
 	}
 	return b.innermost, b.innermostFound
+}
+
+// edit returns the change the action of the PendingConfiguration makes to the parser of its parent.
+func (b *unifyingBuilder) edit(p *PendingConfiguration, parserIdx int) parserEdit {
+	parser := &p.parent.Parsers[parserIdx]
+	result := parserEdit{
+		changed:   true,
+		appended:  noItemIdx,
+		prepended: noItemIdx,
+		depth:     parser.depth,
+	}
+	onParser := p.parserIdx == parserIdx
+	switch p.action {
+	case initialAction:
+		result.changed = false
+	case transitionAction:
+		result.appended = p.itemIdxs[parserIdx]
+	case productionStepAction:
+		result.changed = onParser
+		result.appended = p.itemIdxs[parserIdx]
+		if !parser.StageCompleted() {
+			result.depth++
+		}
+	case emptyDerivationAction:
+		result.changed = onParser
+		result.appended = p.itemIdxs[parserIdx]
+	case reductionAction:
+		result.changed = onParser
+		result.dropped = b.tables.Core(parser.Tail()).Position() + 1
+		result.appended = p.itemIdxs[parserIdx]
+		if parser.depth == 0 {
+			result.depth = completedDepth
+		} else if !parser.StageCompleted() {
+			result.depth--
+		}
+	case reverseTransitionAction:
+		result.prepended = p.itemIdxs[parserIdx]
+	case reverseProductionStepAction:
+		result.changed = onParser
+		result.prepended = p.itemIdxs[parserIdx]
+	}
+	return result
+}
+
+// build returns the ProductConfiguration of the PendingConfiguration. It applies the action to the parent like the
+// unifyingBuilder would have when it queued the configuration, which checked that the action is possible.
+func (b *unifyingBuilder) build(p *PendingConfiguration) *ProductConfiguration {
+	if p.action == initialAction {
+		return p.parent
+	}
+	result := p.parent.Successor(p.Cost - p.parent.Cost)
+	result.TerminalShifted = p.parent.TerminalShifted || p.action == transitionAction
+	for parserIdx := range result.Parsers {
+		edit := b.edit(p, parserIdx)
+		if !edit.changed {
+			continue
+		}
+		parser := &result.Parsers[parserIdx]
+		parser.derivations = b.derivationsAfter(p, parserIdx)
+		if edit.dropped > 0 {
+			parser.items = parser.items.DropBack(edit.dropped)
+		}
+		if edit.appended != noItemIdx {
+			parser.items = parser.items.PushBack(edit.appended)
+		}
+		if edit.prepended != noItemIdx {
+			parser.items = parser.items.PushFront(edit.prepended)
+		}
+		parser.depth = edit.depth
+	}
+	return &result
+}
+
+// derivationsAfter returns the derivations of the parser after the action of the PendingConfiguration: with a leaf of
+// the symbol of a transition, the derivation of the empty string, or the derivation of the nonterminal a reduction
+// reduces to.
+func (b *unifyingBuilder) derivationsAfter(p *PendingConfiguration, parserIdx int) utils.Deque[Derivation] {
+	parser := &p.parent.Parsers[parserIdx]
+	switch p.action {
+	case initialAction, productionStepAction, reverseProductionStepAction:
+		return parser.derivations
+	case transitionAction:
+		symbolRef, _ := b.tables.NextSymbol(p.parent.Parsers[0].Tail())
+		return parser.derivations.PushBack(NewLeafDerivation(symbolRef))
+	case emptyDerivationAction:
+		return parser.derivations.PushBack(b.emptyDerivation(p.parent, parserIdx))
+	case reductionAction:
+		core := b.tables.Core(parser.Tail())
+		derivations, children := parser.derivations.PopBack(
+			core.Position(),
+			make([]Derivation, 0, core.Position()+1),
+		)
+		if parser.depth == 0 {
+			dotPosition := b.tables.Core(b.conflictItemIdxs[parserIdx]).Position()
+			children = slices.Insert(children, dotPosition, NewDotDerivation())
+		}
+		return derivations.PushBack(NewExpandedDerivation(b.tables.grammar, core.ProductionIdx(), children))
+	case reverseTransitionAction:
+		core := b.tables.Core(p.parent.Parsers[0].Head())
+		symbolRef := b.tables.grammar.Productions[core.ProductionIdx()].SymbolRefs[core.Position()-1]
+		return parser.derivations.PushFront(NewLeafDerivation(symbolRef))
+	}
+	return parser.derivations
 }
 
 // isLimitReached reports if the search has to give up after processing the number of configurations.
@@ -246,6 +349,7 @@ func (b *unifyingBuilder) completeDerivation(
 // whose last item is a reduce item reduces, or is prepended until it has the items to reduce. Only when neither parser
 // reduces, the parsers move forward by a transition together or by a production step of either one.
 func (b *unifyingBuilder) addSuccessors(c *ProductConfiguration) {
+	b.prepareHashes(c)
 	reducing := false
 	for parserIdx := range c.Parsers {
 		if _, found := b.tables.NextSymbol(c.Parsers[parserIdx].Tail()); found {
@@ -269,9 +373,27 @@ func (b *unifyingBuilder) addSuccessors(c *ProductConfiguration) {
 	}
 }
 
-// add adds the ProductConfiguration to the queue.
-func (b *unifyingBuilder) add(c *ProductConfiguration) {
+// addInitial adds the initial configuration of figure 8(b) to the queue.
+func (b *unifyingBuilder) addInitial() {
+	initial := &ProductConfiguration{
+		Parsers: [2]SimulatedParser{
+			NewSimulatedParser(b.conflictItemIdxs[0]),
+			NewSimulatedParser(b.conflictItemIdxs[1]),
+		},
+	}
+	hash, _ := initial.Hash(nil)
+	b.addWithHash(PendingConfiguration{parent: initial, action: initialAction}, hash)
+}
+
+// add adds the PendingConfiguration to the queue. Its parent must be the configuration prepareHashes was called with
+// last.
+func (b *unifyingBuilder) add(p PendingConfiguration) {
+	hash := b.pendingHash(&p)
 	utils.DebugAssert(func() error {
+		c := b.build(&p)
+		if builtHash, _ := c.Hash(nil); builtHash != hash {
+			return fmt.Errorf("action %d hashed to %x without building and to %x when built", p.action, hash, builtHash)
+		}
 		// The invariant of section 5.4.
 		heads := [2]int{c.Parsers[0].Head(), c.Parsers[1].Head()}
 		if b.tables.StateIdx(heads[0]) != b.tables.StateIdx(heads[1]) {
@@ -279,20 +401,67 @@ func (b *unifyingBuilder) add(c *ProductConfiguration) {
 		}
 		return nil
 	})
-	// A configuration queued before is dropped, even when it comes at a lower cost, so the queue never holds the same
-	// configuration twice. The queue hands out configurations by cost, so a later duplicate is cheaper by at most the
-	// cost of one repeated production step, while the costs of the searches on large grammars reach thousands. The
-	// costs only lead the search to cheaper counterexamples first, they do not guarantee the cheapest one.
+	b.addWithHash(p, hash)
+}
+
+// addWithHash adds the PendingConfiguration with the hash of its ProductConfiguration to the queue.
+//
+// A configuration queued before is dropped, even when it comes at a lower cost, so the queue never holds the same
+// configuration twice. The queue hands out configurations by cost, so a later duplicate is cheaper by at most the cost
+// of one repeated production step, while the costs of the searches on large grammars reach thousands. The costs only
+// lead the search to cheaper counterexamples first, they do not guarantee the cheapest one.
+func (b *unifyingBuilder) addWithHash(p PendingConfiguration, hash uint64) {
 	b.statistics.Generated++
-	var hash uint64
-	hash, b.hashBuffer = c.Hash(b.hashBuffer)
 	if _, found := b.visitedConfigHashes[hash]; found {
 		return
 	}
 	b.visitedConfigHashes[hash] = struct{}{}
-	b.queue.Add(c)
+	b.queue.Add(p)
 	b.statistics.Queued++
 	b.statistics.PeakQueueLength = max(b.statistics.PeakQueueLength, b.queue.Len())
+}
+
+// prepareHashes collects the items of both parsers of the ProductConfiguration and the hashes of their prefixes, from
+// which pendingHash computes the hashes of its successors.
+func (b *unifyingBuilder) prepareHashes(c *ProductConfiguration) {
+	for parserIdx := range c.Parsers {
+		parser := &c.Parsers[parserIdx]
+		b.parentItems[parserIdx] = parser.items.AppendAll(b.parentItems[parserIdx][:0])
+		itemsHash := utils.NewHash()
+		b.parentPrefixHashes[parserIdx] = append(b.parentPrefixHashes[parserIdx][:0], itemsHash)
+		for _, itemIdx := range b.parentItems[parserIdx] {
+			utils.WriteHash(&itemsHash, itemIdx)
+			b.parentPrefixHashes[parserIdx] = append(b.parentPrefixHashes[parserIdx], itemsHash)
+		}
+		b.parentParserHashes[parserIdx] = hashParser(itemsHash, parser.depth)
+	}
+}
+
+// pendingHash returns the hash of the ProductConfiguration of the PendingConfiguration without building it, see
+// ProductConfiguration.Hash. The parent must be the configuration prepareHashes was called with last. Appending an item
+// continues the hash of the items in front of it, only prepending an item hashes all items again.
+func (b *unifyingBuilder) pendingHash(p *PendingConfiguration) uint64 {
+	parserHashes := b.parentParserHashes
+	for parserIdx := range parserHashes {
+		edit := b.edit(p, parserIdx)
+		if !edit.changed {
+			continue
+		}
+		items := b.parentItems[parserIdx]
+		var itemsHash utils.Hash
+		if edit.prepended != noItemIdx {
+			itemsHash = utils.NewHash()
+			utils.WriteHash(&itemsHash, edit.prepended)
+			utils.WriteHashSlice(&itemsHash, items)
+		} else {
+			itemsHash = b.parentPrefixHashes[parserIdx][len(items)-edit.dropped]
+		}
+		if edit.appended != noItemIdx {
+			utils.WriteHash(&itemsHash, edit.appended)
+		}
+		parserHashes[parserIdx] = hashParser(itemsHash, edit.depth)
+	}
+	return hashConfiguration(parserHashes, p.parent.TerminalShifted || p.action == transitionAction)
 }
 
 // canReduce reports if the parser holds the items of the production of its last item, which is a reduce item of the
@@ -315,18 +484,20 @@ func (b *unifyingBuilder) addTransition(c *ProductConfiguration) {
 		return
 	}
 
-	successor := c.Successor(transitionCost)
-	successor.TerminalShifted = true
-	for parserIdx := range successor.Parsers {
-		parser := &successor.Parsers[parserIdx]
-		targetItemIdx, found := b.tables.Transition(parser.Tail())
-		if !found || !b.isShiftAllowed(b.tables.StateIdx(parser.Tail()), symbolRef) {
+	successor := PendingConfiguration{
+		Cost:   c.Cost + transitionCost,
+		parent: c,
+		action: transitionAction,
+	}
+	for parserIdx := range c.Parsers {
+		tailItemIdx := c.Parsers[parserIdx].Tail()
+		targetItemIdx, found := b.tables.Transition(tailItemIdx)
+		if !found || !b.isShiftAllowed(b.tables.StateIdx(tailItemIdx), symbolRef) {
 			return
 		}
-		parser.items = parser.items.PushBack(targetItemIdx)
-		parser.derivations = parser.derivations.PushBack(NewLeafDerivation(symbolRef))
+		successor.itemIdxs[parserIdx] = targetItemIdx
 	}
-	b.add(&successor)
+	b.add(successor)
 }
 
 // addProductionSteps adds the production steps of the parser, see figure 10(b). A production with an empty right hand
@@ -350,13 +521,7 @@ func (b *unifyingBuilder) addProductionSteps(c *ProductConfiguration, parserIdx 
 		if utils.DequeContains(parser.items, itemIdx) {
 			cost += repeatedProductionStepCost
 		}
-		successor := c.Successor(cost)
-		successorParser := &successor.Parsers[parserIdx]
-		successorParser.items = successorParser.items.PushBack(itemIdx)
-		if !successorParser.StageCompleted() {
-			successorParser.depth++
-		}
-		b.add(&successor)
+		b.add(c.pendingSuccessor(cost, productionStepAction, parserIdx, itemIdx))
 	}
 }
 
@@ -373,38 +538,46 @@ func (b *unifyingBuilder) addEmptyDerivation(c *ProductConfiguration, parserIdx 
 	if !found {
 		return
 	}
-	derivation, allowed := b.emptyDerivation(c, parserIdx)
-	if !allowed {
+	if !b.isEmptyDerivationAllowed(c, parserIdx) {
 		return
 	}
-	successor := c.Successor(emptyDerivationCost)
-	successorParser := &successor.Parsers[parserIdx]
-	successorParser.items = parser.items.PushBack(targetItemIdx)
-	successorParser.derivations = parser.derivations.PushBack(derivation)
-	b.add(&successor)
+	b.add(c.pendingSuccessor(emptyDerivationCost, emptyDerivationAction, parserIdx, targetItemIdx))
+}
+
+// isEmptyDerivationAllowed reports if the nonterminal after the dot of the last item of the parser has a derivation of
+// the empty string, whose reductions the declarations allow on the terminal which follows, see emptyDerivation.
+func (b *unifyingBuilder) isEmptyDerivationAllowed(c *ProductConfiguration, parserIdx int) bool {
+	reach, known := b.followingTerminalReach(c, parserIdx)
+	return !known || reach.CanVanish(c.Parsers[parserIdx].Tail())
 }
 
 // emptyDerivation returns a shortest derivation of the empty string from the nonterminal after the dot of the last item
 // of the parser, whose reductions the declarations allow on the terminal which follows: the conflict terminal until it
-// is shifted, and the symbol after the dot of the other parser then, when it is a terminal. It reports false when
-// there is none. When the terminal which follows is not known yet, the derivation is the shortest one of the grammar,
-// like isReductionAllowed allows a reduction then.
-func (b *unifyingBuilder) emptyDerivation(c *ProductConfiguration, parserIdx int) (Derivation, bool) {
+// is shifted, and the symbol after the dot of the other parser then, when it is a terminal. There has to be one, see
+// isEmptyDerivationAllowed. When the terminal which follows is not known yet, the derivation is the shortest one of the
+// grammar, like isReductionAllowed allows a reduction then.
+func (b *unifyingBuilder) emptyDerivation(c *ProductConfiguration, parserIdx int) Derivation {
 	itemIdx := c.Parsers[parserIdx].Tail()
+	reach, known := b.followingTerminalReach(c, parserIdx)
+	if !known {
+		nonterminalRef, _ := b.tables.NextSymbol(itemIdx)
+		return b.tables.shortestEmptyDerivation(nonterminalRef.Idx())
+	}
+	return b.tables.emptyDerivation(reach, itemIdx)
+}
+
+// followingTerminalReach returns the reach of the terminal which follows a derivation of the empty string of the
+// parser, see emptyDerivation, and reports false when that terminal is not known yet.
+func (b *unifyingBuilder) followingTerminalReach(c *ProductConfiguration, parserIdx int) (*terminalReach, bool) {
 	terminalIdx := b.terminalIdx
 	if c.TerminalShifted {
 		symbolRef, found := b.tables.NextSymbol(c.Parsers[1-parserIdx].Tail())
 		if !found || !symbolRef.IsTerminal() {
-			nonterminalRef, _ := b.tables.NextSymbol(itemIdx)
-			return b.tables.shortestEmptyDerivation(nonterminalRef.Idx()), true
+			return nil, false
 		}
 		terminalIdx = symbolRef.Idx()
 	}
-	reach := b.tables.terminalReach(terminalIdx)
-	if !reach.CanVanish(itemIdx) {
-		return Derivation{}, false
-	}
-	return b.tables.emptyDerivation(reach, itemIdx), true
+	return b.tables.terminalReach(terminalIdx), true
 }
 
 // addReduction adds the reduction of the parser, see figure 10(f). It removes the items of the production and appends
@@ -417,10 +590,9 @@ func (b *unifyingBuilder) addReduction(c *ProductConfiguration, parserIdx int) {
 	if !b.isReductionAllowed(c, parserIdx) {
 		return
 	}
-	parser := &c.Parsers[parserIdx]
-	core := b.tables.Core(parser.Tail())
-	items := parser.items.DropBack(core.Position() + 1)
-	parentItemIdx := items.Last()
+	items := b.parentItems[parserIdx]
+	core := b.tables.Core(items[len(items)-1])
+	parentItemIdx := items[len(items)-core.Position()-2]
 	gotoItemIdx, found := b.tables.Transition(parentItemIdx)
 	utils.DebugAssert(func() error {
 		if !found {
@@ -428,26 +600,7 @@ func (b *unifyingBuilder) addReduction(c *ProductConfiguration, parserIdx int) {
 		}
 		return nil
 	})
-
-	derivations, children := parser.derivations.PopBack(
-		core.Position(),
-		make([]Derivation, 0, core.Position()+1),
-	)
-	successor := c.Successor(reductionCost)
-	successorParser := &successor.Parsers[parserIdx]
-	if parser.depth == 0 {
-		dotPosition := b.tables.Core(b.conflictItemIdxs[parserIdx]).Position()
-		children = slices.Insert(children, dotPosition, NewDotDerivation())
-		successorParser.depth = completedDepth
-	} else if !parser.StageCompleted() {
-		successorParser.depth--
-	}
-
-	successorParser.items = items.PushBack(gotoItemIdx)
-	successorParser.derivations = derivations.PushBack(
-		NewExpandedDerivation(b.tables.grammar, core.ProductionIdx(), children),
-	)
-	b.add(&successor)
+	b.add(c.pendingSuccessor(reductionCost, reductionAction, parserIdx, gotoItemIdx))
 }
 
 // isReductionAllowed reports if the symbol after the dot of the other parser, and the conflict terminal until it is
@@ -511,14 +664,12 @@ func (b *unifyingBuilder) addReverseTransitions(c *ProductConfiguration) {
 			if b.tables.StateIdx(otherPredecessorItemIdx) != stateIdx {
 				continue
 			}
-			successor := c.Successor(transitionCost)
-			predecessorItemIdxs := [2]int{predecessorItemIdx, otherPredecessorItemIdx}
-			for parserIdx := range successor.Parsers {
-				parser := &successor.Parsers[parserIdx]
-				parser.items = parser.items.PushFront(predecessorItemIdxs[parserIdx])
-				parser.derivations = parser.derivations.PushFront(NewLeafDerivation(symbolRef))
-			}
-			b.add(&successor)
+			b.add(PendingConfiguration{
+				Cost:     c.Cost + transitionCost,
+				parent:   c,
+				action:   reverseTransitionAction,
+				itemIdxs: [2]int{predecessorItemIdx, otherPredecessorItemIdx},
+			})
 		}
 	}
 }
@@ -555,9 +706,7 @@ func (b *unifyingBuilder) addReverseProductionSteps(c *ProductConfiguration, par
 		if utils.DequeContains(parser.items, parentItemIdx) {
 			cost += repeatedProductionStepCost
 		}
-		successor := c.Successor(cost)
-		successor.Parsers[parserIdx].items = parser.items.PushFront(parentItemIdx)
-		b.add(&successor)
+		b.add(c.pendingSuccessor(cost, reverseProductionStepAction, parserIdx, parentItemIdx))
 	}
 }
 
