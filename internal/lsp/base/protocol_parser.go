@@ -28,6 +28,7 @@ func NewProtocolParser(reader io.Reader) *ProtocolParser {
 	}
 }
 
+//nolint:gocognit,cyclop,funlen
 func (p *ProtocolParser) Next() bool {
 	if p.err != nil {
 		// When we encountered an error before, we do not continue parsing.
@@ -73,7 +74,7 @@ func (p *ProtocolParser) Next() bool {
 				}
 				state = 4
 			default:
-				headerName = headerName + string(nextByte)
+				headerName += string(nextByte)
 			}
 		case 1:
 			// Header name/value separator
@@ -88,7 +89,7 @@ func (p *ProtocolParser) Next() bool {
 			case '\r':
 				state = 3
 			default:
-				headerValue = headerValue + string(nextByte)
+				headerValue += string(nextByte)
 			}
 		case 3:
 			// Header field terminator
@@ -113,11 +114,19 @@ func (p *ProtocolParser) Next() bool {
 
 				typedContentLength, err := strconv.Atoi(contentLength)
 				if err != nil {
-					p.err = fmt.Errorf("required header %q did not provide an integer, but %q: %w", HeaderContentLength, contentLength, err)
+					p.err = fmt.Errorf(
+						"required header %q did not provide an integer, but %q: %w",
+						HeaderContentLength,
+						contentLength,
+						err,
+					)
 					return false
 				}
 				if typedContentLength < 0 || 10*1024*1024 < typedContentLength {
-					p.err = fmt.Errorf("the value for required header %q was out of range (0-10 MB)", HeaderContentLength)
+					p.err = fmt.Errorf(
+						"the value for required header %q was out of range (0-10 MB)",
+						HeaderContentLength,
+					)
 					return false
 				}
 
@@ -142,7 +151,6 @@ func (p *ProtocolParser) Next() bool {
 				)
 				return false
 			}
-
 		}
 	}
 }

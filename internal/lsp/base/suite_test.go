@@ -5,11 +5,12 @@ import (
 	"maps"
 	"testing"
 
-	"github.com/backbone81/golr/internal/lsp/base"
 	"github.com/onsi/gomega/format"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/backbone81/golr/internal/lsp/base"
 )
 
 func TestSuite(t *testing.T) {
