@@ -122,6 +122,10 @@ linters:
           - goconst
           - gosec
           - prealloc
+      # A URL cannot be wrapped, so a comment line holding only a URL may exceed the line length.
+      - source: '^\s*// https?://\S+$'
+        linters:
+          - lll
       - path: ^cmd/
         linters:
           - forbidigo

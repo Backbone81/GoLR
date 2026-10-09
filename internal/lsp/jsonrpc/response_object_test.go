@@ -76,7 +76,8 @@ var _ = Describe("ResponseObject", func() {
 		Expect(withNull.Result).To(Equal(json.RawMessage("null")))
 		Expect(withNull.Error).To(BeNil())
 		Expect(withError.Result).To(BeNil())
-		Expect(withError.Error).To(Equal(&jsonrpc.ErrorObject{Code: jsonrpc.ErrorCodeInternalError, Message: "internal error"}))
+		Expect(withError.Error).
+			To(Equal(&jsonrpc.ErrorObject{Code: jsonrpc.ErrorCodeInternalError, Message: "internal error"}))
 		Expect(withError.ID.String()).To(Equal("7"))
 	})
 })

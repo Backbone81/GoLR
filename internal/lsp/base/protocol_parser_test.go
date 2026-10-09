@@ -154,7 +154,11 @@ var _ = Describe("ProtocolParser", func() {
 		Entry("with an empty header name", ": 2\r\n\r\n{}", "header field has an empty name"),
 		Entry("without a separator", "Content-Length\r\n\r\n{}", `header field "Content-Length" has no ': ' separator`),
 		Entry("without a space after the colon", "Content-Length:2\r\n\r\n{}", "expected ' ' after ':'"),
-		Entry("with a carriage return not followed by a line feed", "Content-Length: 2\rX\n\r\n{}", `expected '\n' after '\r'`),
+		Entry(
+			"with a carriage return not followed by a line feed",
+			"Content-Length: 2\rX\n\r\n{}",
+			`expected '\n' after '\r'`,
+		),
 		Entry("with a malformed header/content separator", "Content-Length: 2\r\n\rX{}", "header/content separator"),
 		Entry("with a non-ASCII byte", "Content-Length: 2\r\nX-Name: \xc3\xa4\r\n\r\n{}", "non-ASCII byte 0xc3 in header"),
 	)

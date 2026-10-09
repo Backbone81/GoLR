@@ -43,7 +43,9 @@ var _ = Describe("ID", func() {
 	It("marshals when held as a value", func() {
 		var id jsonrpc.ID
 		Expect(json.Unmarshal([]byte(`7`), &id)).To(Succeed())
-		Expect(json.Marshal(struct{ ID jsonrpc.ID }{ID: id})).To(MatchJSON(`{"ID":7}`))
+		Expect(json.Marshal(struct {
+			ID jsonrpc.ID `json:"id"`
+		}{ID: id})).To(MatchJSON(`{"id":7}`))
 	})
 
 	DescribeTable("rejects",
