@@ -105,17 +105,17 @@ services:
 
   rust:
     <<: *common
-    image: rust:1.98
+    image: rust:1.99
     command: ["rust"]
 
   javascript:
     <<: *common
-    image: node:26.10
+    image: node:26.11
     command: ["javascript"]
 
   typescript:
     <<: *common
-    image: mcr.microsoft.com/devcontainers/typescript-node:5.2.1-24
+    image: mcr.microsoft.com/devcontainers/typescript-node:5.2.3-24
     command: ["typescript"]
 
   python:
