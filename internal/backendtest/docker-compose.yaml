@@ -87,7 +87,7 @@ x-common: &common
 services:
   go:
     <<: *common
-    image: golang:1.26
+    image: golang:1.27
     command: ["go"]
 
   java:

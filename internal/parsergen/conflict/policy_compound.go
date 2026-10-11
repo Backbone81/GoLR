@@ -37,7 +37,7 @@ func CompoundPolicy(policyFactories ...PolicyFactory) PolicyFactory {
 type compoundPolicy []Policy
 
 // compoundPolicy implements Policy.
-var _ Policy = (compoundPolicy)(nil)
+var _ Policy = compoundPolicy(nil)
 
 // Resolve applies the policies of the compound policy in order, and stops as soon as a single contribution is left or
 // every contribution was removed. The conflict is reported when any of the policies reported its narrowing, and the

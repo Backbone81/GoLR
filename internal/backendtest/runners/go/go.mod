@@ -9,6 +9,6 @@ module runner
 
 // The version the repository itself is on. It is the language version the generated code is compiled under here, and
 // it has to be one the image below its own toolchain can build.
-go 1.25
+go 1.26
 
-toolchain go1.26.9
+toolchain go1.27.2

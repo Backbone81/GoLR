@@ -41,12 +41,12 @@ var _ = Describe("Tables", func() {
 		parser := backend.Parser{
 			Grammar: handBuiltGrammar(3, 1),
 			States: []backend.State{
-				{DefaultReduceProductionIdx: ptr(2)},
+				{DefaultReduceProductionIdx: new(2)},
 				{
 					TransitionActions: backend.NewTransitionActionSet(
 						backend.NewTransitionAction(frontend.NewTerminalRef(0), 0),
 					),
-					DefaultReduceProductionIdx: ptr(2),
+					DefaultReduceProductionIdx: new(2),
 				},
 			},
 		}

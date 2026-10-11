@@ -9,11 +9,6 @@ import (
 	"github.com/backbone81/golr/internal/utils"
 )
 
-// ptr returns a pointer to a copy of the value, for building the expected DefaultReduceProductionIdx.
-func ptr[T any](value T) *T {
-	return &value
-}
-
 var _ = Describe("ApplyDefaultReductions", func() {
 	It("picks the reduce action with the widest lookahead set as the default", func() {
 		state := backend.State{
@@ -29,7 +24,7 @@ var _ = Describe("ApplyDefaultReductions", func() {
 
 		// The wider production 5 becomes the default and is removed from the explicit reduce actions, leaving only the
 		// narrower production 3 behind.
-		Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(ptr(5)))
+		Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(new(5)))
 		Expect(parser.States[0].ReduceActions).To(Equal(backend.NewReduceActionSet(
 			backend.NewReduceAction(utils.NewBitset(0, 1), 3),
 		)))
@@ -46,7 +41,7 @@ var _ = Describe("ApplyDefaultReductions", func() {
 
 		backend.ApplyDefaultReductions(&parser)
 
-		Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(ptr(2)))
+		Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(new(2)))
 		Expect(parser.States[0].ReduceActions).To(Equal(backend.NewReduceActionSet(
 			backend.NewReduceAction(utils.NewBitset(2, 3), 4),
 		)))
@@ -62,7 +57,7 @@ var _ = Describe("ApplyDefaultReductions", func() {
 
 		backend.ApplyDefaultReductions(&parser)
 
-		Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(ptr(7)))
+		Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(new(7)))
 		Expect(parser.States[0].ReduceActions.IsEmpty()).To(BeTrue())
 	})
 
@@ -78,7 +73,7 @@ var _ = Describe("ApplyDefaultReductions", func() {
 
 		backend.ApplyDefaultReductions(&parser)
 
-		Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(ptr(3)))
+		Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(new(3)))
 		Expect(parser.States[0].ReduceActions.IsEmpty()).To(BeTrue())
 		// The shift set is left exactly as it was.
 		Expect(parser.States[0].TransitionActions).To(Equal(transitionActions))
@@ -102,7 +97,7 @@ var _ = Describe("ApplyDefaultReductions", func() {
 
 	It("does not overwrite a default reduction the state already carries, staying idempotent", func() {
 		state := backend.State{
-			DefaultReduceProductionIdx: ptr(9),
+			DefaultReduceProductionIdx: new(9),
 			ReduceActions: backend.NewReduceActionSet(
 				backend.NewReduceAction(utils.NewBitset(0, 1, 2), 4),
 			),
@@ -112,7 +107,7 @@ var _ = Describe("ApplyDefaultReductions", func() {
 		backend.ApplyDefaultReductions(&parser)
 
 		// The pre-existing default is kept and the explicit reduce actions are left alone.
-		Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(ptr(9)))
+		Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(new(9)))
 		Expect(parser.States[0].ReduceActions).To(Equal(backend.NewReduceActionSet(
 			backend.NewReduceAction(utils.NewBitset(0, 1, 2), 4),
 		)))
@@ -192,7 +187,7 @@ var _ = Describe("ApplyDefaultReductions", func() {
 
 			backend.ApplyDefaultReductions(&parser)
 
-			Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(ptr(3)))
+			Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(new(3)))
 			Expect(parser.States[0].ReduceActions.IsEmpty()).To(BeTrue())
 		})
 
@@ -208,7 +203,7 @@ var _ = Describe("ApplyDefaultReductions", func() {
 
 			backend.ApplyDefaultReductions(&parser)
 
-			Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(ptr(3)))
+			Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(new(3)))
 			Expect(parser.States[0].ReduceActions.IsEmpty()).To(BeTrue())
 		})
 
@@ -233,7 +228,7 @@ var _ = Describe("ApplyDefaultReductions", func() {
 
 			backend.ApplyDefaultReductions(&parser)
 
-			Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(ptr(3)))
+			Expect(parser.States[0].DefaultReduceProductionIdx).To(Equal(new(3)))
 			Expect(parser.States[0].ReduceActions.IsEmpty()).To(BeTrue())
 		})
 	})

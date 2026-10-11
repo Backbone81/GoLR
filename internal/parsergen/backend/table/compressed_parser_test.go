@@ -15,11 +15,6 @@ import (
 	"github.com/backbone81/golr/testdata"
 )
 
-// ptr returns a pointer to a copy of the value, for building the DefaultReduceProductionIdx of a state.
-func ptr[T any](value T) *T {
-	return &value
-}
-
 // handBuiltGrammar returns a grammar with the given number of terminals and nonterminals, the last terminal being the
 // error symbol. Laying the tables out only reads how many symbols there are and where the error symbol sits, so the
 // productions are left out.
@@ -133,7 +128,7 @@ var _ = Describe("CompressedParser", func() {
 				TransitionActions: backend.NewTransitionActionSet(
 					backend.NewTransitionAction(frontend.NewTerminalRef(0), 0),
 				),
-				DefaultReduceProductionIdx: ptr(3),
+				DefaultReduceProductionIdx: new(3),
 			}},
 		}
 
@@ -150,7 +145,7 @@ var _ = Describe("CompressedParser", func() {
 		parser := backend.Parser{
 			Grammar: handBuiltGrammar(4, 2),
 			States: []backend.State{{
-				DefaultReduceProductionIdx: ptr(3),
+				DefaultReduceProductionIdx: new(3),
 				RejectedTerminals:          backend.NewLookaheadSet(2),
 			}},
 		}
@@ -176,7 +171,7 @@ var _ = Describe("CompressedParser", func() {
 		// The Bison backed cores report the accept as `$default accept`.
 		bisonStyle := backend.Parser{
 			Grammar: handBuiltGrammar(4, 2),
-			States:  []backend.State{{DefaultReduceProductionIdx: ptr(0)}},
+			States:  []backend.State{{DefaultReduceProductionIdx: new(0)}},
 		}
 		// The native GoLR cores keep it a reduce of the accept production with an empty reduction lookahead set.
 		golrStyle := backend.Parser{
@@ -197,11 +192,11 @@ var _ = Describe("CompressedParser", func() {
 		parser := backend.Parser{
 			Grammar: handBuiltGrammar(4, 2),
 			States: []backend.State{
-				{DefaultReduceProductionIdx: ptr(3)},
+				{DefaultReduceProductionIdx: new(3)},
 				// An explicit reduce which the default covers as well does not make the lookahead matter.
 				{
 					ReduceActions:              backend.NewReduceActionSet(backend.NewReduceAction(backend.NewLookaheadSet(1), 3)),
-					DefaultReduceProductionIdx: ptr(3),
+					DefaultReduceProductionIdx: new(3),
 				},
 			},
 		}
@@ -221,20 +216,20 @@ var _ = Describe("CompressedParser", func() {
 					TransitionActions: backend.NewTransitionActionSet(
 						backend.NewTransitionAction(frontend.NewTerminalRef(0), 0),
 					),
-					DefaultReduceProductionIdx: ptr(3),
+					DefaultReduceProductionIdx: new(3),
 				},
 				{
 					ReduceActions:              backend.NewReduceActionSet(backend.NewReduceAction(backend.NewLookaheadSet(1), 2)),
-					DefaultReduceProductionIdx: ptr(3),
+					DefaultReduceProductionIdx: new(3),
 				},
 				{
-					DefaultReduceProductionIdx: ptr(3),
+					DefaultReduceProductionIdx: new(3),
 					RejectedTerminals:          backend.NewLookaheadSet(2),
 				},
 				// The shift of the error symbol is a resynchronization point the check has to protect.
 				{
 					TransitionActions:          backend.NewTransitionActionSet(backend.NewTransitionAction(errorRef, 0)),
-					DefaultReduceProductionIdx: ptr(3),
+					DefaultReduceProductionIdx: new(3),
 				},
 				{},
 			},
@@ -248,7 +243,7 @@ var _ = Describe("CompressedParser", func() {
 	It("does not mark the accept consistent", func() {
 		parser := backend.Parser{
 			Grammar: handBuiltGrammar(4, 2),
-			States:  []backend.State{{DefaultReduceProductionIdx: ptr(0)}},
+			States:  []backend.State{{DefaultReduceProductionIdx: new(0)}},
 		}
 
 		compressed := expectDecodeEquivalence(parser)

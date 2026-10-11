@@ -56,7 +56,7 @@ prepare: generate
 		--env GOMODCACHE=/.cache/mod \
 		--volume ~/.cache/golangci-lint:/.cache/golangci-lint \
 		--env GOLANGCI_LINT_CACHE=/.cache/golangci-lint \
-		golangci/golangci-lint:v2.12.2 \
+		golangci/golangci-lint:v2.14.0 \
 		golangci-lint run --fix $(PACKAGE)
 	docker run \
 		--tty \
