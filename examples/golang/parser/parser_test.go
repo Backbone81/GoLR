@@ -685,6 +685,8 @@ var _ = Describe("Golang Parser", func() {
 			Entry("Method declaration", "func (p *Point) Scale(factor float64) {}"),
 			Entry("Method declaration", "func (p Pair[A, B]) Swap() Pair[B, A]{}"),
 			Entry("Method declaration", "func (p Pair[First, _]) First() First{}"),
+			Entry("Method declaration", "func (r *Rand) N[Int intType](n Int) Int {}"),
+			Entry("Method declaration", "func (p Pair[A, B]) Map[C, D any](f func(A, B) (C, D)) Pair[C, D]"),
 		)
 	})
 

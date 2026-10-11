@@ -1174,5 +1174,7 @@
     MethodDecl
         : "func" Parameters identifier Signature
         | "func" Parameters identifier Signature Block
+        | "func" Parameters identifier FuncTypeParameters Signature
+        | "func" Parameters identifier FuncTypeParameters Signature Block
         ;
 }
