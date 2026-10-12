@@ -13,6 +13,7 @@ import (
 	"github.com/backbone81/golr/internal/lsp/base"
 	"github.com/backbone81/golr/internal/lsp/jsonrpc"
 	"github.com/backbone81/golr/internal/lsp/protocol"
+	"github.com/backbone81/golr/internal/lsp/stopgap"
 )
 
 // errEndOfSession ends Run after the exit notification.
@@ -44,7 +45,7 @@ func New(logger *slog.Logger, version string, parallel bool) *Server {
 		version:   version,
 		parallel:  parallel,
 		encoding:  protocol.PositionEncodingKindUTF16,
-		documents: &Documents{snapshots: map[protocol.DocumentUri]*Snapshot{}},
+		documents: &Documents{snapshots: map[stopgap.DocumentUri]*Snapshot{}},
 		pending:   make(map[string]context.CancelFunc),
 	}
 }

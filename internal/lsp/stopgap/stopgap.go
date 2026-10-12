@@ -1,9 +1,12 @@
-package protocol
+// Package stopgap holds the subset of the protocol which formatting needs, written by hand. The types generated into
+// package protocol replace it once they can be decoded.
+package stopgap
 
-// This file holds the subset of the protocol which formatting needs, written by hand. The code generated from the meta
-// model replaces it in the future.
+import (
+	"encoding/json"
 
-import "encoding/json"
+	"github.com/backbone81/golr/internal/lsp/protocol"
+)
 
 // CancelParams is defined in the LSP specification at
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification#cancelRequest
@@ -61,7 +64,7 @@ type TextDocumentItem struct {
 // GeneralClientCapabilities is defined in the LSP specification at
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification#generalClientCapabilities
 type GeneralClientCapabilities struct {
-	PositionEncodings []PositionEncodingKind `json:"positionEncodings"`
+	PositionEncodings []protocol.PositionEncodingKind `json:"positionEncodings"`
 }
 
 // ClientCapabilities is defined in the LSP specification at
@@ -79,9 +82,9 @@ type InitializeParams struct {
 // ServerCapabilities is defined in the LSP specification at
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification#serverCapabilities
 type ServerCapabilities struct {
-	PositionEncoding           PositionEncodingKind `json:"positionEncoding,omitempty"`
-	TextDocumentSync           TextDocumentSyncKind `json:"textDocumentSync,omitempty"`
-	DocumentFormattingProvider bool                 `json:"documentFormattingProvider,omitempty"`
+	PositionEncoding           protocol.PositionEncodingKind `json:"positionEncoding,omitempty"`
+	TextDocumentSync           protocol.TextDocumentSyncKind `json:"textDocumentSync,omitempty"`
+	DocumentFormattingProvider bool                          `json:"documentFormattingProvider,omitempty"`
 }
 
 // ServerInfo is defined in the LSP specification at

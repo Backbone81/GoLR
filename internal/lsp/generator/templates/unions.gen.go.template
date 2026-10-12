@@ -1,0 +1,15 @@
+{{ template "header" . }}
+
+import "encoding/json"
+{{ range $.Unions }}{{ $items := $.UnionItems . }}
+// {{ .Name }} holds a value of type {{ typeList $items }}.
+{{ deprecation .Annotations }}type {{ .Name }} struct{ value any }
+
+func New{{ .Name }}[T {{ join $items " | " }}](value T) {{ .Name }} {
+	return {{ .Name }}{value: value}
+}
+
+func (u {{ .Name }}) Value() any { return u.value }
+
+func (u {{ .Name }}) MarshalJSON() ([]byte, error) { return json.Marshal(u.value) }
+{{ end }}

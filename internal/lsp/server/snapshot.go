@@ -5,11 +5,12 @@ import (
 	"sync"
 
 	"github.com/backbone81/golr/internal/lsp/protocol"
+	"github.com/backbone81/golr/internal/lsp/stopgap"
 )
 
 // Snapshot is an immutable version of a document. Its derived data is built on first use.
 type Snapshot struct {
-	URI     protocol.DocumentUri
+	URI     stopgap.DocumentUri
 	Version int
 
 	// Text has "\n" line endings only.
@@ -21,7 +22,7 @@ type Snapshot struct {
 }
 
 func newSnapshot(
-	uri protocol.DocumentUri,
+	uri stopgap.DocumentUri,
 	version int,
 	text string,
 	encoding protocol.PositionEncodingKind,
@@ -35,12 +36,12 @@ func newSnapshot(
 }
 
 // Position returns the position of the byte offset in the encoding negotiated with the client.
-func (s *Snapshot) Position(offset int) protocol.Position {
+func (s *Snapshot) Position(offset int) stopgap.Position {
 	return s.LineTable().Position(offset, s.encoding)
 }
 
 // Offset returns the byte offset of the position in the encoding negotiated with the client.
-func (s *Snapshot) Offset(position protocol.Position) int {
+func (s *Snapshot) Offset(position stopgap.Position) int {
 	return s.LineTable().Offset(position, s.encoding)
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/backbone81/golr/internal/lsp/protocol"
 	"github.com/backbone81/golr/internal/lsp/server"
+	"github.com/backbone81/golr/internal/lsp/stopgap"
 )
 
 var _ = Describe("LineTable", func() {
@@ -15,7 +16,7 @@ var _ = Describe("LineTable", func() {
 	DescribeTable("converts in both directions",
 		func(offset int, encoding protocol.PositionEncodingKind, line int, character int) {
 			table := server.NewLineTable(text)
-			position := protocol.Position{Line: line, Character: character}
+			position := stopgap.Position{Line: line, Character: character}
 			Expect(table.Position(offset, encoding)).To(Equal(position))
 			Expect(table.Offset(position, encoding)).To(Equal(offset))
 		},
@@ -32,28 +33,28 @@ var _ = Describe("LineTable", func() {
 
 	It("clamps an offset outside the text", func() {
 		table := server.NewLineTable(text)
-		Expect(table.Position(-1, protocol.PositionEncodingKindUTF16)).To(Equal(protocol.Position{}))
-		Expect(table.Position(100, protocol.PositionEncodingKindUTF16)).To(Equal(protocol.Position{Line: 3, Character: 4}))
+		Expect(table.Position(-1, protocol.PositionEncodingKindUTF16)).To(Equal(stopgap.Position{}))
+		Expect(table.Position(100, protocol.PositionEncodingKindUTF16)).To(Equal(stopgap.Position{Line: 3, Character: 4}))
 	})
 
 	It("has an empty last line after a final newline", func() {
 		table := server.NewLineTable([]byte("a\n"))
-		Expect(table.Position(2, protocol.PositionEncodingKindUTF16)).To(Equal(protocol.Position{Line: 1, Character: 0}))
+		Expect(table.Position(2, protocol.PositionEncodingKindUTF16)).To(Equal(stopgap.Position{Line: 1, Character: 0}))
 	})
 
 	DescribeTable("falls back on positions which are no character boundary",
-		func(position protocol.Position, encoding protocol.PositionEncodingKind, offset int) {
+		func(position stopgap.Position, encoding protocol.PositionEncodingKind, offset int) {
 			Expect(server.NewLineTable(text).Offset(position, encoding)).To(Equal(offset))
 		},
-		Entry("beyond the line end", protocol.Position{Line: 0, Character: 10}, protocol.PositionEncodingKindUTF16, 2),
+		Entry("beyond the line end", stopgap.Position{Line: 0, Character: 10}, protocol.PositionEncodingKindUTF16, 2),
 		Entry("beyond the line end in UTF-8",
-			protocol.Position{Line: 0, Character: 10}, protocol.PositionEncodingKindUTF8, 2),
-		Entry("beyond the last line", protocol.Position{Line: 10, Character: 0}, protocol.PositionEncodingKindUTF16, 16),
-		Entry("inside a surrogate pair", protocol.Position{Line: 1, Character: 2}, protocol.PositionEncodingKindUTF16, 5),
-		Entry("inside a UTF-8 sequence", protocol.Position{Line: 1, Character: 4}, protocol.PositionEncodingKindUTF8, 5),
-		Entry("negative line", protocol.Position{Line: -1, Character: 1}, protocol.PositionEncodingKindUTF16, 1),
-		Entry("negative character", protocol.Position{Line: 1, Character: -1}, protocol.PositionEncodingKindUTF16, 3),
+			stopgap.Position{Line: 0, Character: 10}, protocol.PositionEncodingKindUTF8, 2),
+		Entry("beyond the last line", stopgap.Position{Line: 10, Character: 0}, protocol.PositionEncodingKindUTF16, 16),
+		Entry("inside a surrogate pair", stopgap.Position{Line: 1, Character: 2}, protocol.PositionEncodingKindUTF16, 5),
+		Entry("inside a UTF-8 sequence", stopgap.Position{Line: 1, Character: 4}, protocol.PositionEncodingKindUTF8, 5),
+		Entry("negative line", stopgap.Position{Line: -1, Character: 1}, protocol.PositionEncodingKindUTF16, 1),
+		Entry("negative character", stopgap.Position{Line: 1, Character: -1}, protocol.PositionEncodingKindUTF16, 3),
 		Entry("negative character in UTF-8",
-			protocol.Position{Line: 1, Character: -1}, protocol.PositionEncodingKindUTF8, 3),
+			stopgap.Position{Line: 1, Character: -1}, protocol.PositionEncodingKindUTF8, 3),
 	)
 })

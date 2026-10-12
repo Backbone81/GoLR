@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"github.com/backbone81/golr/internal/lsp/protocol"
+	"github.com/backbone81/golr/internal/lsp/stopgap"
 )
 
 // LineTable converts between byte offsets of a text with "\n" line endings and LSP positions. Columns skip UTF-8
@@ -28,7 +29,7 @@ func NewLineTable(text []byte) *LineTable {
 }
 
 // Position returns the position of the byte offset, which is clamped to the text.
-func (t *LineTable) Position(offset int, encoding protocol.PositionEncodingKind) protocol.Position {
+func (t *LineTable) Position(offset int, encoding protocol.PositionEncodingKind) stopgap.Position {
 	offset = min(max(offset, 0), len(t.text))
 	line, found := slices.BinarySearch(t.lineStarts, offset)
 	if !found {
@@ -43,7 +44,7 @@ func (t *LineTable) Position(offset int, encoding protocol.PositionEncodingKind)
 			character += t.utf16Units(value)
 		}
 	}
-	return protocol.Position{
+	return stopgap.Position{
 		Line:      line,
 		Character: character,
 	}
@@ -52,7 +53,7 @@ func (t *LineTable) Position(offset int, encoding protocol.PositionEncodingKind)
 // Offset returns the byte offset of the position. A position beyond the end of its line is the end of the line, one
 // inside a character is the start of the character, a line beyond the text is the end of the text, and a negative
 // line or character is 0.
-func (t *LineTable) Offset(position protocol.Position, encoding protocol.PositionEncodingKind) int {
+func (t *LineTable) Offset(position stopgap.Position, encoding protocol.PositionEncodingKind) int {
 	line := max(position.Line, 0)
 	if line >= len(t.lineStarts) {
 		return len(t.text)
