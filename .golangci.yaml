@@ -130,6 +130,9 @@ linters:
         linters:
           - forbidigo
           - gochecknoinits
+      - path: ^internal/lsp/generator/cmd/
+        linters:
+          - gochecknoinits
       - path: ^internal/format-benchmarks/
         linters:
           - forbidigo

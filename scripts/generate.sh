@@ -28,6 +28,9 @@ go run ./cmd/golr parser \
   --backend go \
   --backend-file-path internal/parsergen/frontend/golr/parser/parser.go
 
+# Generate the Language Server Protocol types from the meta model of the specification.
+go run ./internal/lsp/generator/cmd
+
 # Generate the scanners the IDE integrations wrap, so the editors tokenize GoLR files exactly
 # the way GoLR itself does. Both are driven from the same spec as the GoLR frontend above.
 go run ./cmd/golr scanner \

@@ -13,21 +13,21 @@ var _ = Describe("LineTable", func() {
 	text := []byte("ab\nä😀c\n\nlast")
 
 	DescribeTable("converts in both directions",
-		func(offset int, encoding protocol.PositionEncodingKind, line uint32, character uint32) {
+		func(offset int, encoding protocol.PositionEncodingKind, line int, character int) {
 			table := server.NewLineTable(text)
 			position := protocol.Position{Line: line, Character: character}
 			Expect(table.Position(offset, encoding)).To(Equal(position))
 			Expect(table.Offset(position, encoding)).To(Equal(offset))
 		},
-		Entry("start of text", 0, protocol.PositionEncodingKindUTF16, uint32(0), uint32(0)),
-		Entry("end of first line", 2, protocol.PositionEncodingKindUTF16, uint32(0), uint32(2)),
-		Entry("start of second line", 3, protocol.PositionEncodingKindUTF16, uint32(1), uint32(0)),
-		Entry("after a two byte character in UTF-16", 5, protocol.PositionEncodingKindUTF16, uint32(1), uint32(1)),
-		Entry("after a two byte character in UTF-8", 5, protocol.PositionEncodingKindUTF8, uint32(1), uint32(2)),
-		Entry("after a surrogate pair in UTF-16", 9, protocol.PositionEncodingKindUTF16, uint32(1), uint32(3)),
-		Entry("after a four byte character in UTF-8", 9, protocol.PositionEncodingKindUTF8, uint32(1), uint32(6)),
-		Entry("empty line", 11, protocol.PositionEncodingKindUTF16, uint32(2), uint32(0)),
-		Entry("end of text without final newline", 16, protocol.PositionEncodingKindUTF16, uint32(3), uint32(4)),
+		Entry("start of text", 0, protocol.PositionEncodingKindUTF16, 0, 0),
+		Entry("end of first line", 2, protocol.PositionEncodingKindUTF16, 0, 2),
+		Entry("start of second line", 3, protocol.PositionEncodingKindUTF16, 1, 0),
+		Entry("after a two byte character in UTF-16", 5, protocol.PositionEncodingKindUTF16, 1, 1),
+		Entry("after a two byte character in UTF-8", 5, protocol.PositionEncodingKindUTF8, 1, 2),
+		Entry("after a surrogate pair in UTF-16", 9, protocol.PositionEncodingKindUTF16, 1, 3),
+		Entry("after a four byte character in UTF-8", 9, protocol.PositionEncodingKindUTF8, 1, 6),
+		Entry("empty line", 11, protocol.PositionEncodingKindUTF16, 2, 0),
+		Entry("end of text without final newline", 16, protocol.PositionEncodingKindUTF16, 3, 4),
 	)
 
 	It("clamps an offset outside the text", func() {
@@ -51,5 +51,9 @@ var _ = Describe("LineTable", func() {
 		Entry("beyond the last line", protocol.Position{Line: 10, Character: 0}, protocol.PositionEncodingKindUTF16, 16),
 		Entry("inside a surrogate pair", protocol.Position{Line: 1, Character: 2}, protocol.PositionEncodingKindUTF16, 5),
 		Entry("inside a UTF-8 sequence", protocol.Position{Line: 1, Character: 4}, protocol.PositionEncodingKindUTF8, 5),
+		Entry("negative line", protocol.Position{Line: -1, Character: 1}, protocol.PositionEncodingKindUTF16, 1),
+		Entry("negative character", protocol.Position{Line: 1, Character: -1}, protocol.PositionEncodingKindUTF16, 3),
+		Entry("negative character in UTF-8",
+			protocol.Position{Line: 1, Character: -1}, protocol.PositionEncodingKindUTF8, 3),
 	)
 })

@@ -44,15 +44,16 @@ func (t *LineTable) Position(offset int, encoding protocol.PositionEncodingKind)
 		}
 	}
 	return protocol.Position{
-		Line:      uint32(line), //nolint:gosec // A line index is below the text length.
-		Character: uint32(character),
+		Line:      line,
+		Character: character,
 	}
 }
 
 // Offset returns the byte offset of the position. A position beyond the end of its line is the end of the line, one
-// inside a character is the start of the character, and a line beyond the text is the end of the text.
+// inside a character is the start of the character, a line beyond the text is the end of the text, and a negative
+// line or character is 0.
 func (t *LineTable) Offset(position protocol.Position, encoding protocol.PositionEncodingKind) int {
-	line := int(position.Line)
+	line := max(position.Line, 0)
 	if line >= len(t.lineStarts) {
 		return len(t.text)
 	}
@@ -62,7 +63,7 @@ func (t *LineTable) Offset(position protocol.Position, encoding protocol.Positio
 		lineEnd = t.lineStarts[line+1] - 1
 	}
 
-	character := int(position.Character)
+	character := max(position.Character, 0)
 	if encoding == protocol.PositionEncodingKindUTF8 {
 		offset := min(lineStart+character, lineEnd)
 		for offset > lineStart && t.isContinuationByte(t.text[offset]) {

@@ -10,7 +10,7 @@ import (
 // Snapshot is an immutable version of a document. Its derived data is built on first use.
 type Snapshot struct {
 	URI     protocol.DocumentUri
-	Version int32
+	Version int
 
 	// Text has "\n" line endings only.
 	Text []byte
@@ -22,7 +22,7 @@ type Snapshot struct {
 
 func newSnapshot(
 	uri protocol.DocumentUri,
-	version int32,
+	version int,
 	text string,
 	encoding protocol.PositionEncodingKind,
 ) *Snapshot {

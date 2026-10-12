@@ -1,0 +1,10 @@
+{{ template "header" . }}
+{{ range $enumeration := .MetaModel.Enumerations }}
+{{ deprecation .Annotations }}type {{ .Name }} {{ enumerationGoType . }}
+
+const (
+{{- range .Values }}
+{{ deprecation .Annotations }}{{ enumerationValueName $enumeration . }} {{ $enumeration.Name }} = {{ enumerationValue . }}
+{{- end }}
+)
+{{ end }}
