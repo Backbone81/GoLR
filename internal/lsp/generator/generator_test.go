@@ -24,6 +24,13 @@ var _ = Describe("MetaModelToDirectory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(content)).To(MatchRegexp(`^// Code generated .* DO NOT EDIT\.\n`))
 		}
-		Expect(names).To(ConsistOf("enums.gen.go", "methods.gen.go", "structures.gen.go", "unions.gen.go"))
+		Expect(names).To(ConsistOf(
+			"decode.gen.go",
+			"decode.gen_test.go",
+			"enums.gen.go",
+			"methods.gen.go",
+			"structures.gen.go",
+			"unions.gen.go",
+		))
 	})
 })

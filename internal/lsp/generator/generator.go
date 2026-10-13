@@ -24,10 +24,13 @@ var parsedTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 	"enumerationGoType":    enumerationGoType,
 	"enumerationValueName": enumerationValueName,
 	"enumerationValue":     enumerationValue,
+	"enumerationDecoder":   enumerationDecoder,
 	"exported":             exported,
 	"propertyTag":          propertyTag,
 	"typeList":             typeList,
 	"join":                 strings.Join,
+	"hasPrefix":            strings.HasPrefix,
+	"qualified":            qualified,
 }).ParseFS(templateFiles, "templates/*.go.template"))
 
 type TemplateContext struct {
@@ -46,7 +49,13 @@ func MetaModelToDirectory(directory string, model *MetaModel) error {
 	if err := toFile(filepath.Join(directory, structuresFileName), model, StructuresFromMetaModel); err != nil {
 		return err
 	}
-	return toFile(filepath.Join(directory, unionsFileName), model, UnionsFromMetaModel)
+	if err := toFile(filepath.Join(directory, unionsFileName), model, UnionsFromMetaModel); err != nil {
+		return err
+	}
+	if err := toFile(filepath.Join(directory, decodeFileName), model, DecodeFromMetaModel); err != nil {
+		return err
+	}
+	return toFile(filepath.Join(directory, unionArmsTestFileName), model, UnionArmsTestFromMetaModel)
 }
 
 // toFile writes the output of the write function into the file.

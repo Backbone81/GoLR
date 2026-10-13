@@ -85,27 +85,58 @@ func (c TemplateContext) mergeProperties(
 	return properties
 }
 
-// PropertyGoType returns the Go type of the field of a property. An optional property is an Optional, except a
+// fieldWrapper tells how the field of a property wraps the Go type of the property.
+type fieldWrapper int
+
+const (
+	// noWrapper is the Go type of the property itself.
+	noWrapper fieldWrapper = iota
+
+	// pointerWrapper is a pointer to the Go type of the property.
+	pointerWrapper
+
+	// optionalWrapper is an Optional of the Go type of the property.
+	optionalWrapper
+)
+
+// PropertyGoType returns the Go type of the field of a property.
+func (c TemplateContext) PropertyGoType(property StructureProperty) string {
+	goType := c.goType(c.propertyUnionName(property), property.Type)
+	switch c.fieldWrapper(property) {
+	case pointerWrapper:
+		return "*" + goType
+	case optionalWrapper:
+		return "Optional[" + goType + "]"
+	case noWrapper:
+	}
+	return goType
+}
+
+// fieldWrapper returns how the field of a property wraps its Go type. An optional property is an Optional, except a
 // collection or union which is absent as its zero value, and a reference to the declaring structure, which is a
 // pointer.
-func (c TemplateContext) PropertyGoType(property StructureProperty) string {
-	goType := c.goType(property.Structure+exported(property.Name), property.Type)
+func (c TemplateContext) fieldWrapper(property StructureProperty) fieldWrapper {
 	if !property.Optional {
-		return goType
+		return noWrapper
 	}
 	if property.Type.Kind == TypeKindReference && property.Type.Name == property.Structure {
-		return "*" + goType
+		return pointerWrapper
 	}
 	switch c.category(property.Type) {
 	case collectionCategory:
 		if !isNullable(property.Type) {
-			return goType
+			return noWrapper
 		}
 	case unionCategory:
-		return goType
+		return noWrapper
 	case valueCategory:
 	}
-	return "Optional[" + goType + "]"
+	return optionalWrapper
+}
+
+// propertyUnionName returns the name of a union in the type of a property.
+func (c TemplateContext) propertyUnionName(property StructureProperty) string {
+	return property.Structure + exported(property.Name)
 }
 
 // propertyTag returns the struct tag of the field of a property.
