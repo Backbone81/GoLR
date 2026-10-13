@@ -13,7 +13,6 @@ import (
 	"github.com/backbone81/golr/internal/lsp/base"
 	"github.com/backbone81/golr/internal/lsp/jsonrpc"
 	"github.com/backbone81/golr/internal/lsp/protocol"
-	"github.com/backbone81/golr/internal/lsp/stopgap"
 )
 
 // errEndOfSession ends Run after the exit notification.
@@ -45,7 +44,7 @@ func New(logger *slog.Logger, version string, parallel bool) *Server {
 		version:   version,
 		parallel:  parallel,
 		encoding:  protocol.PositionEncodingKindUTF16,
-		documents: &Documents{snapshots: map[stopgap.DocumentUri]*Snapshot{}},
+		documents: &Documents{snapshots: map[protocol.DocumentUri]*Snapshot{}},
 		pending:   make(map[string]context.CancelFunc),
 	}
 }
@@ -106,23 +105,23 @@ func (s *Server) dispatchRequestObject(ctx context.Context, content []byte) erro
 
 	switch *requestObject.Method {
 	case protocol.MethodInitialize:
-		return runImmediate(ctx, s, &requestObject, s.handleInitialize)
+		return runImmediate(ctx, s, &requestObject, protocol.DecodeInitializeParams, s.handleInitialize)
 	case protocol.MethodInitialized:
-		return runImmediate(ctx, s, &requestObject, s.handleInitialized)
+		return runImmediate(ctx, s, &requestObject, protocol.DecodeInitializedParams, s.handleInitialized)
 	case protocol.MethodShutdown:
-		return runImmediate(ctx, s, &requestObject, s.handleShutdown)
+		return runImmediate(ctx, s, &requestObject, s.decodeNoParams, s.handleShutdown)
 	case protocol.MethodExit:
-		return runImmediate(ctx, s, &requestObject, s.handleExit)
+		return runImmediate(ctx, s, &requestObject, s.decodeNoParams, s.handleExit)
 	case protocol.MethodCancelRequest:
-		return runImmediate(ctx, s, &requestObject, s.handleCancel)
+		return runImmediate(ctx, s, &requestObject, protocol.DecodeCancelParams, s.handleCancel)
 	case protocol.MethodTextDocumentDidOpen:
-		return runImmediate(ctx, s, &requestObject, s.handleDidOpenTextDocument)
+		return runImmediate(ctx, s, &requestObject, protocol.DecodeDidOpenTextDocumentParams, s.handleDidOpenTextDocument)
 	case protocol.MethodTextDocumentDidChange:
-		return runImmediate(ctx, s, &requestObject, s.handleDidChangeTextDocument)
+		return runImmediate(ctx, s, &requestObject, protocol.DecodeDidChangeTextDocumentParams, s.handleDidChangeTextDocument)
 	case protocol.MethodTextDocumentDidClose:
-		return runImmediate(ctx, s, &requestObject, s.handleDidCloseTextDocument)
+		return runImmediate(ctx, s, &requestObject, protocol.DecodeDidCloseTextDocumentParams, s.handleDidCloseTextDocument)
 	case protocol.MethodTextDocumentFormatting:
-		return runAsync(ctx, s, &requestObject, s.handleDocumentFormatting)
+		return runAsync(ctx, s, &requestObject, protocol.DecodeDocumentFormattingParams, s.handleDocumentFormatting)
 	default:
 		if requestObject.ID == nil {
 			// The server keeps no state for a notification it does not handle.
@@ -130,6 +129,11 @@ func (s *Server) dispatchRequestObject(ctx context.Context, content []byte) erro
 		}
 		return s.writeMethodNotFound(&requestObject)
 	}
+}
+
+// decodeNoParams decodes the params of a method without params, which are ignored.
+func (s *Server) decodeNoParams(any) (struct{}, error) {
+	return struct{}{}, nil
 }
 
 // writeMethodNotFound answers a request whose method the server does not handle.
@@ -193,18 +197,6 @@ func (s *Server) unmarshalRequestObject(content []byte, requestObject *jsonrpc.R
 		return fmt.Errorf("unsupported JSON-RPC version %q", requestObject.JSONRPC)
 	}
 	return nil
-}
-
-// unmarshalParams unmarshals the params. Absent params and null leave the zero value.
-func unmarshalParams[P any](raw json.RawMessage) (*P, error) {
-	var params P
-	if len(raw) == 0 {
-		return &params, nil
-	}
-	if err := json.Unmarshal(raw, &params); err != nil {
-		return nil, err
-	}
-	return &params, nil
 }
 
 // writeResponseObject writes a complete response object. Writes are serialized, so responses do not interleave. An

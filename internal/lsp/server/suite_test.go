@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/backbone81/golr/internal/lsp/base"
+	"github.com/backbone81/golr/internal/lsp/lsptest"
 	"github.com/backbone81/golr/internal/lsp/server"
 )
 
@@ -83,7 +84,19 @@ func runInput(parallel bool, input string) ([]string, error) {
 	var output bytes.Buffer
 	srv := server.New(slog.New(slog.DiscardHandler), "", parallel)
 	err := srv.Run(context.Background(), strings.NewReader(input), &output)
-	return readContents(&output), err
+	responses := readContents(&output)
+	lsptest.ExpectDecodableResults(requestContents(input), responses)
+	return responses, err
+}
+
+// requestContents returns the contents of the messages in the input up to the first broken one.
+func requestContents(input string) []string {
+	parser := base.NewProtocolParser(strings.NewReader(input))
+	var contents []string
+	for parser.Next() {
+		contents = append(contents, string(parser.Content()))
+	}
+	return contents
 }
 
 // readContents returns the contents of the messages the server wrote.

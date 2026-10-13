@@ -13,6 +13,16 @@ type ID struct {
 	text   *string
 }
 
+// NewNumberID returns the id of the integer.
+func NewNumberID(number int) ID {
+	return ID{number: &number}
+}
+
+// NewTextID returns the id of the string.
+func NewTextID(text string) ID {
+	return ID{text: &text}
+}
+
 func (id ID) MarshalJSON() ([]byte, error) {
 	if id.number != nil {
 		return json.Marshal(id.number)

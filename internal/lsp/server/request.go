@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -28,17 +29,18 @@ func runImmediate[P, R any](
 	ctx context.Context,
 	s *Server,
 	requestObject *jsonrpc.RequestObject,
+	decode func(any) (P, error),
 	handler func(ctx context.Context, documents *Documents, params *P) (R, error),
 ) error {
 	if requestObject.ID == nil {
-		if _, err := callHandler(ctx, s, requestObject, s.documents, handler); err != nil {
+		if _, err := callHandler(ctx, s, requestObject, s.documents, decode, handler); err != nil {
 			return fmt.Errorf("handling %s: %w", *requestObject.Method, err)
 		}
 		return nil
 	}
 	requestCtx, request := s.registerPendingRequest(ctx, requestObject)
 	defer s.unregisterPendingRequest(request)
-	return processRequest(requestCtx, s, request, s.documents, handler)
+	return processRequest(requestCtx, s, request, s.documents, decode, handler)
 }
 
 // runAsync answers a feature request in its own goroutine, so the next message is read while it runs. Without
@@ -49,17 +51,18 @@ func runAsync[P, R any](
 	ctx context.Context,
 	s *Server,
 	requestObject *jsonrpc.RequestObject,
+	decode func(any) (P, error),
 	handler func(ctx context.Context, documents *Documents, params *P) (R, error),
 ) error {
 	if !s.parallel || requestObject.ID == nil {
-		return runImmediate(ctx, s, requestObject, handler)
+		return runImmediate(ctx, s, requestObject, decode, handler)
 	}
 
 	requestCtx, request := s.registerPendingRequest(ctx, requestObject)
 	documents := s.documents
 	s.requests.Go(func() {
 		defer s.unregisterPendingRequest(request)
-		if err := processRequest(requestCtx, s, request, documents, handler); err != nil {
+		if err := processRequest(requestCtx, s, request, documents, decode, handler); err != nil {
 			s.logger.Error("Answering request failed.", "method", *requestObject.Method, "error", err)
 		}
 	})
@@ -73,13 +76,14 @@ func processRequest[P, R any](
 	s *Server,
 	request pendingRequest,
 	documents *Documents,
+	decode func(any) (P, error),
 	handler func(ctx context.Context, documents *Documents, params *P) (R, error),
 ) error {
 	if ctx.Err() != nil {
 		return s.writeResponse(request, nil, ctx.Err())
 	}
 
-	result, err := callHandler(ctx, s, request.message, documents, handler)
+	result, err := callHandler(ctx, s, request.message, documents, decode, handler)
 	if errors.Is(err, errEndOfSession) {
 		// Exit ends the session even with an id.
 		return err
@@ -87,8 +91,8 @@ func processRequest[P, R any](
 	return s.writeResponse(request, result, err)
 }
 
-// callHandler unmarshals the params and runs the handler. Params which do not unmarshal give an InvalidParams
-// Error, a panic gives an error.
+// callHandler decodes the params with the decode function and runs the handler. Params which do not decode give an
+// InvalidParams Error, a panic gives an error.
 //
 //nolint:nonamedreturns,ireturn // Named returns are required to report a recovered panic.
 func callHandler[P, R any](
@@ -96,6 +100,7 @@ func callHandler[P, R any](
 	s *Server,
 	message *jsonrpc.RequestObject,
 	documents *Documents,
+	decode func(any) (P, error),
 	handler func(ctx context.Context, documents *Documents, params *P) (R, error),
 ) (result R, err error) {
 	defer func() {
@@ -109,7 +114,7 @@ func callHandler[P, R any](
 		}
 	}()
 
-	params, err := unmarshalParams[P](message.Params)
+	params, err := decodeParams(message.Params, decode)
 	if err != nil {
 		return result, NewError(jsonrpc.ErrorCodeInvalidParams, err.Error())
 	}
@@ -188,4 +193,26 @@ func (s *Server) unregisterPendingRequest(request pendingRequest) {
 
 	delete(s.pending, request.message.ID.String())
 	request.cancel()
+}
+
+// decodeParams decodes the params with the decode function. Absent params and null leave the zero value.
+func decodeParams[P any](raw json.RawMessage, decode func(any) (P, error)) (*P, error) {
+	var params P
+	if len(raw) == 0 {
+		return &params, nil
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	var tree any
+	if err := decoder.Decode(&tree); err != nil {
+		return nil, err
+	}
+	if tree == nil {
+		return &params, nil
+	}
+	params, err := decode(tree)
+	if err != nil {
+		return nil, err
+	}
+	return &params, nil
 }

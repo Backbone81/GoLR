@@ -94,10 +94,10 @@ var _ = Describe("Handler", func() {
 		Expect(responses[1]).To(MatchJSON(unchanged[1]))
 	})
 
-	It("ignores a $/cancelRequest with a broken or unknown id", func() {
+	It("ignores a $/cancelRequest without id or with an unknown id", func() {
 		responses, err := run(false,
 			initializeRequest,
-			`{"jsonrpc":"2.0","method":"$/cancelRequest","params":{"id":true}}`,
+			`{"jsonrpc":"2.0","method":"$/cancelRequest","params":{}}`,
 			`{"jsonrpc":"2.0","method":"$/cancelRequest"}`,
 			`{"jsonrpc":"2.0","method":"$/cancelRequest","params":{"id":99}}`,
 			unknownRequest,

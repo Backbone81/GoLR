@@ -24,6 +24,14 @@ var _ = Describe("ID", func() {
 		Entry("null", `null`, `null`),
 	)
 
+	It("equals the decoded id when built", func() {
+		var number, text jsonrpc.ID
+		Expect(json.Unmarshal([]byte(`7`), &number)).To(Succeed())
+		Expect(json.Unmarshal([]byte(`"7"`), &text)).To(Succeed())
+		Expect(jsonrpc.NewNumberID(7)).To(Equal(number))
+		Expect(jsonrpc.NewTextID("7")).To(Equal(text))
+	})
+
 	It("keeps an integer and a string of the same digits apart", func() {
 		var number, text jsonrpc.ID
 		Expect(json.Unmarshal([]byte(`7`), &number)).To(Succeed())

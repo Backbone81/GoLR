@@ -3,17 +3,17 @@ package server
 import (
 	"maps"
 
-	"github.com/backbone81/golr/internal/lsp/stopgap"
+	"github.com/backbone81/golr/internal/lsp/protocol"
 )
 
 // Documents holds the snapshots of the open documents at one moment. A change creates new Documents, so a value never
 // changes.
 type Documents struct {
-	snapshots map[stopgap.DocumentUri]*Snapshot
+	snapshots map[protocol.DocumentUri]*Snapshot
 }
 
 // Snapshot returns the snapshot of the document, or false when it is not open.
-func (d *Documents) Snapshot(uri stopgap.DocumentUri) (*Snapshot, bool) {
+func (d *Documents) Snapshot(uri protocol.DocumentUri) (*Snapshot, bool) {
 	snapshot, ok := d.snapshots[uri]
 	return snapshot, ok
 }
@@ -26,7 +26,7 @@ func (d *Documents) with(snapshot *Snapshot) *Documents {
 }
 
 // without returns the documents without the document.
-func (d *Documents) without(uri stopgap.DocumentUri) *Documents {
+func (d *Documents) without(uri protocol.DocumentUri) *Documents {
 	snapshots := maps.Clone(d.snapshots)
 	delete(snapshots, uri)
 	return &Documents{snapshots: snapshots}

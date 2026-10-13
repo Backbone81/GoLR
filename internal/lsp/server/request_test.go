@@ -105,12 +105,18 @@ var _ = Describe("Request", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(responses).To(ConsistOf(MatchJSON(initializeResponse)))
 		},
-		Entry("with params which do not unmarshal",
+		Entry("with params which do not decode",
 			`{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":"broken"}}`),
 		Entry("with params which are no object",
 			`{"jsonrpc":"2.0","method":"textDocument/didChange","params":"broken"}`),
 		Entry("with $/cancelRequest params which are no object",
 			`{"jsonrpc":"2.0","method":"$/cancelRequest","params":"broken"}`),
+		Entry("with a $/cancelRequest id which is neither integer nor string",
+			`{"jsonrpc":"2.0","method":"$/cancelRequest","params":{"id":true}}`),
+		Entry("with an incremental change",
+			`{"jsonrpc":"2.0","method":"textDocument/didChange","params":{
+				"textDocument":{"uri":"file:///a.golr","version":2},"contentChanges":[{
+				"range":{"start":{"line":0,"character":0},"end":{"line":0,"character":0}},"text":"a"}]}}`),
 		Entry("as a request without id",
 			`{"jsonrpc":"2.0","method":"textDocument/formatting","params":{"textDocument":{"uri":"file:///a.golr"}}}`),
 	)

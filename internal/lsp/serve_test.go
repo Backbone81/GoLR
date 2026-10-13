@@ -10,6 +10,7 @@ import (
 
 	"github.com/backbone81/golr/internal/lsp"
 	"github.com/backbone81/golr/internal/lsp/base"
+	"github.com/backbone81/golr/internal/lsp/lsptest"
 )
 
 const (
@@ -74,5 +75,6 @@ func serve(options []lsp.Option, messages ...string) ([]string, error) {
 		bodies = append(bodies, string(parser.Content()))
 	}
 	Expect(parser.Err()).NotTo(HaveOccurred())
+	lsptest.ExpectDecodableResults(messages, bodies)
 	return bodies, err
 }
