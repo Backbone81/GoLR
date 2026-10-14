@@ -5,7 +5,7 @@
 
 package protocol
 {{ range $enumeration := .MetaModel.Enumerations }}
-{{ deprecation .Annotations }}type {{ .Name }} {{ enumerationGoType . }}
+{{ $.TypeComment .Name .Annotations }}type {{ .Name }} {{ enumerationGoType . }}
 
 const (
 {{- range .Values }}

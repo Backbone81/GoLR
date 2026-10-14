@@ -9,6 +9,7 @@ type DocumentUri string
 
 type URI string
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#implementationParams.
 type ImplementationParams struct {
 	TextDocument       TextDocumentIdentifier `json:"textDocument"`
 	Position           Position               `json:"position"`
@@ -16,17 +17,20 @@ type ImplementationParams struct {
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#location.
 type Location struct {
 	Uri   DocumentUri `json:"uri"`
 	Range Range       `json:"range"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#implementationRegistrationOptions.
 type ImplementationRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	Id               Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#typeDefinitionParams.
 type TypeDefinitionParams struct {
 	TextDocument       TextDocumentIdentifier `json:"textDocument"`
 	Position           Position               `json:"position"`
@@ -34,42 +38,50 @@ type TypeDefinitionParams struct {
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#typeDefinitionRegistrationOptions.
 type TypeDefinitionRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	Id               Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceFolder.
 type WorkspaceFolder struct {
 	Uri  URI    `json:"uri"`
 	Name string `json:"name"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didChangeWorkspaceFoldersParams.
 type DidChangeWorkspaceFoldersParams struct {
 	Event WorkspaceFoldersChangeEvent `json:"event"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#configurationParams.
 type ConfigurationParams struct {
 	Items []ConfigurationItem `json:"items"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentColorParams.
 type DocumentColorParams struct {
 	WorkDoneToken      ProgressToken          `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
 	TextDocument       TextDocumentIdentifier `json:"textDocument"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#colorInformation.
 type ColorInformation struct {
 	Range Range `json:"range"`
 	Color Color `json:"color"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentColorRegistrationOptions.
 type DocumentColorRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	Id               Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#colorPresentationParams.
 type ColorPresentationParams struct {
 	WorkDoneToken      ProgressToken          `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
@@ -78,18 +90,21 @@ type ColorPresentationParams struct {
 	Range              Range                  `json:"range"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#colorPresentation.
 type ColorPresentation struct {
 	Label               string             `json:"label"`
 	TextEdit            Optional[TextEdit] `json:"textEdit,omitzero"`
 	AdditionalTextEdits []TextEdit         `json:"additionalTextEdits,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#foldingRangeParams.
 type FoldingRangeParams struct {
 	WorkDoneToken      ProgressToken          `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
 	TextDocument       TextDocumentIdentifier `json:"textDocument"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#foldingRange.
 type FoldingRange struct {
 	StartLine      int                        `json:"startLine"`
 	StartCharacter Optional[int]              `json:"startCharacter,omitzero"`
@@ -99,12 +114,14 @@ type FoldingRange struct {
 	CollapsedText  Optional[string]           `json:"collapsedText,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#foldingRangeRegistrationOptions.
 type FoldingRangeRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	Id               Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#declarationParams.
 type DeclarationParams struct {
 	TextDocument       TextDocumentIdentifier `json:"textDocument"`
 	Position           Position               `json:"position"`
@@ -112,12 +129,14 @@ type DeclarationParams struct {
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#declarationRegistrationOptions.
 type DeclarationRegistrationOptions struct {
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	Id               Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#selectionRangeParams.
 type SelectionRangeParams struct {
 	WorkDoneToken      ProgressToken          `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
@@ -125,31 +144,37 @@ type SelectionRangeParams struct {
 	Positions          []Position             `json:"positions"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#selectionRange.
 type SelectionRange struct {
 	Range  Range           `json:"range"`
 	Parent *SelectionRange `json:"parent,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#selectionRangeRegistrationOptions.
 type SelectionRangeRegistrationOptions struct {
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	Id               Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workDoneProgressCreateParams.
 type WorkDoneProgressCreateParams struct {
 	Token ProgressToken `json:"token"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workDoneProgressCancelParams.
 type WorkDoneProgressCancelParams struct {
 	Token ProgressToken `json:"token"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#callHierarchyPrepareParams.
 type CallHierarchyPrepareParams struct {
 	TextDocument  TextDocumentIdentifier `json:"textDocument"`
 	Position      Position               `json:"position"`
 	WorkDoneToken ProgressToken          `json:"workDoneToken,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#callHierarchyItem.
 type CallHierarchyItem struct {
 	Name           string           `json:"name"`
 	Kind           SymbolKind       `json:"kind"`
@@ -161,49 +186,58 @@ type CallHierarchyItem struct {
 	Data           LSPAny           `json:"data,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#callHierarchyRegistrationOptions.
 type CallHierarchyRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	Id               Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#callHierarchyIncomingCallsParams.
 type CallHierarchyIncomingCallsParams struct {
 	WorkDoneToken      ProgressToken     `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken     `json:"partialResultToken,omitzero"`
 	Item               CallHierarchyItem `json:"item"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#callHierarchyIncomingCall.
 type CallHierarchyIncomingCall struct {
 	From       CallHierarchyItem `json:"from"`
 	FromRanges []Range           `json:"fromRanges"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#callHierarchyOutgoingCallsParams.
 type CallHierarchyOutgoingCallsParams struct {
 	WorkDoneToken      ProgressToken     `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken     `json:"partialResultToken,omitzero"`
 	Item               CallHierarchyItem `json:"item"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#callHierarchyOutgoingCall.
 type CallHierarchyOutgoingCall struct {
 	To         CallHierarchyItem `json:"to"`
 	FromRanges []Range           `json:"fromRanges"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokensParams.
 type SemanticTokensParams struct {
 	WorkDoneToken      ProgressToken          `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
 	TextDocument       TextDocumentIdentifier `json:"textDocument"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokens.
 type SemanticTokens struct {
 	ResultId Optional[string] `json:"resultId,omitzero"`
 	Data     []int            `json:"data"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokensPartialResult.
 type SemanticTokensPartialResult struct {
 	Data []int `json:"data"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokensRegistrationOptions.
 type SemanticTokensRegistrationOptions struct {
 	DocumentSelector DocumentSelector           `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]             `json:"workDoneProgress,omitzero"`
@@ -213,6 +247,7 @@ type SemanticTokensRegistrationOptions struct {
 	Id               Optional[string]           `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokensDeltaParams.
 type SemanticTokensDeltaParams struct {
 	WorkDoneToken      ProgressToken          `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
@@ -220,15 +255,18 @@ type SemanticTokensDeltaParams struct {
 	PreviousResultId   string                 `json:"previousResultId"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokensDelta.
 type SemanticTokensDelta struct {
 	ResultId Optional[string]     `json:"resultId,omitzero"`
 	Edits    []SemanticTokensEdit `json:"edits"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokensDeltaPartialResult.
 type SemanticTokensDeltaPartialResult struct {
 	Edits []SemanticTokensEdit `json:"edits"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokensRangeParams.
 type SemanticTokensRangeParams struct {
 	WorkDoneToken      ProgressToken          `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
@@ -236,6 +274,7 @@ type SemanticTokensRangeParams struct {
 	Range              Range                  `json:"range"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#showDocumentParams.
 type ShowDocumentParams struct {
 	Uri       URI             `json:"uri"`
 	External  Optional[bool]  `json:"external,omitzero"`
@@ -243,49 +282,59 @@ type ShowDocumentParams struct {
 	Selection Optional[Range] `json:"selection,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#showDocumentResult.
 type ShowDocumentResult struct {
 	Success bool `json:"success"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#linkedEditingRangeParams.
 type LinkedEditingRangeParams struct {
 	TextDocument  TextDocumentIdentifier `json:"textDocument"`
 	Position      Position               `json:"position"`
 	WorkDoneToken ProgressToken          `json:"workDoneToken,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#linkedEditingRanges.
 type LinkedEditingRanges struct {
 	Ranges      []Range          `json:"ranges"`
 	WordPattern Optional[string] `json:"wordPattern,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#linkedEditingRangeRegistrationOptions.
 type LinkedEditingRangeRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	Id               Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#createFilesParams.
 type CreateFilesParams struct {
 	Files []FileCreate `json:"files"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceEdit.
 type WorkspaceEdit struct {
 	Changes           map[DocumentUri][]TextEdit                      `json:"changes,omitzero"`
 	DocumentChanges   []WorkspaceEditDocumentChanges                  `json:"documentChanges,omitzero"`
 	ChangeAnnotations map[ChangeAnnotationIdentifier]ChangeAnnotation `json:"changeAnnotations,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#fileOperationRegistrationOptions.
 type FileOperationRegistrationOptions struct {
 	Filters []FileOperationFilter `json:"filters"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#renameFilesParams.
 type RenameFilesParams struct {
 	Files []FileRename `json:"files"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#deleteFilesParams.
 type DeleteFilesParams struct {
 	Files []FileDelete `json:"files"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#monikerParams.
 type MonikerParams struct {
 	TextDocument       TextDocumentIdentifier `json:"textDocument"`
 	Position           Position               `json:"position"`
@@ -293,6 +342,7 @@ type MonikerParams struct {
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#moniker.
 type Moniker struct {
 	Scheme     string                `json:"scheme"`
 	Identifier string                `json:"identifier"`
@@ -300,17 +350,20 @@ type Moniker struct {
 	Kind       Optional[MonikerKind] `json:"kind,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#monikerRegistrationOptions.
 type MonikerRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#typeHierarchyPrepareParams.
 type TypeHierarchyPrepareParams struct {
 	TextDocument  TextDocumentIdentifier `json:"textDocument"`
 	Position      Position               `json:"position"`
 	WorkDoneToken ProgressToken          `json:"workDoneToken,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#typeHierarchyItem.
 type TypeHierarchyItem struct {
 	Name           string           `json:"name"`
 	Kind           SymbolKind       `json:"kind"`
@@ -322,24 +375,28 @@ type TypeHierarchyItem struct {
 	Data           LSPAny           `json:"data,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#typeHierarchyRegistrationOptions.
 type TypeHierarchyRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	Id               Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#typeHierarchySupertypesParams.
 type TypeHierarchySupertypesParams struct {
 	WorkDoneToken      ProgressToken     `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken     `json:"partialResultToken,omitzero"`
 	Item               TypeHierarchyItem `json:"item"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#typeHierarchySubtypesParams.
 type TypeHierarchySubtypesParams struct {
 	WorkDoneToken      ProgressToken     `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken     `json:"partialResultToken,omitzero"`
 	Item               TypeHierarchyItem `json:"item"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineValueParams.
 type InlineValueParams struct {
 	WorkDoneToken      ProgressToken          `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
@@ -348,12 +405,14 @@ type InlineValueParams struct {
 	Context            InlineValueContext     `json:"context"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineValueRegistrationOptions.
 type InlineValueRegistrationOptions struct {
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	Id               Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlayHintParams.
 type InlayHintParams struct {
 	WorkDoneToken      ProgressToken          `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
@@ -361,6 +420,7 @@ type InlayHintParams struct {
 	Range              Range                  `json:"range"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlayHint.
 type InlayHint struct {
 	Position     Position                `json:"position"`
 	Label        InlayHintLabel          `json:"label"`
@@ -372,6 +432,7 @@ type InlayHint struct {
 	Data         LSPAny                  `json:"data,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlayHintRegistrationOptions.
 type InlayHintRegistrationOptions struct {
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	ResolveProvider  Optional[bool]   `json:"resolveProvider,omitzero"`
@@ -379,6 +440,7 @@ type InlayHintRegistrationOptions struct {
 	Id               Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentDiagnosticParams.
 type DocumentDiagnosticParams struct {
 	WorkDoneToken      ProgressToken          `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
@@ -387,10 +449,12 @@ type DocumentDiagnosticParams struct {
 	PreviousResultId   Optional[string]       `json:"previousResultId,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#diagnosticServerCancellationData.
 type DiagnosticServerCancellationData struct {
 	RetriggerRequest bool `json:"retriggerRequest"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#diagnosticRegistrationOptions.
 type DiagnosticRegistrationOptions struct {
 	DocumentSelector      DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress      Optional[bool]   `json:"workDoneProgress,omitzero"`
@@ -400,6 +464,7 @@ type DiagnosticRegistrationOptions struct {
 	Id                    Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceDiagnosticParams.
 type WorkspaceDiagnosticParams struct {
 	WorkDoneToken      ProgressToken      `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken      `json:"partialResultToken,omitzero"`
@@ -407,39 +472,47 @@ type WorkspaceDiagnosticParams struct {
 	PreviousResultIds  []PreviousResultId `json:"previousResultIds"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceDiagnosticReport.
 type WorkspaceDiagnosticReport struct {
 	Items []WorkspaceDocumentDiagnosticReport `json:"items"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceDiagnosticReportPartialResult.
 type WorkspaceDiagnosticReportPartialResult struct {
 	Items []WorkspaceDocumentDiagnosticReport `json:"items"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didOpenNotebookDocumentParams.
 type DidOpenNotebookDocumentParams struct {
 	NotebookDocument  NotebookDocument   `json:"notebookDocument"`
 	CellTextDocuments []TextDocumentItem `json:"cellTextDocuments"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentSyncRegistrationOptions.
 type NotebookDocumentSyncRegistrationOptions struct {
 	NotebookSelector []NotebookDocumentSyncOptionsNotebookSelector `json:"notebookSelector"`
 	Save             Optional[bool]                                `json:"save,omitzero"`
 	Id               Optional[string]                              `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didChangeNotebookDocumentParams.
 type DidChangeNotebookDocumentParams struct {
 	NotebookDocument VersionedNotebookDocumentIdentifier `json:"notebookDocument"`
 	Change           NotebookDocumentChangeEvent         `json:"change"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didSaveNotebookDocumentParams.
 type DidSaveNotebookDocumentParams struct {
 	NotebookDocument NotebookDocumentIdentifier `json:"notebookDocument"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didCloseNotebookDocumentParams.
 type DidCloseNotebookDocumentParams struct {
 	NotebookDocument  NotebookDocumentIdentifier `json:"notebookDocument"`
 	CellTextDocuments []TextDocumentIdentifier   `json:"cellTextDocuments"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineCompletionParams.
 type InlineCompletionParams struct {
 	TextDocument       TextDocumentIdentifier  `json:"textDocument"`
 	Position           Position                `json:"position"`
@@ -448,10 +521,12 @@ type InlineCompletionParams struct {
 	Context            InlineCompletionContext `json:"context"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineCompletionList.
 type InlineCompletionList struct {
 	Items []InlineCompletionItem `json:"items"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineCompletionItem.
 type InlineCompletionItem struct {
 	InsertText InlineCompletionItemInsertText `json:"insertText"`
 	FilterText Optional[string]               `json:"filterText,omitzero"`
@@ -459,37 +534,45 @@ type InlineCompletionItem struct {
 	Command    Optional[Command]              `json:"command,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineCompletionRegistrationOptions.
 type InlineCompletionRegistrationOptions struct {
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	Id               Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentContentParams.
 type TextDocumentContentParams struct {
 	Uri DocumentUri `json:"uri"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentContentResult.
 type TextDocumentContentResult struct {
 	Text string `json:"text"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentContentRegistrationOptions.
 type TextDocumentContentRegistrationOptions struct {
 	Schemes []string         `json:"schemes"`
 	Id      Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentContentRefreshParams.
 type TextDocumentContentRefreshParams struct {
 	Uri DocumentUri `json:"uri"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#registrationParams.
 type RegistrationParams struct {
 	Registrations []Registration `json:"registrations"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#unregistrationParams.
 type UnregistrationParams struct {
 	Unregisterations []Unregistration `json:"unregisterations"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#initializeParams.
 type InitializeParams struct {
 	WorkDoneToken ProgressToken        `json:"workDoneToken,omitzero"`
 	ProcessId     *int                 `json:"processId"`
@@ -505,102 +588,124 @@ type InitializeParams struct {
 	WorkspaceFolders      Optional[[]WorkspaceFolder] `json:"workspaceFolders,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#initializeResult.
 type InitializeResult struct {
 	Capabilities ServerCapabilities   `json:"capabilities"`
 	ServerInfo   Optional[ServerInfo] `json:"serverInfo,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#initializeError.
 type InitializeError struct {
 	Retry bool `json:"retry"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#initializedParams.
 type InitializedParams struct {
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didChangeConfigurationParams.
 type DidChangeConfigurationParams struct {
 	Settings LSPAny `json:"settings"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didChangeConfigurationRegistrationOptions.
 type DidChangeConfigurationRegistrationOptions struct {
 	Section DidChangeConfigurationRegistrationOptionsSection `json:"section,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#showMessageParams.
 type ShowMessageParams struct {
 	Type    MessageType `json:"type"`
 	Message string      `json:"message"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#showMessageRequestParams.
 type ShowMessageRequestParams struct {
 	Type    MessageType         `json:"type"`
 	Message string              `json:"message"`
 	Actions []MessageActionItem `json:"actions,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#messageActionItem.
 type MessageActionItem struct {
 	Title string `json:"title"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#logMessageParams.
 type LogMessageParams struct {
 	Type    MessageType `json:"type"`
 	Message string      `json:"message"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didOpenTextDocumentParams.
 type DidOpenTextDocumentParams struct {
 	TextDocument TextDocumentItem `json:"textDocument"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentRegistrationOptions.
 type TextDocumentRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didChangeTextDocumentParams.
 type DidChangeTextDocumentParams struct {
 	TextDocument   VersionedTextDocumentIdentifier  `json:"textDocument"`
 	ContentChanges []TextDocumentContentChangeEvent `json:"contentChanges"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentChangeRegistrationOptions.
 type TextDocumentChangeRegistrationOptions struct {
 	DocumentSelector DocumentSelector     `json:"documentSelector"`
 	SyncKind         TextDocumentSyncKind `json:"syncKind"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didCloseTextDocumentParams.
 type DidCloseTextDocumentParams struct {
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didSaveTextDocumentParams.
 type DidSaveTextDocumentParams struct {
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 	Text         Optional[string]       `json:"text,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentSaveRegistrationOptions.
 type TextDocumentSaveRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	IncludeText      Optional[bool]   `json:"includeText,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#willSaveTextDocumentParams.
 type WillSaveTextDocumentParams struct {
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 	Reason       TextDocumentSaveReason `json:"reason"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textEdit.
 type TextEdit struct {
 	Range   Range  `json:"range"`
 	NewText string `json:"newText"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didChangeWatchedFilesParams.
 type DidChangeWatchedFilesParams struct {
 	Changes []FileEvent `json:"changes"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didChangeWatchedFilesRegistrationOptions.
 type DidChangeWatchedFilesRegistrationOptions struct {
 	Watchers []FileSystemWatcher `json:"watchers"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#publishDiagnosticsParams.
 type PublishDiagnosticsParams struct {
 	Uri         DocumentUri   `json:"uri"`
 	Version     Optional[int] `json:"version,omitzero"`
 	Diagnostics []Diagnostic  `json:"diagnostics"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionParams.
 type CompletionParams struct {
 	TextDocument       TextDocumentIdentifier      `json:"textDocument"`
 	Position           Position                    `json:"position"`
@@ -609,6 +714,7 @@ type CompletionParams struct {
 	Context            Optional[CompletionContext] `json:"context,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionItem.
 type CompletionItem struct {
 	Label         string                               `json:"label"`
 	LabelDetails  Optional[CompletionItemLabelDetails] `json:"labelDetails,omitzero"`
@@ -632,6 +738,7 @@ type CompletionItem struct {
 	Data                LSPAny                     `json:"data,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionList.
 type CompletionList struct {
 	IsIncomplete bool                               `json:"isIncomplete"`
 	ItemDefaults Optional[CompletionItemDefaults]   `json:"itemDefaults,omitzero"`
@@ -639,6 +746,7 @@ type CompletionList struct {
 	Items        []CompletionItem                   `json:"items"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionRegistrationOptions.
 type CompletionRegistrationOptions struct {
 	DocumentSelector    DocumentSelector                      `json:"documentSelector"`
 	WorkDoneProgress    Optional[bool]                        `json:"workDoneProgress,omitzero"`
@@ -648,22 +756,26 @@ type CompletionRegistrationOptions struct {
 	CompletionItem      Optional[ServerCompletionItemOptions] `json:"completionItem,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#hoverParams.
 type HoverParams struct {
 	TextDocument  TextDocumentIdentifier `json:"textDocument"`
 	Position      Position               `json:"position"`
 	WorkDoneToken ProgressToken          `json:"workDoneToken,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#hover.
 type Hover struct {
 	Contents HoverContents   `json:"contents"`
 	Range    Optional[Range] `json:"range,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#hoverRegistrationOptions.
 type HoverRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#signatureHelpParams.
 type SignatureHelpParams struct {
 	TextDocument  TextDocumentIdentifier         `json:"textDocument"`
 	Position      Position                       `json:"position"`
@@ -671,12 +783,14 @@ type SignatureHelpParams struct {
 	Context       Optional[SignatureHelpContext] `json:"context,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#signatureHelp.
 type SignatureHelp struct {
 	Signatures      []SignatureInformation `json:"signatures"`
 	ActiveSignature Optional[int]          `json:"activeSignature,omitzero"`
 	ActiveParameter Optional[*int]         `json:"activeParameter,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#signatureHelpRegistrationOptions.
 type SignatureHelpRegistrationOptions struct {
 	DocumentSelector    DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress    Optional[bool]   `json:"workDoneProgress,omitzero"`
@@ -684,6 +798,7 @@ type SignatureHelpRegistrationOptions struct {
 	RetriggerCharacters []string         `json:"retriggerCharacters,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#definitionParams.
 type DefinitionParams struct {
 	TextDocument       TextDocumentIdentifier `json:"textDocument"`
 	Position           Position               `json:"position"`
@@ -691,11 +806,13 @@ type DefinitionParams struct {
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#definitionRegistrationOptions.
 type DefinitionRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#referenceParams.
 type ReferenceParams struct {
 	TextDocument       TextDocumentIdentifier `json:"textDocument"`
 	Position           Position               `json:"position"`
@@ -704,11 +821,13 @@ type ReferenceParams struct {
 	Context            ReferenceContext       `json:"context"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#referenceRegistrationOptions.
 type ReferenceRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentHighlightParams.
 type DocumentHighlightParams struct {
 	TextDocument       TextDocumentIdentifier `json:"textDocument"`
 	Position           Position               `json:"position"`
@@ -716,22 +835,26 @@ type DocumentHighlightParams struct {
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentHighlight.
 type DocumentHighlight struct {
 	Range Range                           `json:"range"`
 	Kind  Optional[DocumentHighlightKind] `json:"kind,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentHighlightRegistrationOptions.
 type DocumentHighlightRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentSymbolParams.
 type DocumentSymbolParams struct {
 	WorkDoneToken      ProgressToken          `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
 	TextDocument       TextDocumentIdentifier `json:"textDocument"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#symbolInformation.
 type SymbolInformation struct {
 	Name          string           `json:"name"`
 	Kind          SymbolKind       `json:"kind"`
@@ -742,6 +865,7 @@ type SymbolInformation struct {
 	Location   Location       `json:"location"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentSymbol.
 type DocumentSymbol struct {
 	Name   string           `json:"name"`
 	Detail Optional[string] `json:"detail,omitzero"`
@@ -754,12 +878,14 @@ type DocumentSymbol struct {
 	Children       []DocumentSymbol `json:"children,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentSymbolRegistrationOptions.
 type DocumentSymbolRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	Label            Optional[string] `json:"label,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeActionParams.
 type CodeActionParams struct {
 	WorkDoneToken      ProgressToken          `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
@@ -768,6 +894,7 @@ type CodeActionParams struct {
 	Context            CodeActionContext      `json:"context"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#command.
 type Command struct {
 	Title     string           `json:"title"`
 	Tooltip   Optional[string] `json:"tooltip,omitzero"`
@@ -775,6 +902,7 @@ type Command struct {
 	Arguments []LSPAny         `json:"arguments,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeAction.
 type CodeAction struct {
 	Title       string                       `json:"title"`
 	Kind        Optional[CodeActionKind]     `json:"kind,omitzero"`
@@ -787,6 +915,7 @@ type CodeAction struct {
 	Tags        []CodeActionTag              `json:"tags,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeActionRegistrationOptions.
 type CodeActionRegistrationOptions struct {
 	DocumentSelector DocumentSelector              `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]                `json:"workDoneProgress,omitzero"`
@@ -795,12 +924,14 @@ type CodeActionRegistrationOptions struct {
 	ResolveProvider  Optional[bool]                `json:"resolveProvider,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceSymbolParams.
 type WorkspaceSymbolParams struct {
 	WorkDoneToken      ProgressToken `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken `json:"partialResultToken,omitzero"`
 	Query              string        `json:"query"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceSymbol.
 type WorkspaceSymbol struct {
 	Name          string                  `json:"name"`
 	Kind          SymbolKind              `json:"kind"`
@@ -810,35 +941,41 @@ type WorkspaceSymbol struct {
 	Data          LSPAny                  `json:"data,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceSymbolRegistrationOptions.
 type WorkspaceSymbolRegistrationOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 	ResolveProvider  Optional[bool] `json:"resolveProvider,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeLensParams.
 type CodeLensParams struct {
 	WorkDoneToken      ProgressToken          `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
 	TextDocument       TextDocumentIdentifier `json:"textDocument"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeLens.
 type CodeLens struct {
 	Range   Range             `json:"range"`
 	Command Optional[Command] `json:"command,omitzero"`
 	Data    LSPAny            `json:"data,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeLensRegistrationOptions.
 type CodeLensRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	ResolveProvider  Optional[bool]   `json:"resolveProvider,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentLinkParams.
 type DocumentLinkParams struct {
 	WorkDoneToken      ProgressToken          `json:"workDoneToken,omitzero"`
 	PartialResultToken ProgressToken          `json:"partialResultToken,omitzero"`
 	TextDocument       TextDocumentIdentifier `json:"textDocument"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentLink.
 type DocumentLink struct {
 	Range   Range            `json:"range"`
 	Target  Optional[URI]    `json:"target,omitzero"`
@@ -846,23 +983,27 @@ type DocumentLink struct {
 	Data    LSPAny           `json:"data,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentLinkRegistrationOptions.
 type DocumentLinkRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	ResolveProvider  Optional[bool]   `json:"resolveProvider,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentFormattingParams.
 type DocumentFormattingParams struct {
 	WorkDoneToken ProgressToken          `json:"workDoneToken,omitzero"`
 	TextDocument  TextDocumentIdentifier `json:"textDocument"`
 	Options       FormattingOptions      `json:"options"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentFormattingRegistrationOptions.
 type DocumentFormattingRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentRangeFormattingParams.
 type DocumentRangeFormattingParams struct {
 	WorkDoneToken ProgressToken          `json:"workDoneToken,omitzero"`
 	TextDocument  TextDocumentIdentifier `json:"textDocument"`
@@ -870,12 +1011,14 @@ type DocumentRangeFormattingParams struct {
 	Options       FormattingOptions      `json:"options"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentRangeFormattingRegistrationOptions.
 type DocumentRangeFormattingRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	RangesSupport    Optional[bool]   `json:"rangesSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentRangesFormattingParams.
 type DocumentRangesFormattingParams struct {
 	WorkDoneToken ProgressToken          `json:"workDoneToken,omitzero"`
 	TextDocument  TextDocumentIdentifier `json:"textDocument"`
@@ -883,6 +1026,7 @@ type DocumentRangesFormattingParams struct {
 	Options       FormattingOptions      `json:"options"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentOnTypeFormattingParams.
 type DocumentOnTypeFormattingParams struct {
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 	Position     Position               `json:"position"`
@@ -890,12 +1034,14 @@ type DocumentOnTypeFormattingParams struct {
 	Options      FormattingOptions      `json:"options"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentOnTypeFormattingRegistrationOptions.
 type DocumentOnTypeFormattingRegistrationOptions struct {
 	DocumentSelector      DocumentSelector `json:"documentSelector"`
 	FirstTriggerCharacter string           `json:"firstTriggerCharacter"`
 	MoreTriggerCharacter  []string         `json:"moreTriggerCharacter,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#renameParams.
 type RenameParams struct {
 	TextDocument  TextDocumentIdentifier `json:"textDocument"`
 	Position      Position               `json:"position"`
@@ -903,41 +1049,48 @@ type RenameParams struct {
 	NewName       string                 `json:"newName"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#renameRegistrationOptions.
 type RenameRegistrationOptions struct {
 	DocumentSelector DocumentSelector `json:"documentSelector"`
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	PrepareProvider  Optional[bool]   `json:"prepareProvider,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#prepareRenameParams.
 type PrepareRenameParams struct {
 	TextDocument  TextDocumentIdentifier `json:"textDocument"`
 	Position      Position               `json:"position"`
 	WorkDoneToken ProgressToken          `json:"workDoneToken,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#executeCommandParams.
 type ExecuteCommandParams struct {
 	WorkDoneToken ProgressToken `json:"workDoneToken,omitzero"`
 	Command       string        `json:"command"`
 	Arguments     []LSPAny      `json:"arguments,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#executeCommandRegistrationOptions.
 type ExecuteCommandRegistrationOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 	Commands         []string       `json:"commands"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#applyWorkspaceEditParams.
 type ApplyWorkspaceEditParams struct {
 	Label    Optional[string]                `json:"label,omitzero"`
 	Edit     WorkspaceEdit                   `json:"edit"`
 	Metadata Optional[WorkspaceEditMetadata] `json:"metadata,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#applyWorkspaceEditResult.
 type ApplyWorkspaceEditResult struct {
 	Applied       bool             `json:"applied"`
 	FailureReason Optional[string] `json:"failureReason,omitzero"`
 	FailedChange  Optional[int]    `json:"failedChange,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workDoneProgressBegin.
 type WorkDoneProgressBegin struct {
 	Kind        string           `json:"kind"`
 	Title       string           `json:"title"`
@@ -946,6 +1099,7 @@ type WorkDoneProgressBegin struct {
 	Percentage  Optional[int]    `json:"percentage,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workDoneProgressReport.
 type WorkDoneProgressReport struct {
 	Kind        string           `json:"kind"`
 	Cancellable Optional[bool]   `json:"cancellable,omitzero"`
@@ -953,42 +1107,51 @@ type WorkDoneProgressReport struct {
 	Percentage  Optional[int]    `json:"percentage,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workDoneProgressEnd.
 type WorkDoneProgressEnd struct {
 	Kind    string           `json:"kind"`
 	Message Optional[string] `json:"message,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#setTraceParams.
 type SetTraceParams struct {
 	Value TraceValue `json:"value"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#logTraceParams.
 type LogTraceParams struct {
 	Message string           `json:"message"`
 	Verbose Optional[string] `json:"verbose,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#cancelParams.
 type CancelParams struct {
 	Id CancelParamsId `json:"id"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#progressParams.
 type ProgressParams struct {
 	Token ProgressToken `json:"token"`
 	Value LSPAny        `json:"value"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentPositionParams.
 type TextDocumentPositionParams struct {
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 	Position     Position               `json:"position"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workDoneProgressParams.
 type WorkDoneProgressParams struct {
 	WorkDoneToken ProgressToken `json:"workDoneToken,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#partialResultParams.
 type PartialResultParams struct {
 	PartialResultToken ProgressToken `json:"partialResultToken,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#locationLink.
 type LocationLink struct {
 	OriginSelectionRange Optional[Range] `json:"originSelectionRange,omitzero"`
 	TargetUri            DocumentUri     `json:"targetUri"`
@@ -996,37 +1159,45 @@ type LocationLink struct {
 	TargetSelectionRange Range           `json:"targetSelectionRange"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#range.
 type Range struct {
 	Start Position `json:"start"`
 	End   Position `json:"end"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#implementationOptions.
 type ImplementationOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#staticRegistrationOptions.
 type StaticRegistrationOptions struct {
 	Id Optional[string] `json:"id,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#typeDefinitionOptions.
 type TypeDefinitionOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceFoldersChangeEvent.
 type WorkspaceFoldersChangeEvent struct {
 	Added   []WorkspaceFolder `json:"added"`
 	Removed []WorkspaceFolder `json:"removed"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#configurationItem.
 type ConfigurationItem struct {
 	ScopeUri Optional[URI]    `json:"scopeUri,omitzero"`
 	Section  Optional[string] `json:"section,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentIdentifier.
 type TextDocumentIdentifier struct {
 	Uri DocumentUri `json:"uri"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#color.
 type Color struct {
 	Red   float64 `json:"red"`
 	Green float64 `json:"green"`
@@ -1034,31 +1205,38 @@ type Color struct {
 	Alpha float64 `json:"alpha"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentColorOptions.
 type DocumentColorOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#foldingRangeOptions.
 type FoldingRangeOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#declarationOptions.
 type DeclarationOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#position.
 type Position struct {
 	Line      int `json:"line"`
 	Character int `json:"character"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#selectionRangeOptions.
 type SelectionRangeOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#callHierarchyOptions.
 type CallHierarchyOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokensOptions.
 type SemanticTokensOptions struct {
 	WorkDoneProgress Optional[bool]             `json:"workDoneProgress,omitzero"`
 	Legend           SemanticTokensLegend       `json:"legend"`
@@ -1066,25 +1244,30 @@ type SemanticTokensOptions struct {
 	Full             SemanticTokensOptionsFull  `json:"full,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokensEdit.
 type SemanticTokensEdit struct {
 	Start       int   `json:"start"`
 	DeleteCount int   `json:"deleteCount"`
 	Data        []int `json:"data,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#linkedEditingRangeOptions.
 type LinkedEditingRangeOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#fileCreate.
 type FileCreate struct {
 	Uri DocumentUri `json:"uri"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentEdit.
 type TextDocumentEdit struct {
 	TextDocument OptionalVersionedTextDocumentIdentifier `json:"textDocument"`
 	Edits        []TextDocumentEditEdits                 `json:"edits"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#createFile.
 type CreateFile struct {
 	Kind         string                               `json:"kind"`
 	AnnotationId Optional[ChangeAnnotationIdentifier] `json:"annotationId,omitzero"`
@@ -1092,6 +1275,7 @@ type CreateFile struct {
 	Options      Optional[CreateFileOptions]          `json:"options,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#renameFile.
 type RenameFile struct {
 	Kind         string                               `json:"kind"`
 	AnnotationId Optional[ChangeAnnotationIdentifier] `json:"annotationId,omitzero"`
@@ -1100,6 +1284,7 @@ type RenameFile struct {
 	Options      Optional[RenameFileOptions]          `json:"options,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#deleteFile.
 type DeleteFile struct {
 	Kind         string                               `json:"kind"`
 	AnnotationId Optional[ChangeAnnotationIdentifier] `json:"annotationId,omitzero"`
@@ -1107,59 +1292,71 @@ type DeleteFile struct {
 	Options      Optional[DeleteFileOptions]          `json:"options,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#changeAnnotation.
 type ChangeAnnotation struct {
 	Label             string           `json:"label"`
 	NeedsConfirmation Optional[bool]   `json:"needsConfirmation,omitzero"`
 	Description       Optional[string] `json:"description,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#fileOperationFilter.
 type FileOperationFilter struct {
 	Scheme  Optional[string]     `json:"scheme,omitzero"`
 	Pattern FileOperationPattern `json:"pattern"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#fileRename.
 type FileRename struct {
 	OldUri DocumentUri `json:"oldUri"`
 	NewUri DocumentUri `json:"newUri"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#fileDelete.
 type FileDelete struct {
 	Uri DocumentUri `json:"uri"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#monikerOptions.
 type MonikerOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#typeHierarchyOptions.
 type TypeHierarchyOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineValueContext.
 type InlineValueContext struct {
 	FrameId         int   `json:"frameId"`
 	StoppedLocation Range `json:"stoppedLocation"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineValueText.
 type InlineValueText struct {
 	Range Range  `json:"range"`
 	Text  string `json:"text"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineValueVariableLookup.
 type InlineValueVariableLookup struct {
 	Range               Range            `json:"range"`
 	VariableName        Optional[string] `json:"variableName,omitzero"`
 	CaseSensitiveLookup bool             `json:"caseSensitiveLookup"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineValueEvaluatableExpression.
 type InlineValueEvaluatableExpression struct {
 	Range      Range            `json:"range"`
 	Expression Optional[string] `json:"expression,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineValueOptions.
 type InlineValueOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlayHintLabelPart.
 type InlayHintLabelPart struct {
 	Value    string                    `json:"value"`
 	Tooltip  InlayHintLabelPartTooltip `json:"tooltip,omitzero"`
@@ -1167,16 +1364,19 @@ type InlayHintLabelPart struct {
 	Command  Optional[Command]         `json:"command,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#markupContent.
 type MarkupContent struct {
 	Kind  MarkupKind `json:"kind"`
 	Value string     `json:"value"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlayHintOptions.
 type InlayHintOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 	ResolveProvider  Optional[bool] `json:"resolveProvider,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#relatedFullDocumentDiagnosticReport.
 type RelatedFullDocumentDiagnosticReport struct {
 	Kind             string                                                              `json:"kind"`
 	ResultId         Optional[string]                                                    `json:"resultId,omitzero"`
@@ -1184,16 +1384,19 @@ type RelatedFullDocumentDiagnosticReport struct {
 	RelatedDocuments map[DocumentUri]RelatedFullDocumentDiagnosticReportRelatedDocuments `json:"relatedDocuments,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#relatedUnchangedDocumentDiagnosticReport.
 type RelatedUnchangedDocumentDiagnosticReport struct {
 	Kind             string                                                                   `json:"kind"`
 	ResultId         string                                                                   `json:"resultId"`
 	RelatedDocuments map[DocumentUri]RelatedUnchangedDocumentDiagnosticReportRelatedDocuments `json:"relatedDocuments,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentDiagnosticReportPartialResult.
 type DocumentDiagnosticReportPartialResult struct {
 	RelatedDocuments map[DocumentUri]DocumentDiagnosticReportPartialResultRelatedDocuments `json:"relatedDocuments"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#diagnosticOptions.
 type DiagnosticOptions struct {
 	WorkDoneProgress      Optional[bool]   `json:"workDoneProgress,omitzero"`
 	Identifier            Optional[string] `json:"identifier,omitzero"`
@@ -1201,11 +1404,13 @@ type DiagnosticOptions struct {
 	WorkspaceDiagnostics  bool             `json:"workspaceDiagnostics"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#previousResultId.
 type PreviousResultId struct {
 	Uri   DocumentUri `json:"uri"`
 	Value string      `json:"value"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocument.
 type NotebookDocument struct {
 	Uri          URI            `json:"uri"`
 	NotebookType string         `json:"notebookType"`
@@ -1214,6 +1419,7 @@ type NotebookDocument struct {
 	Cells        []NotebookCell `json:"cells"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentItem.
 type TextDocumentItem struct {
 	Uri        DocumentUri  `json:"uri"`
 	LanguageId LanguageKind `json:"languageId"`
@@ -1221,58 +1427,70 @@ type TextDocumentItem struct {
 	Text       string       `json:"text"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentSyncOptions.
 type NotebookDocumentSyncOptions struct {
 	NotebookSelector []NotebookDocumentSyncOptionsNotebookSelector `json:"notebookSelector"`
 	Save             Optional[bool]                                `json:"save,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#versionedNotebookDocumentIdentifier.
 type VersionedNotebookDocumentIdentifier struct {
 	Version int `json:"version"`
 	Uri     URI `json:"uri"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentChangeEvent.
 type NotebookDocumentChangeEvent struct {
 	Metadata LSPObject                             `json:"metadata,omitzero"`
 	Cells    Optional[NotebookDocumentCellChanges] `json:"cells,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentIdentifier.
 type NotebookDocumentIdentifier struct {
 	Uri URI `json:"uri"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineCompletionContext.
 type InlineCompletionContext struct {
 	TriggerKind            InlineCompletionTriggerKind      `json:"triggerKind"`
 	SelectedCompletionInfo Optional[SelectedCompletionInfo] `json:"selectedCompletionInfo,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#stringValue.
 type StringValue struct {
 	Kind  string `json:"kind"`
 	Value string `json:"value"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineCompletionOptions.
 type InlineCompletionOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentContentOptions.
 type TextDocumentContentOptions struct {
 	Schemes []string `json:"schemes"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#registration.
 type Registration struct {
 	Id              string `json:"id"`
 	Method          string `json:"method"`
 	RegisterOptions LSPAny `json:"registerOptions,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#unregistration.
 type Unregistration struct {
 	Id     string `json:"id"`
 	Method string `json:"method"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceFoldersInitializeParams.
 type WorkspaceFoldersInitializeParams struct {
 	WorkspaceFolders Optional[[]WorkspaceFolder] `json:"workspaceFolders,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#serverCapabilities.
 type ServerCapabilities struct {
 	PositionEncoding                 Optional[PositionEncodingKind]                    `json:"positionEncoding,omitzero"`
 	TextDocumentSync                 ServerCapabilitiesTextDocumentSync                `json:"textDocumentSync,omitzero"`
@@ -1312,30 +1530,36 @@ type ServerCapabilities struct {
 	Experimental                     LSPAny                                            `json:"experimental,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#serverInfo.
 type ServerInfo struct {
 	Name    string           `json:"name"`
 	Version Optional[string] `json:"version,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#versionedTextDocumentIdentifier.
 type VersionedTextDocumentIdentifier struct {
 	Uri     DocumentUri `json:"uri"`
 	Version int         `json:"version"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#saveOptions.
 type SaveOptions struct {
 	IncludeText Optional[bool] `json:"includeText,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#fileEvent.
 type FileEvent struct {
 	Uri  DocumentUri    `json:"uri"`
 	Type FileChangeType `json:"type"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#fileSystemWatcher.
 type FileSystemWatcher struct {
 	GlobPattern GlobPattern         `json:"globPattern"`
 	Kind        Optional[WatchKind] `json:"kind,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#diagnostic.
 type Diagnostic struct {
 	Range              Range                          `json:"range"`
 	Severity           Optional[DiagnosticSeverity]   `json:"severity,omitzero"`
@@ -1348,22 +1572,26 @@ type Diagnostic struct {
 	Data               LSPAny                         `json:"data,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionContext.
 type CompletionContext struct {
 	TriggerKind      CompletionTriggerKind `json:"triggerKind"`
 	TriggerCharacter Optional[string]      `json:"triggerCharacter,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionItemLabelDetails.
 type CompletionItemLabelDetails struct {
 	Detail      Optional[string] `json:"detail,omitzero"`
 	Description Optional[string] `json:"description,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#insertReplaceEdit.
 type InsertReplaceEdit struct {
 	NewText string `json:"newText"`
 	Insert  Range  `json:"insert"`
 	Replace Range  `json:"replace"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionItemDefaults.
 type CompletionItemDefaults struct {
 	CommitCharacters []string                        `json:"commitCharacters,omitzero"`
 	EditRange        CompletionItemDefaultsEditRange `json:"editRange,omitzero"`
@@ -1372,11 +1600,13 @@ type CompletionItemDefaults struct {
 	Data             LSPAny                          `json:"data,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionItemApplyKinds.
 type CompletionItemApplyKinds struct {
 	CommitCharacters Optional[ApplyKind] `json:"commitCharacters,omitzero"`
 	Data             Optional[ApplyKind] `json:"data,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionOptions.
 type CompletionOptions struct {
 	WorkDoneProgress    Optional[bool]                        `json:"workDoneProgress,omitzero"`
 	TriggerCharacters   []string                              `json:"triggerCharacters,omitzero"`
@@ -1385,10 +1615,12 @@ type CompletionOptions struct {
 	CompletionItem      Optional[ServerCompletionItemOptions] `json:"completionItem,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#hoverOptions.
 type HoverOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#signatureHelpContext.
 type SignatureHelpContext struct {
 	TriggerKind         SignatureHelpTriggerKind `json:"triggerKind"`
 	TriggerCharacter    Optional[string]         `json:"triggerCharacter,omitzero"`
@@ -1396,6 +1628,7 @@ type SignatureHelpContext struct {
 	ActiveSignatureHelp Optional[SignatureHelp]  `json:"activeSignatureHelp,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#signatureInformation.
 type SignatureInformation struct {
 	Label           string                            `json:"label"`
 	Documentation   SignatureInformationDocumentation `json:"documentation,omitzero"`
@@ -1403,28 +1636,34 @@ type SignatureInformation struct {
 	ActiveParameter Optional[*int]                    `json:"activeParameter,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#signatureHelpOptions.
 type SignatureHelpOptions struct {
 	WorkDoneProgress    Optional[bool] `json:"workDoneProgress,omitzero"`
 	TriggerCharacters   []string       `json:"triggerCharacters,omitzero"`
 	RetriggerCharacters []string       `json:"retriggerCharacters,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#definitionOptions.
 type DefinitionOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#referenceContext.
 type ReferenceContext struct {
 	IncludeDeclaration bool `json:"includeDeclaration"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#referenceOptions.
 type ReferenceOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentHighlightOptions.
 type DocumentHighlightOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#baseSymbolInformation.
 type BaseSymbolInformation struct {
 	Name          string           `json:"name"`
 	Kind          SymbolKind       `json:"kind"`
@@ -1432,21 +1671,25 @@ type BaseSymbolInformation struct {
 	ContainerName Optional[string] `json:"containerName,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentSymbolOptions.
 type DocumentSymbolOptions struct {
 	WorkDoneProgress Optional[bool]   `json:"workDoneProgress,omitzero"`
 	Label            Optional[string] `json:"label,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeActionContext.
 type CodeActionContext struct {
 	Diagnostics []Diagnostic                    `json:"diagnostics"`
 	Only        []CodeActionKind                `json:"only,omitzero"`
 	TriggerKind Optional[CodeActionTriggerKind] `json:"triggerKind,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeActionDisabled.
 type CodeActionDisabled struct {
 	Reason string `json:"reason"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeActionOptions.
 type CodeActionOptions struct {
 	WorkDoneProgress Optional[bool]                `json:"workDoneProgress,omitzero"`
 	CodeActionKinds  []CodeActionKind              `json:"codeActionKinds,omitzero"`
@@ -1454,25 +1697,30 @@ type CodeActionOptions struct {
 	ResolveProvider  Optional[bool]                `json:"resolveProvider,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#locationUriOnly.
 type LocationUriOnly struct {
 	Uri DocumentUri `json:"uri"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceSymbolOptions.
 type WorkspaceSymbolOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 	ResolveProvider  Optional[bool] `json:"resolveProvider,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeLensOptions.
 type CodeLensOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 	ResolveProvider  Optional[bool] `json:"resolveProvider,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentLinkOptions.
 type DocumentLinkOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 	ResolveProvider  Optional[bool] `json:"resolveProvider,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#formattingOptions.
 type FormattingOptions struct {
 	TabSize                int            `json:"tabSize"`
 	InsertSpaces           bool           `json:"insertSpaces"`
@@ -1481,110 +1729,132 @@ type FormattingOptions struct {
 	TrimFinalNewlines      Optional[bool] `json:"trimFinalNewlines,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentFormattingOptions.
 type DocumentFormattingOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentRangeFormattingOptions.
 type DocumentRangeFormattingOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 	RangesSupport    Optional[bool] `json:"rangesSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentOnTypeFormattingOptions.
 type DocumentOnTypeFormattingOptions struct {
 	FirstTriggerCharacter string   `json:"firstTriggerCharacter"`
 	MoreTriggerCharacter  []string `json:"moreTriggerCharacter,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#renameOptions.
 type RenameOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 	PrepareProvider  Optional[bool] `json:"prepareProvider,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#prepareRenamePlaceholder.
 type PrepareRenamePlaceholder struct {
 	Range       Range  `json:"range"`
 	Placeholder string `json:"placeholder"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#prepareRenameDefaultBehavior.
 type PrepareRenameDefaultBehavior struct {
 	DefaultBehavior bool `json:"defaultBehavior"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#executeCommandOptions.
 type ExecuteCommandOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 	Commands         []string       `json:"commands"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceEditMetadata.
 type WorkspaceEditMetadata struct {
 	IsRefactoring Optional[bool] `json:"isRefactoring,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workDoneProgressOptions.
 type WorkDoneProgressOptions struct {
 	WorkDoneProgress Optional[bool] `json:"workDoneProgress,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokensLegend.
 type SemanticTokensLegend struct {
 	TokenTypes     []string `json:"tokenTypes"`
 	TokenModifiers []string `json:"tokenModifiers"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokensFullDelta.
 type SemanticTokensFullDelta struct {
 	Delta Optional[bool] `json:"delta,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#optionalVersionedTextDocumentIdentifier.
 type OptionalVersionedTextDocumentIdentifier struct {
 	Uri     DocumentUri `json:"uri"`
 	Version *int        `json:"version"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#annotatedTextEdit.
 type AnnotatedTextEdit struct {
 	Range        Range                      `json:"range"`
 	NewText      string                     `json:"newText"`
 	AnnotationId ChangeAnnotationIdentifier `json:"annotationId"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#snippetTextEdit.
 type SnippetTextEdit struct {
 	Range        Range                                `json:"range"`
 	Snippet      StringValue                          `json:"snippet"`
 	AnnotationId Optional[ChangeAnnotationIdentifier] `json:"annotationId,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#resourceOperation.
 type ResourceOperation struct {
 	Kind         string                               `json:"kind"`
 	AnnotationId Optional[ChangeAnnotationIdentifier] `json:"annotationId,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#createFileOptions.
 type CreateFileOptions struct {
 	Overwrite      Optional[bool] `json:"overwrite,omitzero"`
 	IgnoreIfExists Optional[bool] `json:"ignoreIfExists,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#renameFileOptions.
 type RenameFileOptions struct {
 	Overwrite      Optional[bool] `json:"overwrite,omitzero"`
 	IgnoreIfExists Optional[bool] `json:"ignoreIfExists,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#deleteFileOptions.
 type DeleteFileOptions struct {
 	Recursive         Optional[bool] `json:"recursive,omitzero"`
 	IgnoreIfNotExists Optional[bool] `json:"ignoreIfNotExists,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#fileOperationPattern.
 type FileOperationPattern struct {
 	Glob    string                                `json:"glob"`
 	Matches Optional[FileOperationPatternKind]    `json:"matches,omitzero"`
 	Options Optional[FileOperationPatternOptions] `json:"options,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#fullDocumentDiagnosticReport.
 type FullDocumentDiagnosticReport struct {
 	Kind     string           `json:"kind"`
 	ResultId Optional[string] `json:"resultId,omitzero"`
 	Items    []Diagnostic     `json:"items"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#unchangedDocumentDiagnosticReport.
 type UnchangedDocumentDiagnosticReport struct {
 	Kind     string `json:"kind"`
 	ResultId string `json:"resultId"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceFullDocumentDiagnosticReport.
 type WorkspaceFullDocumentDiagnosticReport struct {
 	Kind     string           `json:"kind"`
 	ResultId Optional[string] `json:"resultId,omitzero"`
@@ -1593,6 +1863,7 @@ type WorkspaceFullDocumentDiagnosticReport struct {
 	Version  *int             `json:"version"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceUnchangedDocumentDiagnosticReport.
 type WorkspaceUnchangedDocumentDiagnosticReport struct {
 	Kind     string      `json:"kind"`
 	ResultId string      `json:"resultId"`
@@ -1600,6 +1871,7 @@ type WorkspaceUnchangedDocumentDiagnosticReport struct {
 	Version  *int        `json:"version"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookCell.
 type NotebookCell struct {
 	Kind             NotebookCellKind           `json:"kind"`
 	Document         DocumentUri                `json:"document"`
@@ -1607,32 +1879,38 @@ type NotebookCell struct {
 	ExecutionSummary Optional[ExecutionSummary] `json:"executionSummary,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentFilterWithNotebook.
 type NotebookDocumentFilterWithNotebook struct {
 	Notebook NotebookDocumentFilterWithNotebookNotebook `json:"notebook"`
 	Cells    []NotebookCellLanguage                     `json:"cells,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentFilterWithCells.
 type NotebookDocumentFilterWithCells struct {
 	Notebook NotebookDocumentFilterWithCellsNotebook `json:"notebook,omitzero"`
 	Cells    []NotebookCellLanguage                  `json:"cells"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentCellChanges.
 type NotebookDocumentCellChanges struct {
 	Structure   Optional[NotebookDocumentCellChangeStructure] `json:"structure,omitzero"`
 	Data        []NotebookCell                                `json:"data,omitzero"`
 	TextContent []NotebookDocumentCellContentChanges          `json:"textContent,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#selectedCompletionInfo.
 type SelectedCompletionInfo struct {
 	Range Range  `json:"range"`
 	Text  string `json:"text"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientInfo.
 type ClientInfo struct {
 	Name    string           `json:"name"`
 	Version Optional[string] `json:"version,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientCapabilities.
 type ClientCapabilities struct {
 	Workspace        Optional[WorkspaceClientCapabilities]        `json:"workspace,omitzero"`
 	TextDocument     Optional[TextDocumentClientCapabilities]     `json:"textDocument,omitzero"`
@@ -1642,6 +1920,7 @@ type ClientCapabilities struct {
 	Experimental     LSPAny                                       `json:"experimental,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentSyncOptions.
 type TextDocumentSyncOptions struct {
 	OpenClose         Optional[bool]                 `json:"openClose,omitzero"`
 	Change            Optional[TextDocumentSyncKind] `json:"change,omitzero"`
@@ -1650,12 +1929,14 @@ type TextDocumentSyncOptions struct {
 	Save              TextDocumentSyncOptionsSave    `json:"save,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceOptions.
 type WorkspaceOptions struct {
 	WorkspaceFolders    Optional[WorkspaceFoldersServerCapabilities] `json:"workspaceFolders,omitzero"`
 	FileOperations      Optional[FileOperationOptions]               `json:"fileOperations,omitzero"`
 	TextDocumentContent WorkspaceOptionsTextDocumentContent          `json:"textDocumentContent,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentContentChangePartial.
 type TextDocumentContentChangePartial struct {
 	Range Range `json:"range"`
 	// Deprecated: deprecated by the Language Server Protocol.
@@ -1663,68 +1944,83 @@ type TextDocumentContentChangePartial struct {
 	Text        string        `json:"text"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentContentChangeWholeDocument.
 type TextDocumentContentChangeWholeDocument struct {
 	Text string `json:"text"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeDescription.
 type CodeDescription struct {
 	Href URI `json:"href"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#diagnosticRelatedInformation.
 type DiagnosticRelatedInformation struct {
 	Location Location `json:"location"`
 	Message  string   `json:"message"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#editRangeWithInsertReplace.
 type EditRangeWithInsertReplace struct {
 	Insert  Range `json:"insert"`
 	Replace Range `json:"replace"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#serverCompletionItemOptions.
 type ServerCompletionItemOptions struct {
 	LabelDetailsSupport Optional[bool] `json:"labelDetailsSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#markedStringWithLanguage.
+//
 // Deprecated: deprecated by the Language Server Protocol.
 type MarkedStringWithLanguage struct {
 	Language string `json:"language"`
 	Value    string `json:"value"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#parameterInformation.
 type ParameterInformation struct {
 	Label         ParameterInformationLabel         `json:"label"`
 	Documentation ParameterInformationDocumentation `json:"documentation,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeActionKindDocumentation.
 type CodeActionKindDocumentation struct {
 	Kind    CodeActionKind `json:"kind"`
 	Command Command        `json:"command"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#fileOperationPatternOptions.
 type FileOperationPatternOptions struct {
 	IgnoreCase Optional[bool] `json:"ignoreCase,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#executionSummary.
 type ExecutionSummary struct {
 	ExecutionOrder int            `json:"executionOrder"`
 	Success        Optional[bool] `json:"success,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookCellLanguage.
 type NotebookCellLanguage struct {
 	Language string `json:"language"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentCellChangeStructure.
 type NotebookDocumentCellChangeStructure struct {
 	Array    NotebookCellArrayChange  `json:"array"`
 	DidOpen  []TextDocumentItem       `json:"didOpen,omitzero"`
 	DidClose []TextDocumentIdentifier `json:"didClose,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentCellContentChanges.
 type NotebookDocumentCellContentChanges struct {
 	Document VersionedTextDocumentIdentifier  `json:"document"`
 	Changes  []TextDocumentContentChangeEvent `json:"changes"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceClientCapabilities.
 type WorkspaceClientCapabilities struct {
 	ApplyEdit              Optional[bool]                                      `json:"applyEdit,omitzero"`
 	WorkspaceEdit          Optional[WorkspaceEditClientCapabilities]           `json:"workspaceEdit,omitzero"`
@@ -1744,6 +2040,7 @@ type WorkspaceClientCapabilities struct {
 	TextDocumentContent    Optional[TextDocumentContentClientCapabilities]     `json:"textDocumentContent,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentClientCapabilities.
 type TextDocumentClientCapabilities struct {
 	Synchronization    Optional[TextDocumentSyncClientCapabilities]         `json:"synchronization,omitzero"`
 	Filters            Optional[TextDocumentFilterClientCapabilities]       `json:"filters,omitzero"`
@@ -1779,16 +2076,19 @@ type TextDocumentClientCapabilities struct {
 	InlineCompletion   Optional[InlineCompletionClientCapabilities]         `json:"inlineCompletion,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentClientCapabilities.
 type NotebookDocumentClientCapabilities struct {
 	Synchronization NotebookDocumentSyncClientCapabilities `json:"synchronization"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#windowClientCapabilities.
 type WindowClientCapabilities struct {
 	WorkDoneProgress Optional[bool]                                 `json:"workDoneProgress,omitzero"`
 	ShowMessage      Optional[ShowMessageRequestClientCapabilities] `json:"showMessage,omitzero"`
 	ShowDocument     Optional[ShowDocumentClientCapabilities]       `json:"showDocument,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#generalClientCapabilities.
 type GeneralClientCapabilities struct {
 	StaleRequestSupport Optional[StaleRequestSupportOptions]           `json:"staleRequestSupport,omitzero"`
 	RegularExpressions  Optional[RegularExpressionsClientCapabilities] `json:"regularExpressions,omitzero"`
@@ -1796,11 +2096,13 @@ type GeneralClientCapabilities struct {
 	PositionEncodings   []PositionEncodingKind                         `json:"positionEncodings,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceFoldersServerCapabilities.
 type WorkspaceFoldersServerCapabilities struct {
 	Supported           Optional[bool]                                        `json:"supported,omitzero"`
 	ChangeNotifications WorkspaceFoldersServerCapabilitiesChangeNotifications `json:"changeNotifications,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#fileOperationOptions.
 type FileOperationOptions struct {
 	DidCreate  Optional[FileOperationRegistrationOptions] `json:"didCreate,omitzero"`
 	WillCreate Optional[FileOperationRegistrationOptions] `json:"willCreate,omitzero"`
@@ -1810,40 +2112,47 @@ type FileOperationOptions struct {
 	WillDelete Optional[FileOperationRegistrationOptions] `json:"willDelete,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookCellTextDocumentFilter.
 type NotebookCellTextDocumentFilter struct {
 	Notebook NotebookCellTextDocumentFilterNotebook `json:"notebook"`
 	Language Optional[string]                       `json:"language,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#relativePattern.
 type RelativePattern struct {
 	BaseUri RelativePatternBaseUri `json:"baseUri"`
 	Pattern Pattern                `json:"pattern"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentFilterNotebookType.
 type NotebookDocumentFilterNotebookType struct {
 	NotebookType string           `json:"notebookType"`
 	Scheme       Optional[string] `json:"scheme,omitzero"`
 	Pattern      GlobPattern      `json:"pattern,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentFilterScheme.
 type NotebookDocumentFilterScheme struct {
 	NotebookType Optional[string] `json:"notebookType,omitzero"`
 	Scheme       string           `json:"scheme"`
 	Pattern      GlobPattern      `json:"pattern,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentFilterPattern.
 type NotebookDocumentFilterPattern struct {
 	NotebookType Optional[string] `json:"notebookType,omitzero"`
 	Scheme       Optional[string] `json:"scheme,omitzero"`
 	Pattern      GlobPattern      `json:"pattern"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookCellArrayChange.
 type NotebookCellArrayChange struct {
 	Start       int            `json:"start"`
 	DeleteCount int            `json:"deleteCount"`
 	Cells       []NotebookCell `json:"cells,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceEditClientCapabilities.
 type WorkspaceEditClientCapabilities struct {
 	DocumentChanges         Optional[bool]                            `json:"documentChanges,omitzero"`
 	ResourceOperations      []ResourceOperationKind                   `json:"resourceOperations,omitzero"`
@@ -1854,15 +2163,18 @@ type WorkspaceEditClientCapabilities struct {
 	SnippetEditSupport      Optional[bool]                            `json:"snippetEditSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didChangeConfigurationClientCapabilities.
 type DidChangeConfigurationClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#didChangeWatchedFilesClientCapabilities.
 type DidChangeWatchedFilesClientCapabilities struct {
 	DynamicRegistration    Optional[bool] `json:"dynamicRegistration,omitzero"`
 	RelativePatternSupport Optional[bool] `json:"relativePatternSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceSymbolClientCapabilities.
 type WorkspaceSymbolClientCapabilities struct {
 	DynamicRegistration Optional[bool]                       `json:"dynamicRegistration,omitzero"`
 	SymbolKind          Optional[ClientSymbolKindOptions]    `json:"symbolKind,omitzero"`
@@ -1870,18 +2182,22 @@ type WorkspaceSymbolClientCapabilities struct {
 	ResolveSupport      Optional[ClientSymbolResolveOptions] `json:"resolveSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#executeCommandClientCapabilities.
 type ExecuteCommandClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokensWorkspaceClientCapabilities.
 type SemanticTokensWorkspaceClientCapabilities struct {
 	RefreshSupport Optional[bool] `json:"refreshSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeLensWorkspaceClientCapabilities.
 type CodeLensWorkspaceClientCapabilities struct {
 	RefreshSupport Optional[bool] `json:"refreshSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#fileOperationClientCapabilities.
 type FileOperationClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 	DidCreate           Optional[bool] `json:"didCreate,omitzero"`
@@ -1892,26 +2208,32 @@ type FileOperationClientCapabilities struct {
 	WillDelete          Optional[bool] `json:"willDelete,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineValueWorkspaceClientCapabilities.
 type InlineValueWorkspaceClientCapabilities struct {
 	RefreshSupport Optional[bool] `json:"refreshSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlayHintWorkspaceClientCapabilities.
 type InlayHintWorkspaceClientCapabilities struct {
 	RefreshSupport Optional[bool] `json:"refreshSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#diagnosticWorkspaceClientCapabilities.
 type DiagnosticWorkspaceClientCapabilities struct {
 	RefreshSupport Optional[bool] `json:"refreshSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#foldingRangeWorkspaceClientCapabilities.
 type FoldingRangeWorkspaceClientCapabilities struct {
 	RefreshSupport Optional[bool] `json:"refreshSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentContentClientCapabilities.
 type TextDocumentContentClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentSyncClientCapabilities.
 type TextDocumentSyncClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 	WillSave            Optional[bool] `json:"willSave,omitzero"`
@@ -1919,10 +2241,12 @@ type TextDocumentSyncClientCapabilities struct {
 	DidSave             Optional[bool] `json:"didSave,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentFilterClientCapabilities.
 type TextDocumentFilterClientCapabilities struct {
 	RelativePatternSupport Optional[bool] `json:"relativePatternSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionClientCapabilities.
 type CompletionClientCapabilities struct {
 	DynamicRegistration Optional[bool]                            `json:"dynamicRegistration,omitzero"`
 	CompletionItem      Optional[ClientCompletionItemOptions]     `json:"completionItem,omitzero"`
@@ -1932,45 +2256,54 @@ type CompletionClientCapabilities struct {
 	CompletionList      Optional[CompletionListCapabilities]      `json:"completionList,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#hoverClientCapabilities.
 type HoverClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 	ContentFormat       []MarkupKind   `json:"contentFormat,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#signatureHelpClientCapabilities.
 type SignatureHelpClientCapabilities struct {
 	DynamicRegistration  Optional[bool]                              `json:"dynamicRegistration,omitzero"`
 	SignatureInformation Optional[ClientSignatureInformationOptions] `json:"signatureInformation,omitzero"`
 	ContextSupport       Optional[bool]                              `json:"contextSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#declarationClientCapabilities.
 type DeclarationClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 	LinkSupport         Optional[bool] `json:"linkSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#definitionClientCapabilities.
 type DefinitionClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 	LinkSupport         Optional[bool] `json:"linkSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#typeDefinitionClientCapabilities.
 type TypeDefinitionClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 	LinkSupport         Optional[bool] `json:"linkSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#implementationClientCapabilities.
 type ImplementationClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 	LinkSupport         Optional[bool] `json:"linkSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#referenceClientCapabilities.
 type ReferenceClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentHighlightClientCapabilities.
 type DocumentHighlightClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentSymbolClientCapabilities.
 type DocumentSymbolClientCapabilities struct {
 	DynamicRegistration               Optional[bool]                    `json:"dynamicRegistration,omitzero"`
 	SymbolKind                        Optional[ClientSymbolKindOptions] `json:"symbolKind,omitzero"`
@@ -1979,6 +2312,7 @@ type DocumentSymbolClientCapabilities struct {
 	LabelSupport                      Optional[bool]                    `json:"labelSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeActionClientCapabilities.
 type CodeActionClientCapabilities struct {
 	DynamicRegistration      Optional[bool]                           `json:"dynamicRegistration,omitzero"`
 	CodeActionLiteralSupport Optional[ClientCodeActionLiteralOptions] `json:"codeActionLiteralSupport,omitzero"`
@@ -1991,33 +2325,40 @@ type CodeActionClientCapabilities struct {
 	TagSupport               Optional[CodeActionTagOptions]           `json:"tagSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeLensClientCapabilities.
 type CodeLensClientCapabilities struct {
 	DynamicRegistration Optional[bool]                         `json:"dynamicRegistration,omitzero"`
 	ResolveSupport      Optional[ClientCodeLensResolveOptions] `json:"resolveSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentLinkClientCapabilities.
 type DocumentLinkClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 	TooltipSupport      Optional[bool] `json:"tooltipSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentColorClientCapabilities.
 type DocumentColorClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentFormattingClientCapabilities.
 type DocumentFormattingClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentRangeFormattingClientCapabilities.
 type DocumentRangeFormattingClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 	RangesSupport       Optional[bool] `json:"rangesSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentOnTypeFormattingClientCapabilities.
 type DocumentOnTypeFormattingClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#renameClientCapabilities.
 type RenameClientCapabilities struct {
 	DynamicRegistration           Optional[bool]                          `json:"dynamicRegistration,omitzero"`
 	PrepareSupport                Optional[bool]                          `json:"prepareSupport,omitzero"`
@@ -2025,6 +2366,7 @@ type RenameClientCapabilities struct {
 	HonorsChangeAnnotations       Optional[bool]                          `json:"honorsChangeAnnotations,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#foldingRangeClientCapabilities.
 type FoldingRangeClientCapabilities struct {
 	DynamicRegistration Optional[bool]                          `json:"dynamicRegistration,omitzero"`
 	RangeLimit          Optional[int]                           `json:"rangeLimit,omitzero"`
@@ -2033,10 +2375,12 @@ type FoldingRangeClientCapabilities struct {
 	FoldingRange        Optional[ClientFoldingRangeOptions]     `json:"foldingRange,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#selectionRangeClientCapabilities.
 type SelectionRangeClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#publishDiagnosticsClientCapabilities.
 type PublishDiagnosticsClientCapabilities struct {
 	RelatedInformation     Optional[bool]                        `json:"relatedInformation,omitzero"`
 	TagSupport             Optional[ClientDiagnosticsTagOptions] `json:"tagSupport,omitzero"`
@@ -2045,10 +2389,12 @@ type PublishDiagnosticsClientCapabilities struct {
 	VersionSupport         Optional[bool]                        `json:"versionSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#callHierarchyClientCapabilities.
 type CallHierarchyClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokensClientCapabilities.
 type SemanticTokensClientCapabilities struct {
 	DynamicRegistration     Optional[bool]                     `json:"dynamicRegistration,omitzero"`
 	Requests                ClientSemanticTokensRequestOptions `json:"requests"`
@@ -2061,27 +2407,33 @@ type SemanticTokensClientCapabilities struct {
 	AugmentsSyntaxTokens    Optional[bool]                     `json:"augmentsSyntaxTokens,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#linkedEditingRangeClientCapabilities.
 type LinkedEditingRangeClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#monikerClientCapabilities.
 type MonikerClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#typeHierarchyClientCapabilities.
 type TypeHierarchyClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineValueClientCapabilities.
 type InlineValueClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlayHintClientCapabilities.
 type InlayHintClientCapabilities struct {
 	DynamicRegistration Optional[bool]                          `json:"dynamicRegistration,omitzero"`
 	ResolveSupport      Optional[ClientInlayHintResolveOptions] `json:"resolveSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#diagnosticClientCapabilities.
 type DiagnosticClientCapabilities struct {
 	RelatedInformation     Optional[bool]                        `json:"relatedInformation,omitzero"`
 	TagSupport             Optional[ClientDiagnosticsTagOptions] `json:"tagSupport,omitzero"`
@@ -2092,73 +2444,88 @@ type DiagnosticClientCapabilities struct {
 	MarkupMessageSupport   Optional[bool]                        `json:"markupMessageSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineCompletionClientCapabilities.
 type InlineCompletionClientCapabilities struct {
 	DynamicRegistration Optional[bool] `json:"dynamicRegistration,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentSyncClientCapabilities.
 type NotebookDocumentSyncClientCapabilities struct {
 	DynamicRegistration     Optional[bool] `json:"dynamicRegistration,omitzero"`
 	ExecutionSummarySupport Optional[bool] `json:"executionSummarySupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#showMessageRequestClientCapabilities.
 type ShowMessageRequestClientCapabilities struct {
 	MessageActionItem Optional[ClientShowMessageActionItemOptions] `json:"messageActionItem,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#showDocumentClientCapabilities.
 type ShowDocumentClientCapabilities struct {
 	Support bool `json:"support"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#staleRequestSupportOptions.
 type StaleRequestSupportOptions struct {
 	Cancel                 bool     `json:"cancel"`
 	RetryOnContentModified []string `json:"retryOnContentModified"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#regularExpressionsClientCapabilities.
 type RegularExpressionsClientCapabilities struct {
 	Engine  RegularExpressionEngineKind `json:"engine"`
 	Version Optional[string]            `json:"version,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#markdownClientCapabilities.
 type MarkdownClientCapabilities struct {
 	Parser      string           `json:"parser"`
 	Version     Optional[string] `json:"version,omitzero"`
 	AllowedTags []string         `json:"allowedTags,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentFilterLanguage.
 type TextDocumentFilterLanguage struct {
 	Language string           `json:"language"`
 	Scheme   Optional[string] `json:"scheme,omitzero"`
 	Pattern  GlobPattern      `json:"pattern,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentFilterScheme.
 type TextDocumentFilterScheme struct {
 	Language Optional[string] `json:"language,omitzero"`
 	Scheme   string           `json:"scheme"`
 	Pattern  GlobPattern      `json:"pattern,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentFilterPattern.
 type TextDocumentFilterPattern struct {
 	Language Optional[string] `json:"language,omitzero"`
 	Scheme   Optional[string] `json:"scheme,omitzero"`
 	Pattern  GlobPattern      `json:"pattern"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#changeAnnotationsSupportOptions.
 type ChangeAnnotationsSupportOptions struct {
 	GroupsOnLabel Optional[bool] `json:"groupsOnLabel,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientSymbolKindOptions.
 type ClientSymbolKindOptions struct {
 	ValueSet []SymbolKind `json:"valueSet,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientSymbolTagOptions.
 type ClientSymbolTagOptions struct {
 	ValueSet []SymbolTag `json:"valueSet"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientSymbolResolveOptions.
 type ClientSymbolResolveOptions struct {
 	Properties []string `json:"properties"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientCompletionItemOptions.
 type ClientCompletionItemOptions struct {
 	SnippetSupport          Optional[bool]                                      `json:"snippetSupport,omitzero"`
 	CommitCharactersSupport Optional[bool]                                      `json:"commitCharactersSupport,omitzero"`
@@ -2172,15 +2539,18 @@ type ClientCompletionItemOptions struct {
 	LabelDetailsSupport     Optional[bool]                                      `json:"labelDetailsSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientCompletionItemOptionsKind.
 type ClientCompletionItemOptionsKind struct {
 	ValueSet []CompletionItemKind `json:"valueSet,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionListCapabilities.
 type CompletionListCapabilities struct {
 	ItemDefaults     []string       `json:"itemDefaults,omitzero"`
 	ApplyKindSupport Optional[bool] `json:"applyKindSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientSignatureInformationOptions.
 type ClientSignatureInformationOptions struct {
 	DocumentationFormat      []MarkupKind                                         `json:"documentationFormat,omitzero"`
 	ParameterInformation     Optional[ClientSignatureParameterInformationOptions] `json:"parameterInformation,omitzero"`
@@ -2188,30 +2558,37 @@ type ClientSignatureInformationOptions struct {
 	NoActiveParameterSupport Optional[bool]                                       `json:"noActiveParameterSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientCodeActionLiteralOptions.
 type ClientCodeActionLiteralOptions struct {
 	CodeActionKind ClientCodeActionKindOptions `json:"codeActionKind"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientCodeActionResolveOptions.
 type ClientCodeActionResolveOptions struct {
 	Properties []string `json:"properties"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeActionTagOptions.
 type CodeActionTagOptions struct {
 	ValueSet []CodeActionTag `json:"valueSet"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientCodeLensResolveOptions.
 type ClientCodeLensResolveOptions struct {
 	Properties []string `json:"properties"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientFoldingRangeKindOptions.
 type ClientFoldingRangeKindOptions struct {
 	ValueSet []FoldingRangeKind `json:"valueSet,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientFoldingRangeOptions.
 type ClientFoldingRangeOptions struct {
 	CollapsedText Optional[bool] `json:"collapsedText,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#diagnosticsCapabilities.
 type DiagnosticsCapabilities struct {
 	RelatedInformation     Optional[bool]                        `json:"relatedInformation,omitzero"`
 	TagSupport             Optional[ClientDiagnosticsTagOptions] `json:"tagSupport,omitzero"`
@@ -2219,61 +2596,80 @@ type DiagnosticsCapabilities struct {
 	DataSupport            Optional[bool]                        `json:"dataSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientSemanticTokensRequestOptions.
 type ClientSemanticTokensRequestOptions struct {
 	Range ClientSemanticTokensRequestOptionsRange `json:"range,omitzero"`
 	Full  ClientSemanticTokensRequestOptionsFull  `json:"full,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientInlayHintResolveOptions.
 type ClientInlayHintResolveOptions struct {
 	Properties []string `json:"properties"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientShowMessageActionItemOptions.
 type ClientShowMessageActionItemOptions struct {
 	AdditionalPropertiesSupport Optional[bool] `json:"additionalPropertiesSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionItemTagOptions.
 type CompletionItemTagOptions struct {
 	ValueSet []CompletionItemTag `json:"valueSet"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientCompletionItemResolveOptions.
 type ClientCompletionItemResolveOptions struct {
 	Properties []string `json:"properties"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientCompletionItemInsertTextModeOptions.
 type ClientCompletionItemInsertTextModeOptions struct {
 	ValueSet []InsertTextMode `json:"valueSet"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientSignatureParameterInformationOptions.
 type ClientSignatureParameterInformationOptions struct {
 	LabelOffsetSupport Optional[bool] `json:"labelOffsetSupport,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientCodeActionKindOptions.
 type ClientCodeActionKindOptions struct {
 	ValueSet []CodeActionKind `json:"valueSet"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientDiagnosticsTagOptions.
 type ClientDiagnosticsTagOptions struct {
 	ValueSet []DiagnosticTag `json:"valueSet"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#clientSemanticTokensRequestFullDelta.
 type ClientSemanticTokensRequestFullDelta struct {
 	Delta Optional[bool] `json:"delta,omitzero"`
 }
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#definitionLink.
 type DefinitionLink = LocationLink
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#lSPArray.
 type LSPArray = []LSPAny
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#lSPAny.
 type LSPAny = any
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#declarationLink.
 type DeclarationLink = LocationLink
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#changeAnnotationIdentifier.
 type ChangeAnnotationIdentifier string
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentSelector.
 type DocumentSelector []DocumentFilter
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#lSPObject.
 type LSPObject = map[string]LSPAny
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#pattern.
 type Pattern string
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#regularExpressionEngineKind.
 type RegularExpressionEngineKind string

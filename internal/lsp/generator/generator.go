@@ -37,6 +37,35 @@ type TemplateContext struct {
 	MetaModel *MetaModel
 }
 
+// specificationLink is the link to a section of the published specification, from the major and minor version and the
+// anchor of the section.
+const specificationLink = "https://microsoft.github.io/language-server-protocol/specifications/lsp/%s/specification/#%s"
+
+// TypeComment returns the comment of a type: the link to its section of the specification, which is named after the
+// type with its first letter in lower case, and the Deprecated: paragraph for a deprecated type. Not every type has a
+// section, the link of such a type leads to the top of the specification.
+func (c TemplateContext) TypeComment(name string, annotations Annotations) string {
+	return c.comment(unexported(name), annotations)
+}
+
+// MethodComment returns the comment of a method: the link to its section of the specification and the Deprecated:
+// paragraph for a deprecated method.
+func (c TemplateContext) MethodComment(method string, annotations Annotations) string {
+	return c.comment(methodAnchor(method), annotations)
+}
+
+// comment returns the link to the section of the specification with the anchor and the Deprecated: paragraph for a
+// deprecated element.
+func (c TemplateContext) comment(anchor string, annotations Annotations) string {
+	parts := strings.SplitN(c.MetaModel.MetaData.Version, ".", 3)
+	version := strings.Join(parts[:min(len(parts), 2)], ".")
+	link := "// See " + fmt.Sprintf(specificationLink, version, anchor) + ".\n"
+	if deprecated := deprecation(annotations); deprecated != "" {
+		return link + "//\n" + deprecated
+	}
+	return link
+}
+
 // MetaModelToDirectory writes the files generated from the meta model into the directory, always the same set of
 // files.
 func MetaModelToDirectory(directory string, model *MetaModel) error {
@@ -107,6 +136,12 @@ func render(writer io.Writer, templateName string, model *MetaModel) error {
 func exported(name string) string {
 	first, size := utf8.DecodeRuneInString(name)
 	return string(unicode.ToUpper(first)) + name[size:]
+}
+
+// unexported returns the name with its first letter in lower case.
+func unexported(name string) string {
+	first, size := utf8.DecodeRuneInString(name)
+	return string(unicode.ToLower(first)) + name[size:]
 }
 
 // deprecation returns the Deprecated: comment line for a deprecated element, empty otherwise. The reason from the meta

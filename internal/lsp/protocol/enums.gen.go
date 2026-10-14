@@ -5,6 +5,7 @@
 
 package protocol
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokenTypes.
 type SemanticTokenTypes string
 
 const (
@@ -34,6 +35,7 @@ const (
 	SemanticTokenTypesLabel         SemanticTokenTypes = "label"
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#semanticTokenModifiers.
 type SemanticTokenModifiers string
 
 const (
@@ -49,6 +51,7 @@ const (
 	SemanticTokenModifiersDefaultLibrary SemanticTokenModifiers = "defaultLibrary"
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentDiagnosticReportKind.
 type DocumentDiagnosticReportKind string
 
 const (
@@ -56,6 +59,7 @@ const (
 	DocumentDiagnosticReportKindUnchanged DocumentDiagnosticReportKind = "unchanged"
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#errorCodes.
 type ErrorCodes int
 
 const (
@@ -68,6 +72,7 @@ const (
 	ErrorCodesUnknownErrorCode     ErrorCodes = -32001
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#lSPErrorCodes.
 type LSPErrorCodes int
 
 const (
@@ -77,6 +82,7 @@ const (
 	LSPErrorCodesRequestCancelled LSPErrorCodes = -32800
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#foldingRangeKind.
 type FoldingRangeKind string
 
 const (
@@ -85,6 +91,7 @@ const (
 	FoldingRangeKindRegion  FoldingRangeKind = "region"
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#symbolKind.
 type SymbolKind int
 
 const (
@@ -116,12 +123,14 @@ const (
 	SymbolKindTypeParameter SymbolKind = 26
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#symbolTag.
 type SymbolTag int
 
 const (
 	SymbolTagDeprecated SymbolTag = 1
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#uniquenessLevel.
 type UniquenessLevel string
 
 const (
@@ -132,6 +141,7 @@ const (
 	UniquenessLevelGlobal   UniquenessLevel = "global"
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#monikerKind.
 type MonikerKind string
 
 const (
@@ -140,6 +150,7 @@ const (
 	MonikerKindLocal  MonikerKind = "local"
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlayHintKind.
 type InlayHintKind int
 
 const (
@@ -147,6 +158,7 @@ const (
 	InlayHintKindParameter InlayHintKind = 2
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#messageType.
 type MessageType int
 
 const (
@@ -157,6 +169,7 @@ const (
 	MessageTypeDebug   MessageType = 5
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentSyncKind.
 type TextDocumentSyncKind int
 
 const (
@@ -165,6 +178,7 @@ const (
 	TextDocumentSyncKindIncremental TextDocumentSyncKind = 2
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentSaveReason.
 type TextDocumentSaveReason int
 
 const (
@@ -173,6 +187,7 @@ const (
 	TextDocumentSaveReasonFocusOut   TextDocumentSaveReason = 3
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionItemKind.
 type CompletionItemKind int
 
 const (
@@ -203,12 +218,14 @@ const (
 	CompletionItemKindTypeParameter CompletionItemKind = 25
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionItemTag.
 type CompletionItemTag int
 
 const (
 	CompletionItemTagDeprecated CompletionItemTag = 1
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#insertTextFormat.
 type InsertTextFormat int
 
 const (
@@ -216,6 +233,7 @@ const (
 	InsertTextFormatSnippet   InsertTextFormat = 2
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#insertTextMode.
 type InsertTextMode int
 
 const (
@@ -223,6 +241,7 @@ const (
 	InsertTextModeAdjustIndentation InsertTextMode = 2
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentHighlightKind.
 type DocumentHighlightKind int
 
 const (
@@ -231,6 +250,7 @@ const (
 	DocumentHighlightKindWrite DocumentHighlightKind = 3
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeActionKind.
 type CodeActionKind string
 
 const (
@@ -247,12 +267,14 @@ const (
 	CodeActionKindNotebook              CodeActionKind = "notebook"
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeActionTag.
 type CodeActionTag int
 
 const (
 	CodeActionTagLLMGenerated CodeActionTag = 1
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#traceValue.
 type TraceValue string
 
 const (
@@ -261,6 +283,7 @@ const (
 	TraceValueVerbose  TraceValue = "verbose"
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#markupKind.
 type MarkupKind string
 
 const (
@@ -268,6 +291,7 @@ const (
 	MarkupKindMarkdown  MarkupKind = "markdown"
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#languageKind.
 type LanguageKind string
 
 const (
@@ -335,6 +359,7 @@ const (
 	LanguageKindYAML            LanguageKind = "yaml"
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineCompletionTriggerKind.
 type InlineCompletionTriggerKind int
 
 const (
@@ -342,6 +367,7 @@ const (
 	InlineCompletionTriggerKindAutomatic InlineCompletionTriggerKind = 2
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#positionEncodingKind.
 type PositionEncodingKind string
 
 const (
@@ -350,6 +376,7 @@ const (
 	PositionEncodingKindUTF32 PositionEncodingKind = "utf-32"
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#fileChangeType.
 type FileChangeType int
 
 const (
@@ -358,6 +385,7 @@ const (
 	FileChangeTypeDeleted FileChangeType = 3
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#watchKind.
 type WatchKind int
 
 const (
@@ -366,6 +394,7 @@ const (
 	WatchKindDelete WatchKind = 4
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#diagnosticSeverity.
 type DiagnosticSeverity int
 
 const (
@@ -375,6 +404,7 @@ const (
 	DiagnosticSeverityHint        DiagnosticSeverity = 4
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#diagnosticTag.
 type DiagnosticTag int
 
 const (
@@ -382,6 +412,7 @@ const (
 	DiagnosticTagDeprecated  DiagnosticTag = 2
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#completionTriggerKind.
 type CompletionTriggerKind int
 
 const (
@@ -390,6 +421,7 @@ const (
 	CompletionTriggerKindTriggerForIncompleteCompletions CompletionTriggerKind = 3
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#applyKind.
 type ApplyKind int
 
 const (
@@ -397,6 +429,7 @@ const (
 	ApplyKindMerge   ApplyKind = 2
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#signatureHelpTriggerKind.
 type SignatureHelpTriggerKind int
 
 const (
@@ -405,6 +438,7 @@ const (
 	SignatureHelpTriggerKindContentChange    SignatureHelpTriggerKind = 3
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#codeActionTriggerKind.
 type CodeActionTriggerKind int
 
 const (
@@ -412,6 +446,7 @@ const (
 	CodeActionTriggerKindAutomatic CodeActionTriggerKind = 2
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#fileOperationPatternKind.
 type FileOperationPatternKind string
 
 const (
@@ -419,6 +454,7 @@ const (
 	FileOperationPatternKindFolder FileOperationPatternKind = "folder"
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookCellKind.
 type NotebookCellKind int
 
 const (
@@ -426,6 +462,7 @@ const (
 	NotebookCellKindCode   NotebookCellKind = 2
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#resourceOperationKind.
 type ResourceOperationKind string
 
 const (
@@ -434,6 +471,7 @@ const (
 	ResourceOperationKindDelete ResourceOperationKind = "delete"
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#failureHandlingKind.
 type FailureHandlingKind string
 
 const (
@@ -443,12 +481,14 @@ const (
 	FailureHandlingKindUndo                  FailureHandlingKind = "undo"
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#prepareSupportDefaultBehavior.
 type PrepareSupportDefaultBehavior int
 
 const (
 	PrepareSupportDefaultBehaviorIdentifier PrepareSupportDefaultBehavior = 1
 )
 
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#tokenFormat.
 type TokenFormat string
 
 const (

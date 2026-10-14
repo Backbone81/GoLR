@@ -10,12 +10,12 @@ type DocumentUri string
 type URI string
 {{ range .MetaModel.Structures }}{{ if $.IsGenerated . }}
 
-{{ deprecation .Annotations }}type {{ .Name }} struct {
+{{ $.TypeComment .Name .Annotations }}type {{ .Name }} struct {
 {{- range $.StructureProperties . }}
 {{ deprecation .Annotations }}{{ exported .Name }} {{ $.PropertyGoType . }} {{ propertyTag .Property }}
 {{- end }}
 }
 {{- end }}{{ end }}
 {{ range $alias := .MetaModel.TypeAliases }}{{ with $.TypeAliasDefinition . }}
-{{ deprecation $alias.Annotations }}type {{ $alias.Name }} {{ . }}
+{{ $.TypeComment $alias.Name $alias.Annotations }}type {{ $alias.Name }} {{ . }}
 {{ end }}{{ end }}

@@ -19,6 +19,9 @@ type Union struct {
 
 	Name string
 	Type Type
+
+	// TypeAlias reports whether the union is a type alias of the meta model.
+	TypeAlias bool
 }
 
 // Unions returns the unions of the meta model in its order: in the properties of structures, named after structure
@@ -37,6 +40,7 @@ func (c TemplateContext) Unions() []Union {
 		}
 		if unions = c.appendUnions(unions, alias.Name, alias.Type); len(nonNullItems(alias.Type)) > 1 {
 			unions[len(unions)-1].Annotations = alias.Annotations
+			unions[len(unions)-1].TypeAlias = true
 		}
 	}
 	for _, request := range c.MetaModel.Requests {

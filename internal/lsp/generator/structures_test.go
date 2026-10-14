@@ -300,6 +300,27 @@ var _ = Describe("StructuresFromMetaModel", func() {
 		`)))
 	})
 
+	It("should link the section of the specification of structures and type aliases", func() {
+		model := &generator.MetaModel{
+			MetaData:   generator.MetaData{Version: "3.18.0"},
+			Structures: []generator.Structure{{Name: "Position"}},
+			TypeAliases: []generator.TypeAlias{{
+				Name: "Pattern",
+				Type: generator.Type{Kind: generator.TypeKindBase, Name: generator.BaseTypeString},
+			}},
+		}
+		output := renderStructures(model)
+		Expect(output).To(ContainSubstring(utils.HereDoc(`
+			// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#position.
+			type Position struct {
+			}
+		`)))
+		Expect(output).To(ContainSubstring(utils.HereDoc(`
+			// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#pattern.
+			type Pattern string
+		`)))
+	})
+
 	It("should mark deprecated structures and properties", func() {
 		model := &generator.MetaModel{Structures: []generator.Structure{{
 			Annotations: generator.Annotations{Deprecated: "use something else"},
@@ -311,6 +332,7 @@ var _ = Describe("StructuresFromMetaModel", func() {
 			}},
 		}}}
 		Expect(renderStructures(model)).To(ContainSubstring(withTags(`
+			//
 			// Deprecated: deprecated by the Language Server Protocol.
 			type Old struct {
 				// Deprecated: deprecated by the Language Server Protocol.

@@ -744,6 +744,8 @@ func (u ClientSemanticTokensRequestOptionsFull) MarshalJSON() ([]byte, error) {
 }
 
 // Definition holds a value of type Location or []Location.
+//
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#definition.
 type Definition struct{ value any }
 
 func NewDefinition[T Location | []Location](value T) Definition {
@@ -755,6 +757,8 @@ func (u Definition) Value() any { return u.value }
 func (u Definition) MarshalJSON() ([]byte, error) { return json.Marshal(u.value) }
 
 // Declaration holds a value of type Location or []Location.
+//
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#declaration.
 type Declaration struct{ value any }
 
 func NewDeclaration[T Location | []Location](value T) Declaration {
@@ -766,6 +770,8 @@ func (u Declaration) Value() any { return u.value }
 func (u Declaration) MarshalJSON() ([]byte, error) { return json.Marshal(u.value) }
 
 // InlineValue holds a value of type InlineValueText, InlineValueVariableLookup or InlineValueEvaluatableExpression.
+//
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#inlineValue.
 type InlineValue struct{ value any }
 
 func NewInlineValue[T InlineValueText | InlineValueVariableLookup | InlineValueEvaluatableExpression](value T) InlineValue {
@@ -777,6 +783,8 @@ func (u InlineValue) Value() any { return u.value }
 func (u InlineValue) MarshalJSON() ([]byte, error) { return json.Marshal(u.value) }
 
 // DocumentDiagnosticReport holds a value of type RelatedFullDocumentDiagnosticReport or RelatedUnchangedDocumentDiagnosticReport.
+//
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentDiagnosticReport.
 type DocumentDiagnosticReport struct{ value any }
 
 func NewDocumentDiagnosticReport[T RelatedFullDocumentDiagnosticReport | RelatedUnchangedDocumentDiagnosticReport](value T) DocumentDiagnosticReport {
@@ -788,6 +796,8 @@ func (u DocumentDiagnosticReport) Value() any { return u.value }
 func (u DocumentDiagnosticReport) MarshalJSON() ([]byte, error) { return json.Marshal(u.value) }
 
 // DocumentDiagnosticReportProgress holds a value of type DocumentDiagnosticReport or DocumentDiagnosticReportPartialResult.
+//
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentDiagnosticReportProgress.
 type DocumentDiagnosticReportProgress struct{ value any }
 
 func NewDocumentDiagnosticReportProgress[T DocumentDiagnosticReport | DocumentDiagnosticReportPartialResult](value T) DocumentDiagnosticReportProgress {
@@ -799,6 +809,8 @@ func (u DocumentDiagnosticReportProgress) Value() any { return u.value }
 func (u DocumentDiagnosticReportProgress) MarshalJSON() ([]byte, error) { return json.Marshal(u.value) }
 
 // PrepareRenameResult holds a value of type Range, PrepareRenamePlaceholder or PrepareRenameDefaultBehavior.
+//
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#prepareRenameResult.
 type PrepareRenameResult struct{ value any }
 
 func NewPrepareRenameResult[T Range | PrepareRenamePlaceholder | PrepareRenameDefaultBehavior](value T) PrepareRenameResult {
@@ -810,6 +822,8 @@ func (u PrepareRenameResult) Value() any { return u.value }
 func (u PrepareRenameResult) MarshalJSON() ([]byte, error) { return json.Marshal(u.value) }
 
 // ProgressToken holds a value of type int or string.
+//
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#progressToken.
 type ProgressToken struct{ value any }
 
 func NewProgressToken[T int | string](value T) ProgressToken {
@@ -821,6 +835,8 @@ func (u ProgressToken) Value() any { return u.value }
 func (u ProgressToken) MarshalJSON() ([]byte, error) { return json.Marshal(u.value) }
 
 // WorkspaceDocumentDiagnosticReport holds a value of type WorkspaceFullDocumentDiagnosticReport or WorkspaceUnchangedDocumentDiagnosticReport.
+//
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspaceDocumentDiagnosticReport.
 type WorkspaceDocumentDiagnosticReport struct{ value any }
 
 func NewWorkspaceDocumentDiagnosticReport[T WorkspaceFullDocumentDiagnosticReport | WorkspaceUnchangedDocumentDiagnosticReport](value T) WorkspaceDocumentDiagnosticReport {
@@ -834,6 +850,8 @@ func (u WorkspaceDocumentDiagnosticReport) MarshalJSON() ([]byte, error) {
 }
 
 // TextDocumentContentChangeEvent holds a value of type TextDocumentContentChangePartial or TextDocumentContentChangeWholeDocument.
+//
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentContentChangeEvent.
 type TextDocumentContentChangeEvent struct{ value any }
 
 func NewTextDocumentContentChangeEvent[T TextDocumentContentChangePartial | TextDocumentContentChangeWholeDocument](value T) TextDocumentContentChangeEvent {
@@ -845,6 +863,9 @@ func (u TextDocumentContentChangeEvent) Value() any { return u.value }
 func (u TextDocumentContentChangeEvent) MarshalJSON() ([]byte, error) { return json.Marshal(u.value) }
 
 // MarkedString holds a value of type string or MarkedStringWithLanguage.
+//
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#markedString.
+//
 // Deprecated: deprecated by the Language Server Protocol.
 type MarkedString struct{ value any }
 
@@ -857,6 +878,8 @@ func (u MarkedString) Value() any { return u.value }
 func (u MarkedString) MarshalJSON() ([]byte, error) { return json.Marshal(u.value) }
 
 // DocumentFilter holds a value of type TextDocumentFilter or NotebookCellTextDocumentFilter.
+//
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#documentFilter.
 type DocumentFilter struct{ value any }
 
 func NewDocumentFilter[T TextDocumentFilter | NotebookCellTextDocumentFilter](value T) DocumentFilter {
@@ -868,6 +891,8 @@ func (u DocumentFilter) Value() any { return u.value }
 func (u DocumentFilter) MarshalJSON() ([]byte, error) { return json.Marshal(u.value) }
 
 // GlobPattern holds a value of type Pattern or RelativePattern.
+//
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#globPattern.
 type GlobPattern struct{ value any }
 
 func NewGlobPattern[T Pattern | RelativePattern](value T) GlobPattern {
@@ -879,6 +904,8 @@ func (u GlobPattern) Value() any { return u.value }
 func (u GlobPattern) MarshalJSON() ([]byte, error) { return json.Marshal(u.value) }
 
 // NotebookDocumentFilter holds a value of type NotebookDocumentFilterNotebookType, NotebookDocumentFilterScheme or NotebookDocumentFilterPattern.
+//
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#notebookDocumentFilter.
 type NotebookDocumentFilter struct{ value any }
 
 func NewNotebookDocumentFilter[T NotebookDocumentFilterNotebookType | NotebookDocumentFilterScheme | NotebookDocumentFilterPattern](value T) NotebookDocumentFilter {
@@ -890,6 +917,8 @@ func (u NotebookDocumentFilter) Value() any { return u.value }
 func (u NotebookDocumentFilter) MarshalJSON() ([]byte, error) { return json.Marshal(u.value) }
 
 // TextDocumentFilter holds a value of type TextDocumentFilterLanguage, TextDocumentFilterScheme or TextDocumentFilterPattern.
+//
+// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocumentFilter.
 type TextDocumentFilter struct{ value any }
 
 func NewTextDocumentFilter[T TextDocumentFilterLanguage | TextDocumentFilterScheme | TextDocumentFilterPattern](value T) TextDocumentFilter {

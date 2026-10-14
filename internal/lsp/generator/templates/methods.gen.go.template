@@ -8,13 +8,13 @@ package protocol
 // The methods of the requests.
 const (
 {{- range .MetaModel.Requests }}
-{{ deprecation .Annotations }}{{ methodName .Method }} = {{ printf "%q" .Method }}
+{{ $.MethodComment .Method .Annotations }}{{ methodName .Method }} = {{ printf "%q" .Method }}
 {{- end }}
 )
 
 // The methods of the notifications.
 const (
 {{- range .MetaModel.Notifications }}
-{{ deprecation .Annotations }}{{ methodName .Method }} = {{ printf "%q" .Method }}
+{{ $.MethodComment .Method .Annotations }}{{ methodName .Method }} = {{ printf "%q" .Method }}
 {{- end }}
 )

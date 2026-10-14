@@ -70,4 +70,17 @@ var _ = Describe("EnumerationsFromMetaModel", func() {
 			)
 		`)))
 	})
+
+	It("should link the section of the specification", func() {
+		model := &generator.MetaModel{
+			MetaData:     generator.MetaData{Version: "3.18.0"},
+			Enumerations: []generator.Enumeration{enumeration("SymbolKind", generator.BaseTypeUinteger, "File", `1`)},
+		}
+		var builder strings.Builder
+		Expect(generator.EnumerationsFromMetaModel(&builder, model)).To(Succeed())
+		Expect(builder.String()).To(ContainSubstring(utils.HereDoc(`
+			// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#symbolKind.
+			type SymbolKind int
+		`)))
+	})
 })

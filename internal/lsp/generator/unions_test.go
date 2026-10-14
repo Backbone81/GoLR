@@ -121,8 +121,8 @@ var _ = Describe("UnionsFromMetaModel", func() {
 		}}}, "func NewCodeActionRequestResult[T Command | CodeAction](value T) CodeActionRequestResult {"),
 	)
 
-	It("should mark a deprecated union type alias", func() {
-		model := &generator.MetaModel{TypeAliases: []generator.TypeAlias{{
+	It("should link the section of a union type alias and mark it deprecated", func() {
+		model := &generator.MetaModel{MetaData: generator.MetaData{Version: "3.18.0"}, TypeAliases: []generator.TypeAlias{{
 			Annotations: generator.Annotations{Deprecated: "use MarkupContent instead"},
 			Name:        "MarkedString",
 			Type: generator.Type{
@@ -135,6 +135,9 @@ var _ = Describe("UnionsFromMetaModel", func() {
 		}}}
 		Expect(renderUnions(model)).To(ContainSubstring(utils.HereDoc(`
 			// MarkedString holds a value of type string or MarkedStringWithLanguage.
+			//
+			// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#markedString.
+			//
 			// Deprecated: deprecated by the Language Server Protocol.
 			type MarkedString struct{ value any }
 		`)))
