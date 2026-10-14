@@ -82,7 +82,7 @@ func run(parallel bool, contents ...string) ([]string, error) {
 // runInput runs a session on the raw input and returns the contents the server wrote with the error of Run.
 func runInput(parallel bool, input string) ([]string, error) {
 	var output bytes.Buffer
-	srv := server.New(slog.New(slog.DiscardHandler), "", parallel)
+	srv := server.New(slog.New(slog.DiscardHandler), "", parallel, 0)
 	err := srv.Run(context.Background(), strings.NewReader(input), &output)
 	responses := readContents(&output)
 	lsptest.ExpectDecodableResults(requestContents(input), responses)

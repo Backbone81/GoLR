@@ -31,6 +31,14 @@ func WithLogger(logger *slog.Logger) Option {
 	}
 }
 
+// WithClientProcessID ends the session when the client process with the id is gone. It takes precedence over the
+// process id of initialize.
+func WithClientProcessID(pid int) Option {
+	return func(config *Config) {
+		config.ClientProcessID = pid
+	}
+}
+
 // WithoutParallelism handles every message before the next one is read, for debugging and deterministic tests.
 func WithoutParallelism() Option {
 	return func(config *Config) {

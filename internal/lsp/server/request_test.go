@@ -90,7 +90,7 @@ var _ = Describe("Request", func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		var output bytes.Buffer
-		srv := server.New(slog.New(slog.DiscardHandler), "", false)
+		srv := server.New(slog.New(slog.DiscardHandler), "", false, 0)
 		err := srv.Run(ctx, strings.NewReader(messages(initializeRequest, shutdownRequest, exitNotification)), &output)
 		Expect(err).To(MatchError(server.ErrSessionEndedWithoutShutdown))
 		Expect(readContents(&output)).To(ConsistOf(

@@ -135,7 +135,7 @@ var _ = Describe("Run", func() {
 	)
 
 	It("ends the session when a response cannot be written", func() {
-		srv := server.New(slog.New(slog.DiscardHandler), "", false)
+		srv := server.New(slog.New(slog.DiscardHandler), "", false, 0)
 		input := messages(initializeRequest, shutdownRequest, exitNotification)
 		err := srv.Run(context.Background(), strings.NewReader(input), brokenWriter{})
 		Expect(err).To(MatchError(errBrokenOutput))

@@ -26,6 +26,9 @@ func (s *Server) handleInitialize(
 		return protocol.InitializeResult{}, NewError(jsonrpc.ErrorCodeInvalidRequest, "server already initialized")
 	}
 	s.lifecycle = LifecycleRunning
+	if params.ProcessId != nil {
+		s.watcher.Watch(*params.ProcessId)
+	}
 	general, _ := params.Capabilities.General.Get()
 	if slices.Contains(general.PositionEncodings, protocol.PositionEncodingKindUTF8) {
 		s.encoding = protocol.PositionEncodingKindUTF8

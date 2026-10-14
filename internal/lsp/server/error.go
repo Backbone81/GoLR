@@ -6,6 +6,9 @@ var (
 	// ErrSessionEndedWithoutShutdown ends a session whose input or exit notification came before the shutdown request.
 	ErrSessionEndedWithoutShutdown = errors.New("session ended without shutdown")
 
+	// ErrClientProcessGone ends a session whose client process is gone.
+	ErrClientProcessGone = errors.New("client process gone")
+
 	// ErrUnsupportedCharset ends a session on a Content-Type charset other than utf-8.
 	ErrUnsupportedCharset = errors.New("unsupported charset")
 )

@@ -21,9 +21,11 @@ var errEndOfSession = errors.New("end of session")
 // Server is one session of the language server. The lifecycle, the position encoding and the documents are only
 // accessed by the reader, a request in its own goroutine gets the documents of the moment it was read.
 type Server struct {
-	logger   *slog.Logger
-	version  string
-	parallel bool
+	logger          *slog.Logger
+	version         string
+	parallel        bool
+	clientProcessID int
+	watcher         *clientProcessWatcher
 
 	lifecycle Lifecycle
 	encoding  protocol.PositionEncodingKind
@@ -37,22 +39,48 @@ type Server struct {
 	requests     sync.WaitGroup
 }
 
-// New returns a server for one session. Parallel runs feature requests in their own goroutine.
-func New(logger *slog.Logger, version string, parallel bool) *Server {
+// New returns a server for one session. Parallel runs feature requests in their own goroutine. ClientProcessID names
+// the client process to watch, 0 watches the one of initialize.
+func New(logger *slog.Logger, version string, parallel bool, clientProcessID int) *Server {
 	return &Server{
-		logger:    logger,
-		version:   version,
-		parallel:  parallel,
-		encoding:  protocol.PositionEncodingKindUTF16,
-		documents: &Documents{snapshots: map[protocol.DocumentUri]*Snapshot{}},
-		pending:   make(map[string]context.CancelFunc),
+		logger:          logger,
+		version:         version,
+		parallel:        parallel,
+		clientProcessID: clientProcessID,
+		encoding:        protocol.PositionEncodingKindUTF16,
+		documents:       &Documents{snapshots: map[protocol.DocumentUri]*Snapshot{}},
+		pending:         make(map[string]context.CancelFunc),
 	}
 }
 
-// Run reads and handles messages until the client exits or the input ends, and waits for the running requests before
+// Run runs the session and watches the client process. It returns the result of the session, or
+// ErrClientProcessGone as soon as the client process is gone. The session then goes on in the background until it
+// waits for its next message, which a read cannot be interrupted for, and its running requests are cancelled.
+func (s *Server) Run(ctx context.Context, reader io.Reader, writer io.Writer) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	s.watcher = newClientProcessWatcher(ctx, s.logger)
+	if s.clientProcessID != 0 {
+		s.watcher.Watch(s.clientProcessID)
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		done <- s.run(ctx, reader, writer)
+	}()
+	select {
+	case err := <-done:
+		return err
+	case <-s.watcher.Gone():
+		return ErrClientProcessGone
+	}
+}
+
+// run reads and handles messages until the client exits or the input ends, and waits for the running requests before
 // it returns. An error means a message could not be handled completely, which ends the session: a skipped message
 // could leave the documents out of sync with the client. Ending the session without shutdown is an error, too.
-func (s *Server) Run(ctx context.Context, reader io.Reader, writer io.Writer) error {
+func (s *Server) run(ctx context.Context, reader io.Reader, writer io.Writer) error {
 	s.writer = writer
 	defer s.requests.Wait()
 

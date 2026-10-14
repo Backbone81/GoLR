@@ -14,7 +14,7 @@ func Serve(ctx context.Context, options ...Option) error {
 	config := ConfigFromOptions(options...)
 	reader, writer := config.Transport.Streams()
 
-	srv := server.New(config.Logger, version(), config.Parallel)
+	srv := server.New(config.Logger, version(), config.Parallel, config.ClientProcessID)
 	return srv.Run(ctx, bufio.NewReader(reader), writer)
 }
 

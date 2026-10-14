@@ -13,6 +13,10 @@ type Config struct {
 
 	Logger *slog.Logger
 
+	// ClientProcessID is the process of the client, the session ends when it is gone. 0 names no process, the one of
+	// initialize is watched then.
+	ClientProcessID int
+
 	// Parallel runs feature requests in their own goroutine.
 	Parallel bool
 }
