@@ -66,7 +66,7 @@ func (t *LineTable) Offset(position protocol.Position, encoding protocol.Positio
 	character := max(position.Character, 0)
 	if encoding == protocol.PositionEncodingKindUTF8 {
 		offset := min(lineStart+character, lineEnd)
-		for offset > lineStart && t.isContinuationByte(t.text[offset]) {
+		for offset > lineStart && offset < lineEnd && t.isContinuationByte(t.text[offset]) {
 			offset--
 		}
 		return offset

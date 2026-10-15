@@ -91,6 +91,7 @@ var _ = Describe("Run", func() {
 		Entry("another JSON-RPC version", `{"jsonrpc":"1.0","method":"initialized"}`),
 		Entry("no JSON-RPC version", `{"method":"initialized"}`),
 		Entry("neither method nor id", `{"jsonrpc":"2.0"}`),
+		Entry("member names in another case", `{"jsonrpc":"2.0","Method":"exit","ID":1}`),
 		Entry("an id of the wrong type", `{"jsonrpc":"2.0","id":true,"method":"initialize"}`),
 	)
 
@@ -178,7 +179,11 @@ func newMessageStream(duration time.Duration) *messageStream {
 	stream.writeRequest(protocol.MethodInitialize, protocol.InitializeParams{})
 	stream.writeNotification(protocol.MethodInitialized, protocol.InitializedParams{})
 	stream.writeNotification(protocol.MethodTextDocumentDidOpen, protocol.DidOpenTextDocumentParams{
-		TextDocument: protocol.TextDocumentItem{Uri: "file:///a.golr", LanguageId: "golr", Text: `@scanner{PLUS:"+";}`},
+		TextDocument: protocol.TextDocumentItem{
+			Uri:        "file:///a.golr",
+			LanguageId: "golr",
+			Text:       `@scanner{PLUS:"+";}@parser{s:PLUS;}`,
+		},
 	})
 	return stream
 }
@@ -204,9 +209,9 @@ func (m *messageStream) Read(p []byte) (int, error) {
 // without handler, and a second document which is opened, formatted and closed.
 func (m *messageStream) writeRound() {
 	m.version++
-	text := `@scanner{PLUS:"+";}`
+	text := `@scanner{PLUS:"+";}@parser{s:PLUS;}`
 	if m.version%2 == 0 {
-		text = "@scanner {\n    PLUS: \"+\";\n}\n"
+		text = "@scanner {\n    PLUS: \"+\";\n}\n\n@parser {\n    s\n        : PLUS\n        ;\n}\n"
 	}
 	m.writeNotification(protocol.MethodTextDocumentDidChange, protocol.DidChangeTextDocumentParams{
 		TextDocument: protocol.VersionedTextDocumentIdentifier{Uri: "file:///a.golr", Version: m.version},
@@ -231,7 +236,11 @@ func (m *messageStream) writeRound() {
 	})
 	m.writeRequest("unknown/method", nil)
 	m.writeNotification(protocol.MethodTextDocumentDidOpen, protocol.DidOpenTextDocumentParams{
-		TextDocument: protocol.TextDocumentItem{Uri: "file:///b.golr", LanguageId: "golr", Text: `@scanner{PLUS:"+";}`},
+		TextDocument: protocol.TextDocumentItem{
+			Uri:        "file:///b.golr",
+			LanguageId: "golr",
+			Text:       `@scanner{PLUS:"+";}@parser{s:PLUS;}`,
+		},
 	})
 	m.writeRequest(protocol.MethodTextDocumentFormatting, protocol.DocumentFormattingParams{
 		TextDocument: protocol.TextDocumentIdentifier{Uri: "file:///b.golr"},

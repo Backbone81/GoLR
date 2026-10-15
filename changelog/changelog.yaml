@@ -13,6 +13,10 @@ unreleased:
     or two derivations that share the input up to the conflict. The search is limited
     by --counterexample-time-limit and --counterexample-total-time-limit, and available
     as pkg/parsergen/counterexample.
+- description: |
+    Updated the mimimum Go version from 1.25 to 1.26 and updated the Go toolchain to 1.27.
+- description: Fixed golr fmt not aligning scanner rules when a blank line separated
+    a rule name from its value, so formatting the output again changed it.
 releases:
 - version: |
     v0.5.0

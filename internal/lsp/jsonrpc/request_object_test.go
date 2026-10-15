@@ -47,6 +47,33 @@ var _ = Describe("RequestObject", func() {
 		Expect(empty.Method).To(HaveValue(BeEmpty()))
 	})
 
+	It("ignores members whose names differ in case", func() {
+		var request jsonrpc.RequestObject
+		Expect(json.Unmarshal([]byte(`{"JSONRPC":"1.0","jsonrpc":"2.0","Method":"exit","pArAms":{},"ID":1}`), &request)).
+			To(Succeed())
+		Expect(request.JSONRPC).To(Equal("2.0"))
+		Expect(request.Method).To(BeNil())
+		Expect(request.Params).To(BeNil())
+		Expect(request.ID).To(BeNil())
+	})
+
+	It("takes the method of the exact member name", func() {
+		var request jsonrpc.RequestObject
+		Expect(json.Unmarshal([]byte(`{"jsonrpc":"2.0","method":"m","Method":"exit"}`), &request)).To(Succeed())
+		Expect(request.Method).To(HaveValue(Equal("m")))
+	})
+
+	DescribeTable("rejects",
+		func(content string) {
+			var request jsonrpc.RequestObject
+			Expect(json.Unmarshal([]byte(content), &request)).NotTo(Succeed())
+		},
+		Entry("a batch", `[{"jsonrpc":"2.0","method":"m"}]`),
+		Entry("a jsonrpc which is no string", `{"jsonrpc":2,"method":"m"}`),
+		Entry("a method which is no string", `{"jsonrpc":"2.0","method":1}`),
+		Entry("an id which is neither integer nor string", `{"jsonrpc":"2.0","method":"m","id":true}`),
+	)
+
 	It("encodes a notification without id and params", func() {
 		method := "m"
 		Expect(json.Marshal(jsonrpc.RequestObject{JSONRPC: "2.0", Method: &method})).

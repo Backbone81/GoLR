@@ -8,6 +8,7 @@ import (
 
 	"github.com/backbone81/golr/internal/lsp/jsonrpc"
 	"github.com/backbone81/golr/internal/lsp/lsptest"
+	"github.com/backbone81/golr/internal/lsp/protocol"
 )
 
 var _ = Describe("Handler", func() {
@@ -25,7 +26,7 @@ var _ = Describe("Handler", func() {
 			Expect(responses).To(ConsistOf(
 				MatchJSON(initializeResponse),
 				MatchJSON(`{"jsonrpc":"2.0","id":2,"result":[{
-					"range":{"start":{"line":0,"character":0},"end":{"line":2,"character":18}},
+					"range":{"start":{"line":0,"character":0},"end":{"line":2,"character":37}},
 					"newText":"`+formatted+`"}]}`),
 				MatchJSON(shutdownResponse),
 			))
@@ -55,13 +56,13 @@ var _ = Describe("Handler", func() {
 				// The last line ends in a character of four UTF-8 bytes and two UTF-16 units.
 				`{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{
 					"uri":"file:///a.golr","languageId":"golr","version":1,
-					"text":"@scanner{A:\"a\";} // \ud83d\ude00"}}}`,
+					"text":"@scanner{A:\"a\";}@parser{s:A;} // \ud83d\ude00"}}}`,
 				formattingRequest, shutdownRequest, exitNotification)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(responses[1]).To(ContainSubstring(fmt.Sprintf(`"end":{"line":0,"character":%d}`, character)))
 		},
-		Entry("UTF-8 when the client supports it", `["utf-16","utf-8"]`, 24),
-		Entry("UTF-16 otherwise", `["utf-32"]`, 22),
+		Entry("UTF-8 when the client supports it", `["utf-16","utf-8"]`, 37),
+		Entry("UTF-16 otherwise", `["utf-32"]`, 35),
 	)
 
 	It("rejects formatting a document which is not open", func() {
@@ -77,9 +78,20 @@ var _ = Describe("Handler", func() {
 		Expect(responses).To(ContainElement(lsptest.BeErrorResponse(2, jsonrpc.ErrorCodeInvalidParams)))
 	})
 
+	It("rejects formatting a document with a syntax error", func() {
+		didOpen := `{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{
+			"uri":"file:///a.golr","version":1,"text":"@scanner {\n    A: \"a;\n    B: \"b\";\n}\n\n@parser {\n    s` +
+			`\n        : A\n        ;\n}\n"}}}`
+		responses, err := run(false, initializeRequest, didOpen, formattingRequest, shutdownRequest, exitNotification)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(responses).To(HaveLen(3))
+		Expect(responses[1]).To(lsptest.BeErrorResponse(2, int(protocol.LSPErrorCodesRequestFailed)))
+		Expect(responses[1]).To(ContainSubstring("syntax error"))
+	})
+
 	It("keeps the document on a didChange without changes", func() {
 		didOpen := `{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{
-			"uri":"file:///a.golr","version":1,"text":"@scanner{A:\"a\";}"}}}`
+			"uri":"file:///a.golr","version":1,"text":"@scanner{A:\"a\";}@parser{s:A;}"}}}`
 		didChange := `{"jsonrpc":"2.0","method":"textDocument/didChange","params":{
 			"textDocument":{"uri":"file:///a.golr","version":2},"contentChanges":[]}}`
 		formatting := `{"jsonrpc":"2.0","id":2,"method":"textDocument/formatting","params":{

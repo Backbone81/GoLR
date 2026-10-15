@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"jsonrpC\":\"2.0\",\"00\":0,\"method\":\"initialize\",\"000000\":{\"000000000000\":{}}}\x1e{\"jsonrpC\":\"2.0\",\"id\":\"\",\"method\":\"textDocument/didChange\",\"pArAms\":{\"textDocument\":{\"uri\":\"0\"},\"contentChanges\":[{\"range\":{},\"text\":\"0\"}]}}")

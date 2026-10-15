@@ -17,9 +17,9 @@ type Formatter struct {
 	lastScannerIdentifierLen int
 
 	// scannerRuleGroups collects scanner rule marks seen during the first pass, grouped by contiguous runs of
-	// rules not separated by an explicit blank line. It always has at least one (possibly empty) group; a new
-	// one is started as soon as an explicit blank line is seen inside a @scanner section, and it stays empty if
-	// no rule follows before the next one. Consumed by alignScannerRules afterwards.
+	// rules not separated by a blank line in the output. It always has at least one (possibly empty) group; a new
+	// one is started as soon as a blank line is written inside a @scanner section, and it stays empty if no rule
+	// follows before the next one. Consumed by alignScannerRules afterwards.
 	scannerRuleGroups [][]scannerRuleRHS
 
 	// indentNext reports if the next output needs to be indented or not.
@@ -166,11 +166,6 @@ func (f *Formatter) onTokenWhitespace(explicitComment bool) {
 			// The user separated the comment we just emitted from what follows with a blank line;
 			// keep it instead of collapsing the comment onto the next token.
 			f.blankLine()
-		}
-		if f.currentContext() == golrparser.TokenScanner {
-			// Start a new alignment group. It stays empty if no rule follows before the next blank
-			// line, which is harmless.
-			f.scannerRuleGroups = append(f.scannerRuleGroups, nil)
 		}
 	}
 }
@@ -385,6 +380,12 @@ func (f *Formatter) emit(data []byte) {
 	case f.pendingBlankLine:
 		// A pending blank line implies a pending linebreak too (see blankLine), so check it first.
 		f.output.Write([]byte("\n\n"))
+		if f.currentContext() == golrparser.TokenScanner {
+			// A blank line in the output starts a new alignment group. Splitting on the blank lines of the output
+			// and not of the source keeps formatting idempotent, as a blank line inside a rule is dropped. The group
+			// stays empty if no rule follows before the next blank line, which is harmless.
+			f.scannerRuleGroups = append(f.scannerRuleGroups, nil)
+		}
 	case f.pendingLinebreak:
 		f.output.Write([]byte("\n"))
 	}

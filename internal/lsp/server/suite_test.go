@@ -34,8 +34,9 @@ const (
 	// Multilingual Plane, which formats to formatted.
 	didOpenUnformattedNotification = `{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{
 		"uri":"file:///a.golr","languageId":"golr","version":1,
-		"text":"@scanner{\r\nPLUS:\"+\"; // 😀\r\nINTEGER:/[0-9]+/;}"}}}`
-	formatted                        = `@scanner {\n    PLUS:    \"+\"; // 😀\n    INTEGER: /[0-9]+/;\n}\n`
+		"text":"@scanner{\r\nPLUS:\"+\"; // 😀\r\nINTEGER:/[0-9]+/;}@parser{s:INTEGER;}"}}}`
+	formatted = `@scanner {\n    PLUS:    \"+\"; // 😀\n    INTEGER: /[0-9]+/;\n}\n\n@parser ` +
+		`{\n    s\n        : INTEGER\n        ;\n}\n`
 	didChangeToFormattedNotification = `{"jsonrpc":"2.0","method":"textDocument/didChange","params":{
 		"textDocument":{"uri":"file:///a.golr","version":2},"contentChanges":[{"text":"` + formatted + `"}]}}`
 	didCloseNotification = `{"jsonrpc":"2.0","method":"textDocument/didClose","params":{

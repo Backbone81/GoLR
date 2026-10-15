@@ -29,8 +29,9 @@ const (
 	// Multilingual Plane, which formats to formatted.
 	didOpenUnformattedNotification = `{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{
 		"uri":"file:///a.golr","languageId":"golr","version":1,
-		"text":"@scanner{\r\nPLUS:\"+\"; // 😀\r\nINTEGER:/[0-9]+/;}"}}}`
-	formatted = `@scanner {\n    PLUS:    \"+\"; // 😀\n    INTEGER: /[0-9]+/;\n}\n`
+		"text":"@scanner{\r\nPLUS:\"+\"; // 😀\r\nINTEGER:/[0-9]+/;}@parser{s:INTEGER;}"}}}`
+	formatted = `@scanner {\n    PLUS:    \"+\"; // 😀\n    INTEGER: /[0-9]+/;\n}\n\n@parser {\n    s\n        : ` +
+		`INTEGER\n        ;\n}\n`
 
 	formattingRequest = `{"jsonrpc":"2.0","id":2,"method":"textDocument/formatting","params":{
 		"textDocument":{"uri":"file:///a.golr"},"options":{"tabSize":4,"insertSpaces":true}}}`
@@ -51,7 +52,7 @@ var (
 	formattingSessionResponses = []types.GomegaMatcher{
 		MatchJSON(initializeResponseUTF16),
 		MatchJSON(`{"jsonrpc":"2.0","id":2,"result":[{
-			"range":{"start":{"line":0,"character":0},"end":{"line":2,"character":18}},
+			"range":{"start":{"line":0,"character":0},"end":{"line":2,"character":37}},
 			"newText":"` + formatted + `"}]}`),
 		MatchJSON(shutdownResponse),
 	}

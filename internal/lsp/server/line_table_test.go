@@ -28,6 +28,7 @@ var _ = Describe("LineTable", func() {
 		Entry("after a four byte character in UTF-8", 9, protocol.PositionEncodingKindUTF8, 1, 6),
 		Entry("empty line", 11, protocol.PositionEncodingKindUTF16, 2, 0),
 		Entry("end of text without final newline", 16, protocol.PositionEncodingKindUTF16, 3, 4),
+		Entry("end of text without final newline in UTF-8", 16, protocol.PositionEncodingKindUTF8, 3, 4),
 	)
 
 	It("clamps an offset outside the text", func() {

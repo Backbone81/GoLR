@@ -39,6 +39,21 @@ var _ = Describe("GoLR formatting", func() {
 			Expect(golrfmt.GoLRString(input)).To(Equal(expected))
 		})
 
+		It("aligns scanner rules across a blank line inside a rule, which it drops", func() {
+			// Regression test: the blank line between "A:" and its value started a new alignment group, but is not
+			// kept in the output, so formatting the output again aligned the rules.
+			expected := utils.HereDoc(`
+				@scanner {
+				    A:  "a";
+				    A0: "b";
+				}
+			`)
+			formatted, err := golrfmt.GoLRString("@scanner{A:\n\n\"a\";A0:\"b\";}")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(formatted).To(Equal(expected))
+			Expect(golrfmt.GoLRString(formatted)).To(Equal(expected))
+		})
+
 		It("puts one parser alternative per line, led by ':' and '|', with ';' on its own line", func() {
 			input := utils.HereDoc(`
 				@parser{

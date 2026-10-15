@@ -17,41 +17,57 @@ var resultDecoders = map[string]func(any) error{
 }
 
 // ExpectDecodableResults expects the result of every response to decode with the decode function of the method of its
+// request, see DecodableResults.
+func ExpectDecodableResults(requests []string, responses []string) {
+	gomega.Expect(DecodableResults(requests, responses)).To(gomega.Succeed())
+}
+
+// DecodableResults checks that the result of every response decodes with the decode function of the method of its
 // request, which checks the JSON kinds and literal values. Requests and responses are message contents, contents
 // which are no request are skipped.
-func ExpectDecodableResults(requests []string, responses []string) {
+func DecodableResults(requests []string, responses []string) error {
+	// Members are looked up by their exact names, as the server does; encoding/json alone would also take "ID" for
+	// "id".
 	methods := map[string]string{}
 	for _, content := range requests {
-		var request struct {
-			ID     json.RawMessage `json:"id"`
-			Method string          `json:"method"`
-		}
-		if json.Unmarshal([]byte(content), &request) != nil || request.ID == nil || request.Method == "" {
+		var request map[string]json.RawMessage
+		var method string
+		if json.Unmarshal([]byte(content), &request) != nil || request["id"] == nil ||
+			json.Unmarshal(request["method"], &method) != nil || method == "" {
 			continue
 		}
-		methods[string(request.ID)] = request.Method
+		methods[string(request["id"])] = method
 	}
 
 	for _, content := range responses {
-		var response struct {
-			ID     json.RawMessage `json:"id"`
-			Result json.RawMessage `json:"result"`
+		var response map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(content), &response); err != nil {
+			return fmt.Errorf("response %s: %w", content, err)
 		}
-		gomega.Expect(json.Unmarshal([]byte(content), &response)).To(gomega.Succeed())
-		if len(response.Result) == 0 || string(response.Result) == "null" {
+		result := response["result"]
+		if len(result) == 0 || string(result) == "null" {
 			continue
 		}
-		method, ok := methods[string(response.ID)]
-		gomega.Expect(ok).To(gomega.BeTrue(), "response %s answers no request", content)
+		method, ok := methods[string(response["id"])]
+		if !ok {
+			return fmt.Errorf("response %s answers no request", content)
+		}
 		decode, ok := resultDecoders[method]
-		gomega.Expect(ok).To(gomega.BeTrue(), "no decode function for the result of %s", method)
+		if !ok {
+			return fmt.Errorf("no decode function for the result of %s", method)
+		}
 
-		decoder := json.NewDecoder(bytes.NewReader(response.Result))
+		decoder := json.NewDecoder(bytes.NewReader(result))
 		decoder.UseNumber()
 		var tree any
-		gomega.Expect(decoder.Decode(&tree)).To(gomega.Succeed())
-		gomega.Expect(decode(tree)).To(gomega.Succeed(), "result of %s: %s", method, content)
+		if err := decoder.Decode(&tree); err != nil {
+			return fmt.Errorf("result of %s: %s: %w", method, content, err)
+		}
+		if err := decode(tree); err != nil {
+			return fmt.Errorf("result of %s: %s: %w", method, content, err)
+		}
 	}
+	return nil
 }
 
 // decodeResult returns a decode function giving only the error.

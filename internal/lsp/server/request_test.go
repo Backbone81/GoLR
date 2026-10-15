@@ -33,7 +33,7 @@ var _ = Describe("Request", func() {
 		responses, err := run(false,
 			initializeRequest,
 			`{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{
-				"uri":"file:///a.golr","version":1,"text":""}}}`,
+				"uri":"file:///a.golr","version":1,"text":"@scanner{A:\"a\";}@parser{s:A;}"}}}`,
 			`{"jsonrpc":"2.0","method":"textDocument/formatting","params":{"textDocument":{"uri":"file:///a.golr"}}}`,
 			unknownRequest,
 			shutdownRequest,
@@ -45,6 +45,20 @@ var _ = Describe("Request", func() {
 			lsptest.BeErrorResponse(2, jsonrpc.ErrorCodeMethodNotFound),
 			MatchJSON(shutdownResponse),
 		))
+	})
+
+	It("answers an incremental change with id with invalid params", func() {
+		responses, err := run(false,
+			initializeRequest,
+			`{"jsonrpc":"2.0","id":2,"method":"textDocument/didChange","params":{
+				"textDocument":{"uri":"file:///a.golr","version":2},"contentChanges":[{
+				"range":{"start":{"line":0,"character":0},"end":{"line":0,"character":0}},"text":"a"}]}}`,
+			shutdownRequest,
+			exitNotification,
+		)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(responses).To(HaveLen(3))
+		Expect(responses[1]).To(lsptest.BeErrorResponse(2, jsonrpc.ErrorCodeInvalidParams))
 	})
 
 	It("answers a notification with id and applies it", func() {

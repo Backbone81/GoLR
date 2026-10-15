@@ -4,12 +4,12 @@ package server
 import (
 	"bytes"
 	"context"
-	"errors"
 	"slices"
 
 	golrfmt "github.com/backbone81/golr/internal/fmt"
 	"github.com/backbone81/golr/internal/lsp/jsonrpc"
 	"github.com/backbone81/golr/internal/lsp/protocol"
+	golrparser "github.com/backbone81/golr/internal/parsergen/frontend/golr/parser"
 )
 
 // This file holds the application logic of the LSP operations. The handlers which change server state run on the
@@ -127,7 +127,10 @@ func (s *Server) handleDidChangeTextDocument(
 	last := params.ContentChanges[len(params.ContentChanges)-1]
 	change, ok := last.Value().(protocol.TextDocumentContentChangeWholeDocument)
 	if !ok {
-		return nil, errors.New("change is not the whole document, which full synchronization requires")
+		return nil, NewError(
+			jsonrpc.ErrorCodeInvalidParams,
+			"change is not the whole document, which full synchronization requires",
+		)
 	}
 	text := change.Text
 	s.documents = s.documents.with(newSnapshot(document.Uri, document.Version, text, s.encoding))
@@ -150,7 +153,9 @@ func (s *Server) handleDidCloseTextDocument(
 }
 
 // handleDocumentFormatting handles the textDocument/formatting request. It replaces the whole document with its
-// canonical layout, or returns no edit when it is formatted. See
+// canonical layout, or returns no edit when it is formatted. A document with a syntax error is not formatted, as the
+// formatter works on the tokens and would mangle the layout after the error, e.g. join the lines after an
+// unterminated string. See
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification#textDocument_formatting
 func (s *Server) handleDocumentFormatting(
 	_ context.Context,
@@ -160,6 +165,12 @@ func (s *Server) handleDocumentFormatting(
 	snapshot, ok := documents.Snapshot(params.TextDocument.Uri)
 	if !ok {
 		return nil, NewError(jsonrpc.ErrorCodeInvalidParams, "document not open: "+string(params.TextDocument.Uri))
+	}
+
+	if _, err := golrparser.NewParser().Parse(
+		golrparser.NewTokenSkipper(golrparser.NewScanner(snapshot.Text, string(snapshot.URI))),
+	); err != nil {
+		return nil, NewError(int(protocol.LSPErrorCodesRequestFailed), "not formatted: "+err.Error())
 	}
 
 	formatted := golrfmt.NewFormatter().Format(snapshot.Text, string(snapshot.URI))
