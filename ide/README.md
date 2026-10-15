@@ -9,3 +9,14 @@ This directory contains the IDE plugins for GoLR grammar files (`.golr`):
 
 Both provide syntax highlighting, navigation between declarations and references, rename, code completion and
 formatting.
+
+## Editor Setups
+
+Other editors connect to the GoLR language server (`golr lsp`) with their own LSP client. These directories contain the
+syntax highlighting and a README with the configuration of the language server:
+
+- [Neovim](neovim/README.md)
+- [Vim](vim/README.md)
+- [Emacs](emacs/README.md)
+
+They provide syntax highlighting and formatting.
