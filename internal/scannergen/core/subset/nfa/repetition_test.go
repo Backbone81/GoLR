@@ -169,4 +169,21 @@ var _ = Describe("Repetition", func() {
 
 		Expect(gotNfa).To(Equal(wantNfa))
 	})
+
+	It("should skip zero repetitions from its own start state", func() {
+		// The empty transition for zero repetitions has to start at the repetition, not at the start of the NFA.
+		// Otherwise, 'ba{0,1}' would match the empty string.
+		expression := dsl.Concat(dsl.Literal("b"), dsl.Repetition(dsl.Literal("a"), 0, 1))
+		gotNfa := thompsonsnfa.FromRegex(expression, 0)
+
+		Expect(gotNfa[0].Transitions).To(Equal([]thompsonsnfa.Transition{
+			{
+				ByteRange: backend.ByteRange{
+					Low:  'b',
+					High: 'b',
+				},
+				NextStateIdx: 1,
+			},
+		}))
+	})
 })

@@ -1,0 +1,2 @@
+description: Fixed golr scanner panicking on a repetition with a maximum of zero like
+  /a{0}/, which is now reported as an error.

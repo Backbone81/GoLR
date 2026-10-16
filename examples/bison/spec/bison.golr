@@ -16,8 +16,8 @@
     MULTILINE_COMMENT: /\/\*([^*]|\*+[^*\/])*\*+\// @fragment;
     COMMENT:           /{LINE_COMMENT}|{MULTILINE_COMMENT}/ @skip;
 
-    STRING:                          /"([^"\\]|\\.)*"/;
-    TSTRING:                         /_\("([^"\\]|\\.)*"\)/;
+    STRING:                          /"([^"\\\n]|\\.)*"/;
+    TSTRING:                         /_\("([^"\\\n]|\\.)*"\)/;
     PERCENT_TOKEN:                   "%token";
     PERCENT_NTERM:                   "%nterm";
     PERCENT_TYPE:                    "%type";
@@ -58,7 +58,7 @@
     BRACED_CODE_START:               "{";
     BRACED_PREDICATE:                @empty;
     BRACED_PREDICATE_START:          "%?{";
-    CHAR_LITERAL:                    /'([^'\\]|\\.)*'/;
+    CHAR_LITERAL:                    /'([^'\\\n]|\\.)*'/;
     COLON:                           ":";
     EPILOGUE:                        @empty;
     EQUAL:                           "=";

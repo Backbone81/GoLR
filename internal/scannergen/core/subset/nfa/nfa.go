@@ -39,8 +39,12 @@ func FromRegex(regexNode *frontend.Node, ruleIdx int) []State {
 	return NewThompsonsConstruction().Build(regexNode, ruleIdx)
 }
 
-// RulesToNFA is a helper function creating one combined NFA from all rules provided.
+// RulesToNFA is a helper function creating one combined NFA from all rules provided. Without rules, the NFA is a single
+// state which accepts nothing.
 func RulesToNFA(rules []frontend.Rule) []State {
+	if len(rules) == 0 {
+		return []State{{}}
+	}
 	nfas := make([][]State, 0, len(rules))
 	for ruleIdx, rule := range rules {
 		ruleNFA := FromRegex(&rule.Regex, ruleIdx)

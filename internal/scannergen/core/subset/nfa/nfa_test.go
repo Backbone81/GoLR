@@ -532,3 +532,9 @@ func BenchmarkFromRegex(b *testing.B) {
 		}
 	})
 }
+
+var _ = Describe("RulesToNFA", func() {
+	It("should create a single state which accepts nothing without rules", func() {
+		Expect(thompsonsnfa.RulesToNFA(nil)).To(Equal([]thompsonsnfa.State{{}}))
+	})
+})

@@ -196,4 +196,12 @@ var _ = Describe("HopcroftsAlgorithm", func() {
 		want := []backend.State{m0, m1}
 		Expect(got).To(Equal(want))
 	})
+
+	It("should keep a DFA without accepting states", func() {
+		// This is the DFA of a rule which matches no input, like the empty character class [].
+		got := dfa.NewHopcroftsAlgorithm().Build([]backend.State{{}})
+		Expect(got).To(HaveLen(1))
+		Expect(got[0].Accept).To(BeFalse())
+		Expect(got[0].Transitions).To(BeEmpty())
+	})
 })

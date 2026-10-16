@@ -1,0 +1,2 @@
+description: Fixed golr scanner panicking on a scanner without rules, or when no rule matches any
+  input, like a single rule with the empty character class [].

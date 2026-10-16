@@ -9,7 +9,9 @@ import (
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 	"github.com/backbone81/golr/internal/parsergen/backend/table"
+	"github.com/backbone81/golr/internal/parsergen/conflict"
 	"github.com/backbone81/golr/internal/parsergen/core"
+	ielr1golrcore "github.com/backbone81/golr/internal/parsergen/core/ielr1/golr"
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 	"github.com/backbone81/golr/internal/utils"
 	"github.com/backbone81/golr/testdata"
@@ -376,6 +378,23 @@ var _ = Describe("CompressedParser", func() {
 		expectDecodeEquivalence(parser)
 	})
 
+	DescribeTable("decodes like the parser states for small grammars, with and without default reductions",
+		func(grammar frontend.Grammar) {
+			for _, options := range [][]core.Option{nil, {core.WithoutDefaultReductions()}} {
+				parser, _, _, err := ielr1golrcore.GrammarToParser(grammar, conflict.DefaultPolicy, options...)
+				Expect(err).ToNot(HaveOccurred())
+
+				expectDecodeEquivalence(parser)
+			}
+		},
+		Entry("Fig. 1 of the IELR(1) paper", ielr1golrcore.UnambiguousTestGrammarFig1),
+		Entry("Fig. 2 of the IELR(1) paper", ielr1golrcore.AmbiguousTestGrammarFig2),
+		Entry("Fig. 5 of the IELR(1) paper", ielr1golrcore.GotoFollowsTestGrammarFig5),
+		Entry("Fig. 6 of the IELR(1) paper", ielr1golrcore.GotoFollowsCaveatsTestGrammarFig6),
+		Entry("a reduce/reduce conflict", ielr1golrcore.ReduceReduceConflictTestGrammar),
+		Entry("the error symbol for error recovery only", errorRecoveryTestGrammar),
+	)
+
 	It("needs far fewer cells than the uncompressed tables", func() {
 		parser := wellKnownParser(wellKnownGrammarByTitle("Go 1.5.4"))
 
@@ -403,3 +422,70 @@ var _ = Describe("CompressedParser", func() {
 		Expect(packingDensity(compressed.Gotos)).To(BeNumerically(">", 0.5))
 	})
 })
+
+// errorRecoveryTestGrammar uses the error symbol for error recovery only and resolves its conflicts by precedence,
+// which the paper grammars do not.
+//
+//  1. E -> E + E
+//  2. E -> E * E
+//  3. E -> n
+//  4. E -> error
+//
+// with + left associative below * left associative.
+var errorRecoveryTestGrammar = frontend.Grammar{
+	Terminals: []frontend.Symbol{
+		frontend.SymbolError, // 0
+		{
+			Name:          "+", // 1
+			Associativity: frontend.AssociativityLeft,
+			Precedence:    1,
+		},
+		{
+			Name:          "*", // 2
+			Associativity: frontend.AssociativityLeft,
+			Precedence:    2,
+		},
+		{
+			Name: "n", // 3
+		},
+	},
+	Nonterminals: []frontend.Symbol{
+		{
+			Name: "E", // 0
+		},
+	},
+	Productions: []frontend.Production{
+		// 1. E -> E + E
+		{
+			NonterminalIdx: 0, // E
+			SymbolRefs: []frontend.SymbolRef{
+				frontend.NewNonterminalRef(0), // E
+				frontend.NewTerminalRef(1),    // +
+				frontend.NewNonterminalRef(0), // E
+			},
+		},
+		// 2. E -> E * E
+		{
+			NonterminalIdx: 0, // E
+			SymbolRefs: []frontend.SymbolRef{
+				frontend.NewNonterminalRef(0), // E
+				frontend.NewTerminalRef(2),    // *
+				frontend.NewNonterminalRef(0), // E
+			},
+		},
+		// 3. E -> n
+		{
+			NonterminalIdx: 0, // E
+			SymbolRefs: []frontend.SymbolRef{
+				frontend.NewTerminalRef(3), // n
+			},
+		},
+		// 4. E -> error
+		{
+			NonterminalIdx: 0, // E
+			SymbolRefs: []frontend.SymbolRef{
+				frontend.NewTerminalRef(0), // error
+			},
+		},
+	},
+}

@@ -117,6 +117,13 @@ var _ = Describe("Regular Expressions", func() {
 				0, 5,
 			)))
 		})
+
+		It("should return an error for a repetition with a maximum of zero", func() {
+			for _, pattern := range []string{`/a{0}/`, `/a{0,0}/`, `/a{,0}/`} {
+				_, err := regex.Parse([]byte(pattern), nil)
+				Expect(err).To(MatchError("repetition with a maximum of zero"), pattern)
+			}
+		})
 	})
 
 	Context("Character Class", func() {
@@ -366,6 +373,27 @@ var _ = Describe("Regular Expressions", func() {
 			_, err := regex.Parse([]byte(`/{A}/`), fragments)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("cyclic"))
+		})
+
+		It("should return an error for an empty string fragment", func() {
+			fragments := map[string][]byte{
+				"A": []byte(`""`),
+			}
+			_, err := regex.Parse([]byte(`/{A}/`), fragments)
+			Expect(err).To(MatchError(`fragment "A" is an empty string`))
+		})
+
+		It("should keep a string fragment when a literal follows one of its references", func() {
+			fragments := map[string][]byte{
+				"KWORD": []byte(`"if"`),
+			}
+			node, err := regex.Parse([]byte(`/{KWORD}x|{KWORD}/`), fragments)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(node).To(Equal(dsl.Or(
+				dsl.Literal("ifx"),
+				dsl.Literal("if"),
+			)))
 		})
 	})
 })

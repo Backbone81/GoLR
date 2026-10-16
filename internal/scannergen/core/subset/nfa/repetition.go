@@ -7,9 +7,14 @@ func (b *ThompsonsConstruction) fromRepetition(regexNode *frontend.Repetition, r
 	states = append(states, State{
 		RuleIdx: ruleIdx,
 	})
-	currStateIdx := len(states) - 1
+	startStateIdx := len(states) - 1
+	currStateIdx := startStateIdx
 
 	acceptingStateIdxs := make([]int, regexNode.Maximum-regexNode.Minimum+1)
+	if regexNode.Minimum == 0 {
+		// zero repetitions skip the child from the start state
+		acceptingStateIdxs[0] = startStateIdx
+	}
 	for i := range regexNode.Maximum {
 		states = b.buildNFAFromRegexValidated(regexNode.Child, ruleIdx, states)
 		states[len(states)-1].Accept = false

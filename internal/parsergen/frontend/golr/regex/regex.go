@@ -562,6 +562,9 @@ func (p *Parser) parseRepetition(child *frontend.Node) (*frontend.Node, bool, er
 	if !hasMin && !hasMax {
 		return nil, false, errors.New("empty repetition")
 	}
+	if (hasMax && maxRepetition == 0) || (!hasComma && minRepetition == 0) {
+		return nil, false, errors.New("repetition with a maximum of zero")
+	}
 
 	more := p.next()
 
@@ -617,14 +620,15 @@ func (p *Parser) parseNumber() (int, bool) {
 
 // mergeLiterals is a helper function which collapses multiple successive literals together. This makes it easier for
 // tests and debugging, because /foo/ is one literal "foo" instead of cone concatenation with three literals "f", "o"
-// and "o".
+// and "o". The merged literal is a new node, because a literal can be the node of a fragment, which every reference to
+// that fragment shares.
 func (p *Parser) mergeLiterals(children []*frontend.Node) []*frontend.Node {
 	result := make([]*frontend.Node, 0, len(children))
 	for _, child := range children {
 		if len(result) > 0 &&
 			result[len(result)-1].Kind == frontend.KindLiteral &&
 			child.Kind == frontend.KindLiteral {
-			result[len(result)-1].Literal.Text += child.Literal.Text
+			result[len(result)-1] = dsl.Literal(result[len(result)-1].Literal.Text + child.Literal.Text)
 			continue
 		}
 		result = append(result, child)
@@ -689,6 +693,9 @@ func (p *Parser) resolveFragment(name string) (*frontend.Node, error) {
 	case lexeme[0] == '"':
 		// String literal fragment — strip quotes.
 		alias := string(lexeme)
+		if len(alias) == 2 {
+			return nil, fmt.Errorf("fragment %q is an empty string", name)
+		}
 		node = dsl.Literal(alias[1 : len(alias)-1])
 	default:
 		// Regex fragment — parse recursively, sharing nodeByName and resolving.

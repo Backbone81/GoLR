@@ -1,0 +1,2 @@
+description: Fixed golr convert not applying the Bison specific conversions when reading
+  the grammar from stdin.

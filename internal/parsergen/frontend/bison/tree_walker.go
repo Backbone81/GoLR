@@ -506,6 +506,10 @@ func (w *TreeWalker) visitRules(node *parser.Node) {
 	if err != nil {
 		return
 	}
+	if _, ok := w.terminalIdxByName[idColon]; ok {
+		w.errs = append(w.errs, w.errorAt(node.ByteOffset, "rule given for %s, which is a token", idColon))
+		return
+	}
 
 	if _, ok := w.nonterminalIdxByName[idColon]; !ok {
 		w.grammar.Nonterminals = append(w.grammar.Nonterminals, frontend.Symbol{

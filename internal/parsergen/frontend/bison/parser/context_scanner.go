@@ -66,6 +66,15 @@ func (c *ContextScanner) FilePath() string {
 	return c.Scanner.FilePath()
 }
 
+// Reset scans the given source from the given byte offset on. Whether a token is the epilogue depends on the "%%" in
+// front of the offset, so they are counted by scanning up to it.
 func (c *ContextScanner) Reset(source []byte, offset int) {
+	c.percentPercentCount = 0
+	c.Scanner.Reset(source, 0)
+	for c.Scanner.ByteOffset()+c.Scanner.ByteLength() < offset {
+		if !c.Next() {
+			break
+		}
+	}
 	c.Scanner.Reset(source, offset)
 }

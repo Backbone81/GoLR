@@ -52,12 +52,18 @@ func executeInput() ([]scannerfrontend.Rule, parserfrontend.Grammar, error) {
 
 	switch convertInputFileFormat {
 	case "bison":
+		var grammar parserfrontend.Grammar
+		var err error
 		if convertInputFilePath == "-" {
-			grammar, err := bisonfrontend.ToGrammar(os.Stdin, "pipe")
-			return nil, grammar, err
+			grammar, err = bisonfrontend.ToGrammar(os.Stdin, "pipe")
+		} else {
+			grammar, err = bisonfrontend.GrammarFromFile(convertInputFilePath)
 		}
-		grammar, err := bisonfrontend.GrammarFromFile(convertInputFilePath)
-		return nil, convert.BisonGrammar2GoLR(grammar), err
+		if err != nil {
+			return nil, parserfrontend.Grammar{}, err
+		}
+		grammar, err = convert.BisonGrammar2GoLR(grammar)
+		return nil, grammar, err
 	case "golr":
 		if convertInputFilePath == "-" {
 			data, err := io.ReadAll(os.Stdin)

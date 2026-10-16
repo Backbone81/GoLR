@@ -129,49 +129,29 @@ func writeGoLRTerminalDecl(
 }
 
 // golrTerminalPattern returns the GoLR pattern string and skip flag for a terminal.
-// If a scanner rule exists for the terminal it takes precedence. Otherwise the heuristic is applied:
-// a string alias is emitted as a string literal, anything else falls back to @empty.
+// A terminal with an alias is written with its alias, which is the string pattern it was read from, because writing
+// any other pattern would drop the alias. A terminal without one is written with its scanner rule, and falls back to
+// @empty without a rule.
 func golrTerminalPattern(terminal frontend.Symbol, ruleByName map[string]frontend2.Rule) (string, bool) {
-	if rule, ok := ruleByName[terminal.Name]; ok {
-		return golrNodeToPattern(&rule.Regex), rule.Skip
-	}
+	rule, hasRule := ruleByName[terminal.Name]
 	if terminal.Alias != "" {
 		// Alias is stored with surrounding quotes already, e.g. `"+"`.
-		return terminal.Alias, false
+		return terminal.Alias, hasRule && rule.Skip
+	}
+	if hasRule {
+		return golrNodeToPattern(&rule.Regex), rule.Skip
 	}
 	return "@empty", false
 }
 
 // golrNodeToPattern converts a regex Node to the appropriate GoLR scanner pattern string.
-// An empty char class becomes @empty, a plain literal becomes a double-quoted string, everything
-// else is wrapped in /.../ using Node.String() which produces valid regex syntax.
+// An empty char class becomes @empty, everything else is wrapped in /.../ using Node.String() which produces valid
+// regex syntax. A plain literal is no string pattern either, because a string pattern declares an alias.
 func golrNodeToPattern(node *frontend2.Node) string {
 	if node.Kind == frontend2.KindCharClass && !node.CharClass.Negate && len(node.CharClass.Ranges) == 0 {
 		return "@empty"
 	}
-	if node.Kind == frontend2.KindLiteral {
-		return golrLiteralToStringPattern(node.Literal.Text)
-	}
 	return "/" + node.String() + "/"
-}
-
-// golrLiteralToStringPattern formats literal text as a double-quoted GoLR string pattern,
-// escaping " and \ which are the only characters that need escaping in this context.
-func golrLiteralToStringPattern(text string) string {
-	var b strings.Builder
-	b.WriteRune('"')
-	for _, r := range text {
-		switch r {
-		case '"':
-			b.WriteString(`\"`)
-		case '\\':
-			b.WriteString(`\\`)
-		default:
-			b.WriteRune(r)
-		}
-	}
-	b.WriteRune('"')
-	return b.String()
 }
 
 func writeGoLRParserSection(writer io.Writer, grammar frontend.Grammar) error {
@@ -277,18 +257,17 @@ type NonterminalGroup struct {
 	Productions    []frontend.Production
 }
 
+// writeGoLRRules writes the productions in their order. Only productions which follow each other share a rule, a
+// nonterminal whose productions are interleaved with those of others gets a rule for each run of them. The order of
+// the productions decides reduce/reduce conflicts, see conflict.EarliestProductionPolicy, so it has to survive.
 func writeGoLRRules(writer io.Writer, grammar frontend.Grammar) error {
 	var nonterminalGroups []NonterminalGroup
-	groupIdxByNonterminalIdx := make(map[int]int)
 
 	for _, production := range grammar.Productions {
-		if nonterminalGroupIdx, ok := groupIdxByNonterminalIdx[production.NonterminalIdx]; ok {
-			nonterminalGroups[nonterminalGroupIdx].Productions = append(
-				nonterminalGroups[nonterminalGroupIdx].Productions,
-				production,
-			)
+		if last := len(nonterminalGroups) - 1; last >= 0 &&
+			nonterminalGroups[last].NonterminalIdx == production.NonterminalIdx {
+			nonterminalGroups[last].Productions = append(nonterminalGroups[last].Productions, production)
 		} else {
-			groupIdxByNonterminalIdx[production.NonterminalIdx] = len(nonterminalGroups)
 			nonterminalGroups = append(nonterminalGroups, NonterminalGroup{
 				NonterminalIdx: production.NonterminalIdx,
 				Productions:    []frontend.Production{production},

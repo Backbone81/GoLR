@@ -217,6 +217,19 @@ var _ = Describe("GoLR Grammar Files", func() {
 			Expect(err).To(MatchError(`in-memory:3:7: alias "baz" has already been declared`))
 		})
 
+		It("should reject a token with an empty string", func() {
+			source := utils.HereDoc(`
+				@scanner {
+					FOO: "";
+				}
+				@parser {
+					file: @empty;
+				}
+			`)
+			_, _, err := golr.GrammarFromString(source)
+			Expect(err).To(MatchError(`in-memory:2:7: terminal "FOO" is an empty string`))
+		})
+
 		It("should reject a token with an invalid regular expression", func() {
 			source := utils.HereDoc(`
 				@scanner {
@@ -1129,6 +1142,48 @@ var _ = Describe("GoLR Grammar Files", func() {
 			_, reparsed, err := golr.GrammarFromString(formatted)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(reparsed.Productions[0].Name).To(HaveValue(Equal("my_rule")))
+		})
+
+		It("should round trip a regular expression which is a plain literal without adding an alias", func() {
+			source := utils.HereDoc(`
+				@scanner {
+					KEYWORD: /if/;
+					OTHER: "if";
+				}
+				@parser {
+					file: KEYWORD OTHER;
+				}
+			`)
+			rules, grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+
+			formatted, err := golr.GrammarToString(rules, grammar)
+			Expect(err).ToNot(HaveOccurred())
+
+			reparsedRules, reparsed, err := golr.GrammarFromString(formatted)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(reparsed).To(Equal(grammar))
+			Expect(reparsedRules).To(Equal(rules))
+		})
+
+		It("should round trip a character class with / and [ through the GoLR writer", func() {
+			source := utils.HereDoc(`
+				@scanner {
+					SLASHES: /[^*\/][\[:]+/;
+				}
+				@parser {
+					file: SLASHES;
+				}
+			`)
+			rules, grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+
+			formatted, err := golr.GrammarToString(rules, grammar)
+			Expect(err).ToNot(HaveOccurred())
+
+			reparsedRules, _, err := golr.GrammarFromString(formatted)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(reparsedRules).To(Equal(rules))
 		})
 	})
 

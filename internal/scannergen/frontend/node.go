@@ -3,6 +3,7 @@ package frontend
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/goccy/go-yaml"
 )
@@ -241,30 +242,7 @@ func (n *Node) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	n.Kind = node.Kind
-	switch n.Kind {
-	case KindAny:
-		// nothing to do
-	case KindCharClass:
-		n.CharClass = *node.CharClass
-	case KindConcat:
-		n.Concat = *node.Concat
-	case KindLiteral:
-		n.Literal = *node.Literal
-	case KindOneOrMore:
-		n.OneOrMore = *node.OneOrMore
-	case KindOptional:
-		n.Optional = *node.Optional
-	case KindOr:
-		n.Or = *node.Or
-	case KindRepetition:
-		n.Repetition = *node.Repetition
-	case KindZeroOrMore:
-		n.ZeroOrMore = *node.ZeroOrMore
-	default:
-		return errors.New("unknown node kind")
-	}
-	return nil
+	return n.fromMarshalNode(node)
 }
 
 func (n Node) MarshalYAML() ([]byte, error) {
@@ -303,28 +281,47 @@ func (n *Node) UnmarshalYAML(data []byte) error {
 		return err
 	}
 
-	n.Kind = node.Kind
+	return n.fromMarshalNode(node)
+}
+
+// fromMarshalNode sets the node to the decoded helper struct, dropping what an earlier decode into the same node left.
+// Returns an error if the struct for the kind is missing.
+func (n *Node) fromMarshalNode(node marshalNode) error {
+	*n = Node{Kind: node.Kind}
+	missing := false
 	switch n.Kind {
 	case KindAny:
 		// nothing to do
 	case KindCharClass:
-		n.CharClass = *node.CharClass
+		missing = setFrom(&n.CharClass, node.CharClass)
 	case KindConcat:
-		n.Concat = *node.Concat
+		missing = setFrom(&n.Concat, node.Concat)
 	case KindLiteral:
-		n.Literal = *node.Literal
+		missing = setFrom(&n.Literal, node.Literal)
 	case KindOneOrMore:
-		n.OneOrMore = *node.OneOrMore
+		missing = setFrom(&n.OneOrMore, node.OneOrMore)
 	case KindOptional:
-		n.Optional = *node.Optional
+		missing = setFrom(&n.Optional, node.Optional)
 	case KindOr:
-		n.Or = *node.Or
+		missing = setFrom(&n.Or, node.Or)
 	case KindRepetition:
-		n.Repetition = *node.Repetition
+		missing = setFrom(&n.Repetition, node.Repetition)
 	case KindZeroOrMore:
-		n.ZeroOrMore = *node.ZeroOrMore
+		missing = setFrom(&n.ZeroOrMore, node.ZeroOrMore)
 	default:
 		return errors.New("unknown node kind")
 	}
+	if missing {
+		return fmt.Errorf("node of kind %s without its %s value", n.Kind, n.Kind)
+	}
 	return nil
+}
+
+// setFrom sets the target to the decoded value and reports whether the value is missing.
+func setFrom[T any](target *T, value *T) bool {
+	if value == nil {
+		return true
+	}
+	*target = *value
+	return false
 }

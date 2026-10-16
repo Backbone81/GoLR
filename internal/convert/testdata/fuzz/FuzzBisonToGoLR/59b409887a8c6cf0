@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("%precedenceA'0''0'%%B:")

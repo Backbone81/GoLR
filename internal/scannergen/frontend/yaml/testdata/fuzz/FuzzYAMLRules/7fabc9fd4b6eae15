@@ -1,0 +1,2 @@
+go test fuzz v1
+string("- 0008: 0000000000\n  regex:\n    kind: OneOrMore\n    oneOrMore:\n      child:\n        kind: CharClass\n        charClass:\n         0:")

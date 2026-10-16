@@ -1,0 +1,2 @@
+description: Fixed golr convert writing a regular expression which is a plain literal
+  as a string, which added an alias that could collide with other terminals.

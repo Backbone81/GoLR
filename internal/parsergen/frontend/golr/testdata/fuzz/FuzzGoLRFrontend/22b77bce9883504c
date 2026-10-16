@@ -1,0 +1,2 @@
+go test fuzz v1
+string("@scanner{A:\"{\";A0:\"}\";}@parser{B:\"{\"\"}\";item:item|@empty;B:A;}")

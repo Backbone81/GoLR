@@ -42,7 +42,8 @@ func (c *CharRange) printRune(r rune) string {
 		return `\f`
 	case 0:
 		return `\0`
-	case ']', '\\', '-', '^':
+	case ']', '\\', '-', '^', '[', '/':
+		// [ could start a POSIX class and / would end the regular expression of a GoLR grammar file.
 		return `\` + string(r)
 	default:
 		return string(r)

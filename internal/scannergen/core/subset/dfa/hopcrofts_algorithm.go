@@ -84,8 +84,6 @@ func (b *HopcroftsAlgorithm) buildInitialPartitions() []*Partition {
 		}
 	}
 
-	acceptingPartitions := b.splitAllPartitionsByName([]*Partition{&acceptingPartition})
-
 	var result []*Partition
 	if !otherPartition.StateIdxs.IsEmpty() {
 		// There are situations where the partition might be empty, because the DFA consists of accepting states only.
@@ -93,7 +91,12 @@ func (b *HopcroftsAlgorithm) buildInitialPartitions() []*Partition {
 		// first state as a reference state during refinement.
 		result = append(result, &otherPartition)
 	}
-	return append(result, acceptingPartitions...)
+	if acceptingPartition.StateIdxs.IsEmpty() {
+		// The same holds for a DFA without accepting states, which is what rules give which match no input at all,
+		// like an empty character class.
+		return result
+	}
+	return append(result, b.splitAllPartitionsByName([]*Partition{&acceptingPartition})...)
 }
 
 // buildDFAFromPartitions creates a new DFA from the given partitions. Each partition gets its own new DFA state

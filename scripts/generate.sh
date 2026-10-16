@@ -51,7 +51,11 @@ cp internal/parsergen/frontend/bison/spec/*.golr examples/bison/spec
 cp internal/parsergen/frontend/bison/spec/*.y examples/bison/spec
 cp internal/parsergen/frontend/bison/spec/*.txt examples/bison/spec
 cp internal/parsergen/frontend/bison/spec/LICENSES examples/bison/spec
-cp internal/parsergen/frontend/bison/parser/*.go examples/bison/parser
+for file in internal/parsergen/frontend/bison/parser/*.go; do
+  # The tests stay with the internal package, they need its test data and must not import internal packages here.
+  case "${file}" in *_test.go) continue ;; esac
+  cp "${file}" examples/bison/parser
+done
 
 # Generate the example calculator parser.
 go run ./cmd/golr scanner \

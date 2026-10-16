@@ -90,12 +90,7 @@ func (s *SymbolRef) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	if repr.Nonterminal {
-		*s = NewNonterminalRef(repr.Index)
-	} else {
-		*s = NewTerminalRef(repr.Index)
-	}
-	return nil
+	return s.fromMarshal(repr)
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.
@@ -116,6 +111,14 @@ func (s *SymbolRef) UnmarshalYAML(b []byte) error {
 	err := yaml.Unmarshal(b, &repr)
 	if err != nil {
 		return err
+	}
+	return s.fromMarshal(repr)
+}
+
+// fromMarshal sets the SymbolRef to the decoded helper struct. Returns an error if the index can not be stored.
+func (s *SymbolRef) fromMarshal(repr symbolIdxMarshal) error {
+	if repr.Index < 0 || symbolRefMaxIdx < repr.Index {
+		return fmt.Errorf("symbol index %d out of bounds [0, %d]", repr.Index, symbolRefMaxIdx)
 	}
 	if repr.Nonterminal {
 		*s = NewNonterminalRef(repr.Index)

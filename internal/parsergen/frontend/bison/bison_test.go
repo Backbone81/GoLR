@@ -1588,6 +1588,17 @@ var _ = Describe("Bison Grammar Files", func() {
 			))
 		})
 
+		It("should reject a rule for a token", func() {
+			bisonGrammar := utils.HereDoc(`
+				%token A
+				%%
+				A: %empty
+			`)
+			Expect(bison.GrammarFromString(bisonGrammar)).Error().To(MatchError(
+				`in-memory:3:1: rule given for A, which is a token`,
+			))
+		})
+
 		It("should default to the first nonterminal when no %start is declared", func() {
 			bisonGrammar := utils.HereDoc(`
 				%%

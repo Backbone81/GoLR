@@ -9,6 +9,21 @@
 - Added --with-counterexamples to golr parser, which shows for every listed conflict either an input with two derivations, proving the grammar ambiguous, or two derivations that share the input up to the conflict. The search is limited by --counterexample-time-limit and --counterexample-total-time-limit, and available as pkg/parsergen/counterexample.
 - Updated the mimimum Go version from 1.25 to 1.26 and updated the Go toolchain to 1.27.
 - Fixed golr fmt not aligning scanner rules when a blank line separated a rule name from its value, so formatting the output again changed it.
+- Fixed a regular expression which used the same fragment twice, like /{F}b|{F}/, changing the first use of the fragment.
+- Fixed golr scanner panicking on a repetition with a maximum of zero like /a{0}/, which is now reported as an error.
+- Fixed golr panicking on a terminal or fragment which is an empty string, which is now reported as an error.
+- Fixed golr convert writing a regular expression which is a plain literal as a string, which added an alias that could collide with other terminals.
+- Fixed golr convert writing / and [ inside a character class without escaping them, which gave a regular expression that did not read back.
+- Fixed golr convert producing invalid GoLR for Bison grammars with terminal names containing . or -, with undeclared string literal tokens, with renamed symbols colliding with terminals, or with the alias "".
+- Fixed the Bison frontend accepting a rule for a symbol declared as a token.
+- Fixed golr convert not applying the Bison specific conversions when reading the grammar from stdin.
+- Fixed golr scanner panicking on a scanner without rules, or when no rule matches any input, like a single rule with the empty character class [].
+- Fixed a repetition with a minimum of zero, like /ba{0,1}/, matching the empty string when it was not at the start of the regular expression.
+- Fixed golr scanner panicking on JSON or YAML rules with an invalid regular expression or a node without the value of its kind, which are now reported as errors.
+- Fixed golr parser panicking on a JSON or YAML grammar with a symbol index out of bounds, which is now reported as an error.
+- Fixed the GoLR grammar writer, and with it golr convert, regrouping the productions of a nonterminal defined in several places, which could change how reduce/reduce conflicts are resolved.
+- BREAKING: golr convert and convert.BisonGrammar2GoLR now fail on Bison terminals which share an alias, which GoLR does not allow, instead of writing a grammar file GoLR cannot read. BisonGrammar2GoLR returns an error for that.
+- Fixed the Bison frontend accepting string literals, translatable strings and character literals which span over a newline, which GNU Bison rejects.
 
 ## v0.5.0 (2026-09-26)
 

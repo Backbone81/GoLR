@@ -243,6 +243,9 @@ func (w *TreeWalker) resolvePatterns() error {
 		}
 		if lexeme[0] == '"' {
 			alias := string(lexeme)
+			if len(alias) == 2 {
+				return w.errorAt(w.lexemeByteOffsetByName[rule.Name], "terminal %q is an empty string", rule.Name)
+			}
 			if _, exists := w.terminalIdxByAlias[alias]; exists {
 				return w.errorAt(w.lexemeByteOffsetByName[rule.Name], "alias %s has already been declared", alias)
 			}

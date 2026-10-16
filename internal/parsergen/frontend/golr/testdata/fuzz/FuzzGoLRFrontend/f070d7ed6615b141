@@ -1,0 +1,2 @@
+go test fuzz v1
+string("@scanner{A:/[00000]/;A000000:\"+\";U:\"-\";B:\"0\";C:\"/\";X:\"1\";A00000:@empty;}@parser{@precedence{@right:C;@left:\"+\";@left:\"+\"\"0\";}expression:expression;}")

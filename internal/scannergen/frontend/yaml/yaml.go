@@ -15,12 +15,15 @@ import (
 )
 
 // ToRules reads the scanner rules as YAML document from the given reader. Returns an error if the YAML
-// document can not be decoded successfully.
+// document can not be decoded successfully or a rule has an invalid regular expression.
 func ToRules(reader io.Reader) ([]frontend.Rule, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Scannergen: Frontends: YAML: ToRules").End()
 
 	var rules []frontend.Rule
 	if err := yaml.NewDecoder(reader).Decode(&rules); err != nil {
+		return nil, fmt.Errorf("decoding YAML to rules: %w", err)
+	}
+	if err := frontend.ValidateRules(rules); err != nil {
 		return nil, fmt.Errorf("decoding YAML to rules: %w", err)
 	}
 	return rules, nil

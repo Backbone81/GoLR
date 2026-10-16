@@ -122,7 +122,7 @@ func FuzzFormatting(f *testing.F) {
 }
 
 // FuzzLineTable converts between offsets and positions of arbitrary texts. Positions have to match the ones counted
-// with the standard library, and the offset of a position is a character start within the text.
+// with the standard library, and so does the offset of an arbitrary position, which is clamped into its line.
 func FuzzLineTable(f *testing.F) {
 	f.Add("", 0, 0)
 	f.Add("a\nbc\n", 1, 1)
@@ -153,9 +153,8 @@ func FuzzLineTable(f *testing.F) {
 			}
 
 			position := protocol.Position{Line: line, Character: character}
-			offset := table.Offset(position, encoding)
-			if offset < 0 || offset > len(text) || (offset < len(text) && !utf8.RuneStart(text[offset])) {
-				t.Fatalf("%s: offset %d of %+v is no character start", encoding, offset, position)
+			if got, want := table.Offset(position, encoding), expectedOffset(text, position, encoding); got != want {
+				t.Fatalf("%s: offset of %+v is %d, want %d", encoding, position, got, want)
 			}
 		}
 	})
@@ -170,6 +169,34 @@ func expectedPosition(text string, offset int, encoding protocol.PositionEncodin
 		character = len(utf16.Encode([]rune(before[lineStart:])))
 	}
 	return protocol.Position{Line: strings.Count(before, "\n"), Character: character}
+}
+
+// expectedOffset returns the offset of the position counted with the standard library. A negative line or character
+// is 0, a line beyond the text is the end of the text, a character beyond its line is the end of the line, and one
+// inside a character is the start of the character.
+func expectedOffset(text string, position protocol.Position, encoding protocol.PositionEncodingKind) int {
+	lines := strings.Split(text, "\n")
+	line := max(position.Line, 0)
+	if line >= len(lines) {
+		return len(text)
+	}
+	offset := 0
+	for _, before := range lines[:line] {
+		offset += len(before) + 1
+	}
+	units := 0
+	for _, value := range lines[line] {
+		width := utf8.RuneLen(value)
+		if encoding != protocol.PositionEncodingKindUTF8 {
+			width = utf16.RuneLen(value)
+		}
+		if units+width > max(position.Character, 0) {
+			break
+		}
+		units += width
+		offset += utf8.RuneLen(value)
+	}
+	return offset
 }
 
 // formatText opens the text in a session and formats it. It returns the edits, or true when the server refused the

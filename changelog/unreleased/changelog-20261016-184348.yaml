@@ -1,0 +1,2 @@
+description: Fixed the Bison frontend accepting string literals, translatable strings
+  and character literals which span over a newline, which GNU Bison rejects.

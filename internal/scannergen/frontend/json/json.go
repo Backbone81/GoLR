@@ -14,12 +14,15 @@ import (
 )
 
 // ToRules reads the scanner rules as JSON document from the given reader. Returns an error if the JSON
-// document can not be decoded successfully.
+// document can not be decoded successfully or a rule has an invalid regular expression.
 func ToRules(reader io.Reader) ([]frontend.Rule, error) {
 	defer trace.StartRegion(context.TODO(), "GoLR: Scannergen: Frontends: JSON: ToRules").End()
 
 	var result []frontend.Rule
 	if err := json.NewDecoder(reader).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decoding JSON to rules: %w", err)
+	}
+	if err := frontend.ValidateRules(result); err != nil {
 		return nil, fmt.Errorf("decoding JSON to rules: %w", err)
 	}
 	return result, nil
