@@ -40,6 +40,9 @@ var grammar = utils.HereDoc(`
 	}
 `)
 
+// scannerSection is a scanner section in front of the inputs of the parser section.
+const scannerSection = `@scanner { A: "a"; } `
+
 func TestSuite(t *testing.T) {
 	format.MaxLength = 0
 	RegisterFailHandler(Fail)
@@ -92,4 +95,13 @@ func referenceNames(references []model.Reference) []string {
 		result = append(result, reference.Name)
 	}
 	return result
+}
+
+// caret is the marker of the caret in the inputs of the completion specs.
+const caret = "‸"
+
+// withoutCaret returns the text without the caret marker and the offset of the marker.
+func withoutCaret(text string) (string, int) {
+	offset := strings.Index(text, caret)
+	return strings.Replace(text, caret, "", 1), offset
 }

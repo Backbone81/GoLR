@@ -7,6 +7,8 @@ import (
 
 // Model is the symbol model of a text. It is immutable, and the slices it returns must not be modified.
 type Model struct {
+	text []byte
+
 	definitions []Definition
 	aliases     []Alias
 	references  []Reference
@@ -21,6 +23,9 @@ type Model struct {
 	// aliasNamesByTerminal holds the names of the aliases of a terminal without duplicates, as a terminal declared
 	// twice with the same string has the alias twice.
 	aliasNamesByTerminal map[string][]string
+
+	// completions holds the completion contexts sorted by offset, the first at offset zero. The offsets are distinct.
+	completions []CompletionContext
 }
 
 // index builds the lookups by name from the lists.
@@ -145,4 +150,36 @@ func (m *Model) UsagesNamed(name string) []Reference {
 	}
 	slices.SortFunc(usages, Reference.compareOffset)
 	return usages
+}
+
+// CompletionAt returns what completion offers at the caret. The place is the one in front of the word being
+// completed, which is the identifier characters before the caret with a leading "@".
+func (m *Model) CompletionAt(offset int) Completion {
+	offset = min(max(offset, 0), len(m.text))
+	start := offset
+	for start > 0 && m.isIdentifierByte(m.text[start-1]) {
+		start--
+	}
+	isKeyword := start > 0 && m.text[start-1] == '@'
+	if isKeyword {
+		start--
+	}
+
+	// The first context is at offset zero, so there is always one at or before the start.
+	idx, found := slices.BinarySearchFunc(m.completions, start, CompletionContext.compareOffset)
+	if !found {
+		idx--
+	}
+	kind := m.completions[idx].Kind
+	return Completion{
+		Offset:   start,
+		Keywords: kind.Keywords(),
+		Symbols:  kind.Symbols() && !isKeyword,
+	}
+}
+
+// isIdentifierByte reports whether the byte can be part of an IDENTIFIER of golr.golr.
+func (m *Model) isIdentifierByte(value byte) bool {
+	return value == '_' || ('a' <= value && value <= 'z') || ('A' <= value && value <= 'Z') ||
+		('0' <= value && value <= '9')
 }
