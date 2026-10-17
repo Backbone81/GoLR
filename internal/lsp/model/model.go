@@ -1,8 +1,11 @@
 package model
 
 import (
+	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/backbone81/golr/internal/parsergen/frontend/golr/parser"
 )
 
 // Model is the symbol model of a text. It is immutable, and the slices it returns must not be modified.
@@ -150,6 +153,58 @@ func (m *Model) UsagesNamed(name string) []Reference {
 	}
 	slices.SortFunc(usages, Reference.compareOffset)
 	return usages
+}
+
+// ValidateRename returns why renaming the occurrence to the new name is not possible, or nil if it is. The new name
+// of a symbol has to be exactly one IDENTIFIER and the new name of an alias exactly one STRING, so a rename keeps a
+// terminal and its alias apart. A new name which is defined or referenced already is rejected, as it would merge
+// symbols. Keeping the old name is fine.
+func (m *Model) ValidateRename(occurrence Occurrence, newName string) error {
+	if newName == occurrence.Name {
+		return nil
+	}
+
+	if m.IsAlias(occurrence.Name) {
+		if err := m.validateAliasRename(newName); err != nil {
+			return err
+		}
+	} else if err := m.validateSymbolRename(newName); err != nil {
+		return err
+	}
+	if len(m.referencesByName[newName]) > 0 {
+		return fmt.Errorf("'%s' is %w", newName, ErrNameReferenced)
+	}
+	return nil
+}
+
+// validateAliasRename returns why renaming an alias to the new name is not possible: it is not exactly one STRING or
+// is defined already.
+func (m *Model) validateAliasRename(newName string) error {
+	if !m.isSingleToken(newName, parser.TokenString) {
+		return fmt.Errorf("'%s' is %w", newName, ErrNotString)
+	}
+	if len(m.aliasesByName[newName]) > 0 {
+		return fmt.Errorf("'%s' is %w", newName, ErrNameDefined)
+	}
+	return nil
+}
+
+// validateSymbolRename returns why renaming a symbol to the new name is not possible: it is not exactly one
+// IDENTIFIER or is defined already.
+func (m *Model) validateSymbolRename(newName string) error {
+	if !m.isSingleToken(newName, parser.TokenIdentifier) {
+		return fmt.Errorf("'%s' is %w", newName, ErrNotIdentifier)
+	}
+	if len(m.definitionsByName[newName]) > 0 {
+		return fmt.Errorf("'%s' is %w", newName, ErrNameDefined)
+	}
+	return nil
+}
+
+// isSingleToken reports whether the golr scanner reads the text as exactly one token of the type.
+func (m *Model) isSingleToken(text string, token parser.Token) bool {
+	scanner := parser.NewScanner([]byte(text), "")
+	return scanner.Next() && scanner.Token() == token && !scanner.Next()
 }
 
 // CompletionAt returns what completion offers at the caret. The place is the one in front of the word being

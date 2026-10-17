@@ -117,6 +117,71 @@ var _ = Describe("Model", func() {
 		Expect(referenceNames(model.Build([]byte(text)).UsagesNamed("A"))).To(Equal([]string{`"b"`, "A", `"a"`}))
 	})
 
+	Context("ValidateRename", func() {
+		DescribeTable("checks the new name of the symbol or alias defined first with the name",
+			func(name string, newName string, expected error) {
+				m := model.Build([]byte(grammar))
+				occurrence, found := m.OccurrenceAt(span(grammar, name, 0).Offset)
+				Expect(found).To(BeTrue())
+				err := m.ValidateRename(occurrence, newName)
+				if expected == nil {
+					Expect(err).ToNot(HaveOccurred())
+				} else {
+					Expect(err).To(MatchError(expected))
+				}
+			},
+			Entry("a new identifier", "expr", "term", nil),
+			Entry("an identifier with digits and underscores", "expr", "_term_2", nil),
+			Entry("the old name", "expr", "expr", nil),
+			Entry("a new name of a terminal", "PLUS", "ADD", nil),
+			Entry("a new name of a fragment", "DIGIT", "DECIMAL", nil),
+			Entry("an empty name", "expr", "", model.ErrNotIdentifier),
+			Entry("a name with non-ASCII letters", "expr", "größe", model.ErrNotIdentifier),
+			Entry("a name starting with a digit", "expr", "1term", model.ErrNotIdentifier),
+			Entry("two identifiers", "expr", "a b", model.ErrNotIdentifier),
+			Entry("an identifier with leading whitespace", "expr", " term", model.ErrNotIdentifier),
+			Entry("an identifier with a trailing comment", "expr", "term//", model.ErrNotIdentifier),
+			Entry("a keyword", "expr", "@start", model.ErrNotIdentifier),
+			Entry("a string for a symbol", "PLUS", `"plus"`, model.ErrNotIdentifier),
+			Entry("a defined nonterminal", "expr", "empty", model.ErrNameDefined),
+			Entry("a defined terminal", "expr", "NUMBER", model.ErrNameDefined),
+			Entry("a defined fragment", "expr", "DIGIT", model.ErrNameDefined),
+			Entry("a name which is only referenced", "expr", "UMINUS", model.ErrNameReferenced),
+			Entry("a new string", `"+"`, `"plus"`, nil),
+			Entry("a string with an escaped quote", `"+"`, `"a\"b"`, nil),
+			Entry("the old string", `"+"`, `"+"`, nil),
+			Entry("an identifier for an alias", `"+"`, "plus", model.ErrNotString),
+			Entry("an unterminated string", `"+"`, `"plus`, model.ErrNotString),
+			Entry("a string with trailing whitespace", `"+"`, `"plus" `, model.ErrNotString),
+			Entry("two strings", `"+"`, `"a""b"`, model.ErrNotString),
+			Entry("the alias of another terminal", `"+"`, `"-"`, model.ErrNameDefined),
+		)
+
+		It("rejects a string which is only referenced", func() {
+			text := `@scanner { A: "a"; } @parser { s: A "b"; }`
+			m := model.Build([]byte(text))
+			occurrence, found := m.OccurrenceAt(span(text, `"a"`, 0).Offset)
+			Expect(found).To(BeTrue())
+			Expect(m.ValidateRename(occurrence, `"b"`)).To(MatchError(model.ErrNameReferenced))
+		})
+
+		It("names the new name in the error", func() {
+			m := model.Build([]byte(grammar))
+			occurrence, found := m.OccurrenceAt(span(grammar, "expr", 0).Offset)
+			Expect(found).To(BeTrue())
+			Expect(m.ValidateRename(occurrence, "größe")).To(MatchError("'größe' is not an identifier"))
+		})
+
+		It("checks a reference like its definition", func() {
+			m := model.Build([]byte(grammar))
+			occurrence, found := m.OccurrenceAt(span(grammar, "NUMBER", 1).Offset)
+			Expect(found).To(BeTrue())
+			Expect(occurrence.Role).To(Equal(model.RoleReference))
+			Expect(m.ValidateRename(occurrence, "INTEGER")).To(Succeed())
+			Expect(m.ValidateRename(occurrence, "PLUS")).To(MatchError(model.ErrNameDefined))
+		})
+	})
+
 	Context("CompletionAt", func() {
 		topLevel := []string{"@scanner", "@parser"}
 		scannerRuleBody := []string{"@empty", "@skip", "@fragment"}
