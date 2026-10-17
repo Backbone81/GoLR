@@ -203,7 +203,7 @@ func writeGoLRPrecedenceSection(writer io.Writer, grammar frontend.Grammar) erro
 			}
 			precValues = append(precValues, terminal.Precedence)
 		}
-		groupByPrec[terminal.Precedence].names = append(groupByPrec[terminal.Precedence].names, terminal.String())
+		groupByPrec[terminal.Precedence].names = append(groupByPrec[terminal.Precedence].names, golrTerminalName(terminal))
 	}
 
 	if len(precValues) == 0 {
@@ -294,7 +294,7 @@ func writeGoLRRules(writer io.Writer, grammar frontend.Grammar) error {
 				rhs += " @name(" + *production.Name + ")"
 			}
 			if production.PrecedenceTerminalIdx != nil {
-				rhs += " @precedence(" + grammar.Terminals[*production.PrecedenceTerminalIdx].String() + ")"
+				rhs += " @precedence(" + golrTerminalName(grammar.Terminals[*production.PrecedenceTerminalIdx]) + ")"
 			}
 			if _, err := fmt.Fprintf(writer, "        %s %s\n", sep, rhs); err != nil {
 				return err
@@ -314,16 +314,21 @@ func golrProductionRHS(prod frontend.Production, grammar frontend.Grammar) strin
 	parts := make([]string, len(prod.SymbolRefs))
 	for i, ref := range prod.SymbolRefs {
 		if ref.IsTerminal() {
-			if grammar.Terminals[ref.Idx()].Name == frontend.SymbolError.Name {
-				parts[i] = "@error"
-				continue
-			}
-			parts[i] = grammar.Terminals[ref.Idx()].String()
+			parts[i] = golrTerminalName(grammar.Terminals[ref.Idx()])
 		} else {
 			parts[i] = grammar.Nonterminals[ref.Idx()].Name
 		}
 	}
 	return strings.Join(parts, " ")
+}
+
+// golrTerminalName returns how a GoLR document references the terminal: the error symbol by its keyword, any other
+// terminal by its alias or name.
+func golrTerminalName(terminal frontend.Symbol) string {
+	if terminal.Name == frontend.SymbolError.Name {
+		return "@error"
+	}
+	return terminal.String()
 }
 
 // GrammarFromFile reads the context free grammar as GoLR grammar document from the given file path. Returns an

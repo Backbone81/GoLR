@@ -51,6 +51,9 @@ unreleased:
     a grammar file GoLR cannot read. BisonGrammar2GoLR returns an error for that.'
 - description: Fixed the Bison frontend accepting string literals, translatable strings
     and character literals which span over a newline, which GNU Bison rejects.
+- description: Fixed `golr convert` writing the error symbol of a Bison precedence
+    declaration like `%left error` as `$error`, which made the converted grammar unreadable.
+    It is written as `@error` now.
 releases:
 - version: |
     v0.5.0

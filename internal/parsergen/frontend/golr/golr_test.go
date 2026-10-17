@@ -1,6 +1,7 @@
 package golr_test
 
 import (
+	"bytes"
 	"math"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -593,6 +594,33 @@ var _ = Describe("GoLR Grammar Files", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(grammar.Terminals[1].Name).To(Equal(frontend.SymbolError.Name))
 			Expect(grammar.Terminals[1].Associativity).To(Equal(frontend.AssociativityLeft))
+		})
+
+		It("should write @error in a precedence declaration and a production precedence", func() {
+			source := utils.HereDoc(`
+				@scanner {
+					FOO: /foo/;
+				}
+				@parser {
+					@precedence {
+						@left: @error;
+					}
+					file: FOO @precedence(@error);
+				}
+			`)
+			rules, grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+
+			var output bytes.Buffer
+			Expect(golr.FromGrammar(&output, rules, grammar)).To(Succeed())
+			Expect(output.String()).To(ContainSubstring("@left: @error;"))
+			Expect(output.String()).To(ContainSubstring("@precedence(@error)"))
+
+			_, rereadGrammar, err := golr.GrammarFromString(output.String())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(rereadGrammar.Terminals[1].Name).To(Equal(frontend.SymbolError.Name))
+			Expect(rereadGrammar.Terminals[1].Associativity).To(Equal(frontend.AssociativityLeft))
+			Expect(rereadGrammar.Productions[0].PrecedenceTerminalIdx).To(HaveValue(Equal(1)))
 		})
 
 		It("should not let a scanner section declare a terminal which collides with the error symbol", func() {

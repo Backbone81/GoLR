@@ -24,6 +24,7 @@
 - Fixed the GoLR grammar writer, and with it golr convert, regrouping the productions of a nonterminal defined in several places, which could change how reduce/reduce conflicts are resolved.
 - BREAKING: golr convert and convert.BisonGrammar2GoLR now fail on Bison terminals which share an alias, which GoLR does not allow, instead of writing a grammar file GoLR cannot read. BisonGrammar2GoLR returns an error for that.
 - Fixed the Bison frontend accepting string literals, translatable strings and character literals which span over a newline, which GNU Bison rejects.
+- Fixed `golr convert` writing the error symbol of a Bison precedence declaration like `%left error` as `$error`, which made the converted grammar unreadable. It is written as `@error` now.
 
 ## v0.5.0 (2026-09-26)
 

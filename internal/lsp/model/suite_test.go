@@ -1,6 +1,8 @@
 package model_test
 
 import (
+	"bytes"
+	"slices"
 	"strings"
 	"testing"
 
@@ -10,6 +12,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/backbone81/golr/internal/lsp/model"
+	parsergenfrontend "github.com/backbone81/golr/internal/parsergen/frontend"
+	golrfrontend "github.com/backbone81/golr/internal/parsergen/frontend/golr"
 	"github.com/backbone81/golr/internal/utils"
 )
 
@@ -104,4 +108,80 @@ const caret = "‸"
 func withoutCaret(text string) (string, int) {
 	offset := strings.Index(text, caret)
 	return strings.Replace(text, caret, "", 1), offset
+}
+
+// expectModelMatchesFrontend checks the model of a valid text against the grammar the golr frontend reads from it: the
+// same terminals in the same order, the same nonterminals and the same aliases, and every reference resolves.
+func expectModelMatchesFrontend(text []byte, filePath string) {
+	_, grammar, err := golrfrontend.ToGrammar(bytes.NewReader(text), filePath)
+	Expect(err).ToNot(HaveOccurred())
+	m := model.Build(text)
+
+	Expect(modelNames(m, model.KindTerminal)).To(Equal(grammarTerminals(grammar)), "terminals")
+	Expect(modelNames(m, model.KindNonterminal)).To(ConsistOf(grammarNonterminals(grammar)), "nonterminals")
+	Expect(modelAliases(m)).To(Equal(grammarAliases(grammar)), "aliases")
+	Expect(unresolvedReferences(m)).To(BeEmpty(), "unresolved references")
+}
+
+// modelNames returns the names of the definitions of the kind in the order of the text, each name once.
+func modelNames(m *model.Model, kind model.Kind) []string {
+	var names []string
+	for _, definition := range m.Definitions() {
+		if definition.Kind == kind && !slices.Contains(names, definition.Name) {
+			names = append(names, definition.Name)
+		}
+	}
+	return names
+}
+
+// grammarTerminals returns the names of the terminals of the grammar without the error symbol, which the frontend adds
+// on its first use.
+func grammarTerminals(grammar parsergenfrontend.Grammar) []string {
+	var names []string
+	for _, terminal := range grammar.Terminals {
+		if terminal.Name != parsergenfrontend.SymbolError.Name {
+			names = append(names, terminal.Name)
+		}
+	}
+	return names
+}
+
+// grammarNonterminals returns the names of the nonterminals of the grammar.
+func grammarNonterminals(grammar parsergenfrontend.Grammar) []string {
+	names := make([]string, 0, len(grammar.Nonterminals))
+	for _, nonterminal := range grammar.Nonterminals {
+		names = append(names, nonterminal.Name)
+	}
+	return names
+}
+
+// modelAliases returns the terminal of every alias of the model.
+func modelAliases(m *model.Model) map[string]string {
+	terminalByAlias := map[string]string{}
+	for _, alias := range m.Aliases() {
+		terminalByAlias[alias.Name] = alias.Terminal
+	}
+	return terminalByAlias
+}
+
+// grammarAliases returns the terminal of every alias of the grammar.
+func grammarAliases(grammar parsergenfrontend.Grammar) map[string]string {
+	terminalByAlias := map[string]string{}
+	for _, terminal := range grammar.Terminals {
+		if terminal.Alias != "" {
+			terminalByAlias[terminal.Alias] = terminal.Name
+		}
+	}
+	return terminalByAlias
+}
+
+// unresolvedReferences returns the names of the references which resolve to no declaration.
+func unresolvedReferences(m *model.Model) []string {
+	var names []string
+	for _, reference := range m.References() {
+		if len(m.DeclarationsNamed(reference.Name)) == 0 {
+			names = append(names, reference.Name)
+		}
+	}
+	return names
 }
