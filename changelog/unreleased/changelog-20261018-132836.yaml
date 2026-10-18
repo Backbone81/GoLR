@@ -1,3 +1,0 @@
-description: Added golr lsp, a language server for GoLR grammar files with go to definition,
-  find references, rename, code completion, semantic highlighting, reference counts
-  and formatting, together with editor setups for Neovim, Vim and Emacs in ide/.

@@ -1,2 +1,0 @@
-description: Fixed golr convert writing / and [ inside a character class without escaping
-  them, which gave a regular expression that did not read back.

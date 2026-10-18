@@ -1,2 +1,0 @@
-description: Fixed golr scanner panicking on JSON or YAML rules with an invalid regular
-  expression or a node without the value of its kind, which are now reported as errors.

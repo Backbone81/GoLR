@@ -1,3 +1,0 @@
-description: Fixed crashes on malformed YAML grammars and scanner rules and YAML output
-  which read back differently, e.g. strings like "\n" or ".inf", by switching from
-  goccy/go-yaml to go.yaml.in/yaml/v3.

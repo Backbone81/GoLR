@@ -1,2 +1,0 @@
-description: Fixed golr fmt not aligning scanner rules when a blank line separated
-  a rule name from its value, so formatting the output again changed it.

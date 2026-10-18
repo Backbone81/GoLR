@@ -1,3 +1,0 @@
-description: Fixed `golr convert` writing the error symbol of a Bison precedence declaration
-  like `%left error` as `$error`, which made the converted grammar unreadable. It
-  is written as `@error` now.

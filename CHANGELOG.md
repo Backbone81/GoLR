@@ -4,9 +4,13 @@
 
 ## Unreleased
 
+
+## v0.6.0 (2026-10-18)
+
+- Added --with-counterexamples to golr parser, which shows for every listed conflict either an input with two derivations, proving the grammar ambiguous, or two derivations that share the input up to the conflict. The search is limited by --counterexample-time-limit and --counterexample-total-time-limit, and available as pkg/parsergen/counterexample.
+- Added golr lsp, a language server for GoLR grammar files with go to definition, find references, rename, code completion, semantic highlighting, reference counts and formatting, together with editor setups for Neovim, Vim and Emacs in ide/.
 - BREAKING: The conflict report writers moved from `pkg/parsergen/conflict` to the new `pkg/parsergen/report`, with `ReportConfig` renamed to `report.Config`, `WriteUnresolvedConflictReport` takes the grammar instead of the error, and both take the counterexamples of the conflicts. `ConflictReport`, `ConflictReportEntry` and `ConflictReportReduction` are no longer exported.
 - BREAKING: The GoLR cores return the parser tables together with the error on unresolved conflicts, still holding the conflicting actions, and on a failure due to `FailOnWarnings`. `UnresolvedConflictError` no longer carries a report, and its message is a single line naming the terminal and the state.
-- Added --with-counterexamples to golr parser, which shows for every listed conflict either an input with two derivations, proving the grammar ambiguous, or two derivations that share the input up to the conflict. The search is limited by --counterexample-time-limit and --counterexample-total-time-limit, and available as pkg/parsergen/counterexample.
 - Updated the mimimum Go version from 1.25 to 1.26 and updated the Go toolchain to 1.27.
 - Fixed golr fmt not aligning scanner rules when a blank line separated a rule name from its value, so formatting the output again changed it.
 - Fixed a regular expression which used the same fragment twice, like /{F}b|{F}/, changing the first use of the fragment.
@@ -33,7 +37,6 @@
 - Fixed a crash on concatenations and alternations with missing children in JSON and YAML scanner rules.
 - Fixed DFA minimization taking quadratic time, which made some regular expressions take minutes to build.
 - Fixed crashes on malformed YAML grammars and scanner rules and YAML output which read back differently, e.g. strings like "\n" or ".inf", by switching from goccy/go-yaml to go.yaml.in/yaml/v3.
-- Added golr lsp, a language server for GoLR grammar files with go to definition, find references, rename, code completion, semantic highlighting, reference counts and formatting, together with editor setups for Neovim, Vim and Emacs in ide/.
 
 ## v0.5.0 (2026-09-26)
 

@@ -1,82 +1,88 @@
-unreleased:
-- description: 'BREAKING: The conflict report writers moved from `pkg/parsergen/conflict`
-    to the new `pkg/parsergen/report`, with `ReportConfig` renamed to `report.Config`,
-    `WriteUnresolvedConflictReport` takes the grammar instead of the error, and both
-    take the counterexamples of the conflicts. `ConflictReport`, `ConflictReportEntry`
-    and `ConflictReportReduction` are no longer exported.'
-- description: 'BREAKING: The GoLR cores return the parser tables together with the
-    error on unresolved conflicts, still holding the conflicting actions, and on a
-    failure due to `FailOnWarnings`. `UnresolvedConflictError` no longer carries a
-    report, and its message is a single line naming the terminal and the state.'
-- description: Added --with-counterexamples to golr parser, which shows for every
-    listed conflict either an input with two derivations, proving the grammar ambiguous,
-    or two derivations that share the input up to the conflict. The search is limited
-    by --counterexample-time-limit and --counterexample-total-time-limit, and available
-    as pkg/parsergen/counterexample.
-- description: |
-    Updated the mimimum Go version from 1.25 to 1.26 and updated the Go toolchain to 1.27.
-- description: Fixed golr fmt not aligning scanner rules when a blank line separated
-    a rule name from its value, so formatting the output again changed it.
-- description: Fixed a regular expression which used the same fragment twice, like
-    /{F}b|{F}/, changing the first use of the fragment.
-- description: Fixed golr scanner panicking on a repetition with a maximum of zero
-    like /a{0}/, which is now reported as an error.
-- description: Fixed golr panicking on a terminal or fragment which is an empty string,
-    which is now reported as an error.
-- description: Fixed golr convert writing a regular expression which is a plain literal
-    as a string, which added an alias that could collide with other terminals.
-- description: Fixed golr convert writing / and [ inside a character class without
-    escaping them, which gave a regular expression that did not read back.
-- description: Fixed golr convert producing invalid GoLR for Bison grammars with terminal
-    names containing . or -, with undeclared string literal tokens, with renamed symbols
-    colliding with terminals, or with the alias "".
-- description: Fixed the Bison frontend accepting a rule for a symbol declared as
-    a token.
-- description: Fixed golr convert not applying the Bison specific conversions when
-    reading the grammar from stdin.
-- description: Fixed golr scanner panicking on a scanner without rules, or when no
-    rule matches any input, like a single rule with the empty character class [].
-- description: Fixed a repetition with a minimum of zero, like /ba{0,1}/, matching
-    the empty string when it was not at the start of the regular expression.
-- description: Fixed golr scanner panicking on JSON or YAML rules with an invalid
-    regular expression or a node without the value of its kind, which are now reported
-    as errors.
-- description: Fixed golr parser panicking on a JSON or YAML grammar with a symbol
-    index out of bounds, which is now reported as an error.
-- description: Fixed the GoLR grammar writer, and with it golr convert, regrouping
-    the productions of a nonterminal defined in several places, which could change
-    how reduce/reduce conflicts are resolved.
-- description: 'BREAKING: golr convert and convert.BisonGrammar2GoLR now fail on Bison
-    terminals which share an alias, which GoLR does not allow, instead of writing
-    a grammar file GoLR cannot read. BisonGrammar2GoLR returns an error for that.'
-- description: Fixed the Bison frontend accepting string literals, translatable strings
-    and character literals which span over a newline, which GNU Bison rejects.
-- description: Fixed `golr convert` writing the error symbol of a Bison precedence
-    declaration like `%left error` as `$error`, which made the converted grammar unreadable.
-    It is written as `@error` now.
-- description: 'BREAKING: GoLR string literals now support the escape sequences \"
-    and \\ and reject every other backslash escape, so a string literal can end in
-    a backslash.'
-- description: Fixed the Bison converter copying the escape sequences of Bison strings
-    and character literals verbatim instead of translating them to GoLR strings.
-- description: Fixed the Bison converter giving two string literal tokens the same
-    name, like "_" and " ".
-- description: Fixed a crash on Bison grammars whose rules section holds declarations
-    only, which are now refused like GNU Bison does.
-- description: Fixed a crash on character classes with a range ending in a UTF-16
-    surrogate code point.
-- description: Fixed a crash on concatenations and alternations with missing children
-    in JSON and YAML scanner rules.
-- description: Fixed DFA minimization taking quadratic time, which made some regular
-    expressions take minutes to build.
-- description: Fixed crashes on malformed YAML grammars and scanner rules and YAML
-    output which read back differently, e.g. strings like "\n" or ".inf", by switching
-    from goccy/go-yaml to go.yaml.in/yaml/v3.
-- description: Added golr lsp, a language server for GoLR grammar files with go to
-    definition, find references, rename, code completion, semantic highlighting, reference
-    counts and formatting, together with editor setups for Neovim, Vim and Emacs in
-    ide/.
+unreleased: []
 releases:
+- version: |
+    v0.6.0
+  date: 2026-10-18T02:00:00+02:00
+  entries:
+  - description: Added --with-counterexamples to golr parser, which shows for every
+      listed conflict either an input with two derivations, proving the grammar ambiguous,
+      or two derivations that share the input up to the conflict. The search is limited
+      by --counterexample-time-limit and --counterexample-total-time-limit, and available
+      as pkg/parsergen/counterexample.
+  - description: Added golr lsp, a language server for GoLR grammar files with go
+      to definition, find references, rename, code completion, semantic highlighting,
+      reference counts and formatting, together with editor setups for Neovim, Vim
+      and Emacs in ide/.
+  - description: 'BREAKING: The conflict report writers moved from `pkg/parsergen/conflict`
+      to the new `pkg/parsergen/report`, with `ReportConfig` renamed to `report.Config`,
+      `WriteUnresolvedConflictReport` takes the grammar instead of the error, and
+      both take the counterexamples of the conflicts. `ConflictReport`, `ConflictReportEntry`
+      and `ConflictReportReduction` are no longer exported.'
+  - description: 'BREAKING: The GoLR cores return the parser tables together with
+      the error on unresolved conflicts, still holding the conflicting actions, and
+      on a failure due to `FailOnWarnings`. `UnresolvedConflictError` no longer carries
+      a report, and its message is a single line naming the terminal and the state.'
+  - description: |
+      Updated the mimimum Go version from 1.25 to 1.26 and updated the Go toolchain to 1.27.
+  - description: Fixed golr fmt not aligning scanner rules when a blank line separated
+      a rule name from its value, so formatting the output again changed it.
+  - description: Fixed a regular expression which used the same fragment twice, like
+      /{F}b|{F}/, changing the first use of the fragment.
+  - description: Fixed golr scanner panicking on a repetition with a maximum of zero
+      like /a{0}/, which is now reported as an error.
+  - description: Fixed golr panicking on a terminal or fragment which is an empty
+      string, which is now reported as an error.
+  - description: Fixed golr convert writing a regular expression which is a plain
+      literal as a string, which added an alias that could collide with other terminals.
+  - description: Fixed golr convert writing / and [ inside a character class without
+      escaping them, which gave a regular expression that did not read back.
+  - description: Fixed golr convert producing invalid GoLR for Bison grammars with
+      terminal names containing . or -, with undeclared string literal tokens, with
+      renamed symbols colliding with terminals, or with the alias "".
+  - description: Fixed the Bison frontend accepting a rule for a symbol declared as
+      a token.
+  - description: Fixed golr convert not applying the Bison specific conversions when
+      reading the grammar from stdin.
+  - description: Fixed golr scanner panicking on a scanner without rules, or when
+      no rule matches any input, like a single rule with the empty character class
+      [].
+  - description: Fixed a repetition with a minimum of zero, like /ba{0,1}/, matching
+      the empty string when it was not at the start of the regular expression.
+  - description: Fixed golr scanner panicking on JSON or YAML rules with an invalid
+      regular expression or a node without the value of its kind, which are now reported
+      as errors.
+  - description: Fixed golr parser panicking on a JSON or YAML grammar with a symbol
+      index out of bounds, which is now reported as an error.
+  - description: Fixed the GoLR grammar writer, and with it golr convert, regrouping
+      the productions of a nonterminal defined in several places, which could change
+      how reduce/reduce conflicts are resolved.
+  - description: 'BREAKING: golr convert and convert.BisonGrammar2GoLR now fail on
+      Bison terminals which share an alias, which GoLR does not allow, instead of
+      writing a grammar file GoLR cannot read. BisonGrammar2GoLR returns an error
+      for that.'
+  - description: Fixed the Bison frontend accepting string literals, translatable
+      strings and character literals which span over a newline, which GNU Bison rejects.
+  - description: Fixed `golr convert` writing the error symbol of a Bison precedence
+      declaration like `%left error` as `$error`, which made the converted grammar
+      unreadable. It is written as `@error` now.
+  - description: 'BREAKING: GoLR string literals now support the escape sequences
+      \" and \\ and reject every other backslash escape, so a string literal can end
+      in a backslash.'
+  - description: Fixed the Bison converter copying the escape sequences of Bison strings
+      and character literals verbatim instead of translating them to GoLR strings.
+  - description: Fixed the Bison converter giving two string literal tokens the same
+      name, like "_" and " ".
+  - description: Fixed a crash on Bison grammars whose rules section holds declarations
+      only, which are now refused like GNU Bison does.
+  - description: Fixed a crash on character classes with a range ending in a UTF-16
+      surrogate code point.
+  - description: Fixed a crash on concatenations and alternations with missing children
+      in JSON and YAML scanner rules.
+  - description: Fixed DFA minimization taking quadratic time, which made some regular
+      expressions take minutes to build.
+  - description: Fixed crashes on malformed YAML grammars and scanner rules and YAML
+      output which read back differently, e.g. strings like "\n" or ".inf", by switching
+      from goccy/go-yaml to go.yaml.in/yaml/v3.
 - version: |
     v0.5.0
   date: 2026-09-26T02:00:00+02:00

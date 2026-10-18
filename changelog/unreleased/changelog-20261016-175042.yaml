@@ -1,2 +1,0 @@
-description: Fixed golr parser panicking on a JSON or YAML grammar with a symbol index
-  out of bounds, which is now reported as an error.

@@ -1,2 +1,0 @@
-description: Fixed the Bison converter giving two string literal tokens the same name,
-  like "_" and " ".

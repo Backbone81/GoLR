@@ -1,2 +1,0 @@
-description: Fixed a regular expression which used the same fragment twice, like /{F}b|{F}/,
-  changing the first use of the fragment.

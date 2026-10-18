@@ -1,2 +1,0 @@
-description: Fixed golr panicking on a terminal or fragment which is an empty string,
-  which is now reported as an error.

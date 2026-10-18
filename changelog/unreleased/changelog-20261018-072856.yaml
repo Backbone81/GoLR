@@ -1,2 +1,0 @@
-description: Fixed the Bison converter copying the escape sequences of Bison strings
-  and character literals verbatim instead of translating them to GoLR strings.

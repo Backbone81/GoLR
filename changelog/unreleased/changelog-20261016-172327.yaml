@@ -1,2 +1,0 @@
-description: Fixed a repetition with a minimum of zero, like /ba{0,1}/, matching the
-  empty string when it was not at the start of the regular expression.

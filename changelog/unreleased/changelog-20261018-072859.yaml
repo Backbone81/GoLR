@@ -1,2 +1,0 @@
-description: Fixed a crash on character classes with a range ending in a UTF-16 surrogate
-  code point.

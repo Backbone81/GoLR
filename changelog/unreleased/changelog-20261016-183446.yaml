@@ -1,3 +1,0 @@
-description: 'BREAKING: golr convert and convert.BisonGrammar2GoLR now fail on Bison
-  terminals which share an alias, which GoLR does not allow, instead of writing a
-  grammar file GoLR cannot read. BisonGrammar2GoLR returns an error for that.'

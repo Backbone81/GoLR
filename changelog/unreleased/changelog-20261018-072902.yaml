@@ -1,2 +1,0 @@
-description: Fixed DFA minimization taking quadratic time, which made some regular
-  expressions take minutes to build.

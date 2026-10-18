@@ -1,3 +1,0 @@
-description: Fixed the GoLR grammar writer, and with it golr convert, regrouping the
-  productions of a nonterminal defined in several places, which could change how reduce/reduce
-  conflicts are resolved.

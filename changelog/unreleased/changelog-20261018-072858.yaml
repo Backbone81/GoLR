@@ -1,2 +1,0 @@
-description: Fixed a crash on Bison grammars whose rules section holds declarations
-  only, which are now refused like GNU Bison does.
