@@ -15,20 +15,25 @@ import (
 // Every token the pass consumes names the completion context which follows it, so completion knows the place of the
 // caret without a pass of its own.
 func Build(text []byte) *Model {
+	definitions := len(text) / bytesPerDefinition
+	aliases := len(text) / bytesPerAlias
+	references := len(text) / bytesPerReference
 	b := builder{
 		text:          text,
 		source:        string(text),
 		scanner:       parser.NewScanner(text, ""),
-		definitionIDs: make([]nameID, 0, initialDefinitions),
-		referenceIDs:  make([]nameID, 0, initialReferences),
+		definitionIDs: make([]nameID, 0, definitions),
+		aliasIDs:      make([]nameID, 0, aliases),
+		referenceIDs:  make([]nameID, 0, references),
 		model: &Model{
 			text:        text,
-			names:       make([]string, 0, initialDefinitions),
-			nameIDs:     make(map[string]nameID, initialDefinitions),
-			definitions: make([]Definition, 0, initialDefinitions),
-			references:  make([]Reference, 0, initialReferences),
-			occurrences: make([]Occurrence, 0, initialOccurrences),
-			completions: make([]CompletionContext, 0, initialCompletions),
+			names:       make([]string, 0, definitions),
+			nameIDs:     make(map[string]nameID, definitions),
+			definitions: make([]Definition, 0, definitions),
+			aliases:     make([]Alias, 0, aliases),
+			references:  make([]Reference, 0, references),
+			occurrences: make([]Occurrence, 0, len(text)/bytesPerOccurrence),
+			completions: make([]CompletionContext, 0, len(text)/bytesPerCompletion),
 		},
 	}
 	// The window starts on an empty token at offset zero, whose consumption records the first completion context.
@@ -39,13 +44,16 @@ func Build(text []byte) *Model {
 	return b.model
 }
 
-// The initial capacities of the lists, about a quarter of what PostgreSQL 18.4 converted to golr needs. They save
-// most of the allocations of growing the lists for a big grammar.
+// The initial capacities of the lists are the length of the text divided by these, the fewest bytes of text per
+// element of the files of the repository and the well-known grammars converted to golr from 4 KB on. A list of such a
+// file never grows, which avoids allocating several times its size while growing it, and a file with many comments
+// allocates about twice the size it needs.
 const (
-	initialDefinitions = 320
-	initialReferences  = 2100
-	initialOccurrences = 2400
-	initialCompletions = 1200
+	bytesPerDefinition = 60
+	bytesPerAlias      = 100
+	bytesPerReference  = 18
+	bytesPerOccurrence = 15
+	bytesPerCompletion = 14
 )
 
 // builder holds the state of the pass.
