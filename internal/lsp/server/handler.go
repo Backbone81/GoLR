@@ -13,6 +13,9 @@ import (
 	golrparser "github.com/backbone81/golr/internal/parsergen/frontend/golr/parser"
 )
 
+// errNoNameToRename answers a rename at a position without a name.
+var errNoNameToRename = NewError(int(protocol.LSPErrorCodesRequestFailed), "no name to rename at the position")
+
 // This file holds the application logic of the LSP operations. The handlers which change server state run on the
 // reader. The others run in their own goroutine and must only read the documents they get.
 
@@ -45,10 +48,24 @@ func (s *Server) handleInitialize(
 			TextDocumentSync:           protocol.NewServerCapabilitiesTextDocumentSync(protocol.TextDocumentSyncKindFull),
 			DefinitionProvider:         protocol.NewServerCapabilitiesDefinitionProvider(true),
 			ReferencesProvider:         protocol.NewServerCapabilitiesReferencesProvider(true),
+			RenameProvider:             s.renameProvider(params.Capabilities),
 			DocumentFormattingProvider: protocol.NewServerCapabilitiesDocumentFormattingProvider(true),
 		},
 		ServerInfo: protocol.NewOptional(serverInfo),
 	}, nil
+}
+
+// renameProvider returns the rename capability. It announces prepareRename only to a client which supports it, as
+// the specification allows RenameOptions only then.
+func (s *Server) renameProvider(capabilities protocol.ClientCapabilities) protocol.ServerCapabilitiesRenameProvider {
+	textDocument, _ := capabilities.TextDocument.Get()
+	rename, _ := textDocument.Rename.Get()
+	if prepareSupport, _ := rename.PrepareSupport.Get(); !prepareSupport {
+		return protocol.NewServerCapabilitiesRenameProvider(true)
+	}
+	return protocol.NewServerCapabilitiesRenameProvider(protocol.RenameOptions{
+		PrepareProvider: protocol.NewOptional(true),
+	})
 }
 
 // handleInitialized handles the initialized notification, see
@@ -253,6 +270,72 @@ func (s *Server) handleReferences(
 		locations = append(locations, snapshot.Location(span))
 	}
 	return locations, nil
+}
+
+// handlePrepareRename handles the textDocument/prepareRename request. It returns the range of the name at the caret,
+// or an error when there is no name to rename. See
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification#textDocument_prepareRename
+func (s *Server) handlePrepareRename(
+	_ context.Context,
+	documents *Documents,
+	params *protocol.PrepareRenameParams,
+) (protocol.PrepareRenameResult, error) {
+	snapshot, err := s.openSnapshot(documents, params.TextDocument.Uri)
+	if err != nil {
+		return protocol.PrepareRenameResult{}, err
+	}
+
+	occurrence, ok := snapshot.Model().OccurrenceAt(snapshot.Offset(params.Position))
+	if !ok {
+		return protocol.PrepareRenameResult{}, errNoNameToRename
+	}
+	return protocol.NewPrepareRenameResult(snapshot.Range(occurrence.Span)), nil
+}
+
+// handleRename handles the textDocument/rename request. It rewrites the declarations and references of the name at the
+// caret in one edit. Renaming a terminal keeps the references by its aliases, renaming an alias keeps the terminal. A
+// new name which is not valid is answered with the reason as the error. See
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification#textDocument_rename
+func (s *Server) handleRename(
+	_ context.Context,
+	documents *Documents,
+	params *protocol.RenameParams,
+) (protocol.WorkspaceEdit, error) {
+	snapshot, err := s.openSnapshot(documents, params.TextDocument.Uri)
+	if err != nil {
+		return protocol.WorkspaceEdit{}, err
+	}
+
+	symbols := snapshot.Model()
+	occurrence, ok := symbols.OccurrenceAt(snapshot.Offset(params.Position))
+	if !ok {
+		return protocol.WorkspaceEdit{}, errNoNameToRename
+	}
+	if err := symbols.ValidateRename(occurrence, params.NewName); err != nil {
+		return protocol.WorkspaceEdit{}, NewError(int(protocol.LSPErrorCodesRequestFailed), err.Error())
+	}
+
+	declarations := symbols.DeclarationsNamed(occurrence.Name)
+	references := symbols.ReferencesNamed(occurrence.Name)
+	spans := make([]model.Span, 0, len(declarations)+len(references))
+	for _, declaration := range declarations {
+		spans = append(spans, declaration.Span)
+	}
+	for _, reference := range references {
+		spans = append(spans, reference.Span)
+	}
+	slices.SortFunc(spans, model.Span.Compare)
+
+	edits := make([]protocol.TextEdit, 0, len(spans))
+	for _, span := range spans {
+		edits = append(edits, protocol.TextEdit{
+			Range:   snapshot.Range(span),
+			NewText: params.NewName,
+		})
+	}
+	return protocol.WorkspaceEdit{
+		Changes: map[protocol.DocumentUri][]protocol.TextEdit{snapshot.URI: edits},
+	}, nil
 }
 
 // openSnapshot returns the snapshot of the document, or an error for a request on a document which is not open.

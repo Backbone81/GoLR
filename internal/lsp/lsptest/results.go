@@ -12,10 +12,12 @@ import (
 
 // resultDecoders are the decode functions of the results of the methods the server answers with a result.
 var resultDecoders = map[string]func(any) error{
-	protocol.MethodInitialize:             decodeResult(protocol.DecodeInitializeResult),
-	protocol.MethodTextDocumentDefinition: decodeResult(protocol.DecodeDefinition),
-	protocol.MethodTextDocumentReferences: decodeLocations,
-	protocol.MethodTextDocumentFormatting: decodeTextEdits,
+	protocol.MethodInitialize:                decodeResult(protocol.DecodeInitializeResult),
+	protocol.MethodTextDocumentDefinition:    decodeResult(protocol.DecodeDefinition),
+	protocol.MethodTextDocumentReferences:    decodeLocations,
+	protocol.MethodTextDocumentPrepareRename: decodeResult(protocol.DecodePrepareRenameResult),
+	protocol.MethodTextDocumentRename:        decodeResult(protocol.DecodeWorkspaceEdit),
+	protocol.MethodTextDocumentFormatting:    decodeTextEdits,
 }
 
 // ExpectDecodableResults expects the result of every response to decode with the decode function of the method of its

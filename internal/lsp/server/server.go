@@ -106,7 +106,7 @@ func (s *Server) run(ctx context.Context, reader io.Reader, writer io.Writer) er
 // is a response. The method decides the handler, the id whether the message is answered, as JSON-RPC defines it. The
 // rules for every message apply here, the handler checks what only concerns its method. An error ends the session.
 //
-//nolint:cyclop
+//nolint:cyclop,funlen // One switch over all methods is easier to follow than one split by the linter's limits.
 func (s *Server) dispatchRequestObject(ctx context.Context, content []byte) error {
 	var requestObject jsonrpc.RequestObject
 	if err := s.unmarshalRequestObject(content, &requestObject); err != nil {
@@ -152,6 +152,10 @@ func (s *Server) dispatchRequestObject(ctx context.Context, content []byte) erro
 		return runAsync(ctx, s, &requestObject, protocol.DecodeDefinitionParams, s.handleDefinition)
 	case protocol.MethodTextDocumentReferences:
 		return runAsync(ctx, s, &requestObject, protocol.DecodeReferenceParams, s.handleReferences)
+	case protocol.MethodTextDocumentPrepareRename:
+		return runAsync(ctx, s, &requestObject, protocol.DecodePrepareRenameParams, s.handlePrepareRename)
+	case protocol.MethodTextDocumentRename:
+		return runAsync(ctx, s, &requestObject, protocol.DecodeRenameParams, s.handleRename)
 	case protocol.MethodTextDocumentFormatting:
 		return runAsync(ctx, s, &requestObject, protocol.DecodeDocumentFormattingParams, s.handleDocumentFormatting)
 	default:
