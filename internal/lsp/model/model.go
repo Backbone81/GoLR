@@ -19,9 +19,14 @@ type Model struct {
 	// occurrences holds all definitions, aliases and references sorted by offset. Their spans do not overlap.
 	occurrences []Occurrence
 
-	definitionsByName map[string][]Definition
-	aliasesByName     map[string][]Alias
-	referencesByName  map[string][]Reference
+	// names holds the distinct names by their name ID, nameIDs the name ID of every name.
+	names   []string
+	nameIDs map[string]nameID
+
+	// definitionsByID, aliasesByID and referencesByID hold the definitions, aliases and references of every name ID.
+	definitionsByID [][]Definition
+	aliasesByID     [][]Alias
+	referencesByID  [][]Reference
 
 	// aliasNamesByTerminal holds the names of the aliases of a terminal without duplicates, as a terminal declared
 	// twice with the same string has the alias twice.
@@ -31,11 +36,14 @@ type Model struct {
 	completions []CompletionContext
 }
 
-// index builds the lookups by name from the lists.
-func (m *Model) index() {
-	m.definitionsByName = groupByName(m.definitions, func(definition Definition) string { return definition.Name })
-	m.aliasesByName = groupByName(m.aliases, func(alias Alias) string { return alias.Name })
-	m.referencesByName = groupByName(m.references, func(reference Reference) string { return reference.Name })
+// nameID identifies a distinct name of the text, numbered from zero in the order of the first occurrence.
+type nameID int32
+
+// index builds the lookups by name from the lists and the name IDs of their elements.
+func (m *Model) index(definitionIDs []nameID, aliasIDs []nameID, referenceIDs []nameID) {
+	m.definitionsByID = groupByID(m.definitions, definitionIDs, len(m.names))
+	m.aliasesByID = groupByID(m.aliases, aliasIDs, len(m.names))
+	m.referencesByID = groupByID(m.references, referenceIDs, len(m.names))
 
 	m.aliasNamesByTerminal = make(map[string][]string, len(m.aliases))
 	for _, alias := range m.aliases {
@@ -45,29 +53,31 @@ func (m *Model) index() {
 	}
 }
 
-// groupByName groups the values by name, keeping their order. All groups share one array.
+// groupByID groups the values by their name IDs, keeping their order. The group of a name ID without values is nil.
+// All groups share one array.
 //
 // Appending to a slice per name allocates every time a group outgrows its capacity. For a big grammar this is
-// thousands of allocations, as most names have only one definition and a few references. Counting the names first
-// gives every group its exact size, so the groups are carved out of one array and never grow.
-func groupByName[T any](values []T, name func(T) string) map[string][]T {
-	counts := make(map[string]int, len(values))
-	for _, value := range values {
-		counts[name(value)]++
+// thousands of allocations, as most names have only one definition and a few references. Counting the name IDs first
+// gives every group its exact size, so the groups are carved out of one array and never grow. Indexing by name ID
+// needs no map.
+func groupByID[T any](values []T, ids []nameID, nameCount int) [][]T {
+	counts := make([]int, nameCount)
+	for _, id := range ids {
+		counts[id]++
 	}
 	backing := make([]T, len(values))
-	groups := make(map[string][]T, len(counts))
+	groups := make([][]T, nameCount)
 	start := 0
-	for _, value := range values {
-		key := name(value)
-		group, ok := groups[key]
-		if !ok {
-			// The capacity ends at the group, so appending to it cannot overwrite the next group.
-			count := counts[key]
-			group = backing[start : start : start+count]
-			start += count
+	for id, count := range counts {
+		if count == 0 {
+			continue
 		}
-		groups[key] = append(group, value)
+		// The capacity ends at the group, so appending to it cannot overwrite the next group.
+		groups[id] = backing[start : start : start+count]
+		start += count
+	}
+	for i, value := range values {
+		groups[ids[i]] = append(groups[ids[i]], value)
 	}
 	return groups
 }
@@ -117,19 +127,27 @@ func (m *Model) OccurrenceAt(offset int) (Occurrence, bool) {
 
 // DefinitionsNamed returns the definitions with the name.
 func (m *Model) DefinitionsNamed(name string) []Definition {
-	return m.definitionsByName[name]
+	id, ok := m.nameIDs[name]
+	if !ok {
+		return nil
+	}
+	return m.definitionsByID[id]
 }
 
 // AliasesNamed returns the aliases with the name.
 func (m *Model) AliasesNamed(name string) []Alias {
-	return m.aliasesByName[name]
+	id, ok := m.nameIDs[name]
+	if !ok {
+		return nil
+	}
+	return m.aliasesByID[id]
 }
 
 // DeclarationsNamed returns what a reference with the name resolves to: the aliases for a string, the definitions
 // otherwise. A name declared twice resolves to both declarations.
 func (m *Model) DeclarationsNamed(name string) []Occurrence {
 	if m.IsAlias(name) {
-		aliases := m.aliasesByName[name]
+		aliases := m.AliasesNamed(name)
 		declarations := make([]Occurrence, 0, len(aliases))
 		for _, alias := range aliases {
 			declarations = append(declarations, Occurrence{
@@ -141,7 +159,7 @@ func (m *Model) DeclarationsNamed(name string) []Occurrence {
 		return declarations
 	}
 
-	definitions := m.definitionsByName[name]
+	definitions := m.DefinitionsNamed(name)
 	declarations := make([]Occurrence, 0, len(definitions))
 	for _, definition := range definitions {
 		declarations = append(declarations, Occurrence{
@@ -155,7 +173,11 @@ func (m *Model) DeclarationsNamed(name string) []Occurrence {
 
 // ReferencesNamed returns the references with the name.
 func (m *Model) ReferencesNamed(name string) []Reference {
-	return m.referencesByName[name]
+	id, ok := m.nameIDs[name]
+	if !ok {
+		return nil
+	}
+	return m.referencesByID[id]
 }
 
 // UsagesNamed returns the references of the symbol with the name in the order of the text: those by the name and,
@@ -163,12 +185,12 @@ func (m *Model) ReferencesNamed(name string) []Reference {
 func (m *Model) UsagesNamed(name string) []Reference {
 	aliasNames := m.aliasNamesByTerminal[name]
 	if len(aliasNames) == 0 {
-		return m.referencesByName[name]
+		return m.ReferencesNamed(name)
 	}
 
-	usages := slices.Clone(m.referencesByName[name])
+	usages := slices.Clone(m.ReferencesNamed(name))
 	for _, aliasName := range aliasNames {
-		usages = append(usages, m.referencesByName[aliasName]...)
+		usages = append(usages, m.ReferencesNamed(aliasName)...)
 	}
 	slices.SortFunc(usages, Reference.compareOffset)
 	return usages
@@ -190,7 +212,7 @@ func (m *Model) ValidateRename(occurrence Occurrence, newName string) error {
 	} else if err := m.validateSymbolRename(newName); err != nil {
 		return err
 	}
-	if len(m.referencesByName[newName]) > 0 {
+	if len(m.ReferencesNamed(newName)) > 0 {
 		return fmt.Errorf("'%s' is %w", newName, ErrNameReferenced)
 	}
 	return nil
@@ -202,7 +224,7 @@ func (m *Model) validateAliasRename(newName string) error {
 	if !m.isSingleToken(newName, parser.TokenString) {
 		return fmt.Errorf("'%s' is %w", newName, ErrNotString)
 	}
-	if len(m.aliasesByName[newName]) > 0 {
+	if len(m.AliasesNamed(newName)) > 0 {
 		return fmt.Errorf("'%s' is %w", newName, ErrNameDefined)
 	}
 	return nil
@@ -214,7 +236,7 @@ func (m *Model) validateSymbolRename(newName string) error {
 	if !m.isSingleToken(newName, parser.TokenIdentifier) {
 		return fmt.Errorf("'%s' is %w", newName, ErrNotIdentifier)
 	}
-	if len(m.definitionsByName[newName]) > 0 {
+	if len(m.DefinitionsNamed(newName)) > 0 {
 		return fmt.Errorf("'%s' is %w", newName, ErrNameDefined)
 	}
 	return nil

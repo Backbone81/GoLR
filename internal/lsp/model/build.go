@@ -16,11 +16,15 @@ import (
 // caret without a pass of its own.
 func Build(text []byte) *Model {
 	b := builder{
-		text:    text,
-		scanner: parser.NewScanner(text, ""),
-		names:   make(map[string]string, initialDefinitions),
+		text:          text,
+		source:        string(text),
+		scanner:       parser.NewScanner(text, ""),
+		definitionIDs: make([]nameID, 0, initialDefinitions),
+		referenceIDs:  make([]nameID, 0, initialReferences),
 		model: &Model{
 			text:        text,
+			names:       make([]string, 0, initialDefinitions),
+			nameIDs:     make(map[string]nameID, initialDefinitions),
 			definitions: make([]Definition, 0, initialDefinitions),
 			references:  make([]Reference, 0, initialReferences),
 			occurrences: make([]Occurrence, 0, initialOccurrences),
@@ -31,7 +35,7 @@ func Build(text []byte) *Model {
 	b.readNext()
 	b.advance(CompletionTopLevel)
 	b.build()
-	b.model.index()
+	b.model.index(b.definitionIDs, b.aliasIDs, b.referenceIDs)
 	return b.model
 }
 
@@ -49,6 +53,9 @@ type builder struct {
 	text    []byte
 	scanner *parser.Scanner
 
+	// source is a copy of the text, from which the names are sliced without allocating each of them.
+	source string
+
 	// token and tokenSpan are the current token, next and nextSpan the one after it.
 	token     parser.Token
 	tokenSpan Span
@@ -59,8 +66,11 @@ type builder struct {
 	// when the current token is consumed, which keeps the contexts in the order of the text.
 	comments []Span
 
-	// names interns the names, so all occurrences of a name share one string.
-	names map[string]string
+	// definitionIDs, aliasIDs and referenceIDs are the name IDs of the definitions, aliases and references, in the
+	// same order.
+	definitionIDs []nameID
+	aliasIDs      []nameID
+	referenceIDs  []nameID
 
 	model *Model
 }
@@ -224,12 +234,14 @@ func (b *builder) precedenceLine() {
 // definition records the name at the current token as a definition of the kind, consumes `NAME :` and returns the
 // index of the definition. The completion kind is the one of the body after the ":".
 func (b *builder) definition(kind Kind, body CompletionKind) int {
+	name, id := b.name()
 	definition := Definition{
-		Name: b.name(),
+		Name: name,
 		Kind: kind,
 		Span: b.tokenSpan,
 	}
 	b.model.definitions = append(b.model.definitions, definition)
+	b.definitionIDs = append(b.definitionIDs, id)
 	b.addOccurrence(definition.Name, RoleDefinition, definition.Span)
 	b.advance(CompletionNone)
 	b.skip(parser.TokenColon, body)
@@ -238,22 +250,26 @@ func (b *builder) definition(kind Kind, body CompletionKind) int {
 
 // addAlias records the string at the span as the alias of the terminal.
 func (b *builder) addAlias(span Span, terminal string) {
+	name, id := b.intern(span)
 	alias := Alias{
-		Name:     b.intern(b.text[span.Offset:span.End()]),
+		Name:     name,
 		Terminal: terminal,
 		Span:     span,
 	}
 	b.model.aliases = append(b.model.aliases, alias)
+	b.aliasIDs = append(b.aliasIDs, id)
 	b.addOccurrence(alias.Name, RoleAlias, alias.Span)
 }
 
 // addReference records the current token as a reference.
 func (b *builder) addReference() {
+	name, id := b.name()
 	reference := Reference{
-		Name: b.name(),
+		Name: name,
 		Span: b.tokenSpan,
 	}
 	b.model.references = append(b.model.references, reference)
+	b.referenceIDs = append(b.referenceIDs, id)
 	b.addOccurrence(reference.Name, RoleReference, reference.Span)
 }
 
@@ -278,19 +294,21 @@ func (b *builder) addCompletion(offset int, kind CompletionKind) {
 	})
 }
 
-// name returns the interned text of the current token.
-func (b *builder) name() string {
-	return b.intern(b.text[b.tokenSpan.Offset:b.tokenSpan.End()])
+// name returns the interned text of the current token and its name ID.
+func (b *builder) name() (string, nameID) {
+	return b.intern(b.tokenSpan)
 }
 
-// intern returns the string of the bytes, the same string for the same bytes.
-func (b *builder) intern(text []byte) string {
-	if name, ok := b.names[string(text)]; ok {
-		return name
+// intern returns the text of the span and its name ID, the same string and ID for the same text.
+func (b *builder) intern(span Span) (string, nameID) {
+	name := b.source[span.Offset:span.End()]
+	if id, ok := b.model.nameIDs[name]; ok {
+		return b.model.names[id], id
 	}
-	name := string(text)
-	b.names[name] = name
-	return name
+	id := nameID(len(b.model.names)) //nolint:gosec
+	b.model.names = append(b.model.names, name)
+	b.model.nameIDs[name] = id
+	return name, id
 }
 
 // advance consumes the current token, after which completion offers what the kind says, and moves the window to the
