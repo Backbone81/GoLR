@@ -24,7 +24,7 @@ const (
 	initializeRequest  = `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{}}}`
 	initializeResponse = `{"jsonrpc":"2.0","id":1,"result":{
 		"capabilities":{"positionEncoding":"utf-16","textDocumentSync":1,
-		"completionProvider":{"triggerCharacters":["@"]},
+		"codeLensProvider":{},"completionProvider":{"triggerCharacters":["@"]},
 		"definitionProvider":true,"referencesProvider":true,"renameProvider":true,
 		"documentFormattingProvider":true,
 		"semanticTokensProvider":{"legend":{"tokenTypes":["class","enum"],"tokenModifiers":["declaration"]},"full":true}},

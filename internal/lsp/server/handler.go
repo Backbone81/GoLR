@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"strconv"
 
 	golrfmt "github.com/backbone81/golr/internal/fmt"
 	"github.com/backbone81/golr/internal/lsp/jsonrpc"
@@ -61,6 +62,7 @@ func (s *Server) handleInitialize(
 		Capabilities: protocol.ServerCapabilities{
 			PositionEncoding: protocol.NewOptional(s.encoding),
 			TextDocumentSync: protocol.NewServerCapabilitiesTextDocumentSync(protocol.TextDocumentSyncKindFull),
+			CodeLensProvider: protocol.NewOptional(protocol.CodeLensOptions{}),
 			CompletionProvider: protocol.NewOptional(protocol.CompletionOptions{
 				TriggerCharacters: []string{"@"},
 			}),
@@ -227,6 +229,45 @@ func (s *Server) handleDocumentFormatting(
 			NewText: string(formatted),
 		},
 	}, nil
+}
+
+// handleCodeLens handles the textDocument/codeLens request. It shows the number of references above every definition,
+// for a terminal including the references by its aliases. Fragments get no lens, as their references inside regular
+// expressions are not tracked. The command has an empty id, so the lens only shows the count: a click would need a
+// command registered in the configuration of every editor. See
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification#textDocument_codeLens
+func (s *Server) handleCodeLens(
+	_ context.Context,
+	documents *Documents,
+	params *protocol.CodeLensParams,
+) ([]protocol.CodeLens, error) {
+	snapshot, err := s.openSnapshot(documents, params.TextDocument.Uri)
+	if err != nil {
+		return nil, err
+	}
+
+	symbols := snapshot.Model()
+	lenses := make([]protocol.CodeLens, 0, len(symbols.Definitions()))
+	for _, definition := range symbols.Definitions() {
+		if definition.Kind == model.KindFragment {
+			continue
+		}
+		lenses = append(lenses, protocol.CodeLens{
+			Range: snapshot.Range(definition.Span),
+			Command: protocol.NewOptional(protocol.Command{
+				Title: s.referenceCountTitle(len(symbols.UsagesNamed(definition.Name))),
+			}),
+		})
+	}
+	return lenses, nil
+}
+
+// referenceCountTitle returns the title of a reference count lens: "0 references", "1 reference", "N references".
+func (s *Server) referenceCountTitle(count int) string {
+	if count == 1 {
+		return "1 reference"
+	}
+	return strconv.Itoa(count) + " references"
 }
 
 // handleCompletion handles the textDocument/completion request. It offers the keywords valid at the caret and, where

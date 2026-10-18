@@ -15,11 +15,12 @@ var resultDecoders = map[string]func(any) error{
 	protocol.MethodInitialize:                     decodeResult(protocol.DecodeInitializeResult),
 	protocol.MethodTextDocumentCompletion:         decodeResult(protocol.DecodeCompletionRequestResult),
 	protocol.MethodTextDocumentDefinition:         decodeResult(protocol.DecodeDefinition),
-	protocol.MethodTextDocumentReferences:         decodeLocations,
+	protocol.MethodTextDocumentCodeLens:           decodeArray(protocol.DecodeCodeLens),
+	protocol.MethodTextDocumentReferences:         decodeArray(protocol.DecodeLocation),
 	protocol.MethodTextDocumentPrepareRename:      decodeResult(protocol.DecodePrepareRenameResult),
 	protocol.MethodTextDocumentSemanticTokensFull: decodeResult(protocol.DecodeSemanticTokens),
 	protocol.MethodTextDocumentRename:             decodeResult(protocol.DecodeWorkspaceEdit),
-	protocol.MethodTextDocumentFormatting:         decodeTextEdits,
+	protocol.MethodTextDocumentFormatting:         decodeArray(protocol.DecodeTextEdit),
 }
 
 // ExpectDecodableResults expects the result of every response to decode with the decode function of the method of its
@@ -84,30 +85,19 @@ func decodeResult[T any](decode func(any) (T, error)) func(any) error {
 	}
 }
 
-// decodeLocations decodes an array of locations.
-func decodeLocations(value any) error {
-	locations, ok := value.([]any)
-	if !ok {
-		return fmt.Errorf("expected array, got %T", value)
-	}
-	for _, location := range locations {
-		if _, err := protocol.DecodeLocation(location); err != nil {
-			return err
+// decodeArray returns a decode function for an array of the elements the decode function decodes, giving only the
+// error.
+func decodeArray[T any](decode func(any) (T, error)) func(any) error {
+	return func(value any) error {
+		elements, ok := value.([]any)
+		if !ok {
+			return fmt.Errorf("expected array, got %T", value)
 		}
-	}
-	return nil
-}
-
-// decodeTextEdits decodes an array of text edits.
-func decodeTextEdits(value any) error {
-	edits, ok := value.([]any)
-	if !ok {
-		return fmt.Errorf("expected array, got %T", value)
-	}
-	for _, edit := range edits {
-		if _, err := protocol.DecodeTextEdit(edit); err != nil {
-			return err
+		for _, element := range elements {
+			if _, err := decode(element); err != nil {
+				return err
+			}
 		}
+		return nil
 	}
-	return nil
 }

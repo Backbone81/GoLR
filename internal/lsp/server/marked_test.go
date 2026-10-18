@@ -182,6 +182,19 @@ func (m marked) semanticTokensResponse(tokens ...string) string {
 	return m.response(protocol.SemanticTokens{Data: data})
 }
 
+// codeLensResponse returns the response with id 2 which has a code lens with the title for every marked range.
+func (m marked) codeLensResponse(titles ...string) string {
+	Expect(m.ranges).To(HaveLen(len(titles)))
+	lenses := make([]protocol.CodeLens, 0, len(titles))
+	for idx, title := range titles {
+		lenses = append(lenses, protocol.CodeLens{
+			Range:   m.ranges[idx],
+			Command: protocol.NewOptional(protocol.Command{Title: title}),
+		})
+	}
+	return m.response(lenses)
+}
+
 // response returns the response with id 2 which has the result.
 func (m marked) response(result any) string {
 	content, err := json.Marshal(result)
