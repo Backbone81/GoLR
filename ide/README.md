@@ -19,4 +19,6 @@ syntax highlighting and a README with the configuration of the language server:
 - [Vim](vim/README.md)
 - [Emacs](emacs/README.md)
 
-They provide syntax highlighting and formatting.
+They provide syntax highlighting and, through the language server, navigation between declarations and references,
+rename, code completion, semantic highlighting, reference counts and formatting. Which of them an editor shows depends
+on its LSP client, see the README of the editor.

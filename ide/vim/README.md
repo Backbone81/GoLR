@@ -5,7 +5,13 @@ with:
 
 - Syntax highlighting
 - Comment settings (`commentstring`, `comments`) for comment plugins and formatting of comments
-- Format document, through the GoLR language server (`golr lsp`) and an LSP plugin
+- Through the GoLR language server (`golr lsp`) and an LSP plugin:
+  - Go to definition and find references, with string aliases resolved to their terminals
+  - Rename, of a symbol or of the string alias of a terminal
+  - Code completion of keywords and symbols
+  - Semantic highlighting of terminals and nonterminals, definitions apart from references
+  - Reference counts of the definitions (code lens)
+  - Format document
 
 The runtime files in this directory are also used by [Neovim](../neovim).
 
@@ -50,6 +56,30 @@ endif
 
 vim-lsp starts `golr lsp` when you open a `.golr` file. `:LspStatus` shows whether it is running.
 
+Code completion needs the omnifunc of vim-lsp, and semantic highlighting has to be turned on. Add to your `vimrc`:
+
+```vim
+let g:lsp_semantic_enabled = 1
+function! s:on_lsp_buffer_enabled() abort
+  setlocal omnifunc=lsp#complete
+endfunction
+augroup lsp_install
+  au!
+  autocmd User lsp_buffer_enabled call s:on_lsp_buffer_enabled()
+augroup END
+```
+
+| Feature | Command |
+|---|---|
+| Go to definition | `:LspDefinition` |
+| Find references | `:LspReferences` |
+| Rename | `:LspRename` |
+| Code completion | `CTRL-X CTRL-O` in insert mode |
+| Reference counts | `:LspCodeLens`, which lists the counts of the line; choosing one does nothing |
+| Format document | `:LspDocumentFormat` |
+
+vim-lsp shows code lenses only in that list, not in the text.
+
 Format the file with `:LspDocumentFormat`. To format on every save, add:
 
 ```vim
@@ -74,6 +104,26 @@ Add the language server to your `coc-settings.json` (`:CocConfig`):
   }
 }
 ```
+
+coc.nvim completes keywords and symbols while you type. Semantic highlighting and the reference counts above the
+definitions are off by default in coc.nvim. Turn them on in your `coc-settings.json`:
+
+```json
+{
+  "semanticTokens.enable": true,
+  "codeLens.enable": true
+}
+```
+
+The other features use the mappings of coc.nvim, e.g. in your `vimrc`:
+
+```vim
+nmap <silent> gd <Plug>(coc-definition)
+nmap <silent> gr <Plug>(coc-references)
+nmap <leader>rn <Plug>(coc-rename)
+```
+
+A reference count only informs, `<Plug>(coc-codelens-action)` on it does nothing.
 
 Format the file with `:call CocAction('format')`. To format on every save, add to your `coc-settings.json`:
 

@@ -21,9 +21,6 @@ var lspCmd = &cobra.Command{
 	Long:         `Runs the language server for GoLR grammar files.`,
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
-	// This command is hidden until the language server provides functionality comparable to the intellij and vscode
-	// plugins.
-	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		options, err := lspOptions(cmd)
 		if err != nil {

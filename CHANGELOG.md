@@ -33,6 +33,7 @@
 - Fixed a crash on concatenations and alternations with missing children in JSON and YAML scanner rules.
 - Fixed DFA minimization taking quadratic time, which made some regular expressions take minutes to build.
 - Fixed crashes on malformed YAML grammars and scanner rules and YAML output which read back differently, e.g. strings like "\n" or ".inf", by switching from goccy/go-yaml to go.yaml.in/yaml/v3.
+- Added golr lsp, a language server for GoLR grammar files with go to definition, find references, rename, code completion, semantic highlighting, reference counts and formatting, together with editor setups for Neovim, Vim and Emacs in ide/.
 
 ## v0.5.0 (2026-09-26)
 

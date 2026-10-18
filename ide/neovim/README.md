@@ -5,7 +5,13 @@ with:
 
 - Syntax highlighting
 - Toggle line comments (`gc`)
-- Format document, through the GoLR language server (`golr lsp`)
+- Through the GoLR language server (`golr lsp`):
+  - Go to definition and find references, with string aliases resolved to their terminals
+  - Rename, of a symbol or of the string alias of a terminal
+  - Code completion of keywords and symbols
+  - Semantic highlighting of terminals and nonterminals, definitions apart from references
+  - Reference counts above every definition (code lens)
+  - Format document
 
 Neovim uses the Vim syntax files from [`ide/vim`](../vim) and its built-in LSP client.
 
@@ -50,6 +56,26 @@ vim.api.nvim_create_autocmd('BufWritePre', {
   end,
 })
 ```
+
+The features use the default LSP keymaps of Neovim:
+
+| Feature | Key or command |
+|---|---|
+| Go to definition | `CTRL-]` |
+| Find references | `grr` |
+| Rename | `grn` |
+| Code completion | `CTRL-X CTRL-O` in insert mode |
+| Format document | `:lua vim.lsp.buf.format()` |
+
+Semantic highlighting is on by default. The reference counts show after enabling code lenses, e.g. in your
+`init.lua`:
+
+```lua
+vim.lsp.codelens.enable()
+```
+
+This is the API of Neovim 0.12. Neovim 0.11 shows the code lenses after `:lua vim.lsp.codelens.refresh()`, see
+`:help lsp-codelens`. A reference count only informs, running it (`grx` in Neovim 0.12) does nothing.
 
 The language server writes its log to stderr, which Neovim copies into its LSP log file. Open it with
 `:lua vim.cmd.tabnew(vim.lsp.log.get_filename())`.

@@ -5,7 +5,11 @@ with:
 
 - Syntax highlighting, through the major mode `golr-mode`
 - Comment commands (`M-;`)
-- Format document, through the GoLR language server (`golr lsp`) and Eglot
+- Through the GoLR language server (`golr lsp`) and Eglot:
+  - Go to definition and find references, with string aliases resolved to their terminals
+  - Rename, of a symbol or of the string alias of a terminal
+  - Code completion of keywords and symbols
+  - Format document
 
 ## Requirements
 
@@ -38,6 +42,17 @@ Tell Eglot to start `golr lsp` for `golr-mode`, and start Eglot when a `.golr` f
   (add-to-list 'eglot-server-programs '(golr-mode "golr" "lsp")))
 (add-hook 'golr-mode-hook #'eglot-ensure)
 ```
+
+| Feature | Key or command |
+|---|---|
+| Go to definition | `M-.` |
+| Find references | `M-?` |
+| Rename | `M-x eglot-rename` |
+| Code completion | `C-M-i` |
+| Format document | `M-x eglot-format-buffer` |
+
+The language server also provides semantic highlighting and reference counts above the definitions, which the Eglot
+of Emacs 29 does not show.
 
 Format the file with `M-x eglot-format-buffer`. To format on every save, add:
 

@@ -84,7 +84,11 @@ The [IntelliJ Plugin](https://plugins.jetbrains.com/plugin/34604-golr) and the
 [Visual Studio Code Extension](https://marketplace.visualstudio.com/items?itemName=backbone81.golr) provide syntax
 highlighting, navigation, rename, code completion and formatting for `.golr` grammar files.
 
-See the `ide/` folder for the source code of those IDE plugins.
+Other editors use the GoLR language server (`golr lsp`) with their own LSP client. [Neovim](ide/neovim/README.md),
+[Vim](ide/vim/README.md) and [Emacs](ide/emacs/README.md) have a setup with syntax highlighting and the configuration
+of the language server.
+
+See the `ide/` folder for the source code of those IDE plugins and editor setups.
 
 ## Command Line Parameters
 
@@ -103,6 +107,7 @@ Available Commands:
   convert     Converts grammar files between different formats.
   fmt         Pretty prints GoLR grammar files.
   help        Help about any command
+  lsp         Runs the language server for GoLR grammar files.
   parser      Generates a LR(1) parser.
   scanner     Generates a DFA scanner.
   selftest    Fuzz tests the IELR(1) parser core against a canonical LR(1) oracle.
@@ -247,6 +252,25 @@ an unresolved conflict takes through the IELR(1) core.
 
 See the documentation about [correctness](docs/correctness.md) for where this fits into the overall verification of the
 IELR(1) implementation.
+
+The `lsp` sub-command runs the language server for GoLR grammar files, which an editor starts with its LSP client:
+
+```text
+Runs the language server for GoLR grammar files.
+
+Usage:
+  golr lsp [flags]
+
+Flags:
+      --clientProcessId int   end the session when the editor process with this id is gone
+  -h, --help                  help for lsp
+      --pipe string           talk to the editor over the pipe it listens on, a Unix domain socket or a Windows named pipe
+      --socket int            talk to the editor over the TCP port on 127.0.0.1 it listens on
+      --stdio                 talk to the editor over stdin and stdout, the default
+```
+
+It provides go to definition, find references, rename, code completion, semantic highlighting, reference counts and
+formatting. The [editor setups](ide/README.md#editor-setups) show how to configure it in Neovim, Vim and Emacs.
 
 ## Parser Generator
 
