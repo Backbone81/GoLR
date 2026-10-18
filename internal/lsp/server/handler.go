@@ -16,6 +16,21 @@ import (
 // errNoNameToRename answers a rename at a position without a name.
 var errNoNameToRename = NewError(int(protocol.LSPErrorCodesRequestFailed), "no name to rename at the position")
 
+// The semantic token types and modifiers of the legend, by their index in it.
+const (
+	semanticTokenNonterminal = iota
+	semanticTokenTerminal
+)
+
+const semanticTokenDeclaration = 1 << 0
+
+// semanticTokensLegend is the legend of the semantic tokens: "class" for nonterminals and "enum" for terminals, as
+// common themes color them without configuration, and "declaration" on definitions.
+var semanticTokensLegend = protocol.SemanticTokensLegend{
+	TokenTypes:     []string{string(protocol.SemanticTokenTypesClass), string(protocol.SemanticTokenTypesEnum)},
+	TokenModifiers: []string{string(protocol.SemanticTokenModifiersDeclaration)},
+}
+
 // This file holds the application logic of the LSP operations. The handlers which change server state run on the
 // reader. The others run in their own goroutine and must only read the documents they get.
 
@@ -49,9 +64,13 @@ func (s *Server) handleInitialize(
 			CompletionProvider: protocol.NewOptional(protocol.CompletionOptions{
 				TriggerCharacters: []string{"@"},
 			}),
-			DefinitionProvider:         protocol.NewServerCapabilitiesDefinitionProvider(true),
-			ReferencesProvider:         protocol.NewServerCapabilitiesReferencesProvider(true),
-			RenameProvider:             s.renameProvider(params.Capabilities),
+			DefinitionProvider: protocol.NewServerCapabilitiesDefinitionProvider(true),
+			ReferencesProvider: protocol.NewServerCapabilitiesReferencesProvider(true),
+			RenameProvider:     s.renameProvider(params.Capabilities),
+			SemanticTokensProvider: protocol.NewServerCapabilitiesSemanticTokensProvider(protocol.SemanticTokensOptions{
+				Legend: semanticTokensLegend,
+				Full:   protocol.NewSemanticTokensOptionsFull(true),
+			}),
 			DocumentFormattingProvider: protocol.NewServerCapabilitiesDocumentFormattingProvider(true),
 		},
 		ServerInfo: protocol.NewOptional(serverInfo),
@@ -392,6 +411,66 @@ func (s *Server) handleRename(
 	return protocol.WorkspaceEdit{
 		Changes: map[protocol.DocumentUri][]protocol.TextEdit{snapshot.URI: edits},
 	}, nil
+}
+
+// handleSemanticTokensFull handles the textDocument/semanticTokens/full request. It marks the definitions and
+// references of terminals and nonterminals, the definitions with the declaration modifier. A reference has the kind
+// of the first definition with its name, an unresolved one is a nonterminal. Aliases and references by alias get no
+// token, they keep the color of a string. See
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification#textDocument_semanticTokens
+func (s *Server) handleSemanticTokensFull(
+	_ context.Context,
+	documents *Documents,
+	params *protocol.SemanticTokensParams,
+) (protocol.SemanticTokens, error) {
+	snapshot, err := s.openSnapshot(documents, params.TextDocument.Uri)
+	if err != nil {
+		return protocol.SemanticTokens{}, err
+	}
+
+	symbols := snapshot.Model()
+	data := []int{}
+	var previous protocol.Position
+	for _, occurrence := range symbols.Occurrences() {
+		if occurrence.Role == model.RoleAlias || symbols.IsAlias(occurrence.Name) {
+			continue
+		}
+		modifiers := 0
+		if occurrence.Role == model.RoleDefinition {
+			modifiers = semanticTokenDeclaration
+		}
+
+		// A name is on one line, so its length is the difference of the characters.
+		start := snapshot.Position(occurrence.Span.Offset)
+		end := snapshot.Position(occurrence.Span.End())
+		deltaStart := start.Character
+		if start.Line == previous.Line {
+			deltaStart -= previous.Character
+		}
+		data = append(data,
+			start.Line-previous.Line,
+			deltaStart,
+			end.Character-start.Character,
+			s.semanticTokenType(symbols, occurrence),
+			modifiers,
+		)
+		previous = start
+	}
+	return protocol.SemanticTokens{Data: data}, nil
+}
+
+// semanticTokenType returns the token type of a definition or reference: the kind of the definition, or for a
+// reference the kind of the first definition with its name. An unresolved reference is a nonterminal.
+func (s *Server) semanticTokenType(symbols *model.Model, occurrence model.Occurrence) int {
+	for _, definition := range symbols.DefinitionsNamed(occurrence.Name) {
+		if occurrence.Role == model.RoleReference || definition.Span == occurrence.Span {
+			if definition.Kind == model.KindNonterminal {
+				return semanticTokenNonterminal
+			}
+			return semanticTokenTerminal
+		}
+	}
+	return semanticTokenNonterminal
 }
 
 // openSnapshot returns the snapshot of the document, or an error for a request on a document which is not open.

@@ -158,6 +158,8 @@ func (s *Server) dispatchRequestObject(ctx context.Context, content []byte) erro
 		return runAsync(ctx, s, &requestObject, protocol.DecodePrepareRenameParams, s.handlePrepareRename)
 	case protocol.MethodTextDocumentRename:
 		return runAsync(ctx, s, &requestObject, protocol.DecodeRenameParams, s.handleRename)
+	case protocol.MethodTextDocumentSemanticTokensFull:
+		return runAsync(ctx, s, &requestObject, protocol.DecodeSemanticTokensParams, s.handleSemanticTokensFull)
 	case protocol.MethodTextDocumentFormatting:
 		return runAsync(ctx, s, &requestObject, protocol.DecodeDocumentFormattingParams, s.handleDocumentFormatting)
 	default:

@@ -26,7 +26,8 @@ const (
 		"capabilities":{"positionEncoding":"utf-16","textDocumentSync":1,
 		"completionProvider":{"triggerCharacters":["@"]},
 		"definitionProvider":true,"referencesProvider":true,"renameProvider":true,
-		"documentFormattingProvider":true},
+		"documentFormattingProvider":true,
+		"semanticTokensProvider":{"legend":{"tokenTypes":["class","enum"],"tokenModifiers":["declaration"]},"full":true}},
 		"serverInfo":{"name":"GoLR"}}}`
 	unknownRequest   = `{"jsonrpc":"2.0","id":2,"method":"unknown/method"}`
 	shutdownRequest  = `{"jsonrpc":"2.0","id":9,"method":"shutdown"}`

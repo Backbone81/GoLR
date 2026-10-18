@@ -69,6 +69,11 @@ func (m marked) didOpen() string {
 		`","languageId":"golr","version":1,"text":` + string(text) + `}}}`
 }
 
+// documentRequest returns a request with id 2 of the method on the document.
+func (m marked) documentRequest(method string) string {
+	return `{"jsonrpc":"2.0","id":2,"method":"` + method + `","params":{"textDocument":{"uri":"` + markedURI + `"}}}`
+}
+
 // positionRequest returns a request with id 2 of the method at the caret of the document.
 func (m marked) positionRequest(method string) string {
 	return m.request(method, "")
@@ -152,6 +157,29 @@ func (m marked) completionResponse(keywords []string, symbols []offeredSymbol) s
 		})
 	}
 	return m.response(items)
+}
+
+// semanticTokensResponse returns the response with id 2 which has a semantic token for every marked range. A token is
+// written as its type, optionally followed by " declaration".
+func (m marked) semanticTokensResponse(tokens ...string) string {
+	Expect(m.ranges).To(HaveLen(len(tokens)))
+	data := []int{}
+	var previous protocol.Position
+	for idx, token := range tokens {
+		tokenType, modifier, _ := strings.Cut(token, " ")
+		typeIndex := map[string]int{"class": 0, "enum": 1}[tokenType]
+		modifiers := map[string]int{"": 0, "declaration": 1}[modifier]
+
+		start := m.ranges[idx].Start
+		deltaStart := start.Character
+		if start.Line == previous.Line {
+			deltaStart -= previous.Character
+		}
+		data = append(data, start.Line-previous.Line, deltaStart, m.ranges[idx].End.Character-start.Character,
+			typeIndex, modifiers)
+		previous = start
+	}
+	return m.response(protocol.SemanticTokens{Data: data})
 }
 
 // response returns the response with id 2 which has the result.
