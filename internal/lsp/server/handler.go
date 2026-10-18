@@ -17,6 +17,10 @@ import (
 // errNoNameToRename answers a rename at a position without a name.
 var errNoNameToRename = NewError(int(protocol.LSPErrorCodesRequestFailed), "no name to rename at the position")
 
+// commandNoOp is the command of a lens which only shows information. LSP puts the title of a lens into a command, and
+// clients treat a command with an empty id differently, so the server offers a command which does nothing.
+const commandNoOp = "golr.noOp"
+
 // The semantic token types and modifiers of the legend, by their index in it.
 const (
 	semanticTokenNonterminal = iota
@@ -74,6 +78,9 @@ func (s *Server) handleInitialize(
 				Full:   protocol.NewSemanticTokensOptionsFull(true),
 			}),
 			DocumentFormattingProvider: protocol.NewServerCapabilitiesDocumentFormattingProvider(true),
+			ExecuteCommandProvider: protocol.NewOptional(protocol.ExecuteCommandOptions{
+				Commands: []string{commandNoOp},
+			}),
 		},
 		ServerInfo: protocol.NewOptional(serverInfo),
 	}, nil
@@ -233,8 +240,8 @@ func (s *Server) handleDocumentFormatting(
 
 // handleCodeLens handles the textDocument/codeLens request. It shows the number of references above every definition,
 // for a terminal including the references by its aliases. Fragments get no lens, as their references inside regular
-// expressions are not tracked. The command has an empty id, so the lens only shows the count: a click would need a
-// command registered in the configuration of every editor. See
+// expressions are not tracked. The command does nothing, so the lens only shows the count: opening the references
+// would need a command registered in the configuration of every editor. See
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification#textDocument_codeLens
 func (s *Server) handleCodeLens(
 	_ context.Context,
@@ -255,7 +262,8 @@ func (s *Server) handleCodeLens(
 		lenses = append(lenses, protocol.CodeLens{
 			Range: snapshot.Range(definition.Span),
 			Command: protocol.NewOptional(protocol.Command{
-				Title: s.referenceCountTitle(len(symbols.UsagesNamed(definition.Name))),
+				Title:   s.referenceCountTitle(len(symbols.UsagesNamed(definition.Name))),
+				Command: commandNoOp,
 			}),
 		})
 	}
@@ -512,6 +520,20 @@ func (s *Server) semanticTokenType(symbols *model.Model, occurrence model.Occurr
 		}
 	}
 	return semanticTokenNonterminal
+}
+
+// handleExecuteCommand handles the workspace/executeCommand request. The only command is golr.noOp, which does
+// nothing. See
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification#workspace_executeCommand
+func (s *Server) handleExecuteCommand(
+	_ context.Context,
+	_ *Documents,
+	params *protocol.ExecuteCommandParams,
+) (any, error) {
+	if params.Command != commandNoOp {
+		return nil, NewError(jsonrpc.ErrorCodeInvalidParams, "unknown command: "+params.Command)
+	}
+	return nil, nil
 }
 
 // openSnapshot returns the snapshot of the document, or an error for a request on a document which is not open.

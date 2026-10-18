@@ -26,7 +26,7 @@ const (
 		"capabilities":{"positionEncoding":"utf-16","textDocumentSync":1,
 		"codeLensProvider":{},"completionProvider":{"triggerCharacters":["@"]},
 		"definitionProvider":true,"referencesProvider":true,"renameProvider":true,
-		"documentFormattingProvider":true,
+		"documentFormattingProvider":true,"executeCommandProvider":{"commands":["golr.noOp"]},
 		"semanticTokensProvider":{"legend":{"tokenTypes":["class","enum"],"tokenModifiers":["declaration"]},"full":true}},
 		"serverInfo":{"name":"GoLR"}}}`
 	unknownRequest   = `{"jsonrpc":"2.0","id":2,"method":"unknown/method"}`

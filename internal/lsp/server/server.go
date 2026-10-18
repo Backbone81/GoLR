@@ -164,6 +164,8 @@ func (s *Server) dispatchRequestObject(ctx context.Context, content []byte) erro
 		return runAsync(ctx, s, &requestObject, protocol.DecodeSemanticTokensParams, s.handleSemanticTokensFull)
 	case protocol.MethodTextDocumentFormatting:
 		return runAsync(ctx, s, &requestObject, protocol.DecodeDocumentFormattingParams, s.handleDocumentFormatting)
+	case protocol.MethodWorkspaceExecuteCommand:
+		return runAsync(ctx, s, &requestObject, protocol.DecodeExecuteCommandParams, s.handleExecuteCommand)
 	default:
 		if requestObject.ID == nil {
 			// The server keeps no state for a notification it does not handle.

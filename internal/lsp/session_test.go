@@ -34,7 +34,7 @@ const (
 		"capabilities":{"positionEncoding":"utf-8","textDocumentSync":1,
 		"codeLensProvider":{},"completionProvider":{"triggerCharacters":["@"]},
 		"definitionProvider":true,"referencesProvider":true,"renameProvider":{"prepareProvider":true},
-		"documentFormattingProvider":true,
+		"documentFormattingProvider":true,"executeCommandProvider":{"commands":["golr.noOp"]},
 		"semanticTokensProvider":{"legend":{"tokenTypes":["class","enum"],"tokenModifiers":["declaration"]},"full":true}},
 		"serverInfo":{"name":"GoLR"}}}`
 )
@@ -106,6 +106,11 @@ var _ = Describe("Session", func() {
 				"9: expression 2 references",
 				"14: term 2 references",
 			}))
+
+			By("clicking a reference count")
+			Expect(client.request(protocol.MethodWorkspaceExecuteCommand, protocol.ExecuteCommandParams{
+				Command: client.lensCommand,
+			})).To(MatchJSON(fmt.Sprintf(`{"jsonrpc":"2.0","id":%d,"result":null}`, client.id)))
 
 			By("going to the definition of a reference")
 			Expect(client.definition(client.at(11, "term"))).To(Equal([]string{"14: term"}))
@@ -195,6 +200,9 @@ type scriptedClient struct {
 	legend  protocol.SemanticTokensLegend
 	text    string
 	version int
+
+	// lensCommand is the command of the last code lens.
+	lensCommand string
 
 	// messages and responses are the contents sent and received, which are checked for decodable results at the end.
 	messages  []string
@@ -332,7 +340,8 @@ func (c *scriptedClient) codeLenses() []string {
 		Expect(err).NotTo(HaveOccurred())
 		command, ok := lens.Command.Get()
 		Expect(ok).To(BeTrue())
-		Expect(command.Command).To(BeEmpty())
+		Expect(command.Command).To(Equal("golr.noOp"))
+		c.lensCommand = command.Command
 		descriptions = append(descriptions, c.describe(lens.Range)+" "+command.Title)
 	}
 	return descriptions

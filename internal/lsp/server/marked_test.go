@@ -188,8 +188,11 @@ func (m marked) codeLensResponse(titles ...string) string {
 	lenses := make([]protocol.CodeLens, 0, len(titles))
 	for idx, title := range titles {
 		lenses = append(lenses, protocol.CodeLens{
-			Range:   m.ranges[idx],
-			Command: protocol.NewOptional(protocol.Command{Title: title}),
+			Range: m.ranges[idx],
+			Command: protocol.NewOptional(protocol.Command{
+				Title:   title,
+				Command: "golr.noOp",
+			}),
 		})
 	}
 	return m.response(lenses)
