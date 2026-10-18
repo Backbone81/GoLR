@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"sync"
 
+	"github.com/backbone81/golr/internal/lsp/model"
 	"github.com/backbone81/golr/internal/lsp/protocol"
 )
 
@@ -18,6 +19,8 @@ type Snapshot struct {
 	encoding      protocol.PositionEncodingKind
 	lineTableOnce sync.Once
 	lineTable     *LineTable
+	modelOnce     sync.Once
+	model         *model.Model
 }
 
 func newSnapshot(
@@ -50,6 +53,22 @@ func (s *Snapshot) LineTable() *LineTable {
 		s.lineTable = NewLineTable(s.Text)
 	})
 	return s.lineTable
+}
+
+// Range returns the range of the span in the encoding negotiated with the client.
+func (s *Snapshot) Range(span model.Span) protocol.Range {
+	return protocol.Range{
+		Start: s.Position(span.Offset),
+		End:   s.Position(span.End()),
+	}
+}
+
+// Model returns the symbol model of the text.
+func (s *Snapshot) Model() *model.Model {
+	s.modelOnce.Do(func() {
+		s.model = model.Build(s.Text)
+	})
+	return s.model
 }
 
 // normalizeLineEndings turns "\r\n" and a lone "\r" into "\n". LSP ends a line at all three, so every position stays

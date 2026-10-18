@@ -42,6 +42,7 @@ func (s *Server) handleInitialize(
 		Capabilities: protocol.ServerCapabilities{
 			PositionEncoding:           protocol.NewOptional(s.encoding),
 			TextDocumentSync:           protocol.NewServerCapabilitiesTextDocumentSync(protocol.TextDocumentSyncKindFull),
+			DefinitionProvider:         protocol.NewServerCapabilitiesDefinitionProvider(true),
 			DocumentFormattingProvider: protocol.NewServerCapabilitiesDocumentFormattingProvider(true),
 		},
 		ServerInfo: protocol.NewOptional(serverInfo),
@@ -162,9 +163,9 @@ func (s *Server) handleDocumentFormatting(
 	documents *Documents,
 	params *protocol.DocumentFormattingParams,
 ) ([]protocol.TextEdit, error) {
-	snapshot, ok := documents.Snapshot(params.TextDocument.Uri)
-	if !ok {
-		return nil, NewError(jsonrpc.ErrorCodeInvalidParams, "document not open: "+string(params.TextDocument.Uri))
+	snapshot, err := s.openSnapshot(documents, params.TextDocument.Uri)
+	if err != nil {
+		return nil, err
 	}
 
 	if _, err := golrparser.NewParser().Parse(
@@ -185,4 +186,43 @@ func (s *Server) handleDocumentFormatting(
 			NewText: string(formatted),
 		},
 	}, nil
+}
+
+// handleDefinition handles the textDocument/definition request. From a definition or a reference, it returns every
+// declaration of the name: the definitions of a symbol, the aliases of a string. A position on no name gives no
+// location. See
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification#textDocument_definition
+func (s *Server) handleDefinition(
+	_ context.Context,
+	documents *Documents,
+	params *protocol.DefinitionParams,
+) ([]protocol.Location, error) {
+	snapshot, err := s.openSnapshot(documents, params.TextDocument.Uri)
+	if err != nil {
+		return nil, err
+	}
+
+	symbols := snapshot.Model()
+	occurrence, ok := symbols.OccurrenceAt(snapshot.Offset(params.Position))
+	if !ok {
+		return []protocol.Location{}, nil
+	}
+	declarations := symbols.DeclarationsNamed(occurrence.Name)
+	locations := make([]protocol.Location, 0, len(declarations))
+	for _, declaration := range declarations {
+		locations = append(locations, protocol.Location{
+			Uri:   snapshot.URI,
+			Range: snapshot.Range(declaration.Span),
+		})
+	}
+	return locations, nil
+}
+
+// openSnapshot returns the snapshot of the document, or an error for a request on a document which is not open.
+func (s *Server) openSnapshot(documents *Documents, uri protocol.DocumentUri) (*Snapshot, error) {
+	snapshot, ok := documents.Snapshot(uri)
+	if !ok {
+		return nil, NewError(jsonrpc.ErrorCodeInvalidParams, "document not open: "+string(uri))
+	}
+	return snapshot, nil
 }
