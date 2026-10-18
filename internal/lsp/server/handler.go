@@ -8,6 +8,7 @@ import (
 
 	golrfmt "github.com/backbone81/golr/internal/fmt"
 	"github.com/backbone81/golr/internal/lsp/jsonrpc"
+	"github.com/backbone81/golr/internal/lsp/model"
 	"github.com/backbone81/golr/internal/lsp/protocol"
 	golrparser "github.com/backbone81/golr/internal/parsergen/frontend/golr/parser"
 )
@@ -43,6 +44,7 @@ func (s *Server) handleInitialize(
 			PositionEncoding:           protocol.NewOptional(s.encoding),
 			TextDocumentSync:           protocol.NewServerCapabilitiesTextDocumentSync(protocol.TextDocumentSyncKindFull),
 			DefinitionProvider:         protocol.NewServerCapabilitiesDefinitionProvider(true),
+			ReferencesProvider:         protocol.NewServerCapabilitiesReferencesProvider(true),
 			DocumentFormattingProvider: protocol.NewServerCapabilitiesDocumentFormattingProvider(true),
 		},
 		ServerInfo: protocol.NewOptional(serverInfo),
@@ -210,10 +212,45 @@ func (s *Server) handleDefinition(
 	declarations := symbols.DeclarationsNamed(occurrence.Name)
 	locations := make([]protocol.Location, 0, len(declarations))
 	for _, declaration := range declarations {
-		locations = append(locations, protocol.Location{
-			Uri:   snapshot.URI,
-			Range: snapshot.Range(declaration.Span),
-		})
+		locations = append(locations, snapshot.Location(declaration.Span))
+	}
+	return locations, nil
+}
+
+// handleReferences handles the textDocument/references request. It returns the references of the name at the caret
+// in the order of the text: for a terminal also those by its aliases, for an alias only those by its string. With
+// includeDeclaration, the declarations of the name are added. A position on no name gives no location. See
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification#textDocument_references
+func (s *Server) handleReferences(
+	_ context.Context,
+	documents *Documents,
+	params *protocol.ReferenceParams,
+) ([]protocol.Location, error) {
+	snapshot, err := s.openSnapshot(documents, params.TextDocument.Uri)
+	if err != nil {
+		return nil, err
+	}
+
+	symbols := snapshot.Model()
+	occurrence, ok := symbols.OccurrenceAt(snapshot.Offset(params.Position))
+	if !ok {
+		return []protocol.Location{}, nil
+	}
+	usages := symbols.UsagesNamed(occurrence.Name)
+	spans := make([]model.Span, 0, len(usages))
+	for _, usage := range usages {
+		spans = append(spans, usage.Span)
+	}
+	if params.Context.IncludeDeclaration {
+		for _, declaration := range symbols.DeclarationsNamed(occurrence.Name) {
+			spans = append(spans, declaration.Span)
+		}
+		slices.SortFunc(spans, model.Span.Compare)
+	}
+
+	locations := make([]protocol.Location, 0, len(spans))
+	for _, span := range spans {
+		locations = append(locations, snapshot.Location(span))
 	}
 	return locations, nil
 }

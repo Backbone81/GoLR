@@ -150,6 +150,8 @@ func (s *Server) dispatchRequestObject(ctx context.Context, content []byte) erro
 		return runImmediate(ctx, s, &requestObject, protocol.DecodeDidCloseTextDocumentParams, s.handleDidCloseTextDocument)
 	case protocol.MethodTextDocumentDefinition:
 		return runAsync(ctx, s, &requestObject, protocol.DecodeDefinitionParams, s.handleDefinition)
+	case protocol.MethodTextDocumentReferences:
+		return runAsync(ctx, s, &requestObject, protocol.DecodeReferenceParams, s.handleReferences)
 	case protocol.MethodTextDocumentFormatting:
 		return runAsync(ctx, s, &requestObject, protocol.DecodeDocumentFormattingParams, s.handleDocumentFormatting)
 	default:

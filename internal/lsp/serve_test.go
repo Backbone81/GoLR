@@ -21,7 +21,7 @@ const (
 	exitNotification  = `{"jsonrpc":"2.0","method":"exit"}`
 
 	initializeResponseUTF16 = `{"jsonrpc":"2.0","id":1,"result":{
-		"capabilities":{"positionEncoding":"utf-16","textDocumentSync":1,"definitionProvider":true,
+		"capabilities":{"positionEncoding":"utf-16","textDocumentSync":1,"definitionProvider":true,"referencesProvider":true,
 		"documentFormattingProvider":true},
 		"serverInfo":{"name":"GoLR"}}}`
 	shutdownResponse = `{"jsonrpc":"2.0","id":99,"result":null}`

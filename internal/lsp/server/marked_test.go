@@ -18,7 +18,7 @@ const (
 	rangeStart   = "«"
 	rangeEnd     = "»"
 	markedFormat = `{"jsonrpc":"2.0","id":2,"method":"%s","params":{"textDocument":{"uri":"` + markedURI + `"},` +
-		`"position":%s}}`
+		`"position":%s%s}}`
 )
 
 // marked is a document with a caret and marked ranges, written as "<caret>" and "«...»" in its source. Positions are
@@ -73,7 +73,15 @@ func (m marked) didOpen() string {
 func (m marked) positionRequest(method string) string {
 	position, err := json.Marshal(m.caret)
 	Expect(err).NotTo(HaveOccurred())
-	return fmt.Sprintf(markedFormat, method, position)
+	return fmt.Sprintf(markedFormat, method, position, "")
+}
+
+// referencesRequest returns a references request with id 2 at the caret of the document.
+func (m marked) referencesRequest(includeDeclaration bool) string {
+	position, err := json.Marshal(m.caret)
+	Expect(err).NotTo(HaveOccurred())
+	return fmt.Sprintf(markedFormat, protocol.MethodTextDocumentReferences, position,
+		fmt.Sprintf(`,"context":{"includeDeclaration":%t}`, includeDeclaration))
 }
 
 // locationsResponse returns the response with id 2 which has a location for every marked range.

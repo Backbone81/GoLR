@@ -63,6 +63,14 @@ func (s *Snapshot) Range(span model.Span) protocol.Range {
 	}
 }
 
+// Location returns the location of the span in the document.
+func (s *Snapshot) Location(span model.Span) protocol.Location {
+	return protocol.Location{
+		Uri:   s.URI,
+		Range: s.Range(span),
+	}
+}
+
 // Model returns the symbol model of the text.
 func (s *Snapshot) Model() *model.Model {
 	s.modelOnce.Do(func() {

@@ -14,6 +14,7 @@ import (
 var resultDecoders = map[string]func(any) error{
 	protocol.MethodInitialize:             decodeResult(protocol.DecodeInitializeResult),
 	protocol.MethodTextDocumentDefinition: decodeResult(protocol.DecodeDefinition),
+	protocol.MethodTextDocumentReferences: decodeLocations,
 	protocol.MethodTextDocumentFormatting: decodeTextEdits,
 }
 
@@ -77,6 +78,20 @@ func decodeResult[T any](decode func(any) (T, error)) func(any) error {
 		_, err := decode(value)
 		return err
 	}
+}
+
+// decodeLocations decodes an array of locations.
+func decodeLocations(value any) error {
+	locations, ok := value.([]any)
+	if !ok {
+		return fmt.Errorf("expected array, got %T", value)
+	}
+	for _, location := range locations {
+		if _, err := protocol.DecodeLocation(location); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // decodeTextEdits decodes an array of text edits.
