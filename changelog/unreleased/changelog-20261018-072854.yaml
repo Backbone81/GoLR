@@ -1,0 +1,2 @@
+description: 'BREAKING: GoLR string literals now support the escape sequences \" and
+  \\ and reject every other backslash escape, so a string literal can end in a backslash.'

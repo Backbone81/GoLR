@@ -1,0 +1,2 @@
+go test fuzz v1
+string("- regex:\n    kind: Concat\n    concat:\n     children:\n      -\n      -")

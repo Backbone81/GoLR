@@ -1,0 +1,2 @@
+description: Fixed a crash on concatenations and alternations with missing children
+  in JSON and YAML scanner rules.

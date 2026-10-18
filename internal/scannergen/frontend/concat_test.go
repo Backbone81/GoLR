@@ -45,6 +45,14 @@ var _ = Describe("Concat", func() {
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
 
+	It("should fail validation with a missing child", func() {
+		expression := dsl.Concat(
+			dsl.Literal("a"),
+			nil,
+		)
+		Expect(expression.Validate()).ToNot(Succeed())
+	})
+
 	It("should fail validation with only one child", func() {
 		expression := dsl.Concat(
 			dsl.Literal("a"),

@@ -7,6 +7,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	parsergenfrontend "github.com/backbone81/golr/internal/parsergen/frontend"
 	"github.com/backbone81/golr/internal/scannergen/frontend"
 	"github.com/backbone81/golr/pkg/scannergen/frontend/dsl"
 )
@@ -691,12 +692,12 @@ func (p *Parser) resolveFragment(name string) (*frontend.Node, error) {
 		// @empty fragment.
 		node = dsl.CharClass()
 	case lexeme[0] == '"':
-		// String literal fragment — strip quotes.
+		// String literal fragment — strip quotes and escapes.
 		alias := string(lexeme)
 		if len(alias) == 2 {
 			return nil, fmt.Errorf("fragment %q is an empty string", name)
 		}
-		node = dsl.Literal(alias[1 : len(alias)-1])
+		node = dsl.Literal(parsergenfrontend.UnquoteGoLRString(alias))
 	default:
 		// Regex fragment — parse recursively, sharing nodeByName and resolving.
 		sub := Parser{

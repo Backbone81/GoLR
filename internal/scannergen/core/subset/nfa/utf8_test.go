@@ -206,6 +206,36 @@ var _ = Describe("BuildUTF8Encoding", func() {
 			}))
 		})
 
+		It("encodes a range ending in a surrogate like any other 3-byte character", func() {
+			// U+D800–U+D83F both encode to 0xED 0xA0 [0x80–0xBF]
+			Expect(buildNFAForRange(frontend.CharRange{Low: 0xD800, High: 0xD83F})).To(Equal([]nfa.State{
+				{ // state 0: start
+					Transitions: []nfa.Transition{
+						{
+							ByteRange:    backend.ByteRange{Low: 0xED, High: 0xED},
+							NextStateIdx: 1,
+						},
+					},
+				},
+				{ // state 1: after leading byte 0xED
+					Transitions: []nfa.Transition{
+						{
+							ByteRange:    backend.ByteRange{Low: 0xA0, High: 0xA0},
+							NextStateIdx: 2,
+						},
+					},
+				},
+				{ // state 2: after second byte 0xA0
+					Transitions: []nfa.Transition{
+						{
+							ByteRange:    backend.ByteRange{Low: 0x80, High: 0xBF},
+							NextStateIdx: -1,
+						},
+					},
+				},
+			}))
+		})
+
 		It("produces a split on the second byte when the leading byte is fixed but the second byte varies", func() {
 			// U+0800–U+0FFF: leading byte 0xE0 fixed, second byte varies from 0xA0 to 0xBF
 			// 0x800 = 0xE0 0xA0 0x80, 0xFFF = 0xE0 0xBF 0xBF

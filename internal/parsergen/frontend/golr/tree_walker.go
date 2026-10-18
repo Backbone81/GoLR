@@ -251,7 +251,7 @@ func (w *TreeWalker) resolvePatterns() error {
 			}
 			w.grammar.Terminals[idx].Alias = alias
 			w.terminalIdxByAlias[alias] = idx
-			w.rules[idx].Regex = *dsl.Literal(alias[1 : len(alias)-1])
+			w.rules[idx].Regex = *dsl.Literal(parsergenfrontend.UnquoteGoLRString(alias))
 		} else {
 			regexNode, err := regex.Parse(lexeme, fragments)
 			if err != nil {

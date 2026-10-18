@@ -25,6 +25,13 @@
 - BREAKING: golr convert and convert.BisonGrammar2GoLR now fail on Bison terminals which share an alias, which GoLR does not allow, instead of writing a grammar file GoLR cannot read. BisonGrammar2GoLR returns an error for that.
 - Fixed the Bison frontend accepting string literals, translatable strings and character literals which span over a newline, which GNU Bison rejects.
 - Fixed `golr convert` writing the error symbol of a Bison precedence declaration like `%left error` as `$error`, which made the converted grammar unreadable. It is written as `@error` now.
+- BREAKING: GoLR string literals now support the escape sequences \" and \\ and reject every other backslash escape, so a string literal can end in a backslash.
+- Fixed the Bison converter copying the escape sequences of Bison strings and character literals verbatim instead of translating them to GoLR strings.
+- Fixed the Bison converter giving two string literal tokens the same name, like "_" and " ".
+- Fixed a crash on Bison grammars whose rules section holds declarations only, which are now refused like GNU Bison does.
+- Fixed a crash on character classes with a range ending in a UTF-16 surrogate code point.
+- Fixed a crash on concatenations and alternations with missing children in JSON and YAML scanner rules.
+- Fixed DFA minimization taking quadratic time, which made some regular expressions take minutes to build.
 
 ## v0.5.0 (2026-09-26)
 

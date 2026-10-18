@@ -152,17 +152,13 @@ func (b *HopcroftsAlgorithm) splitAllPartitionsOnBehavior(partitions []*Partitio
 // returned as a result to signal that splitting the partition was not necessary.
 func (b *HopcroftsAlgorithm) splitPartitionOnBehavior(partition *Partition) *Partition {
 	var newPartition Partition
+	var keptStateIdxs utils.OrderedSet[int]
 	referenceState := partition.StateIdxs.GetByIndex(0)
 
 	for i, stateIdx := range partition.StateIdxs.All() {
-		if i == 0 {
-			// the first state is the reference state and always stays with the original partition
-			continue
-		}
-		if b.statesAreEquivalent(&b.inputDFA[stateIdx], &b.inputDFA[referenceState]) {
-			continue
-		}
-		if newPartition.StateIdxs.Contains(stateIdx) {
+		// the first state is the reference state and always stays with the original partition
+		if i == 0 || b.statesAreEquivalent(&b.inputDFA[stateIdx], &b.inputDFA[referenceState]) {
+			keptStateIdxs.Add(stateIdx)
 			continue
 		}
 		newPartition.StateIdxs.Add(stateIdx)
@@ -173,10 +169,8 @@ func (b *HopcroftsAlgorithm) splitPartitionOnBehavior(partition *Partition) *Par
 		return nil
 	}
 
-	// Now we need to remove the states we moved over to the new partition from the old partition.
-	for _, stateIdx := range newPartition.StateIdxs.All() {
-		partition.StateIdxs.Remove(stateIdx)
-	}
+	// Replacing the states at once instead of removing the moved ones one by one keeps large splits linear.
+	partition.StateIdxs = keptStateIdxs
 	return &newPartition
 }
 
@@ -228,12 +222,11 @@ func (b *HopcroftsAlgorithm) splitAllPartitionsByName(partitions []*Partition) [
 // as a result to signal that splitting the partition was not necessary.
 func (b *HopcroftsAlgorithm) splitPartitionByRuleIdx(partition *Partition) *Partition {
 	var newPartition Partition
+	var keptStateIdxs utils.OrderedSet[int]
 	referenceStateIdx := partition.StateIdxs.GetByIndex(0)
 	for _, stateIdx := range partition.StateIdxs.All() {
 		if b.inputDFA[referenceStateIdx].RuleIdx == b.inputDFA[stateIdx].RuleIdx {
-			continue
-		}
-		if newPartition.StateIdxs.Contains(stateIdx) {
+			keptStateIdxs.Add(stateIdx)
 			continue
 		}
 		newPartition.StateIdxs.Add(stateIdx)
@@ -244,9 +237,7 @@ func (b *HopcroftsAlgorithm) splitPartitionByRuleIdx(partition *Partition) *Part
 		return nil
 	}
 
-	// Now we need to remove the states we moved over to the new partition from the old partition.
-	for _, stateIdx := range newPartition.StateIdxs.All() {
-		partition.StateIdxs.Remove(stateIdx)
-	}
+	// Replacing the states at once instead of removing the moved ones one by one keeps large splits linear.
+	partition.StateIdxs = keptStateIdxs
 	return &newPartition
 }

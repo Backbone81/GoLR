@@ -1,8 +1,6 @@
 package nfa
 
 import (
-	"unicode/utf8"
-
 	"github.com/backbone81/golr/internal/scannergen/backend"
 	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
@@ -34,7 +32,7 @@ const (
 // While the char range can be within 0x00 to unicode.MaxRune, the emitted NFA states and transitions are always within
 // 0x00 to 0xFF.
 func BuildUTF8Encoding(charRange frontend.CharRange, ruleIdx int, states []State, startStateIdx int) []State {
-	if utf8.RuneLen(charRange.Low) != utf8.RuneLen(charRange.High) {
+	if utf8EncodedLen(charRange.Low) != utf8EncodedLen(charRange.High) {
 		panic("char range low and high must encode to the same number of UTF-8 bytes")
 	}
 
@@ -223,4 +221,19 @@ func buildUTF8EncodingByte(
 	}
 
 	return states
+}
+
+// utf8EncodedLen returns the number of bytes the rune encodes to. Unlike [utf8.RuneLen], it counts surrogates by their
+// code point as well, as the encoding above does.
+func utf8EncodedLen(r rune) int {
+	switch {
+	case r <= MaxUTF8Rune1Byte:
+		return 1
+	case r <= MaxUTF8Rune2Bytes:
+		return 2
+	case r <= MaxUTF8Rune3Bytes:
+		return 3
+	default:
+		return 4
+	}
 }

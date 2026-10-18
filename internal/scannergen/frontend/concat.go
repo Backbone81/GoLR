@@ -40,6 +40,9 @@ func (c *Concat) Validate() error {
 		return errors.New("the regular expression requires at least two children")
 	}
 	for _, child := range c.Children {
+		if child == nil {
+			return errors.New("the regular expression requires every child to be set")
+		}
 		if err := child.Validate(); err != nil {
 			return err
 		}

@@ -143,6 +143,10 @@ tokens where the operator character is more readable than a technical name.
 
 Each alias must be unique — no two tokens may share the same string literal.
 
+A string literal stays on one line and holds every character as is, except for two escape sequences: `\"` for a double
+quote and `\\` for a backslash. Every other backslash escape is an error, so `BACKSLASH: "\\";` matches a single
+backslash.
+
 ### Empty Pattern
 
 ```

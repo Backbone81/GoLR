@@ -85,6 +85,10 @@ func (w *TreeWalker) BuildGrammar(node parser.Node) (frontend.Grammar, error) {
 	if err := errors.Join(w.errs...); err != nil {
 		return frontend.Grammar{}, err
 	}
+	if len(w.grammar.Productions) == 0 {
+		// The rules section can hold declarations only, like "%% %token A;", which GNU Bison refuses as well.
+		return frontend.Grammar{}, w.errorAt(node.ByteOffset+node.ByteLength, "no rules in the input grammar")
+	}
 	if w.startNonterminalName != "" {
 		idx, ok := w.nonterminalIdxByName[w.startNonterminalName]
 		if !ok {

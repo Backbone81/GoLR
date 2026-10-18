@@ -54,6 +54,21 @@ unreleased:
 - description: Fixed `golr convert` writing the error symbol of a Bison precedence
     declaration like `%left error` as `$error`, which made the converted grammar unreadable.
     It is written as `@error` now.
+- description: 'BREAKING: GoLR string literals now support the escape sequences \"
+    and \\ and reject every other backslash escape, so a string literal can end in
+    a backslash.'
+- description: Fixed the Bison converter copying the escape sequences of Bison strings
+    and character literals verbatim instead of translating them to GoLR strings.
+- description: Fixed the Bison converter giving two string literal tokens the same
+    name, like "_" and " ".
+- description: Fixed a crash on Bison grammars whose rules section holds declarations
+    only, which are now refused like GNU Bison does.
+- description: Fixed a crash on character classes with a range ending in a UTF-16
+    surrogate code point.
+- description: Fixed a crash on concatenations and alternations with missing children
+    in JSON and YAML scanner rules.
+- description: Fixed DFA minimization taking quadratic time, which made some regular
+    expressions take minutes to build.
 releases:
 - version: |
     v0.5.0

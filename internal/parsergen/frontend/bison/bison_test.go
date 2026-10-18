@@ -1588,6 +1588,12 @@ var _ = Describe("Bison Grammar Files", func() {
 			))
 		})
 
+		It("should reject a rules section without rules", func() {
+			Expect(bison.GrammarFromString("%%\n%token A;\n")).Error().To(MatchError(
+				`in-memory:2:10: no rules in the input grammar`,
+			))
+		})
+
 		It("should reject a rule for a token", func() {
 			bisonGrammar := utils.HereDoc(`
 				%token A

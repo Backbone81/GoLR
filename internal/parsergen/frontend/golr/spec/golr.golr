@@ -34,7 +34,7 @@
     // A regex or string literal stays on one line: excluding the newline keeps a missing
     // closing delimiter from swallowing the rest of the file.
     REGEX:      /\/([^\n\/]|\\\/)*\//;
-    STRING:     /"([^\n"]|\\")*"/;
+    STRING:     /"([^\n"\\]|\\["\\])*"/;
 }
 
 @parser {

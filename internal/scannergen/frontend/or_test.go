@@ -42,6 +42,14 @@ var _ = Describe("Or", func() {
 		Expect(expression.Validate()).ToNot(Succeed())
 	})
 
+	It("should fail validation with a missing child", func() {
+		expression := dsl.Or(
+			dsl.Literal("a"),
+			nil,
+		)
+		Expect(expression.Validate()).ToNot(Succeed())
+	})
+
 	It("should fail validation with only one child", func() {
 		expression := dsl.Or(
 			dsl.Literal("a"),

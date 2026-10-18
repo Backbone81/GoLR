@@ -161,7 +161,9 @@ func FuzzDFA(f *testing.F) {
 }
 
 // maxAutomatonSize bounds the automata FuzzDFA builds, because a repetition copies its child as often as it repeats.
-const maxAutomatonSize = 64
+// The subset construction can build exponentially many states in this size, e.g. 2^17 for /(0.................*)*/,
+// which keeps the bound low.
+const maxAutomatonSize = 16
 
 // automatonSize estimates the size of the automaton for the node, with repetitions counted by their copies.
 func automatonSize(node *frontend.Node) int {

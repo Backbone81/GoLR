@@ -218,6 +218,36 @@ var _ = Describe("GoLR Grammar Files", func() {
 			Expect(err).To(MatchError(`in-memory:3:7: alias "baz" has already been declared`))
 		})
 
+		It("should unescape a double quote and a backslash in a token string", func() {
+			source := utils.HereDoc(`
+				@scanner {
+					QUOTE:     "\"";
+					BACKSLASH: "\\";
+				}
+				@parser {
+					file: "\"" "\\";
+				}
+			`)
+			rules, grammar, err := golr.GrammarFromString(source)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(rules[0].Regex.Literal.Text).To(Equal(`"`))
+			Expect(rules[1].Regex.Literal.Text).To(Equal(`\`))
+			Expect(grammar.Productions[0].SymbolRefs).To(HaveLen(2))
+		})
+
+		It("should reject an unknown escape sequence in a token string", func() {
+			source := utils.HereDoc(`
+				@scanner {
+					FOO: "\n";
+				}
+				@parser {
+					file: @empty;
+				}
+			`)
+			_, _, err := golr.GrammarFromString(source)
+			Expect(err).To(MatchError(ContainSubstring(`in-memory:2:7: syntax error: unexpected invalid input`)))
+		})
+
 		It("should reject a token with an empty string", func() {
 			source := utils.HereDoc(`
 				@scanner {
