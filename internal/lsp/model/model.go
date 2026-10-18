@@ -33,24 +33,43 @@ type Model struct {
 
 // index builds the lookups by name from the lists.
 func (m *Model) index() {
-	m.definitionsByName = make(map[string][]Definition, len(m.definitions))
-	for _, definition := range m.definitions {
-		m.definitionsByName[definition.Name] = append(m.definitionsByName[definition.Name], definition)
-	}
+	m.definitionsByName = groupByName(m.definitions, func(definition Definition) string { return definition.Name })
+	m.aliasesByName = groupByName(m.aliases, func(alias Alias) string { return alias.Name })
+	m.referencesByName = groupByName(m.references, func(reference Reference) string { return reference.Name })
 
-	m.aliasesByName = make(map[string][]Alias, len(m.aliases))
 	m.aliasNamesByTerminal = make(map[string][]string, len(m.aliases))
 	for _, alias := range m.aliases {
-		m.aliasesByName[alias.Name] = append(m.aliasesByName[alias.Name], alias)
 		if !slices.Contains(m.aliasNamesByTerminal[alias.Terminal], alias.Name) {
 			m.aliasNamesByTerminal[alias.Terminal] = append(m.aliasNamesByTerminal[alias.Terminal], alias.Name)
 		}
 	}
+}
 
-	m.referencesByName = map[string][]Reference{}
-	for _, reference := range m.references {
-		m.referencesByName[reference.Name] = append(m.referencesByName[reference.Name], reference)
+// groupByName groups the values by name, keeping their order. All groups share one array.
+//
+// Appending to a slice per name allocates every time a group outgrows its capacity. For a big grammar this is
+// thousands of allocations, as most names have only one definition and a few references. Counting the names first
+// gives every group its exact size, so the groups are carved out of one array and never grow.
+func groupByName[T any](values []T, name func(T) string) map[string][]T {
+	counts := make(map[string]int, len(values))
+	for _, value := range values {
+		counts[name(value)]++
 	}
+	backing := make([]T, len(values))
+	groups := make(map[string][]T, len(counts))
+	start := 0
+	for _, value := range values {
+		key := name(value)
+		group, ok := groups[key]
+		if !ok {
+			// The capacity ends at the group, so appending to it cannot overwrite the next group.
+			count := counts[key]
+			group = backing[start : start : start+count]
+			start += count
+		}
+		groups[key] = append(group, value)
+	}
+	return groups
 }
 
 // IsAlias reports whether the name is a string, which references a terminal by its alias.

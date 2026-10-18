@@ -18,9 +18,13 @@ func Build(text []byte) *Model {
 	b := builder{
 		text:    text,
 		scanner: parser.NewScanner(text, ""),
-		names:   map[string]string{},
+		names:   make(map[string]string, initialDefinitions),
 		model: &Model{
-			text: text,
+			text:        text,
+			definitions: make([]Definition, 0, initialDefinitions),
+			references:  make([]Reference, 0, initialReferences),
+			occurrences: make([]Occurrence, 0, initialOccurrences),
+			completions: make([]CompletionContext, 0, initialCompletions),
 		},
 	}
 	// The window starts on an empty token at offset zero, whose consumption records the first completion context.
@@ -30,6 +34,15 @@ func Build(text []byte) *Model {
 	b.model.index()
 	return b.model
 }
+
+// The initial capacities of the lists, about a quarter of what PostgreSQL 18.4 converted to golr needs. They save
+// most of the allocations of growing the lists for a big grammar.
+const (
+	initialDefinitions = 320
+	initialReferences  = 2100
+	initialOccurrences = 2400
+	initialCompletions = 1200
+)
 
 // builder holds the state of the pass.
 type builder struct {
