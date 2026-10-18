@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/goccy/go-yaml"
+	"go.yaml.in/yaml/v3"
 )
 
 // Kind is a type describing the kind of regular expression node.
@@ -61,13 +61,13 @@ func (k *Kind) UnmarshalJSON(data []byte) error {
 	return k.setKindByString(value)
 }
 
-func (k Kind) MarshalYAML() ([]byte, error) {
-	return yaml.Marshal(k.String())
+func (k Kind) MarshalYAML() (any, error) {
+	return k.String(), nil
 }
 
-func (k *Kind) UnmarshalYAML(data []byte) error {
+func (k *Kind) UnmarshalYAML(node *yaml.Node) error {
 	var value string
-	if err := yaml.Unmarshal(data, &value); err != nil {
+	if err := node.Decode(&value); err != nil {
 		return err
 	}
 
@@ -245,7 +245,7 @@ func (n *Node) UnmarshalJSON(data []byte) error {
 	return n.fromMarshalNode(node)
 }
 
-func (n Node) MarshalYAML() ([]byte, error) {
+func (n Node) MarshalYAML() (any, error) {
 	node := marshalNode{
 		Kind: n.Kind,
 	}
@@ -272,12 +272,12 @@ func (n Node) MarshalYAML() ([]byte, error) {
 	default:
 		return nil, errors.New("unknown node kind")
 	}
-	return yaml.Marshal(node)
+	return node, nil
 }
 
-func (n *Node) UnmarshalYAML(data []byte) error {
+func (n *Node) UnmarshalYAML(value *yaml.Node) error {
 	var node marshalNode
-	if err := yaml.Unmarshal(data, &node); err != nil {
+	if err := value.Decode(&node); err != nil {
 		return err
 	}
 

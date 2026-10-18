@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/goccy/go-yaml"
+	"go.yaml.in/yaml/v3"
 )
 
 // OrderedSet provides an implementation for a set of values. Values are guaranteed to be only present once within the
@@ -173,19 +173,16 @@ func (s *OrderedSet[T]) UnmarshalJSON(b []byte) error {
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.
-func (s OrderedSet[T]) MarshalYAML() ([]byte, error) {
+func (s OrderedSet[T]) MarshalYAML() (any, error) {
 	if len(s.data) == 0 {
-		return yaml.Marshal(nil)
+		return nil, nil //nolint:nilnil
 	}
-	return yaml.Marshal(s.data)
+	return s.data, nil
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface.
-func (s *OrderedSet[T]) UnmarshalYAML(b []byte) error {
-	if slices.Equal(b, []byte("null")) {
-		return nil
-	}
-	return yaml.Unmarshal(b, &s.data)
+func (s *OrderedSet[T]) UnmarshalYAML(value *yaml.Node) error {
+	return value.Decode(&s.data)
 }
 
 // CompareOrderedSet reports how two ordered sets should be ordered.

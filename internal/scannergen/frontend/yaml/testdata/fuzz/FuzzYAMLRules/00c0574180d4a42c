@@ -1,0 +1,2 @@
+go test fuzz v1
+string("- regex:\n    kind: Literal\n    literal:\n     text: \x100")

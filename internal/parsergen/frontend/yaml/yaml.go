@@ -9,7 +9,7 @@ import (
 	"runtime/trace"
 	"strings"
 
-	"github.com/goccy/go-yaml"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/backbone81/golr/internal/parsergen/frontend"
 )
@@ -28,18 +28,16 @@ func ToGrammar(reader io.Reader) (frontend.Grammar, error) {
 
 // FromGrammar writes the context free grammar as YAML document to the given writer. Returns an error if the YAML
 // document can not be encoded successfully.
-func FromGrammar(writer io.Writer, grammar frontend.Grammar) (err error) {
+func FromGrammar(writer io.Writer, grammar frontend.Grammar) error {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Frontends: YAML: FromGrammar").End()
 
 	encoder := yaml.NewEncoder(writer)
-	defer func() {
-		if closeErr := encoder.Close(); closeErr != nil {
-			err = errors.Join(err, fmt.Errorf("closing YAML encoder: %w", closeErr))
-		}
-	}()
-
+	encoder.SetIndent(2)
 	if err := encoder.Encode(grammar); err != nil {
 		return fmt.Errorf("encoding grammar to YAML: %w", err)
+	}
+	if err := encoder.Close(); err != nil {
+		return fmt.Errorf("closing YAML encoder: %w", err)
 	}
 	return nil
 }

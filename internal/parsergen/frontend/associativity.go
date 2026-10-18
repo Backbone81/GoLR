@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/goccy/go-yaml"
+	"go.yaml.in/yaml/v3"
 )
 
 // Associativity describes how terminals associate with each other.
@@ -56,13 +56,13 @@ func (a *Associativity) UnmarshalJSON(data []byte) error {
 	return a.fromString(s)
 }
 
-func (a Associativity) MarshalYAML() ([]byte, error) {
-	return yaml.Marshal(a.String())
+func (a Associativity) MarshalYAML() (any, error) {
+	return a.String(), nil
 }
 
-func (a *Associativity) UnmarshalYAML(data []byte) error {
+func (a *Associativity) UnmarshalYAML(value *yaml.Node) error {
 	var s string
-	if err := yaml.Unmarshal(data, &s); err != nil {
+	if err := value.Decode(&s); err != nil {
 		return err
 	}
 	return a.fromString(s)

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/goccy/go-yaml"
+	"go.yaml.in/yaml/v3"
 )
 
 // Bitset provides efficient storage for interacting with a set of bits. Each bit is referenced by its index. The bitset
@@ -251,24 +251,21 @@ func (b *Bitset) UnmarshalJSON(data []byte) error {
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.
-func (b Bitset) MarshalYAML() ([]byte, error) {
+func (b Bitset) MarshalYAML() (any, error) {
 	idxs := make([]int, 0, b.Length())
 	for idx := range b.All() {
 		idxs = append(idxs, idx)
 	}
 	if len(idxs) == 0 {
-		return yaml.Marshal(nil)
+		return nil, nil //nolint:nilnil
 	}
-	return yaml.Marshal(idxs)
+	return idxs, nil
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface.
-func (b *Bitset) UnmarshalYAML(data []byte) error {
-	if slices.Equal(data, []byte("null")) {
-		return nil
-	}
+func (b *Bitset) UnmarshalYAML(value *yaml.Node) error {
 	var idxs []int
-	err := yaml.Unmarshal(data, &idxs)
+	err := value.Decode(&idxs)
 	if err != nil {
 		return err
 	}

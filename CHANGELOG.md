@@ -32,6 +32,7 @@
 - Fixed a crash on character classes with a range ending in a UTF-16 surrogate code point.
 - Fixed a crash on concatenations and alternations with missing children in JSON and YAML scanner rules.
 - Fixed DFA minimization taking quadratic time, which made some regular expressions take minutes to build.
+- Fixed crashes on malformed YAML grammars and scanner rules and YAML output which read back differently, e.g. strings like "\n" or ".inf", by switching from goccy/go-yaml to go.yaml.in/yaml/v3.
 
 ## v0.5.0 (2026-09-26)
 

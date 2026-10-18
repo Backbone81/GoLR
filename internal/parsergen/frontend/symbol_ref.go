@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/goccy/go-yaml"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/backbone81/golr/internal/utils"
 )
@@ -94,21 +94,18 @@ func (s *SymbolRef) UnmarshalJSON(b []byte) error {
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.
-func (s SymbolRef) MarshalYAML() ([]byte, error) {
+func (s SymbolRef) MarshalYAML() (any, error) {
 	repr := symbolIdxMarshal{
 		Nonterminal: s.IsNonterminal(),
 		Index:       s.Idx(),
 	}
-	return yaml.Marshal(repr)
+	return repr, nil
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface.
-func (s *SymbolRef) UnmarshalYAML(b []byte) error {
-	if slices.Equal(b, []byte("null")) {
-		return nil
-	}
+func (s *SymbolRef) UnmarshalYAML(value *yaml.Node) error {
 	var repr symbolIdxMarshal
-	err := yaml.Unmarshal(b, &repr)
+	err := value.Decode(&repr)
 	if err != nil {
 		return err
 	}

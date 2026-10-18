@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/goccy/go-yaml"
+	"go.yaml.in/yaml/v3"
 )
 
 // ReduceActionSet is an ordered set of ReduceAction elements.
@@ -145,17 +145,14 @@ func (s *ReduceActionSet) UnmarshalJSON(b []byte) error {
 }
 
 // MarshalYAML implements the yaml.Marshaler interface.
-func (s ReduceActionSet) MarshalYAML() ([]byte, error) {
+func (s ReduceActionSet) MarshalYAML() (any, error) {
 	if len(s.actions) == 0 {
-		return yaml.Marshal(nil)
+		return nil, nil //nolint:nilnil
 	}
-	return yaml.Marshal(s.actions)
+	return s.actions, nil
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface.
-func (s *ReduceActionSet) UnmarshalYAML(b []byte) error {
-	if slices.Equal(b, []byte("null")) {
-		return nil
-	}
-	return yaml.Unmarshal(b, &s.actions)
+func (s *ReduceActionSet) UnmarshalYAML(value *yaml.Node) error {
+	return value.Decode(&s.actions)
 }

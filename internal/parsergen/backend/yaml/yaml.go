@@ -9,7 +9,7 @@ import (
 	"runtime/trace"
 	"strings"
 
-	"github.com/goccy/go-yaml"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/backbone81/golr/internal/parsergen/backend"
 )
@@ -31,8 +31,13 @@ func ToParser(reader io.Reader) (backend.Parser, error) {
 func FromParser(writer io.Writer, parser backend.Parser) error {
 	defer trace.StartRegion(context.TODO(), "GoLR: Parsergen: Backends: YAML: FromParser").End()
 
-	if err := yaml.NewEncoder(writer).Encode(&parser); err != nil {
-		return err
+	encoder := yaml.NewEncoder(writer)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(&parser); err != nil {
+		return fmt.Errorf("encoding parser to YAML: %w", err)
+	}
+	if err := encoder.Close(); err != nil {
+		return fmt.Errorf("closing YAML encoder: %w", err)
 	}
 	return nil
 }

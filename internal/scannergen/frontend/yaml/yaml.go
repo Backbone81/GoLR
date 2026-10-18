@@ -9,7 +9,7 @@ import (
 	"runtime/trace"
 	"strings"
 
-	"github.com/goccy/go-yaml"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/backbone81/golr/internal/scannergen/frontend"
 )
@@ -31,18 +31,16 @@ func ToRules(reader io.Reader) ([]frontend.Rule, error) {
 
 // FromRules writes the scanner rules as YAML document to the given writer. Returns an error if the YAML
 // document can not be encoded successfully.
-func FromRules(writer io.Writer, rules []frontend.Rule) (err error) {
+func FromRules(writer io.Writer, rules []frontend.Rule) error {
 	defer trace.StartRegion(context.TODO(), "GoLR: Scannergen: Frontends: YAML: FromRules").End()
 
 	encoder := yaml.NewEncoder(writer)
-	defer func() {
-		if closeErr := encoder.Close(); closeErr != nil {
-			err = errors.Join(err, fmt.Errorf("closing YAML encoder: %w", closeErr))
-		}
-	}()
-
+	encoder.SetIndent(2)
 	if err := encoder.Encode(rules); err != nil {
 		return fmt.Errorf("encoding rules to YAML: %w", err)
+	}
+	if err := encoder.Close(); err != nil {
+		return fmt.Errorf("closing YAML encoder: %w", err)
 	}
 	return nil
 }

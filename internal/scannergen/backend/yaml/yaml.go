@@ -9,7 +9,7 @@ import (
 	"runtime/trace"
 	"strings"
 
-	"github.com/goccy/go-yaml"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/backbone81/golr/internal/scannergen/backend"
 )
@@ -31,8 +31,13 @@ func ToDFA(reader io.Reader) (backend.DFA, error) {
 func FromDFA(writer io.Writer, dfa backend.DFA) error {
 	defer trace.StartRegion(context.TODO(), "GoLR: Scannergen: Frontends: YAML: FromDFA").End()
 
-	if err := yaml.NewEncoder(writer).Encode(&dfa); err != nil {
-		return err
+	encoder := yaml.NewEncoder(writer)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(&dfa); err != nil {
+		return fmt.Errorf("encoding DFA to YAML: %w", err)
+	}
+	if err := encoder.Close(); err != nil {
+		return fmt.Errorf("closing YAML encoder: %w", err)
 	}
 	return nil
 }

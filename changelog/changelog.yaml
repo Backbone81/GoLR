@@ -69,6 +69,9 @@ unreleased:
     in JSON and YAML scanner rules.
 - description: Fixed DFA minimization taking quadratic time, which made some regular
     expressions take minutes to build.
+- description: Fixed crashes on malformed YAML grammars and scanner rules and YAML
+    output which read back differently, e.g. strings like "\n" or ".inf", by switching
+    from goccy/go-yaml to go.yaml.in/yaml/v3.
 releases:
 - version: |
     v0.5.0
