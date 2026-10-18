@@ -44,8 +44,11 @@ func (s *Server) handleInitialize(
 	}
 	return protocol.InitializeResult{
 		Capabilities: protocol.ServerCapabilities{
-			PositionEncoding:           protocol.NewOptional(s.encoding),
-			TextDocumentSync:           protocol.NewServerCapabilitiesTextDocumentSync(protocol.TextDocumentSyncKindFull),
+			PositionEncoding: protocol.NewOptional(s.encoding),
+			TextDocumentSync: protocol.NewServerCapabilitiesTextDocumentSync(protocol.TextDocumentSyncKindFull),
+			CompletionProvider: protocol.NewOptional(protocol.CompletionOptions{
+				TriggerCharacters: []string{"@"},
+			}),
 			DefinitionProvider:         protocol.NewServerCapabilitiesDefinitionProvider(true),
 			ReferencesProvider:         protocol.NewServerCapabilitiesReferencesProvider(true),
 			RenameProvider:             s.renameProvider(params.Capabilities),
@@ -205,6 +208,59 @@ func (s *Server) handleDocumentFormatting(
 			NewText: string(formatted),
 		},
 	}, nil
+}
+
+// handleCompletion handles the textDocument/completion request. It offers the keywords valid at the caret and, where
+// a symbol may be referenced, the names of the terminals and nonterminals. Fragments are left out, as they are only
+// valid inside regular expressions. Every item replaces the word before the caret including a leading "@", which the
+// word a client derives leaves out. See
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification#textDocument_completion
+func (s *Server) handleCompletion(
+	_ context.Context,
+	documents *Documents,
+	params *protocol.CompletionParams,
+) ([]protocol.CompletionItem, error) {
+	snapshot, err := s.openSnapshot(documents, params.TextDocument.Uri)
+	if err != nil {
+		return nil, err
+	}
+
+	symbols := snapshot.Model()
+	offset := snapshot.Offset(params.Position)
+	completion := symbols.CompletionAt(offset)
+	replaced := snapshot.Range(model.Span{Offset: completion.Offset, Length: offset - completion.Offset})
+
+	items := make([]protocol.CompletionItem, 0, len(completion.Keywords))
+	for _, keyword := range completion.Keywords {
+		items = append(items, protocol.CompletionItem{
+			Label:    keyword,
+			Kind:     protocol.NewOptional(protocol.CompletionItemKindKeyword),
+			TextEdit: protocol.NewCompletionItemTextEdit(protocol.TextEdit{Range: replaced, NewText: keyword}),
+		})
+	}
+	if !completion.Symbols {
+		return items, nil
+	}
+
+	offered := map[string]bool{}
+	for _, definition := range symbols.Definitions() {
+		if definition.Kind == model.KindFragment || offered[definition.Name] {
+			continue
+		}
+		offered[definition.Name] = true
+
+		detail := "terminal"
+		if definition.Kind == model.KindNonterminal {
+			detail = "nonterminal"
+		}
+		items = append(items, protocol.CompletionItem{
+			Label:    definition.Name,
+			Kind:     protocol.NewOptional(protocol.CompletionItemKindVariable),
+			Detail:   protocol.NewOptional(detail),
+			TextEdit: protocol.NewCompletionItemTextEdit(protocol.TextEdit{Range: replaced, NewText: definition.Name}),
+		})
+	}
+	return items, nil
 }
 
 // handleDefinition handles the textDocument/definition request. From a definition or a reference, it returns every

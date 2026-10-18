@@ -13,6 +13,7 @@ import (
 // resultDecoders are the decode functions of the results of the methods the server answers with a result.
 var resultDecoders = map[string]func(any) error{
 	protocol.MethodInitialize:                decodeResult(protocol.DecodeInitializeResult),
+	protocol.MethodTextDocumentCompletion:    decodeResult(protocol.DecodeCompletionRequestResult),
 	protocol.MethodTextDocumentDefinition:    decodeResult(protocol.DecodeDefinition),
 	protocol.MethodTextDocumentReferences:    decodeLocations,
 	protocol.MethodTextDocumentPrepareRename: decodeResult(protocol.DecodePrepareRenameResult),

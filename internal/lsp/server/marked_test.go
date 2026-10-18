@@ -121,6 +121,39 @@ func (m marked) renameResponse(newName string) string {
 	})
 }
 
+// offeredSymbol is a symbol name which completion offers, with its detail.
+type offeredSymbol struct {
+	name   string
+	detail string
+}
+
+// completionResponse returns the response with id 2 which offers the keywords and the symbols, each replacing the
+// only marked range. Without keywords and symbols, the document needs no marked range.
+func (m marked) completionResponse(keywords []string, symbols []offeredSymbol) string {
+	items := make([]protocol.CompletionItem, 0, len(keywords)+len(symbols))
+	if len(keywords)+len(symbols) == 0 {
+		return m.response(items)
+	}
+
+	Expect(m.ranges).To(HaveLen(1))
+	for _, keyword := range keywords {
+		items = append(items, protocol.CompletionItem{
+			Label:    keyword,
+			Kind:     protocol.NewOptional(protocol.CompletionItemKindKeyword),
+			TextEdit: protocol.NewCompletionItemTextEdit(protocol.TextEdit{Range: m.ranges[0], NewText: keyword}),
+		})
+	}
+	for _, symbol := range symbols {
+		items = append(items, protocol.CompletionItem{
+			Label:    symbol.name,
+			Kind:     protocol.NewOptional(protocol.CompletionItemKindVariable),
+			Detail:   protocol.NewOptional(symbol.detail),
+			TextEdit: protocol.NewCompletionItemTextEdit(protocol.TextEdit{Range: m.ranges[0], NewText: symbol.name}),
+		})
+	}
+	return m.response(items)
+}
+
 // response returns the response with id 2 which has the result.
 func (m marked) response(result any) string {
 	content, err := json.Marshal(result)
