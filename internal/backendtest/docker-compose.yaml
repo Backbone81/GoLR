@@ -110,12 +110,12 @@ services:
 
   javascript:
     <<: *common
-    image: node:26.12
+    image: node:26.13
     command: ["javascript"]
 
   typescript:
     <<: *common
-    image: mcr.microsoft.com/devcontainers/typescript-node:5.2.3-24
+    image: mcr.microsoft.com/devcontainers/typescript-node:5.2.5-24
     command: ["typescript"]
 
   python:
