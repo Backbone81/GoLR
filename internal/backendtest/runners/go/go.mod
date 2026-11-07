@@ -11,4 +11,4 @@ module runner
 // it has to be one the image below its own toolchain can build.
 go 1.26
 
-toolchain go1.27.2
+toolchain go1.27.3
