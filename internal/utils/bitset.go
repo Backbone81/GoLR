@@ -11,7 +11,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // Bitset provides efficient storage for interacting with a set of bits. Each bit is referenced by its index. The bitset

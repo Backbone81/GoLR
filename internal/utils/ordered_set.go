@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // OrderedSet provides an implementation for a set of values. Values are guaranteed to be only present once within the

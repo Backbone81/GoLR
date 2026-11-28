@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // Kind is a type describing the kind of regular expression node.
